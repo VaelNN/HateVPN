@@ -1,0 +1,707 @@
+/// Кодек записей `sources[]` контракта 1.0 для подписки, одиночного сервера
+/// и папки с членами (§439 §1.2). Цепочка — `chain_record.dart`.
+///
+/// Запись = поля контракта (К) и рядом поля LxBox (L, ONE_NAMESPACE §1).
+/// Кэш и производное не пишутся: `nodes[]` подписки живёт в `sub_cache/`,
+/// узлы сервера и члена папки перечитываются из `origin.raw`. Член-группа
+/// папки (`kind: auto`) — запись `codec/auto_group_record.dart`.
+///
+/// Чтение терпимо: форма нормализуется (ссылка строкой, `body` без
+/// исходника, не тот тип скаляра), битое не бросает. Незнакомые ключи
+/// попадают в [RecordRead.unknownKeys] путями (`fold`, `tag_policy.postfix`,
+/// `identity.hash_device_model`); то, что прочитано не дословно (тег записи
+/// разошёлся с текстом, отброшенный член папки или запись секции),
+/// называется строкой в `notes`. Вызывающий решает, что из этого логировать.
+library;
+
+import 'dart:convert';
+
+import '../../services/parser/body_decoder.dart';
+import '../../services/parser/parse_all.dart';
+import '../import_rule.dart';
+import '../node_link.dart';
+import '../node_spec.dart';
+import '../record_codec.dart' show RecordRead;
+import '../core_reject_verdict.dart';
+import '../server_list.dart';
+import '../subscription_meta.dart';
+import 'auto_group_record.dart';
+import 'node_link_record.dart';
+import 'source_replace_record.dart';
+
+const String kSourceKindSubscription = 'subscription';
+const String kSourceKindServer = 'server';
+const String kSourceKindFolder = 'folder';
+
+/// Вид члена папки, чей текст не разобрался в узел.
+const String kNodeKindUnsupported = 'unsupported';
+
+/// `reason` неразобранного члена папки (та же строка, что у экспорта 438).
+const String kMemberUnparsedReason =
+    'the member text does not parse into a node';
+
+// ─── запись ─────────────────────────────────────────────────────────────────
+
+/// Источник LxBox → запись `sources[]`.
+Map<String, dynamic> sourceToRecord(ServerList list) => switch (list) {
+      SubscriptionServers() => _subscriptionToRecord(list),
+      UserServer() => _serverToRecord(list),
+      FolderServers() => _folderToRecord(list),
+    };
+
+Map<String, dynamic> _subscriptionToRecord(SubscriptionServers s) => {
+      'kind': kSourceKindSubscription,
+      'id': s.id,
+      'name': s.name,
+      'enabled': s.enabled,
+      'url': s.url,
+      if (s.tagPrefix.isNotEmpty) 'tag_policy': _tagPolicyToRecord(s.tagPrefix),
+      if (s.identity != null) 'identity': s.identity!.toJson(),
+      'update': {'interval_hours': s.updateIntervalHours},
+      // §439 п. 10 — unix seconds; доли секунды TTL-очистке не нужны.
+      if (s.disabledHashes.isNotEmpty)
+        'disabled': {
+          for (final e in s.disabledHashes.entries)
+            e.key: e.value.millisecondsSinceEpoch ~/ 1000,
+        },
+      // Фича 478 / PARSING_PRINCIPLES §9.4 — вердикт ядра оверлеем тем же ключом, что и
+      // `disabled`: рядом с отметкой выключения, симметрично в бэкапе (§221).
+      if (s.nodeWarnings.isNotEmpty)
+        'warnings': storedWarningsMapToJson(s.nodeWarnings),
+      ..._detourLinkToRecord(s.detourPolicy),
+      // Фича 565 фаза B — свёртка в группу (К, §74).
+      if (s.replace != null) 'replace': sourceReplaceToRecord(s.replace!),
+      // L — настройки LxBox.
+      ..._detourPolicyToRecord(s.detourPolicy),
+      // §565 / задача 570 — выбор члена групп ручного рода: сырой тег группы
+      // → сырой тег члена. В бэкап не едет (lx_backup_slice, рантайм).
+      if (s.groupDefaults.isNotEmpty)
+        'group_defaults': Map<String, String>.of(s.groupDefaults),
+      if (s.importRules.isNotEmpty)
+        'import_rules': [for (final r in s.importRules) r.toJson()],
+      if (!s.importRulesEnabled) 'import_rules_enabled': false,
+      if (s.onUpdateAction != SubscriptionOnUpdateAction.rebuild)
+        'on_update_action': s.onUpdateAction.name,
+      // L — рантайм машины.
+      if (s.meta != null) 'meta': s.meta!.toJson(),
+      if (s.lastUpdated != null)
+        'last_updated': s.lastUpdated!.toIso8601String(),
+      if (s.lastUpdateAttempt != null)
+        'last_update_attempt': s.lastUpdateAttempt!.toIso8601String(),
+      if (s.lastUpdateStatus != UpdateStatus.never)
+        'last_update_status': s.lastUpdateStatus.name,
+      if (s.lastNodeCount != 0) 'last_node_count': s.lastNodeCount,
+      if (s.consecutiveFails != 0) 'consecutive_fails': s.consecutiveFails,
+    };
+
+/// §439 п. 1–2 — `tag` берётся из разобранного узла (у сервера из нескольких
+/// узлов — первого), исходник пишется целиком. `name` (с §243 пуст) и
+/// `origin` модели не пишутся.
+Map<String, dynamic> _serverToRecord(UserServer u) {
+  final tag = _firstNodeTag(u.nodes, u.rawBody);
+  return {
+    'kind': kSourceKindServer,
+    'id': u.id,
+    if (tag.isNotEmpty) 'tag': tag,
+    'enabled': u.enabled,
+    // Фича 478 — вердикт ядра на ручном сервере: рядом с `enabled`.
+    if (u.warnings.isNotEmpty) 'warnings': storedWarningsToJson(u.warnings),
+    if (u.rawBody.isNotEmpty) 'origin': _originToRecord(u.rawBody),
+    ..._detourLinkToRecord(u.detourPolicy),
+    // §578 — пишется только `true`; отсутствие = `false`.
+    if (u.skipPresets) 'skip_presets': true,
+    // L — настройки LxBox.
+    ..._detourPolicyToRecord(u.detourPolicy),
+    if (u.tagPrefix.isNotEmpty) 'tag_policy': _tagPolicyToRecord(u.tagPrefix),
+  };
+}
+
+Map<String, dynamic> _folderToRecord(FolderServers f) => {
+      'kind': kSourceKindFolder,
+      'id': f.id,
+      'name': f.name,
+      'enabled': f.enabled,
+      if (f.tagPrefix.isNotEmpty) 'tag_policy': _tagPolicyToRecord(f.tagPrefix),
+      ..._detourLinkToRecord(f.detourPolicy),
+      // Фича 565 фаза B — свёртка в группу (К, §74).
+      if (f.replace != null) 'replace': sourceReplaceToRecord(f.replace!),
+      // L — настройки LxBox.
+      ..._detourPolicyToRecord(f.detourPolicy),
+      if (f.pingUrl != null) 'ping_url': f.pingUrl,
+      if (f.pingTimeoutMs != null) 'ping_timeout_ms': f.pingTimeoutMs,
+      // L — момент создания: его отдаёт Debug API `/folders`.
+      'created_at': f.createdAt.toIso8601String(),
+      'nodes': [for (final m in f.members) _memberToRecord(m, f.id)],
+    };
+
+/// Член папки: разобранный — `server` с тегом узла, нет — `unsupported` с
+/// причиной, группа — `auto`. Член с пустым текстом тоже пишется: хранение
+/// его не теряет.
+Map<String, dynamic> _memberToRecord(FolderMember m, String folderId) {
+  final node = m.node;
+  if (node is AutoSelectSpec) return autoGroupMemberToRecord(m, node, folderId);
+  return {
+    'kind': node == null ? kNodeKindUnsupported : kSourceKindServer,
+    if (node != null && node.tag.isNotEmpty) 'tag': node.tag,
+    'enabled': m.enabled,
+    // Фича 478 — вердикт ядра на члене папки: рядом с `enabled`.
+    if (m.warnings.isNotEmpty) 'warnings': storedWarningsToJson(m.warnings),
+    if (m.raw.isNotEmpty) 'origin': _originToRecord(m.raw),
+    if (m.detour.isNotEmpty) 'detour': nodeLinkToRecord(m.detour),
+    if (node == null) 'reason': kMemberUnparsedReason,
+    // §578 — пишется только `true`; отсутствие = `false`.
+    if (m.skipPresets) 'skip_presets': true,
+  };
+}
+
+/// §439 п. 9 — у контракта разделитель внутри префикса, у модели снаружи.
+Map<String, dynamic> _tagPolicyToRecord(String prefix) => {'prefix': '$prefix '};
+
+/// Личный detour источника — ссылка записи (§439 п. 8), на любом виде.
+Map<String, dynamic> _detourLinkToRecord(DetourPolicy p) => {
+      if (p.overrideDetour.isNotEmpty)
+        'detour': nodeLinkToRecord(p.overrideDetour),
+    };
+
+/// Флаги политики detour без ссылки; при умолчаниях поля нет.
+Map<String, dynamic> _detourPolicyToRecord(DetourPolicy p) => {
+      if (p.copyWith(overrideDetour: NodeLink.none) != DetourPolicy.defaults)
+        'detour_policy': p.toJson(),
+    };
+
+/// `origin{kind, raw}`: `kind` выводится из текста (правило экспорта 438:
+/// JSON-объект → `json`, WG-INI → `wg_ini`, прочее → `uri`), `raw` — байт в
+/// байт.
+Map<String, dynamic> _originToRecord(String raw) =>
+    {'kind': originKindOf(raw), 'raw': raw};
+
+/// §455 — ВИД ЗАПИСИ для хранения: `uri` | `wg_ini` | `json`. Контракт
+/// знает ровно эти три, и `json` здесь значит «источник — JSON-объект», без
+/// различия диалекта: `raw` хранится байт в байт, и перечитывается он тоже
+/// из `raw`.
+///
+/// Режим СБОРКИ по этому значению НЕ решается: дословность включает вид
+/// источника движка ([sourceIsSingbox]) — см. `verbatim_body.dart`.
+String originKindOf(String raw) {
+  final t = raw.trim();
+  if (t.startsWith('{')) {
+    try {
+      if (jsonDecode(t) is Map) return 'json';
+    } catch (_) {
+      // Не JSON — решает общий декодер ниже.
+    }
+  }
+  return decode(t) is IniConfig ? 'wg_ini' : 'uri';
+}
+
+/// §480/§482 — ВИД ИСТОЧНИКА текста именем реестра (`source_kind`):
+/// `singbox_outbound`, `xray_config`, `uri_lines` и прочие. Пусто — текст ни
+/// на что не похож (пустой, битый JSON).
+///
+/// Опознание одно на всё приложение — движок (`engine/document.dart`): свой
+/// разбор формы здесь завёл бы второй сниффер, и разъехался бы он молча.
+String sourceKindOf(String raw) {
+  if (raw.trim().isEmpty) return '';
+  final decoded = decode(raw);
+  return switch (decoded) {
+    JsonConfig(:final source) => source.kind,
+    IniConfig() => 'wireguard_conf',
+    AmneziaConfig() => 'amnezia_link',
+    UriLines() => 'uri_lines',
+    DecodeFailure() => '',
+  };
+}
+
+/// §455 + Д-1 (эмулятор 19.09.2026) — ТЕЛО ЭТОГО ТЕКСТА НАПИСАНО В ФОРМЕ
+/// ЯДРА.
+///
+/// Дословность §455 держится ровно на этом: «человек написал sing-box-объект
+/// сам». Xray-объект — чужой диалект (`protocol`, `settings.vnext`,
+/// `streamSettings`), и положить его в `outbounds[]` как есть значит уронить
+/// ВЕСЬ конфиг: ядро отвечает `unknown outbound type:` и узел даже не назван,
+/// так что выключить его нечем. Такой источник идёт через модель (маппер →
+/// санитайзер), как и Xray-массив `outbounds[]`.
+///
+/// Судит по СОДЕРЖИМОМУ текста, а не по записи: уже сохранённым записям с
+/// `origin.kind: json` и Xray-телом миграции не нужно — они лечатся на первой
+/// же загрузке.
+bool sourceIsSingbox(String raw) {
+  final decoded = decode(raw);
+  return decoded is JsonConfig && decoded.source.mapper == 'singbox';
+}
+
+/// §576 — источник записи — голое тело узла sing-box (вид ровно
+/// `singbox_outbound`). У своего сервера и члена папки такое тело авторское:
+/// уходит в ядро дословно (`verbatimBodyOf`) и получает вход `singbox`.
+bool isAuthoredNodeSource(String raw) =>
+    sourceKindOf(raw) == SourceKind.singboxOutbound;
+
+/// §576 п.3 — прежние виды источника своей записи и члена папки, которые
+/// сводятся к голому телу узла.
+const Set<String> kLegacyNodeSourceKinds = {
+  'singbox_config',
+  'singbox_config_array',
+  'singbox_outbound_array',
+};
+
+/// §576 — источник своего сервера и члена папки: только тело узла, вид
+/// `singbox_outbound` (PARSING_PRINCIPLES §11).
+///
+/// Условия: вид источника [raw] — один из [kLegacyNodeSourceKinds] (документ,
+/// массив документов, массив тел). Тогда источником становится тело ПЕРВОГО
+/// узла записи, не группы (`rawSource`, §454): ровно тот узел, что запись и
+/// раньше отдавала в конфиг. Пустой `tag` тела заполняется тегом узла, чтобы
+/// имя не сдвинулось. Тело пишется JSON с отступом в два пробела.
+///
+/// Иначе (голое тело, ссылка, INI, Xray, узлов нет) — [raw] без изменений.
+String bareNodeSourceOf(String raw) {
+  if (!kLegacyNodeSourceKinds.contains(sourceKindOf(raw))) return raw;
+  NodeSpec? node;
+  for (final n in _parseNodes(raw)) {
+    if (!n.isGroup) {
+      node = n;
+      break;
+    }
+  }
+  if (node == null) return raw;
+  return bareBodyTextOf(node) ?? raw;
+}
+
+/// §576 — текст голого тела узла [node] (его `rawSource`) с тегом узла, если
+/// своего тега у тела нет. `null` — `rawSource` не JSON-объект.
+String? bareBodyTextOf(NodeSpec node) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(node.rawSource);
+  } catch (_) {
+    return null;
+  }
+  if (decoded is! Map) return null;
+  final body = Map<String, dynamic>.from(decoded);
+  final tag = body['tag'];
+  if ((tag is! String || tag.trim().isEmpty) && node.tag.isNotEmpty) {
+    body['tag'] = node.tag;
+  }
+  return const JsonEncoder.withIndent('  ').convert(body);
+}
+
+String _firstNodeTag(List<NodeSpec> nodes, String raw) {
+  final parsed = nodes.isNotEmpty ? nodes : _parseNodes(raw);
+  return parsed.isEmpty ? '' : parsed.first.tag;
+}
+
+List<NodeSpec> _parseNodes(String raw, {String? nameHint}) {
+  if (raw.trim().isEmpty) return const [];
+  try {
+    return parseAll(decode(raw), nameHint: nameHint, own: true);
+  } catch (_) {
+    return const [];
+  }
+}
+
+/// §456 — у `origin.kind: wg_ini` тег записи ПРИМЕНЯЕТСЯ: INI тега не
+/// несёт, узел разбирается с ним как с `nameHint`. У ссылки и JSON тег лежит
+/// в тексте, и текст побеждает (`_checkTag`). `null` — не INI или тега нет.
+String? _iniTagHint(Map<String, dynamic> j, String raw) {
+  final tag = j['tag'];
+  if (tag is! String || tag.isEmpty) return null;
+  return originKindOf(raw) == 'wg_ini' ? tag : null;
+}
+
+// ─── чтение ─────────────────────────────────────────────────────────────────
+
+const Set<String> _subscriptionKeys = {
+  'kind', 'id', 'name', 'enabled', 'url', 'tag_policy', 'identity', 'update',
+  'disabled', 'warnings', 'detour', 'detour_policy', 'import_rules',
+  'import_rules_enabled', 'on_update_action', 'meta', 'last_updated',
+  'last_update_attempt', 'last_update_status', 'last_node_count',
+  'consecutive_fails', 'replace', 'group_defaults',
+};
+
+const Set<String> _serverKeys = {
+  'kind', 'id', 'tag', 'enabled', 'warnings', 'origin', 'body', 'detour',
+  'sections', 'skip_presets',
+  'detour_policy', 'tag_policy',
+};
+
+const Set<String> _folderKeys = {
+  'kind', 'id', 'name', 'enabled', 'tag_policy', 'detour', 'detour_policy',
+  'ping_url', 'ping_timeout_ms', 'created_at', 'nodes', 'replace',
+};
+
+const Set<String> _memberKeys = {
+  'kind', 'tag', 'enabled', 'warnings', 'origin', 'body', 'detour', 'reason',
+  'sections', 'skip_presets',
+};
+
+const Set<String> _detourPolicyKeys = {
+  'register_detour_servers', 'register_detour_in_auto', 'use_detour_servers',
+  'replace_detour_chain',
+};
+
+const Set<String> _identityKeys = {
+  'user_agent', 'send_hwid', 'hwid', 'device_os', 'ver_os', 'device_model',
+};
+
+/// Запись `sources[]` → источник LxBox. Запись цепочки читает
+/// `chainFromRecord`; здесь она, как и запись без `id`, — отброс с причиной.
+///
+/// §575 — ключ `sections` у своего сервера и у члена папки читается только
+/// затем, чтобы отметить находку в [notes] (`node sections dropped: <tag>`):
+/// в модель значение не попадает.
+///
+/// Ссылки на узлы читаются как лежат (строка — корневой ссылкой): подъём
+/// `{tag}` до пары (S1) и финального тега группы до сырого (S3) делают входы
+/// чужой формы — импорт файла и Debug API (`codec/node_link_record.dart`).
+/// Хранение их не применяет: писатель хранения пишет пары, а корневая ссылка
+/// на тёзку члена законна (узел в корне), и подъём увёл бы её на другой узел.
+RecordRead<ServerList> sourceFromRecord(
+  Map<String, dynamic> j, {
+  List<String>? notes,
+}) {
+  final kind = j['kind'];
+  if (kind is! String || kind.isEmpty) {
+    return const RecordRead.drop('source without kind');
+  }
+  if (kind != kSourceKindSubscription &&
+      kind != kSourceKindServer &&
+      kind != kSourceKindFolder) {
+    return RecordRead.drop('source kind "$kind" is not read by sourceFromRecord');
+  }
+  final id = j['id'];
+  if (id is! String || id.trim().isEmpty) {
+    return RecordRead.drop('source ($kind) without id');
+  }
+  final unknown = <String>[];
+  final ServerList list = switch (kind) {
+    kSourceKindSubscription => _subscriptionFromRecord(j, id, notes, unknown),
+    kSourceKindServer => _serverFromRecord(j, id, notes, unknown),
+    _ => _folderFromRecord(j, id, notes, unknown),
+  };
+  return RecordRead.ok(list, unknownKeys: unknown..sort());
+}
+
+SubscriptionServers _subscriptionFromRecord(
+  Map<String, dynamic> j,
+  String id,
+  List<String>? notes,
+  List<String> unknown,
+) {
+  final where = 'subscription "$id"';
+  _collectUnknown(j, _subscriptionKeys, '', unknown);
+  final update = j['update'];
+  final interval = update is Map ? update['interval_hours'] : null;
+  if (update is Map) {
+    _collectUnknown(update, const {'interval_hours'}, 'update.', unknown);
+  }
+  return SubscriptionServers(
+    id: id,
+    name: _string(j['name']),
+    enabled: _bool(j['enabled'], true),
+    tagPrefix: _prefixFromRecord(j['tag_policy'], unknown),
+    detourPolicy: _detourPolicyFromRecord(j, unknown),
+    url: _string(j['url']),
+    meta: _metaFromRecord(j['meta'], where, notes),
+    lastUpdated: _date(j['last_updated']),
+    lastUpdateAttempt: _date(j['last_update_attempt']),
+    lastUpdateStatus: UpdateStatus.values.firstWhere(
+      (s) => s.name == j['last_update_status'],
+      orElse: () => UpdateStatus.never,
+    ),
+    updateIntervalHours: interval is num ? interval.toInt() : 24,
+    lastNodeCount: _int(j['last_node_count'], 0),
+    consecutiveFails: _int(j['consecutive_fails'], 0),
+    disabledHashes: _disabledFromRecord(j['disabled']),
+    nodeWarnings: storedWarningsMapFromJson(j['warnings']),
+    identity: _identityFromRecord(j['identity'], unknown),
+    importRules: _importRulesFromRecord(j['import_rules'], where, notes),
+    importRulesEnabled: _bool(j['import_rules_enabled'], true),
+    onUpdateAction: SubscriptionOnUpdateAction.fromJson(j['on_update_action']),
+    replace: sourceReplaceFromRecord(j['replace'], unknown),
+    groupDefaults: _groupDefaultsFromRecord(j['group_defaults']),
+  );
+}
+
+/// §565 / задача 570 — `group_defaults`: карта «тег группы → тег члена»;
+/// нестроковое и пустое отбрасывается молча (форма терпимая, как `disabled`).
+Map<String, String> _groupDefaultsFromRecord(Object? raw) {
+  if (raw is! Map) return const {};
+  final out = <String, String>{};
+  raw.forEach((k, v) {
+    if (k is String && k.isNotEmpty && v is String && v.isNotEmpty) {
+      out[k] = v;
+    }
+  });
+  return out;
+}
+
+/// §439 п. 1 — узлы перечитываются из текста; `tag` записи на чтении не
+/// применяется, расхождение с текстом называется в [notes].
+UserServer _serverFromRecord(
+  Map<String, dynamic> j,
+  String id,
+  List<String>? notes,
+  List<String> unknown,
+) {
+  final where = 'server "$id"';
+  _collectUnknown(j, _serverKeys, '', unknown);
+  // §576 п.3 — документ и массив в источнике сводятся к телу узла.
+  final raw = bareNodeSourceOf(_rawOf(j, '', unknown));
+  final hint = _iniTagHint(j, raw);
+  final nodes = _parseNodes(raw, nameHint: hint);
+  if (hint == null) {
+    _checkTag(j, nodes.isEmpty ? null : nodes.first.tag, where, notes);
+  }
+  _noteSectionsDropped(j['sections'], where, notes);
+  return UserServer(
+    id: id,
+    name: '',
+    enabled: _bool(j['enabled'], true),
+    warnings: storedWarningsFromJson(j['warnings']),
+    tagPrefix: _prefixFromRecord(j['tag_policy'], unknown),
+    detourPolicy: _detourPolicyFromRecord(j, unknown),
+    rawBody: raw,
+    skipPresets: _bool(j['skip_presets'], false),
+    // Список растущий: контроллер дописывает узлы на месте (как fromJson).
+    nodes: [...nodes],
+  );
+}
+
+FolderServers _folderFromRecord(
+  Map<String, dynamic> j,
+  String id,
+  List<String>? notes,
+  List<String> unknown,
+) {
+  final where = 'folder "$id"';
+  _collectUnknown(j, _folderKeys, '', unknown);
+  final members = <FolderMember>[];
+  final rawNodes = j['nodes'];
+  if (rawNodes is List) {
+    for (var i = 0; i < rawNodes.length; i++) {
+      final m = _memberFromRecord(rawNodes[i], id, where, i, notes, unknown);
+      if (m != null) members.add(m);
+    }
+  }
+  final pingUrl = j['ping_url'];
+  final pingTimeout = j['ping_timeout_ms'];
+  return FolderServers(
+    id: id,
+    name: _string(j['name']),
+    enabled: _bool(j['enabled'], true),
+    tagPrefix: _prefixFromRecord(j['tag_policy'], unknown),
+    detourPolicy: _detourPolicyFromRecord(j, unknown),
+    members: members,
+    // Пустой адрес — «брать глобальный», как у legacy-чтения.
+    pingUrl: pingUrl is String && pingUrl.trim().isNotEmpty
+        ? pingUrl.trim()
+        : null,
+    pingTimeoutMs: pingTimeout is num ? pingTimeout.toInt() : null,
+    createdAt: _date(j['created_at']),
+    replace: sourceReplaceFromRecord(j['replace'], unknown),
+  );
+}
+
+/// Член папки. Вид записи на чтении не решает (текст побеждает): `server`
+/// и `unsupported` читаются одинаково, запись без вида — тоже. `auto` —
+/// член-группа; `chain` папка LxBox не держит — отброс с строкой в [notes].
+FolderMember? _memberFromRecord(
+  Object? raw,
+  String folderId,
+  String folderWhere,
+  int index,
+  List<String>? notes,
+  List<String> unknown,
+) {
+  final where = '$folderWhere: nodes[$index]';
+  final path = 'nodes[$index].';
+  if (raw is! Map) {
+    notes?.add('$where: not an object, dropped');
+    return null;
+  }
+  final j = raw.cast<String, dynamic>();
+  final kind = j['kind'];
+  if (kind == kNodeKindAuto) {
+    return autoGroupMemberFromRecord(j,
+            folderId: folderId,
+            where: where,
+            notes: notes,
+            unknown: unknown,
+            path: path)
+        .member;
+  }
+  if (kind is String &&
+      kind != kSourceKindServer &&
+      kind != kNodeKindUnsupported) {
+    notes?.add('$where: kind "$kind" is not supported in a folder, dropped');
+    return null;
+  }
+  _collectUnknown(j, _memberKeys, path, unknown);
+  // §576 п.3 — документ и массив в источнике сводятся к телу узла.
+  final text = bareNodeSourceOf(_rawOf(j, path, unknown));
+  final hint = _iniTagHint(j, text);
+  _noteSectionsDropped(j['sections'], where, notes);
+  final member = FolderMember(
+    raw: text,
+    enabled: _bool(j['enabled'], true),
+    warnings: storedWarningsFromJson(j['warnings']),
+    detour: nodeLinkFromRecord(j['detour']) ?? NodeLink.none,
+    nameHint: hint ?? '',
+    skipPresets: _bool(j['skip_presets'], false),
+  );
+  if (hint == null) _checkTag(j, member.node?.tag, where, notes);
+  return member;
+}
+
+/// Текст узла: `origin.raw`; у записи без исходника (форма лаунчера) —
+/// `body` с тегом записи, сериализованный как JSON-outbound.
+String _rawOf(Map<String, dynamic> j, String path, List<String> unknown) {
+  final origin = j['origin'];
+  if (origin is Map) {
+    _collectUnknown(origin, const {'kind', 'raw'}, '${path}origin.', unknown);
+    final raw = origin['raw'];
+    if (raw is String && raw.isNotEmpty) return raw;
+  }
+  final body = j['body'];
+  if (body is! Map) return '';
+  final tag = j['tag'];
+  return jsonEncode({
+    if (tag is String && tag.isNotEmpty) 'tag': tag,
+    for (final e in body.entries)
+      if (e.key != 'tag' && e.key != 'detour') '${e.key}': e.value,
+  });
+}
+
+void _checkTag(
+  Map<String, dynamic> j,
+  String? parsedTag,
+  String where,
+  List<String>? notes,
+) {
+  final tag = j['tag'];
+  if (tag is! String || tag.isEmpty || parsedTag == null) return;
+  if (tag != parsedTag) {
+    notes?.add('$where: record tag "$tag" differs from the parsed node tag '
+        '"$parsedTag", the text wins');
+  }
+}
+
+/// §439 п. 9 — снимается ровно один хвостовой пробел (не `trimRight`):
+/// префикс с пробелами, заданный через Debug API, не теряется.
+String _prefixFromRecord(Object? policy, List<String> unknown) {
+  if (policy is! Map) return '';
+  _collectUnknown(policy, const {'prefix'}, 'tag_policy.', unknown);
+  final p = policy['prefix'];
+  if (p is! String) return '';
+  return p.endsWith(' ') ? p.substring(0, p.length - 1) : p;
+}
+
+DetourPolicy _detourPolicyFromRecord(
+  Map<String, dynamic> j,
+  List<String> unknown,
+) {
+  final raw = j['detour_policy'];
+  final p = raw is Map ? raw : const <String, dynamic>{};
+  _collectUnknown(p, _detourPolicyKeys, 'detour_policy.', unknown);
+  const d = DetourPolicy.defaults;
+  return DetourPolicy(
+    registerDetourServers:
+        _bool(p['register_detour_servers'], d.registerDetourServers),
+    registerDetourInAuto:
+        _bool(p['register_detour_in_auto'], d.registerDetourInAuto),
+    useDetourServers: _bool(p['use_detour_servers'], d.useDetourServers),
+    overrideDetour: nodeLinkFromRecord(j['detour']) ?? NodeLink.none,
+    replaceDetourChain: _bool(p['replace_detour_chain'], d.replaceDetourChain),
+  );
+}
+
+SubscriptionIdentityOverride? _identityFromRecord(
+  Object? raw,
+  List<String> unknown,
+) {
+  if (raw is! Map) return null;
+  _collectUnknown(raw, _identityKeys, 'identity.', unknown);
+  return SubscriptionIdentityOverride(
+    userAgent: _string(raw['user_agent']),
+    sendHwid: _bool(raw['send_hwid'], false),
+    hwid: _string(raw['hwid']),
+    deviceOs: _string(raw['device_os']),
+    verOs: _string(raw['ver_os']),
+    deviceModel: _string(raw['device_model']),
+  );
+}
+
+/// Отметки выключенных узлов: unix seconds → момент UTC. Пустой ключ и
+/// значение не числом пропускаются: отметка без времени бесполезна для TTL.
+Map<String, DateTime> _disabledFromRecord(Object? raw) {
+  if (raw is! Map || raw.isEmpty) return const {};
+  final out = <String, DateTime>{};
+  raw.forEach((k, v) {
+    final key = '$k';
+    if (key.isEmpty || v is! num) return;
+    out[key] =
+        DateTime.fromMillisecondsSinceEpoch(v.toInt() * 1000, isUtc: true);
+  });
+  return out;
+}
+
+SubscriptionMeta? _metaFromRecord(
+  Object? raw,
+  String where,
+  List<String>? notes,
+) {
+  if (raw is! Map) return null;
+  try {
+    return SubscriptionMeta.fromJson(raw.cast<String, dynamic>());
+  } catch (_) {
+    notes?.add('$where: meta does not read, dropped');
+    return null;
+  }
+}
+
+List<ImportRule> _importRulesFromRecord(
+  Object? raw,
+  String where,
+  List<String>? notes,
+) {
+  if (raw is! List || raw.isEmpty) return const [];
+  final out = <ImportRule>[];
+  for (var i = 0; i < raw.length; i++) {
+    final r = raw[i];
+    try {
+      if (r is! Map) throw const FormatException('not an object');
+      out.add(ImportRule.fromJson(r.cast<String, dynamic>()));
+    } catch (_) {
+      notes?.add('$where: import_rules[$i] does not read, dropped');
+    }
+  }
+  return out;
+}
+
+/// §575 — ключ `sections` не читается в модель; непустая запись отмечается
+/// строкой в [notes] (`node sections dropped: <tag>`).
+void _noteSectionsDropped(Object? raw, String where, List<String>? notes) {
+  if (raw is! Map || raw.isEmpty) return;
+  notes?.add('node sections dropped: $where');
+}
+
+// ─── помощники ──────────────────────────────────────────────────────────────
+
+void _collectUnknown(
+  Map<dynamic, dynamic> j,
+  Set<String> known,
+  String prefix,
+  List<String> out,
+) {
+  for (final k in j.keys) {
+    if (!known.contains(k)) out.add('$prefix$k');
+  }
+}
+
+String _string(Object? v) => v is String ? v : '';
+
+bool _bool(Object? v, bool fallback) => v is bool ? v : fallback;
+
+int _int(Object? v, int fallback) => v is num ? v.toInt() : fallback;
+
+DateTime? _date(Object? v) => v is String ? DateTime.tryParse(v) : null;

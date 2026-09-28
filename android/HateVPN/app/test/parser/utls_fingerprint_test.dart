@@ -1,0 +1,588 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lxbox/models/node_spec.dart';
+import 'package:lxbox/models/node_warning.dart';
+import 'package:lxbox/models/template_vars.dart';
+import 'package:lxbox/services/parser/json_parsers.dart';
+import 'package:lxbox/services/parser/singbox_config.dart';
+import 'package:lxbox/services/parser/uri_parsers.dart';
+import 'package:lxbox/services/parser/utls_fingerprint.dart';
+
+import 'engine_test_setup.dart';
+import 'parse_link_as.dart';
+
+// §169 — валидный X25519 public key (43-симв base64url = 32 байта).
+const _validPbk = 'AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw';
+
+/// Узел, пришедший sing-box JSON полным путём входа: `parseSingboxConfigs`
+/// строит модель по карте санитайзера реестра (§545). Блоки utls/reality на
+/// QUIC снимает он, а не эмиттер (§546).
+NodeSpec _viaSingboxJson(Map<String, dynamic> entry) => parseSingboxConfigs([
+      {
+        'outbounds': [entry],
+      },
+    ]).single;
+
+/// §281 — uTLS fingerprint вне словаря ядра = fatal ВСЕГО конфига на старте
+/// («unknown uTLS fingerprint»). Xray-псевдонимы канонизируются молча,
+/// неопознанный мусор → chrome + UnknownFingerprintWarning.
+void main() {
+  // §472 шаги 2–3 — отпечаток судит РЕЕСТР, а не рукописный
+  // `normalizeTlsFingerprint`: тестам переехавших схем (trojan, vless) нужен
+  // загруженный реестр, иначе они проверяли бы разбор БЕЗ санитайзера, то
+  // есть не то поведение, которое видит приложение.
+  //
+  // §480 — гейт переставлен с вендоренной копии `app/contract/` на ЗЕРКАЛО
+  // `assets/contract`, как у tuic и anytls. Копии на CI нет вовсе (она в
+  // `.gitignore`), и под её гейтом файл молча пропускался бы именно там, где
+  // нужен. Заодно грузятся секции-мапперы: с переездом схем на движок разбор
+  // без них не работает — рукописного запасного пути у vless и trojan
+  // больше нет (критерий 7 спеки 480).
+
+  setUpAll(loadEngineSections);
+
+  group('normalizeUtlsFingerprintValue (чистая функция)', () {
+    test('значения словаря проходят как есть', () {
+      for (final fp in kUtlsFingerprints) {
+        final n = normalizeUtlsFingerprintValue(fp);
+        expect(n.value, fp);
+        expect(n.junk, isFalse);
+      }
+    });
+
+    test('регистр и пробелы канонизируются', () {
+      expect(normalizeUtlsFingerprintValue('QQ'), (value: 'qq', junk: false));
+      expect(normalizeUtlsFingerprintValue(' Chrome '),
+          (value: 'chrome', junk: false));
+    });
+
+    test('xray-псевдонимы hello* → семейство, НЕ junk', () {
+      const cases = {
+        'hellochrome_120': 'chrome',
+        'hellochrome_106_shuffle': 'chrome',
+        'hellochrome_auto': 'chrome',
+        'HelloChrome_120': 'chrome',
+        'hellofirefox_auto': 'firefox',
+        'helloedge_85': 'edge',
+        'hellosafari_auto': 'safari',
+        'hello360_auto': '360',
+        'helloqq_auto': 'qq',
+        'helloios_auto': 'ios',
+        'helloandroid_11_okhttp': 'android',
+        // §463 / контракт §24.2 п. 7.1 — весь префикс `hellorandom*` даёт
+        // `random`: подписка просила случайный отпечаток, и подменять его
+        // фиксированным (раньше голый `hellorandom` уезжал в `chrome`)
+        // значило вернуть ту самую узнаваемую сигнатуру, от которой уходили.
+        'hellorandom': 'random',
+        'hellorandomized': 'random',
+        'hellorandomizedalpn': 'random',
+        'hellorandomizednoalpn': 'random',
+      };
+      cases.forEach((raw, want) {
+        final n = normalizeUtlsFingerprintValue(raw);
+        expect(n.value, want, reason: raw);
+        expect(n.junk, isFalse, reason: raw);
+      });
+    });
+
+    test('неопознанный мусор → chrome + junk', () {
+      for (final raw in ['garbage', 'hellogolang', 'hellocustom', 'none']) {
+        final n = normalizeUtlsFingerprintValue(raw);
+        expect(n.value, 'chrome', reason: raw);
+        expect(n.junk, isTrue, reason: raw);
+      }
+    });
+
+    test('пустая/пробельная строка → пустая, НЕ junk', () {
+      expect(normalizeUtlsFingerprintValue(''), (value: '', junk: false));
+      expect(normalizeUtlsFingerprintValue('  '), (value: '', junk: false));
+    });
+  });
+
+  group('SPEC 083/086/087 — REALITY + отпечаток без гибридного key share', () {
+    test('kRealityHybridFingerprints ⊂ словаря ядра', () {
+      expect(kUtlsFingerprints.containsAll(kRealityHybridFingerprints), isTrue);
+      expect(isRealityHybridFingerprint(''), isTrue, reason: 'дефолт ядра');
+      expect(isRealityHybridFingerprint('chrome_pq'), isTrue);
+      expect(isRealityHybridFingerprint('random'), isFalse);
+      expect(isRealityHybridFingerprint('randomized'), isFalse);
+    });
+
+    // §451 / ядро SPEC 086+087 (libbox ≥ v1.14.1-lx.3) — форк utls добавил
+    // Firefox 148 и Safari 26.3 с гибридным key share.
+    test('firefox и safari несут гибрид, остальные не-chrome — нет', () {
+      for (final fp in ['firefox', 'safari']) {
+        expect(isRealityHybridFingerprint(fp), isTrue, reason: fp);
+      }
+      for (final fp in ['edge', 'ios', 'android', '360', 'qq']) {
+        expect(isRealityHybridFingerprint(fp), isFalse, reason: fp);
+      }
+    });
+
+    test('REALITY + fp=firefox/safari → без предупреждения, значение сохранено',
+        () {
+      for (final fp in ['firefox', 'safari']) {
+        final spec = parseLinkAs<VlessSpec>(
+            'vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?type=tcp&security=reality&encryption=none'
+            '&fp=$fp&pbk=$_validPbk#L')!;
+        expect(spec.tls.fingerprint, fp,
+            reason: '§444: отпечаток источника не подменяется');
+        expect(spec.warnings.whereType<RealityFingerprintWarning>(), isEmpty,
+            reason: fp);
+        expect(spec.warnings.whereType<UnknownFingerprintWarning>(), isEmpty);
+      }
+    });
+
+    // §472 шаг 3 — vless разбирается конвейером, и код ставит РЕЕСТР
+    // (`tls.json` → `utls.fingerprint`, `advisory` с `except`), а не
+    // рукописный `normalizeTlsFingerprint`. Исход прежний — значение цело,
+    // узел под предупреждением, — но код реестровый и несёт путь.
+    // Реестр здесь уже загружен: его грузит `setUpAll`-подобный вызов в
+    // группе «остальные URI-парсеры» ниже по файлу. Без него эти тесты
+    // проверяли бы разбор без санитайзера, то есть не то поведение, которое
+    // видит приложение.
+    test('REALITY + fp=edge → reality_fp_not_chrome, значение сохранено', () {
+      final spec = parseLinkAs<VlessSpec>(
+          'vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?type=tcp&security=reality&encryption=none'
+          '&fp=edge&pbk=$_validPbk#L')!;
+      expect(spec.tls.fingerprint, 'edge',
+          reason: '§444: отпечаток источника не подменяется ни в entry, ни в конфиге');
+      final w = spec.warnings.whereType<RegistryWarning>().firstWhere(
+            (w) => w.code == 'reality_fp_not_chrome',
+            orElse: () => fail('нет кода reality_fp_not_chrome: ${spec.warnings}'),
+          );
+      expect(w.path, 'tls.utls.fingerprint');
+      expect(w.value, 'edge');
+      expect(spec.warnings.whereType<UnknownFingerprintWarning>(), isEmpty);
+    });
+
+    test('REALITY + xray-псевдоним hellofirefox_auto → firefox, без предупреждения',
+        () {
+      final spec = parseLinkAs<VlessSpec>(
+          'vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?type=tcp&security=reality&encryption=none'
+          '&fp=hellofirefox_auto&pbk=$_validPbk#L')!;
+      expect(spec.tls.fingerprint, 'firefox');
+      expect(spec.warnings.whereType<RealityFingerprintWarning>(), isEmpty);
+    });
+
+    test('REALITY + xray-псевдоним helloqq_auto → qq + предупреждение', () {
+      final spec = parseLinkAs<VlessSpec>(
+          'vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?type=tcp&security=reality&encryption=none'
+          '&fp=helloqq_auto&pbk=$_validPbk#L')!;
+      expect(spec.tls.fingerprint, 'qq');
+      // Перевод написания кода не даёт, а отпечаток без гибридного шара —
+      // даёт, и на уже переведённом значении (§472 шаг 3: судит реестр).
+      final w = spec.warnings.whereType<RegistryWarning>().firstWhere(
+            (w) => w.code == 'reality_fp_not_chrome',
+            orElse: () => fail('нет кода reality_fp_not_chrome: ${spec.warnings}'),
+          );
+      expect(w.value, 'qq');
+    });
+
+    test('REALITY + chrome-семейство и дефолтный random → без предупреждения',
+        () {
+      for (final q in ['&fp=chrome', '&fp=chrome_pq', '&fp=HelloChrome_120', '']) {
+        final spec = parseLinkAs<VlessSpec>(
+            'vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?type=tcp&security=reality&encryption=none'
+            '$q&pbk=$_validPbk#L')!;
+        expect(spec.warnings.whereType<RealityFingerprintWarning>(), isEmpty,
+            reason: 'q="$q"');
+      }
+    });
+
+    test('plain TLS + fp=firefox → без предупреждения (сервер не REALITY)', () {
+      final spec = parseLinkAs<VlessSpec>(
+          'vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?type=tcp&security=tls&encryption=none'
+          '&fp=firefox&sni=h#L')!;
+      expect(spec.tls.reality, isNull);
+      expect(spec.warnings.whereType<RealityFingerprintWarning>(), isEmpty);
+    });
+
+    test('raw sing-box JSON: REALITY + safari — без аккумулятора, значение цело',
+        () {
+      final spec = parseSingboxEntry({
+        'type': 'vless',
+        'tag': 't',
+        'server': 'h',
+        'server_port': 443,
+        'uuid': '0aa41f0a-6d92-4f74-8b13-4d0d5b6cbb6c',
+        'tls': {
+          'enabled': true,
+          'server_name': 'x.com',
+          'utls': {'enabled': true, 'fingerprint': 'safari'},
+          'reality': {'enabled': true, 'public_key': _validPbk},
+        },
+      })! as VlessSpec;
+      expect(spec.tls.fingerprint, 'safari');
+    });
+  });
+
+  group('VLESS (реальный кейс подписки)', () {
+    test('REALITY + fp=hellochrome_120 → chrome, МОЛЧА, reality на месте', () {
+      final spec = parseLinkAs<VlessSpec>(
+          'vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?type=tcp&security=reality&encryption=none'
+          '&flow=xtls-rprx-vision&fp=hellochrome_120&pbk=$_validPbk#L')!;
+      expect(spec.tls.fingerprint, 'chrome');
+      expect(spec.tls.reality, isNotNull, reason: 'REALITY не потерян');
+      expect(spec.warnings.whereType<UnknownFingerprintWarning>(), isEmpty,
+          reason: 'псевдоним = синоним, не warning');
+    });
+
+    test('fp=QQ → qq (регистр)', () {
+      final spec = parseLinkAs<VlessSpec>(
+          'vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?type=grpc&security=reality&fp=QQ&pbk=$_validPbk#L')!;
+      expect(spec.tls.fingerprint, 'qq');
+      expect(spec.warnings.whereType<UnknownFingerprintWarning>(), isEmpty);
+    });
+
+    // §472 шаг 3 — тот же переезд, что у trojan шагом 2: мусор сводит к
+    // `chrome` реестр (`on_invalid: coerce`), код `utls_fp_unknown` несёт
+    // путь и СЫРОЕ значение ссылки.
+    test('мусор → chrome + код реестра utls_fp_unknown', () {
+      final spec =
+          parseLinkAs<VlessSpec>('vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?security=tls&fp=garbage&sni=x.com#L')!;
+      expect(spec.tls.fingerprint, 'chrome');
+      final w = spec.warnings.whereType<RegistryWarning>().firstWhere(
+            (w) => w.code == 'utls_fp_unknown',
+            orElse: () => fail('нет кода utls_fp_unknown: ${spec.warnings}'),
+          );
+      expect(w.path, 'tls.utls.fingerprint');
+      expect(w.value, 'garbage');
+    });
+
+    test('emit отдаёт канонизированный utls.fingerprint', () {
+      final spec = parseLinkAs<VlessSpec>(
+          'vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?security=tls&fp=hellochrome_120&sni=x.com#L')!;
+      final out = spec.emit(TemplateVars.empty).map;
+      final utls = (out['tls'] as Map)['utls'] as Map;
+      expect(utls['fingerprint'], 'chrome');
+    });
+
+    test('пустой fp → существующий дефолт random (не тронут)', () {
+      final spec = parseLinkAs<VlessSpec>('vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?security=tls&fp=&sni=x.com#L')!;
+      expect(spec.tls.fingerprint, 'random');
+    });
+  });
+
+  group('остальные URI-парсеры', () {
+    test('trojan: псевдоним молча', () {
+      final spec = parseLinkAs<TrojanSpec>(
+          'trojan://p@h:443?security=tls&fp=hellofirefox_auto&sni=x.com#L')!;
+      expect(spec.tls.fingerprint, 'firefox');
+      expect(spec.warnings.whereType<UnknownFingerprintWarning>(), isEmpty);
+    });
+
+    // §472 шаг 2 — trojan разбирается конвейером, и мусорный отпечаток судит
+    // РЕЕСТР (`tls.json` → `utls.fingerprint`: enum + `on_invalid: coerce
+    // chrome`), а не рукописный `normalizeTlsFingerprint`. Исход прежний —
+    // `chrome` плюс предупреждение, — но код реестровый (`utls_fp_unknown`) и
+    // несёт путь со значением, чего у рукописного класса не было.
+    test('trojan: мусор → chrome + код реестра utls_fp_unknown', () {
+      final spec =
+          parseLinkAs<TrojanSpec>('trojan://p@h:443?security=tls&fp=bogus&sni=x.com#L')!;
+      expect(spec.tls.fingerprint, 'chrome');
+      final w = spec.warnings.whereType<RegistryWarning>().firstWhere(
+            (w) => w.code == 'utls_fp_unknown',
+            orElse: () => fail('нет кода utls_fp_unknown: ${spec.warnings}'),
+          );
+      expect(w.path, 'tls.utls.fingerprint');
+      expect(w.value, 'bogus');
+    });
+
+    test('trojan: пустой fp → null (без utls-блока)', () {
+      final spec = parseLinkAs<TrojanSpec>('trojan://p@h:443?security=tls&sni=x.com#L')!;
+      expect(spec.tls.fingerprint, isNull);
+    });
+
+    // §472 шаг 4 — тот же переезд, что у trojan шагом 2 и vless шагом 3:
+    // мусорный отпечаток сводит к `chrome` РЕЕСТР (`tls.json` →
+    // `utls.fingerprint`: enum + `on_invalid: coerce chrome`), и код
+    // `utls_fp_unknown` несёт путь и СЫРОЕ значение из контейнера.
+    test('vmess: мусор в fp из base64-JSON → chrome + код реестра', () {
+      final cfg = {
+        'v': '2',
+        'ps': 'L',
+        'add': 'h',
+        'port': '443',
+        'id': '0aa41f0a-6d92-4f74-8b13-4d0d5b6cbb6c',
+        'net': 'ws',
+        'tls': 'tls',
+        'fp': 'wat',
+        'host': 'x.com',
+        'path': '/',
+      };
+      final uri = 'vmess://${base64Encode(utf8.encode(jsonEncode(cfg)))}';
+      final spec = parseLinkAs<VmessSpec>(uri)!;
+      expect(spec.tls.fingerprint, 'chrome');
+      final w = spec.warnings.whereType<RegistryWarning>().firstWhere(
+            (w) => w.code == 'utls_fp_unknown',
+            orElse: () => fail('нет кода utls_fp_unknown: ${spec.warnings}'),
+          );
+      expect(w.path, 'tls.utls.fingerprint');
+      expect(w.value, 'wat');
+    });
+
+    test('anytls: псевдоним молча (через VLESS-конвенцию)', () {
+      final spec =
+          parseLinkAs<AnyTlsSpec>('anytls://p@h:443?fp=hellochrome_131&sni=x.com#L')!;
+      expect(spec.tls.fingerprint, 'chrome');
+      expect(spec.warnings.whereType<UnknownFingerprintWarning>(), isEmpty);
+    });
+
+    test('hysteria2: отпечаток снимает реестр, кода о «неизвестном» НЕТ', () {
+      // §472 шаг 5 — на конвейере блок `tls.utls` доезжает до санитайзера, и
+      // правило `forbidden_for` снимает его ЦЕЛИКОМ с кодом
+      // `tls_not_applicable_quic`. Отпечаток до модели не доходит вовсе.
+      //
+      // Кода `utls_fp_unknown` здесь нет намеренно, и это записано ещё §469:
+      // отпечаток, который на QUIC в принципе не применяется, ядру
+      // неизвестным быть не может — корпус его у QUIC-схем не ждёт. Прежде
+      // код появлялся побочно, от `normalizeTlsFingerprint` на пути в модель.
+      final spec = parseLinkAs<Hysteria2Spec>('hysteria2://p@h:443?fp=bogus&sni=x.com#L')!;
+      expect(spec.tls.fingerprint, isNull, reason: 'блок снят санитайзером');
+      expect(spec.warnings.whereType<UnknownFingerprintWarning>(), isEmpty);
+      final w = spec.warnings
+          .whereType<RegistryWarning>()
+          .where((w) => w.code == 'tls_not_applicable_quic');
+      expect(w, hasLength(1));
+      // PARSING_PRINCIPLES §6 — `value` называет написанное автором, а не подмену.
+      expect(w.first.value, 'map[enabled:true fingerprint:bogus]');
+    });
+
+    test('proxy-https: псевдоним молча', () {
+      final spec = parseLinkAs<HttpSpec>(
+          'proxy-https://u:p@h:443?fp=hellochrome_120&sni=x.com#L')!;
+      expect(spec.tls.fingerprint, 'chrome');
+      expect(spec.warnings.whereType<UnknownFingerprintWarning>(), isEmpty);
+    });
+  });
+
+  group('§282 — QUIC (hysteria2/tuic) не эмитит uTLS', () {
+    Map<String, dynamic> emitTls(NodeSpec spec) =>
+        spec.emit(TemplateVars.empty).map['tls'] as Map<String, dynamic>;
+
+    test('hysteria2 URI с fp → emit-конфиг БЕЗ utls', () {
+      final spec = parseLinkAs<Hysteria2Spec>('hysteria2://p@h:443?fp=chrome&sni=x.com#L')!;
+      // §472 шаг 5 — блок снят САНИТАЙЗЕРОМ, до модели он не доезжает.
+      // Прежде он доезжал (`spec.tls.fingerprint == 'chrome'`) и срезался
+      // позже, на эмите: `toSingboxForQuic` (снят §546). Тело узла от переезда не
+      // изменилось — `utls` в нём не было и тогда.
+      expect(spec.tls.fingerprint, isNull);
+      final tls = emitTls(spec);
+      expect(tls.containsKey('utls'), isFalse,
+          reason: 'uTLS поверх QUIC = мёртвая нода');
+      expect(tls['server_name'], 'x.com', reason: 'остальной TLS цел');
+    });
+
+    test('hysteria2 round-trip: fp в ссылку не возвращается, и это верно', () {
+      // ИЗМЕНЕНИЕ ПОВЕДЕНИЯ, названное в спеке 472 (раздел 11.6). Прежде
+      // отпечаток жил в модели только ради обратной записи в ссылку: в тело
+      // он не попадал никогда (`toSingboxForQuic`, снят §546), на соединение не влиял, а
+      // `toUri()` его возвращал — и ссылка выглядела так, будто параметр
+      // действует. Санитайзер снимает блок вместе со значением, и круг даёт
+      // ссылку без мусора.
+      //
+      // Тот же класс, что `xhttp-mode-invalid` у vless на шаге 3: тело и
+      // identity прежние, расходится только текст пересобранной ссылки — в
+      // сторону очистки.
+      final spec = parseLinkAs<Hysteria2Spec>('hysteria2://p@h:443?fp=chrome&sni=x.com#L')!;
+      expect(spec.toUri(), isNot(contains('fp=')));
+      // Узел от этого не страдает: он и раньше поднимался без отпечатка.
+      expect(spec.toUri(), contains('sni=x.com'));
+      expect(parseUri(spec.toUri())!.emit(TemplateVars.empty).map,
+          spec.emit(TemplateVars.empty).map);
+    });
+
+    test('tuic из sing-box JSON с fp → emit-конфиг БЕЗ utls', () {
+      final spec = _viaSingboxJson({
+        'type': 'tuic',
+        'tag': 't',
+        'server': 'h',
+        'server_port': 443,
+        'uuid': '0aa41f0a-6d92-4f74-8b13-4d0d5b6cbb6c',
+        'password': 'p',
+        'tls': {
+          'enabled': true,
+          'server_name': 'x.com',
+          'alpn': ['h3'],
+          'utls': {'enabled': true, 'fingerprint': 'chrome'},
+        },
+      });
+      final tls = emitTls(spec);
+      expect(tls.containsKey('utls'), isFalse);
+      expect(tls['alpn'], ['h3'], reason: 'alpn для QUIC валиден, не трогаем');
+    });
+
+    test('TCP-протокол (vless) с fp → utls НА МЕСТЕ (контроль)', () {
+      final spec =
+          parseLinkAs<VlessSpec>('vless://8f2e1c44-0000-4000-8000-000000000001@h.example:443?security=tls&fp=chrome&sni=x.com#L')!;
+      final tls = emitTls(spec);
+      expect((tls['utls'] as Map)['fingerprint'], 'chrome');
+    });
+
+    test('РЕВЬЮ §282: reality на tuic → emit БЕЗ reality и БЕЗ utls', () {
+      // reality поверх QUIC тоже мёртв (RealityClientConfig.STDConfig ошибка);
+      // reality на hy2/tuic = мусор подписок, срезаем оба блока.
+      final spec = _viaSingboxJson({
+        'type': 'tuic',
+        'tag': 't',
+        'server': 'h',
+        'server_port': 443,
+        'uuid': '0aa41f0a-6d92-4f74-8b13-4d0d5b6cbb6c',
+        'password': 'p',
+        'tls': {
+          'enabled': true,
+          'server_name': 'x.com',
+          'reality': {'enabled': true, 'public_key': _validPbk},
+          'utls': {'enabled': true, 'fingerprint': 'chrome'},
+        },
+      });
+      final tls = emitTls(spec);
+      expect(tls.containsKey('utls'), isFalse);
+      expect(tls.containsKey('reality'), isFalse);
+      expect(tls['server_name'], 'x.com');
+    });
+  });
+
+  group('JSON-парсеры', () {
+    test('xray streamSettings: псевдоним в reality.fingerprint → chrome', () {
+      final spec = parseXrayOutbound(<String, dynamic>{
+        'remarks': 'L',
+        'outbounds': [
+          {
+            'protocol': 'vless',
+            'tag': 'proxy',
+            'settings': {
+              'vnext': [
+                {
+                  'address': 'h',
+                  'port': 443,
+                  'users': [
+                    {'id': '0aa41f0a-6d92-4f74-8b13-4d0d5b6cbb6c'}
+                  ],
+                }
+              ],
+            },
+            'streamSettings': {
+              'network': 'tcp',
+              'security': 'reality',
+              'realitySettings': {
+                'publicKey': _validPbk,
+                'fingerprint': 'hellochrome_120',
+                'serverName': 'x.com',
+              },
+            },
+          },
+        ],
+      })! as VlessSpec;
+      expect(spec.tls.fingerprint, 'chrome');
+      expect(spec.warnings.whereType<UnknownFingerprintWarning>(), isEmpty);
+    });
+
+    test('raw sing-box entry: псевдоним и мусор канонизируются молча', () {
+      VlessSpec entryWithFp(String fp) => parseSingboxEntry({
+            'type': 'vless',
+            'tag': 't',
+            'server': 'h',
+            'server_port': 443,
+            'uuid': '0aa41f0a-6d92-4f74-8b13-4d0d5b6cbb6c',
+            'tls': {
+              'enabled': true,
+              'server_name': 'x.com',
+              'utls': {'enabled': true, 'fingerprint': fp},
+            },
+          })! as VlessSpec;
+      expect(entryWithFp('HelloChrome_120').tls.fingerprint, 'chrome');
+      expect(entryWithFp('garbage').tls.fingerprint, 'chrome');
+    });
+
+    test(
+        'РЕВЬЮ §281 / контракт 1.1.61: REALITY + пустой/пробельный '
+        'fingerprint — uTLS эмитится без отпечатка (ядро читает пустой как '
+        'chrome, utls_client.go), пустое значение в теле законно',
+        () {
+      for (final fp in ['', '  ']) {
+        final spec = parseSingboxEntry({
+          'type': 'vless',
+          'tag': 't',
+          'server': 'h',
+          'server_port': 443,
+          'uuid': '0aa41f0a-6d92-4f74-8b13-4d0d5b6cbb6c',
+          'tls': {
+            'enabled': true,
+            'server_name': 'x.com',
+            'utls': {'enabled': true, 'fingerprint': fp},
+            'reality': {'enabled': true, 'public_key': _validPbk},
+          },
+        })! as VlessSpec;
+        expect(spec.tls.fingerprint, '', reason: 'fp="$fp"');
+        expect(spec.tls.reality, isNotNull);
+        final utls =
+            (spec.emit(TemplateVars.empty).map['tls'] as Map)['utls'] as Map;
+        expect(utls, {'enabled': true});
+      }
+    });
+
+    test('РЕВЬЮ §281: xray reality с пустым fingerprint → chrome', () {
+      final spec = parseXrayOutbound(<String, dynamic>{
+        'remarks': 'L',
+        'outbounds': [
+          {
+            'protocol': 'vless',
+            'tag': 'proxy',
+            'settings': {
+              'vnext': [
+                {
+                  'address': 'h',
+                  'port': 443,
+                  'users': [
+                    {'id': '0aa41f0a-6d92-4f74-8b13-4d0d5b6cbb6c'}
+                  ],
+                }
+              ],
+            },
+            'streamSettings': {
+              'network': 'tcp',
+              'security': 'reality',
+              'realitySettings': {
+                'publicKey': _validPbk,
+                'fingerprint': '',
+                'serverName': 'x.com',
+              },
+            },
+          },
+        ],
+      })! as VlessSpec;
+      expect(spec.tls.fingerprint, 'chrome');
+      expect(spec.tls.reality, isNotNull);
+    });
+
+    test(
+        'РЕВЬЮ §281: naive-entry срезает TLS до enabled/server_name '
+        '(alpn/utls/insecure/reality для naive = fatal у ядра)', () {
+      final spec = parseSingboxEntry({
+        'type': 'naive',
+        'tag': 't',
+        'server': 'h',
+        'server_port': 443,
+        'username': 'u',
+        'password': 'p',
+        'tls': {
+          'enabled': true,
+          'server_name': 'x.com',
+          'insecure': true,
+          'alpn': ['h2'],
+          'utls': {'enabled': true, 'fingerprint': 'chrome'},
+          'reality': {'enabled': true, 'public_key': _validPbk},
+        },
+      })! as NaiveSpec;
+      expect(spec.tls.enabled, isTrue);
+      expect(spec.tls.serverName, 'x.com');
+      expect(spec.tls.fingerprint, isNull);
+      expect(spec.tls.alpn, isEmpty);
+      expect(spec.tls.insecure, isFalse);
+      expect(spec.tls.reality, isNull);
+    });
+  });
+}

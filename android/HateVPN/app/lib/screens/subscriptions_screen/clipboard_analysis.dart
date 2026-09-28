@@ -1,0 +1,223 @@
+import '../../models/node_warning.dart';
+import '../../services/l10n/locale_controller.dart';
+import '../../services/parser/body_decoder.dart';
+import '../../services/parser/json_comments.dart';
+import '../../services/parser/parse_all.dart';
+import '../../services/subscription/input_helpers.dart';
+import '../../services/hate_invitation.dart';
+
+/// Result of analyzing clipboard text before adding it as a server/sub.
+class ClipboardAnalysis {
+  ClipboardAnalysis({
+    required this.type,
+    required this.title,
+    required this.subtitle,
+    this.notImported = const [],
+    this.dropped = const [],
+  });
+  final String type;
+  final String title;
+  final String subtitle;
+
+  /// §561 / задача 570 — записи вставки, которые не станут узлами, с
+  /// причиной (`dropped[]` того же разбора, что сделает импорт). Пусто —
+  /// отбраковок нет. Диалог показывает счётчик и шторку причин.
+  final List<NodeWarning> dropped;
+
+  ClipboardAnalysis withDropped(List<NodeWarning> d) => d.isEmpty
+      ? this
+      : ClipboardAnalysis(
+          type: type,
+          title: title,
+          subtitle: subtitle,
+          notImported: notImported,
+          dropped: d,
+        );
+
+  /// §368 §8 — секции конфига, которые мы не переносим (`route`, `dns`,
+  /// `inbounds`). Только фактически присутствовавшие: в конфиге без `dns`
+  /// упоминать `dns` незачем. Пусто — предупреждать не о чем.
+  final List<String> notImported;
+}
+
+/// §368 — верхнеуровневые секции, которые импорт не переносит: наша модель
+/// генерирует их сама из своих настроек (§6).
+const _kIgnoredConfigSections = ['route', 'dns', 'inbounds'];
+
+/// §561 / задача 570 — отбраковки сухого разбора вставки (тот же вход, что
+/// у импорта). Сбой разбора — не отбраковка: пусто, дальше решает импорт.
+List<NodeWarning> _droppedOf(DecodedBody decoded) {
+  final dropped = <NodeWarning>[];
+  try {
+    final nodes = parseAll(decoded, dropped: dropped);
+    // §585 — узел незнакомого типа импорт принимает своей записью
+    // (`acceptsOwnUnknownType`); превью обязано сказать то же.
+    if (nodes.isEmpty && acceptsOwnUnknownType(decoded) != null) {
+      return const [];
+    }
+  } catch (_) {
+    return const [];
+  }
+  return dropped;
+}
+
+ClipboardAnalysis analyzeClipboard(String text) {
+  if (HateInvitationClient.isLink(text)) {
+    return ClipboardAnalysis(
+      type: 'hatevpn_invitation',
+      title: 'Приглашение HateVPN',
+      subtitle: text.trim().toLowerCase().startsWith('hatevpn://claim/')
+          ? 'Одноразовая ссылка. После добавления повторно использовать её нельзя.'
+          : 'Ссылка с готовым VPN-профилем.',
+    );
+  }
+  if (isSubscriptionUrl(text)) {
+    final uri = Uri.tryParse(text);
+    return ClipboardAnalysis(
+      type: 'subscription',
+      title: getLocalText.s("Subscription URL"),
+      subtitle: uri?.host ?? text,
+    );
+  }
+  if (isWireGuardConfig(text)) {
+    final lines = text.split('\n');
+    final endpoint = lines
+        .where((l) => l.trim().toLowerCase().startsWith('endpoint'))
+        .map((l) => l.split('=').last.trim())
+        .firstOrNull ?? '';
+    return ClipboardAnalysis(
+      type: 'wireguard_config',
+      title: getLocalText.s("WireGuard config"),
+      subtitle: endpoint.isNotEmpty ? endpoint : '[Interface] + [Peer]',
+    );
+  }
+  // §110 — Amnezia vpn://: декодим сразу, чтобы показать endpoint и число
+  // контейнеров. Битая ссылка → unknown (юзер увидит стандартный диалог).
+  if (isAmneziaVpnLink(text)) {
+    final decoded = decode(text);
+    if (decoded is AmneziaConfig) {
+      final endpoint = decoded.iniTexts.first
+          .split('\n')
+          .where((l) => l.trim().toLowerCase().startsWith('endpoint'))
+          .map((l) => l.split('=').last.trim())
+          .firstOrNull ?? '';
+      final n = decoded.iniTexts.length;
+      return ClipboardAnalysis(
+        type: 'amnezia_vpn',
+        title: getLocalText.s("Amnezia VPN config"),
+        subtitle: '${endpoint.isNotEmpty ? endpoint : "WG/AWG"}'
+            '${n > 1 ? " × $n" : ""}',
+      );
+    }
+    return ClipboardAnalysis(type: 'unknown', title: getLocalText.s("Unknown"), subtitle: '');
+  }
+  if (isDirectLink(text)) {
+    final uri = Uri.tryParse(text);
+    final scheme = text.split('://').first.toUpperCase();
+    final label = uri?.fragment ?? '';
+    final server = uri != null ? '${uri.host}:${uri.port}' : '';
+    return ClipboardAnalysis(
+      type: 'direct',
+      title: getLocalText.s("%s link", scheme),
+      subtitle: '${label.isNotEmpty ? "$label\n" : ""}$server',
+    ).withDropped(_droppedOf(decode(text)));
+  }
+
+  // §368 §7.2 — JSON-формы: превью читает ТОТ ЖЕ результат, что и импорт.
+  // Раньше здесь была своя эвристика (`startsWith('{') && contains('"type"')`),
+  // третья по счёту, и она разошлась с гейтом контроллера: превью обещало
+  // «Outbound JSON» там, где импорт отказывал.
+  // §585 — комментарии `//` и `/* */` снимаются тем же правилом, что у
+  // импорта (`addFromInput`).
+  final decoded = decode(uncommentedJson(text) ?? text);
+  if (decoded is JsonConfig) {
+    final analysis = _analyzeJson(decoded);
+    if (analysis != null) return analysis.withDropped(_droppedOf(decoded));
+  }
+
+  return ClipboardAnalysis(type: 'unknown', title: getLocalText.s("Unknown"), subtitle: '');
+}
+
+/// §368 §7.2 — превью JSON-формы. Счётчики берём сухим прогоном парсера, а не
+/// повторной эвристикой: то, что показано, и есть то, что приедет.
+ClipboardAnalysis? _analyzeJson(JsonConfig j) {
+  // §483 — вид источника берётся у ветки, которой документ опознан: превью
+  // и импорт читают ОДИН ответ движка, а не два имени одной формы.
+  switch (j.source.kind) {
+    case SourceKind.singboxOutbound:
+      final map = j.value is Map<String, dynamic>
+          ? j.value as Map<String, dynamic>
+          : const <String, dynamic>{};
+      final type = map['type']?.toString() ?? 'unknown';
+      final tag = map['tag']?.toString() ?? '';
+      return ClipboardAnalysis(
+        type: 'json_outbound',
+        title: getLocalText.s("Outbound JSON"),
+        subtitle: '$type${tag.isNotEmpty ? " — $tag" : ""}',
+      );
+
+    case SourceKind.singboxOutboundArray:
+      final list = j.value is List ? j.value as List : const [];
+      final types = list
+          .whereType<Map<String, dynamic>>()
+          .map((o) => o['type']?.toString() ?? '?')
+          .toList();
+      return ClipboardAnalysis(
+        type: 'json_outbound',
+        title: getLocalText.s("Outbound JSON"),
+        subtitle: getLocalText.plural(
+            "%1\$d outbounds (%2\$s)", list.length, types.join(" + ")),
+      );
+
+    case SourceKind.singboxConfig:
+    case SourceKind.singboxConfigArray:
+      final configs = j.source.kind == SourceKind.singboxConfig
+          ? [
+              if (j.value is Map<String, dynamic>)
+                j.value as Map<String, dynamic>,
+            ]
+          : (j.value is List ? j.value as List : const [])
+              .whereType<Map<String, dynamic>>()
+              .toList();
+      final nodes = parseAll(j);
+      final groups = nodes.where((n) => n.isGroup).length;
+      final chained = nodes.where((n) => n.chained != null).length;
+
+      final ignored = <String>[
+        for (final s in _kIgnoredConfigSections)
+          if (configs.any((c) => c.containsKey(s))) s,
+      ];
+
+      return ClipboardAnalysis(
+        type: 'singbox_config',
+        title: getLocalText.s("sing-box config"),
+        subtitle: [
+          getLocalText.plural("%d nodes", nodes.length - groups),
+          if (groups > 0) getLocalText.plural("%d groups", groups),
+          if (chained > 0) getLocalText.plural("%d chained", chained),
+        ].join(' · '),
+        notImported: ignored,
+      );
+
+    // §480 Д-3 — документ Xray бывает и объектом (одиночный outbound,
+    // полный конфиг), а не только массивом конфигов. Счёт по `value` как
+    // по списку дал бы таким формам «0 elements»: пересчитываем по
+    // разобранным узлам, как это делает ветка sing-box выше.
+    case SourceKind.xrayConfigArray:
+    case SourceKind.xrayConfig:
+    case SourceKind.xrayOutbound:
+    case SourceKind.xrayOutboundArray:
+      final list = j.value is List ? j.value as List : const [];
+      final count = list.isNotEmpty ? list.length : parseAll(j).length;
+      return ClipboardAnalysis(
+        type: 'json_outbound',
+        title: getLocalText.s("Xray config"),
+        subtitle: getLocalText.plural("%d elements", count),
+      );
+
+    // Clash, нераспознанный JSON и вид, о котором код не знает: превью не
+    // обещает того, чего импорт не сделает — дальше стандартный диалог.
+    default:
+      return null;
+  }
+}

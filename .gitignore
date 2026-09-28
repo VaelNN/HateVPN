@@ -1,0 +1,42 @@
+# Build output and downloaded dependencies
+**/bin/
+**/obj/
+**/build/
+**/.dart_tool/
+**/.gradle/
+**/.cxx/
+**/.externalNativeBuild/
+dist/
+vendor/
+artifacts/
+app/HateVPN.Service/Native/
+android/HateVPN/app/android/app/libs/
+
+# Local settings, credentials and signing material
+.env
+.env.*
+**/local.properties
+**/key.properties
+*.jks
+*.keystore
+*.pfx
+*.p12
+*.key
+*.log
+*.mp3
+*.apk
+*.aar
+*.msi
+*.exe
+private/
+profiles/
+scripts/HateVPN-*-*.txt
+scripts/HateVPN-Xray-report.txt
+
+# Editor and operating-system files
+.vs/
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+**/.flutter-plugins-dependencies

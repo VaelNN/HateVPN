@@ -1,0 +1,1576 @@
+import 'dart:convert';
+
+import '../../models/direction.dart';
+import '../../models/custom_rule.dart';
+import '../../models/dns_ref.dart';
+import '../../models/emit_context.dart';
+import '../../models/node_spec.dart' show NodeSpec;
+import '../../models/node_warning.dart';
+import '../../models/parser_config.dart';
+import '../../models/server_list.dart';
+import '../../models/source_chain.dart';
+import '../contract/group_genus.dart';
+import '../../models/singbox_entry.dart';
+import '../../models/template_vars.dart';
+import '../../config/consts.dart';
+import '../../models/validation.dart';
+import '../app_log.dart';
+import '../json_clone.dart';
+import '../node_hash.dart';
+import '../safe_regex.dart';
+import '../rule_set_downloader.dart';
+import '../tailscale_state/state_keys.dart';
+import '../settings_storage.dart';
+import '../template_loader.dart';
+import 'chain_nodes.dart';
+import 'core_chain_capability.dart';
+import 'if_engine.dart';
+import 'node_link_resolve.dart';
+import 'rule_order.dart';
+import 'post_steps.dart';
+import 'preset_expand.dart' show PresetNode;
+import 'registry_gate.dart';
+import 'rule_set_registry.dart';
+import 'server_list_build.dart';
+import 'source_replace_build.dart';
+import 'validator.dart';
+
+/// Результат сборки — готовый JSON + валидация + warnings + generated-vars
+/// которые контроллеру надо записать обратно в storage (Clash API port/secret
+/// — рандомизируются здесь на первом запуске).
+class BuildResult {
+  final String configJson;
+  final Map<String, dynamic> config; // тот же config, но как Map (для тестов/debug)
+  final ValidationResult validation;
+  final List<String> emitWarnings;
+  final Map<String, String> generatedVars; // подмножество vars, которые сгенерились в процессе
+
+  /// §274 — display-имена Направлений, у которых непустой node_filter отсёк все
+  /// ноды (Направление живёт на fallback-опциях: block-default, либо
+  /// direct/block по include-галкам). UI показывает по ним транзиентный
+  /// SnackBar; фактический исход — в тексте [emitWarnings]/AppLog.
+  final List<String> directionsWithoutNodes;
+
+  /// Фича 478 / PARSING_PRINCIPLES §9.3 — обратное отображение «финальный тег собранного
+  /// конфига → исходный узел». Строит его та же сборка, которая теги и
+  /// выдала, поэтому производные записи (хоп цепочки, узел папки, префикс
+  /// подписки, WARP) ведут к своему ИСХОДНОМУ узлу.
+  ///
+  /// Карта НЕ полная: узлы, отсеянные гейтами и разбором, в ней не лежат, а
+  /// служебные записи приложения (direct, block, группы, Направления) своего
+  /// узла не имеют вовсе. Тег без узла сопоставленным не считается —
+  /// автоматики нет (§9.3).
+  final Map<String, NodeSpec> nodeByEmittedTag;
+
+  /// §505 — предупреждения сборки (гард реестра) по финальному config-тегу.
+  final Map<String, List<NodeWarning>> nodeBuildWarningsByEmittedTag;
+
+  /// §555 — предупреждения движка шаблона за эту сборку (вид
+  /// `template_degraded` контракта 1.1.69/1.1.70): код реестра с параметрами,
+  /// без дублей по (код, параметры), в порядке первого появления. Их
+  /// EN-строки стоят ПЕРВЫМИ в [emitWarnings]; сохранение они не блокируют.
+  final List<TemplateWarning> templateWarnings;
+
+  /// Контракт 1.1.80 — коды реестра уровня сборки с параметрами
+  /// (`replace_tag_conflict`, `replace_group_empty`). Их EN-строки идут в
+  /// [emitWarnings]; список — для сверки кодов и поверхностей UI.
+  final List<RegistryWarning> buildCodes;
+
+  const BuildResult({
+    required this.configJson,
+    required this.config,
+    required this.validation,
+    required this.emitWarnings,
+    required this.generatedVars,
+    this.directionsWithoutNodes = const [],
+    this.nodeByEmittedTag = const {},
+    this.nodeBuildWarningsByEmittedTag = const {},
+    this.templateWarnings = const [],
+    this.buildCodes = const [],
+  });
+}
+
+/// Настройки сборки — то что UI/контроллер прокидывает в `buildConfig`.
+class BuildSettings {
+  final Map<String, String> userVars;
+  final Set<String> enabledGroups;
+  final List<CustomRule> customRules;
+  final String routeFinal;
+
+  /// §125 — Направления роутинга (source-of-truth состава). Пусто = старое
+  /// поведение через template.groupTemplates (для тестов без storage).
+  final List<Direction> directions;
+
+  /// §393 C2/C3 — источники-цепочки хопов (SPEC 110), в порядке объявления.
+  /// Порядок нормативен: позиция вправе сослаться только на цепочку,
+  /// объявленную ВЫШЕ, — этим исключены циклы между цепочками.
+  final List<SourceChain> chains;
+
+  /// §393 C5 — версия установленного ядра (`Libbox.version()`), например
+  /// `"1.14.0-lx.27-rc.6"`. Гейт возможностей живёт в СБОРКЕ, а не в UI:
+  /// ядро без `with_lx_chain` отвергает конфиг ЦЕЛИКОМ на неизвестном типе
+  /// outbound'а, и одна цепочка оставила бы пользователя вообще без VPN.
+  ///
+  /// Пусто = ядро не ответило → fail-open, цепочки эмитятся (деградировать
+  /// на догадке значило бы отнять рабочий маршрут; подробности —
+  /// `core_chain_capability.dart`).
+  final String coreVersion;
+
+  /// Контракт 1.1.60 (§56) — теги сборки ядра для узлового гейта реестра
+  /// (`build_tag` + `on_core_unsupported`). Дефолт — теги встроенного AAR
+  /// ([kCoreBuildTags]); `null` — теги неизвестны, гейт по тегу не
+  /// применяется.
+  final Set<String>? coreBuildTags;
+
+  /// §046: OS-level split-tunneling apps list. `null` = pipeline возьмёт
+  /// дефолт (mode=off — все apps через tun, sing-box обычное поведение).
+  final TunAppsConfig? tunApps;
+
+  /// §119: VPN-mode (proxy/vpn/vpn_proxy). `null` = mode=vpn (текущее
+  /// поведение, post-step no-op).
+  final VpnModeConfig? vpnMode;
+
+  /// §215: порог простоя для idle-suspend недостижимых WG/AWG эндпоинтов
+  /// (ядро SPEC 020, `lx.wg.idle_suspend` — §535, до пина v1.14.2-lx.1 ключ
+  /// звался `route.lx_idle_suspend`). Duration-строка (`"5m"`, `"30s"`).
+  /// Пусто = фича выключена (поле не пишется, дефолт ядра = idle-тик
+  /// не запускается).
+  final String idleSuspend;
+
+  /// §272: второе, длинное окно простоя для ДОСТИЖИМЫХ эндпоинтов
+  /// (ядро SPEC 020 rev. 2026-07-15, `lx.wg.idle_suspend_reachable` — §535).
+  /// Пусто = достижимые не засыпают. Эмитится ТОЛЬКО при непустом
+  /// [idleSuspend] — ядро отвергает reachable без базового порога.
+  final String idleSuspendReachable;
+
+  /// §542 — `lx.wg.build_max` (ядро SPEC 097): сколько WG/AWG эндпоинтов
+  /// держать собранными одновременно; сверх лимита самый давний разбирается.
+  /// `0` = без потолка (пишется как `0`, ядро это допускает). Было константой
+  /// §536 (5), теперь настройка `wg_build_max`. Эмитится только вместе с
+  /// [idleSuspend]. `build_overflow` не пишем — дефолт ядра `wait`.
+  final int wgBuildMax;
+
+  /// §542 — `lx.wg.lazy_build` (ядро SPEC 097): WG/AWG эндпоинт собирается
+  /// при первом дайле, а не на старте. Было константой §536 (`true`), теперь
+  /// настройка `wg_lazy_build`. `false` → не пишем ни `lazy_build`, ни
+  /// `build_max` (бюджет в UI гаснет вместе с тумблером; ядро `build_max`
+  /// без `lazy_build` принимает, но выключенный пункт не должен действовать).
+  final bool wgLazyBuild;
+
+  /// §272: passive health check (ядро SPEC 019, `urltest.passive_check`) —
+  /// пишется в urltest-двойники Направлений. Пока свежий успешный TCP-дайл
+  /// подтверждает узел, периодические пробы группы пропускаются.
+  /// ⚠ Требует ядра >= ревизии 2026-07-15 (незнакомое поле роняет конфиг).
+  final bool passiveCheck;
+
+  /// §435 — корень для `state_directory` узлов Tailscale: native
+  /// `Context.filesDir` (тот же канал, что у §316). Каталог узла —
+  /// `<корень>/tailscale/<имя>` подставляется при эмиссии, если в теле поля
+  /// нет; в хранимое тело путь не пишется. Пусто (юнит-тесты, канал не
+  /// ответил) — поле не пишется, ядро возьмёт свой дефолт.
+  final String tailscaleStateRoot;
+
+  /// §445 — имена каталогов узлов из индекса `tailscale_state.json`
+  /// (`TailscaleStateStore.prepareForBuild`), карта по ссылке узла. `null` —
+  /// индекса нет (тесты, сбой): имя по финальному тегу, как в 2.24.0.
+  final Map<NodeSpec, String>? tailscaleStateDirs;
+
+  const BuildSettings({
+    this.userVars = const {},
+    this.enabledGroups = const {},
+    this.customRules = const [],
+    this.routeFinal = '',
+    this.directions = const [],
+    this.chains = const [],
+    this.coreVersion = '',
+    this.coreBuildTags = kCoreBuildTags,
+    this.tunApps,
+    this.vpnMode,
+    this.idleSuspend = '',
+    this.idleSuspendReachable = '',
+    this.wgBuildMax = 5,
+    this.wgLazyBuild = true,
+    this.passiveCheck = false,
+    this.tailscaleStateRoot = '',
+    this.tailscaleStateDirs,
+  });
+}
+
+/// **Единственная точка сборки sing-box конфига** (§3.4).
+///
+/// Вход: список подписок + параметры. Выход: готовый JSON-конфиг.
+/// GUI/контроллер ничего про wizard template, dedup, preset-группы знать
+/// не должен.
+///
+/// Шаги (все inline):
+/// 1. Load wizard template.
+/// 2. Merge template defaults + user overrides → vars (§122: clash_api удалён).
+/// 3. Deep-copy template.config, substitute vars.
+/// 4. Пройти по `lists` → `nodes`, применить `DetourPolicy`, дедуп тегов с
+///    учётом `tagPrefix`, emit() → разложить по outbounds/endpoints.
+/// 5. Собрать preset-группы (vpn-1/2/3 + auto).
+/// 6. Applied selectable rules, app rules, route final.
+/// 7. Post-steps: tls_fragment, custom DNS.
+/// 8. Validate → вернуть BuildResult с готовым `configJson`.
+///
+/// §555 — вся сборка идёт в зоне накопителя [TemplateWarnings]: коды движка
+/// шаблона (главный конфиг, тела пресетов, шаблонные DNS-серверы) собираются
+/// с параметрами и дедупом и уходят в [BuildResult.templateWarnings].
+Future<BuildResult> buildConfig({
+  required List<ServerList> lists,
+  BuildSettings settings = const BuildSettings(),
+  WizardTemplate? template,
+}) {
+  final templateWarnings = TemplateWarnings();
+  return collectTemplateWarnings(
+    templateWarnings,
+    () => _buildConfig(
+      lists: lists,
+      settings: settings,
+      template: template,
+      templateWarnings: templateWarnings,
+    ),
+  );
+}
+
+/// EN-строка предупреждения шаблона для [BuildResult.emitWarnings]: заголовок
+/// кода из реестра с подстановкой параметров.
+String _renderTemplateWarning(TemplateWarning w) =>
+    'Template: ${RegistryWarning(code: w.code, params: w.params).renderEn()}';
+
+/// §580 — границы int-переменных шаблона, у которых они есть
+/// (TEMPLATE_LANG §6.8). Экран не сохраняет значение вне границ, сборка его
+/// не подставляет.
+const Map<String, (int, int)> kVarIntBounds = {
+  'dns_cache_capacity': (1024, 65535),
+};
+
+/// Значение [raw] переменной [name] — целое в её границах (переменная без
+/// границ — всегда да).
+bool varIntInBounds(String name, String raw) {
+  final b = kVarIntBounds[name];
+  if (b == null) return true;
+  final n = int.tryParse(raw.trim());
+  return n != null && n >= b.$1 && n <= b.$2;
+}
+
+Future<BuildResult> _buildConfig({
+  required List<ServerList> lists,
+  required BuildSettings settings,
+  required WizardTemplate? template,
+  required TemplateWarnings templateWarnings,
+}) async {
+  template ??= await TemplateLoader.load();
+
+  // Merge template defaults + user overrides.
+  final vars = <String, String>{};
+  // §120: ноды переменных (метаданные: type) — из шаблона, единственный источник
+  // правды о типе. Значение — из state (ниже). byName нужен резолверу для
+  // coerce по node.type.
+  final byName = <String, WizardVar>{};
+  for (final v in template.vars) {
+    final raw = settings.userVars[v.name] ?? v.defaultValue;
+    // §161 backstop: пустое required-поле с непустым default → default. Ловит
+    // источники в обход UI (импорт бэкапа/пресета, legacy-state с пустым
+    // значением — напр. стёртый tolerance). ДО _substituteVars, не трогает
+    // #if-логику. secret/optional (required:false) исключены — для них пусто
+    // легитимно.
+    vars[v.name] =
+        (raw.isEmpty && v.required && v.defaultValue.isNotEmpty && v.type != 'secret')
+            ? v.defaultValue
+            : raw;
+    byName[v.name] = v;
+  }
+  // §580 (TEMPLATE_LANG §6.8) — сохранённое вне границ (правка файла руками,
+  // импорт) в конфиг не уходит: действует значение по умолчанию шаблона.
+  for (final e in kVarIntBounds.entries) {
+    final v = byName[e.key];
+    final raw = vars[e.key];
+    if (v == null || raw == null) continue;
+    if (!varIntInBounds(e.key, raw)) vars[e.key] = v.defaultValue;
+  }
+  // Также пропускаем user-override'ы, которые могут прийти вне template.vars
+  // (например, clash_api/secret, сохранённые раньше).
+  for (final e in settings.userVars.entries) {
+    vars.putIfAbsent(e.key, () => e.value);
+  }
+
+  // §122 Фаза 1b — clash_api БОЛЬШЕ НЕ инжектится: ядро rc.3 собрано без
+  // with_clash_api (server вырезан, §1a), и блок experimental.clash_api в конфиге
+  // даёт ФАТАЛЬНЫЙ отказ старта ("clash api is not included in this build").
+  // Управление — через CommandClient (§122). `_ensureClashApiDefaults` удалён.
+  final generatedVars = <String, String>{};
+
+  // §120/§119: проброс VPN-mode в плоский vars ПРЯМЫМ присваиванием (live
+  // VpnModeConfig побеждает любой залежавшийся flat-userVar — НЕ putIfAbsent).
+  // Делается ДО _substituteVars, т.к. #if в
+  // шаблоне (tun-in/mixed-in/route-rules) гейтится по @vpn_mode/@proxy_*.
+  // applyVpnMode удалён — вся структура теперь декларативна в шаблоне.
+  final vpnMode = settings.vpnMode;
+  if (vpnMode != null) {
+    vars['vpn_mode'] = vpnMode.mode;
+    vars['proxy_type'] = vpnMode.proxyProtocol;
+    vars['proxy_listen'] = vpnMode.proxyListen;
+    vars['proxy_port'] = '${vpnMode.proxyPort}';
+    vars['proxy_user'] = vpnMode.proxyUsername;
+    vars['proxy_pass'] = vpnMode.proxyPassword;
+    // proxy_auth несёт ЭФФЕКТИВНЫЙ флаг: effectiveAuth (0.0.0.0 форсит) И
+    // непустой пароль — иначе users отсутствует (защита 067 от [{"":""}]).
+    vars['proxy_auth'] =
+        (vpnMode.effectiveAuth && vpnMode.proxyPassword.isNotEmpty)
+            ? 'true'
+            : 'false';
+  } else {
+    vars['vpn_mode'] = 'vpn'; // degrade к tun-only (иначе пустой inbounds[])
+  }
+
+  final resolve = makeResolver(vars, byName);
+
+  final config = deepCopyJson(template.config);
+  _substituteVars(config, resolve);
+
+  // §120: sniff-rule теперь обёрнут #if @sniff_enabled в шаблоне — отдельный
+  // removal-шаг не нужен (walker дропает array-element при false).
+
+  final tvars = TemplateVars(
+    tlsFragment: vars['tls_fragment'] == 'true',
+    tlsRecordFragment: vars['tls_record_fragment'] == 'true',
+  );
+
+  // Реестр rule_set/rules инициализируется из template — template может
+  // содержать built-in inline rule_set (например `ru-domains`). Реестр
+  // живёт один на весь buildConfig, доступен post-steps'ам через прямой
+  // параметр, а ServerList.build'у — через `ctx.ruleSets`.
+  final route = config['route'] as Map<String, dynamic>? ?? {};
+  final ruleSets = RuleSetRegistry(
+    initialRuleSets: route['rule_set'] as List<dynamic>? ?? const [],
+    initialRules: route['rules'] as List<dynamic>? ?? const [],
+  );
+
+  // §125 — Направления из storage (source-of-truth). Если пусто (тесты без storage /
+  // первый билд до миграции) — синтезируем из template.groupTemplates через ту
+  // же seed-логику, что и one-shot миграция, чтобы билдер всегда работал с
+  // List<Direction> единообразно. autoTags больше не нужен: каждое Направление делает
+  // свой urltest-двойник по своему node-set. Резолвится ДО эмита узлов:
+  // теги Направлений резервируются в аллокаторе (§351).
+  final directions = settings.directions.isNotEmpty
+      ? settings.directions
+      : _directionsFromTemplate(
+          template.groupTemplates, settings.enabledGroups, resolve);
+
+  // buildConfig — тонкий оркестратор. ServerList.build(ctx) сам решает
+  // политику, аллоцирует теги через ctx, регистрирует в selector/auto.
+  //
+  // §351 — теги Направлений (селектор + auto-двойник) резервируются заранее:
+  // _buildDirectionGroups эмитит их с фиксированным `c.tag` МИМО allocateTag,
+  // и узел подписки с меткой `vpn-1` дал бы дубль тега → отказ ядра на
+  // старте. С резервом такой узел получает суффикс `-N` штатным путём.
+  // autoTag резервируем всегда, хотя эмитится он условно: пере-резерв лишь
+  // добавит суффикс узлу-тёзке, а обратная ошибка стоила бы старта.
+  //
+  // §393 A3 — резерв идёт по ВСЕМ Направлениям, а не по активным
+  // (`enabled || required`). Зеркалить фильтр `_buildDirectionGroups` было
+  // ошибкой: тег ВЫКЛЮЧЕННОГО Направления не резервировался, узел подписки
+  // с таким же именем занимал literal-тег, и `include`-ссылка на выключенное
+  // Направление резолвилась НЕ в дроп с warning'ом (её цели в конфиге нет),
+  // а В УЗЕЛ-ТЁЗКУ — который к тому же уже лежал в составе от `nodesFor`.
+  // Пользователь получал «vpn-2» опцией, ведущей в чужой сервер. Резерв
+  // выключенного тега стоит ровно суффикс узлу-тёзке; ошибка стоила
+  // молчаливой подмены маршрута.
+  //
+  // §439 (D-112) — словарь целей ссылок на узлы: контейнеры сборки (включая
+  // выключенные — ссылка на них «нет узла», а не «источник удалён») и
+  // корневые имена (служебные outbound'ы шаблона, Направления и их `-auto`).
+  // Финальные теги узлов под их адресами записывает `ServerList.build`.
+  final linkTargets = NodeLinkTargets()
+    ..addRootNames([
+      for (final raw in (config['outbounds'] as List<dynamic>? ?? const []))
+        if (raw is Map && raw['tag'] is String) raw['tag'] as String,
+      for (final c in directions) ...[c.tag, c.autoTag],
+    ]);
+  for (final list in lists) {
+    if (list is! UserServer) linkTargets.noteContainer(list.id, list.name);
+  }
+  // Фича 565 фаза B (§74 п.5) — имена свёрток заняты: узел-тёзка получает
+  // суффикс штатным путём, как у тегов Направлений.
+  final replaceNames = sourceReplaceNames(lists);
+  // §77 п.5 (контракт 1.1.80) — тег свёртки, совпавший с Направлением (или
+  // его двойником), со свёрткой выше по списку или с тегом шаблона: свёртка
+  // не собирается, источник идёт несвёрнутым, код в отчёте сборки.
+  final replaceConflicts = findReplaceTagConflicts(
+    lists,
+    directionNames: {for (final c in directions) ...[c.tag, c.autoTag]},
+    systemNames: {
+      ...kReservedDirectionTags,
+      for (final raw in (config['outbounds'] as List<dynamic>? ?? const []))
+        if (raw is Map && raw['tag'] is String) raw['tag'] as String,
+    },
+  );
+  final ctx = _BuildCtx(
+    tvars,
+    ruleSets,
+    passiveCheck: settings.passiveCheck, // §322
+    reservedTags: [
+      for (final c in directions) ...[c.tag, c.autoTag],
+      ...replaceNames,
+    ],
+    coreVersion: settings.coreVersion,
+    linkTargets: linkTargets,
+    blockedReplaces: {for (final c in replaceConflicts) c.listId},
+  );
+  for (final list in lists) {
+    list.build(ctx);
+  }
+  // Фича 565 фаза B — имя свёртки, у которой на сборке есть члены, —
+  // корневая цель ссылок (detour `{tag}`). Свёртка без членов группы не даст,
+  // и ссылка на неё обязана не разрешиться (fail-closed), а не уйти напрямую.
+  linkTargets.addRootNames([
+    for (final p in ctx.replacePlans)
+      if (p.selectorMembers.isNotEmpty || p.autoMembers.isNotEmpty)
+        ...p.replace.names,
+  ]);
+  // §439 — второй проход: detour-ссылки → финальные теги. Fail-closed:
+  // носитель, чья ссылка не разрешилась (и каскадом — кто ходил через него,
+  // кольцо — все участники), выпадает из конфига, а не уходит напрямую.
+  final detourReport = resolveDeferredDetours(ctx.deferredDetours, linkTargets);
+  ctx.dropEntries(detourReport);
+
+  // §460 — гард реестра контракта: тела всех записей узлов чистятся по схеме
+  // `body` (unknown_key / type_invalid / min_core / platform / forbidden_for).
+  // Идёт ПОСЛЕ материализации источников и ДО пост-шагов: гейты ядра зависят
+  // от запущенной версии, а сами записи дальше только переставляются.
+  // Служебные outbound'ы шаблона и группы Направлений сюда не попадают — в
+  // аккумуляторах ctx лежат только записи из источников узлов.
+  final registryReport = applyRegistryGate(
+    [...ctx.outbounds, ...ctx.endpoints],
+    coreVersion: settings.coreVersion,
+    coreBuildTags: settings.coreBuildTags,
+  );
+  ctx.dropRegistryEntries(registryReport.dropped);
+
+  // Фича 565 фаза B (§74 п.2–4) — свёртки источников в группы: члены — узлы,
+  // пережившие отбраковки выше; группа без членов не пишется.
+  final buildCodes = <RegistryWarning>[
+    for (final c in replaceConflicts) c.warning,
+  ];
+  final replaceBuild = materializeReplaceGroups(
+    ctx.replacePlans,
+    alive: {
+      for (final e in ctx.outbounds) e.tag,
+      for (final e in ctx.endpoints) e.tag,
+    },
+    passiveCheck: settings.passiveCheck,
+    warn: ctx.warn,
+    code: buildCodes.add,
+    // `@имя` в параметрах автовыбора — переменная шаблона, как у Направления.
+    resolveVar: resolve,
+  );
+  // Выключенный источник плана не даёт: его имена тоже не написаны.
+  // Свёртка в конфликте имён (§77 п.5) имя не занимает — оно владельца.
+  final conflictNames = {
+    for (final c in replaceConflicts) c.warning.params['tag'],
+  };
+  replaceBuild.dropped.addAll(replaceNames.where((n) =>
+      !replaceBuild.emitted.contains(n) && !conflictNames.contains(n)));
+
+  // §74 п.4 — detour на свёртку, опустевшую только ПОСЛЕ отбраковок (ссылка
+  // разрешилась корневым именем, а группа не написана): носитель выпадает
+  // (fail-closed), каскадом — кто ходил через него; напрямую он не идёт.
+  final foldDetourLines = _dropCarriersOfDroppedReplaces(
+      ctx, replaceBuild.dropped, linkTargets);
+
+  // Warnings собираем отдельно прямым обходом (ctx их не знает).
+  // §435 — кроме строк, которые `ServerList.build` отдал через `ctx.warn`.
+  // Узловой гейт ядра (`tailscale_core_unsupported` и др., §56) — в
+  // `registryReport.warnings`.
+  final emitWarnings = <String>[
+    ...ctx.warnings,
+    ...detourReport.warnings,
+    ...registryReport.warnings,
+    // Контракт 1.1.80 — коды свёрток (`replace_tag_conflict`,
+    // `replace_group_empty`) строкой по тексту реестра; сами коды — в
+    // [BuildResult.buildCodes].
+    for (final w in buildCodes) w.renderEn(),
+    ...foldDetourLines,
+  ];
+  for (final list in lists) {
+    if (!list.enabled) continue;
+    // §283 — зеркало фильтра ServerListBuild.build: выключенная нода не
+    // эмитится → её warnings не сыпем (цикл идёт по list.nodes мимо build).
+    final disabledHashes = switch (list) {
+      final SubscriptionServers s when s.disabledHashes.isNotEmpty =>
+        s.disabledHashes,
+      _ => null,
+    };
+    // §400 — та же карта идентичностей от полного списка, что и в билдере:
+    // иначе фильтры warnings и эмиссии разошлись бы на узлах-тёзках.
+    final identities =
+        disabledHashes == null ? null : sourceNodeIdentities(list.nodes);
+    for (final node in list.nodes) {
+      final identity = identities?[node];
+      if (identity != null && disabledHashes!.containsKey(identity)) {
+        continue;
+      }
+      for (final w in node.warnings) {
+        final line = '${node.tag}: ${w.renderEn()}';
+        if (!emitWarnings.contains(line)) emitWarnings.add(line);
+      }
+    }
+  }
+
+  // §393 C3 — цепочки становятся узлами ПОСЛЕ материализации ВСЕХ источников
+  // и ДО сборки Направлений: их теги окончательны только теперь (подписка
+  // переименовывает узлы префиксом и уникализирует дубли), а Направление
+  // отбирает цепочку фильтром наравне с обычным узлом.
+  //
+  // Что считается известным тегом для позиции: КАЖДЫЙ эмитированный узел
+  // (включая detour-серверы, которых нет в пуле отбора, — позицией они
+  // законны), служебные outbound'ы шаблона (`direct-out`/`block` — форма
+  // предлагает их первым хопом «без прокси») и теги ВСЕХ Направлений,
+  // включая выключенные: их теги зарезервированы аллокатором (§351), и
+  // ссылка на них не может уехать в узел-тёзку. Выключенное Направление в
+  // конфиг не попадает — такую позицию поймает граф-санитайзер (§393 A4,
+  // правило 3) и дропнет цепочку целиком уже по факту.
+  final knownChainTargets = <String>{
+    for (final e in ctx.outbounds) e.tag,
+    for (final e in ctx.endpoints) e.tag,
+    for (final raw in (config['outbounds'] as List<dynamic>? ?? const []))
+      if (raw is Map && raw['tag'] is String) raw['tag'] as String,
+    for (final c in directions) c.tag,
+  };
+  final chainResolution = resolveChains(
+    settings.chains,
+    knownTags: knownChainTargets,
+    targets: linkTargets,
+    hopBodies: {
+      for (final e in ctx.outbounds) e.tag: e.map,
+      for (final e in ctx.endpoints) e.tag: e.map,
+    },
+    coreVersion: settings.coreVersion,
+  );
+  for (final d in chainResolution.degraded) {
+    emitWarnings.add(d.reason);
+  }
+  for (final n in chainResolution.notes) {
+    emitWarnings.add(n.line);
+  }
+
+  // §393 C3 — цепочка идёт в пул отбора Направлений последней, ПОСЛЕ узлов
+  // подписок: порядок пула = порядок конфига, а цепочки эмитятся после всех
+  // источников (корпус `chain_is_a_node_in_directions` нормирует именно
+  // `[…узлы, hop-chain]`).
+  // Фича 565 фаза B (§74 п.5) — свёрнутый источник даёт пулу ОДНОГО
+  // кандидата (`tag`) вместо своих узлов.
+  final selectorTags = <String>[
+    ...ctx.selectorEntries.map((e) => e.tag),
+    ...replaceBuild.candidates,
+    ...chainResolution.tags,
+  ];
+
+  // §248/§254 — эмитированные узлы (те же map-объекты уходят в config ниже):
+  // AWG-advisory читает типы. detour больше НЕ правится in-place (§254 —
+  // детекция циклов переехала в validateConfig, конфиг не мутируется).
+  // Endpoints тоже — WG/AWG живут там.
+  final nodeEntries = <Map<String, dynamic>>[
+    for (final e in ctx.outbounds) e.map,
+    for (final e in ctx.endpoints) e.map,
+    // Группы свёрток: двойник Направления их в состав не берёт.
+    ...replaceBuild.groups,
+  ];
+
+  final directionsWithoutNodes = <String>[]; // §274 — для SnackBar на Home
+  final presetOutbounds = _buildDirectionGroups(
+    directions: directions,
+    selectorTags: selectorTags,
+    nodeEntries: nodeEntries,
+    emitWarnings: emitWarnings,
+    directionsWithoutNodes: directionsWithoutNodes,
+    passiveCheck: settings.passiveCheck, // §272
+    // §393 C4/T9 — карта позиций для «Направление не берёт цепочку, идущую
+    // через него самого» (транзитивно).
+    chainHops: chainHopsByTag(chainResolution.nodes),
+    // Фича 565 фаза B — имена свёрток — законные опции `include`.
+    includeTargets: replaceBuild.emitted,
+  );
+
+  final baseOutbounds = config['outbounds'] as List<dynamic>? ?? const [];
+  config['outbounds'] = [
+    ...baseOutbounds,
+    ...ctx.outbounds.map((e) => e.map),
+    // §393 C3 — цепочки ПЕРЕД группами Направлений: они узлы, а группы их
+    // отбирают (порядок нормативен, корпус `chain_packet_order`).
+    ...chainResolution.nodes,
+    // Фича 565 фаза B (§74 п.3) — группы свёрток после узлов, до Направлений.
+    ...replaceBuild.groups,
+    ...presetOutbounds,
+  ];
+
+  // §435 — `state_directory` узлов Tailscale: каталог на узел, чтобы два узла
+  // tailnet не сели в общий дефолт ядра (NODE_SECTIONS.md §6). Подставляется
+  // ТОЛЬКО при эмиссии и только если корень известен; в хранимое тело путь не
+  // пишется (путь этой машины другой стороне бесполезен).
+  // §445 — имя каталога из индекса по узлу (стабильно при переименовании и
+  // смене префикса); без индекса — по финальному тегу.
+  final stateRoot = settings.tailscaleStateRoot.trim();
+  if (stateRoot.isNotEmpty) {
+    final stateDirs = settings.tailscaleStateDirs;
+    final dirByTag = <String, String>{
+      if (stateDirs != null)
+        for (final e in ctx.emittedTagByNode.entries)
+          if (stateDirs[e.key] case final String name) e.value: name,
+    };
+    for (final ep in ctx.endpoints) {
+      if (ep.map['type'] != 'tailscale') continue;
+      final cur = ep.map['state_directory'];
+      if (cur is String && cur.isNotEmpty) continue;
+      final name = dirByTag[ep.tag];
+      if (name == null && stateDirs != null) {
+        AppLog.I.warning('Tailscale node "${ep.tag}" has no state record, '
+            'directory named by its final tag');
+      }
+      ep.map['state_directory'] =
+          '$stateRoot/tailscale/${name ?? tailscaleStateDirName(ep.tag)}';
+    }
+  }
+
+  if (ctx.endpoints.isNotEmpty) {
+    final baseEndpoints = config['endpoints'] as List<dynamic>? ?? const [];
+    config['endpoints'] = [
+      ...baseEndpoints,
+      ...ctx.endpoints.map((e) => e.map),
+    ];
+  }
+
+  // §578 — узлы для пресетов с `for_each`: состав окончателен (снятия
+  // detour-прохода, гейта реестра и ядра уже применены), теги финальные.
+  final presetNodes = _collectPresetNodes(lists, ctx);
+
+  // §370 — нормализация порядка по оси `num`: seed обязательного пресета
+  // (traffic-processing) + разметка неразмеченных + сортировка. Гарантирует,
+  // что несортируемый пресет присутствует и стоит первым, независимо от
+  // storage (fresh/restore/upgrade). Критично для порядка route.rules (sniff
+  // первым). Одноразово здесь → все нижеследующие проходы видят нормализованный
+  // список.
+  final customRules = normalizeRuleOrder(
+    [...settings.customRules],
+    template.selectableRules,
+    template,
+  );
+
+  // Pre-resolve srs local paths (sing-box получает file:// — rule set
+  // `{type: local, path: …}`). Удалённо ничего не качается.
+  final srsPaths = <String, String>{};
+  for (final cr in customRules) {
+    if (cr is! CustomRuleSrs) continue;
+    // ## 12 — по файлу на каждый набор правила; ключ — id кэша набора.
+    for (final cacheId in cr.cacheIds) {
+      final p = await RuleSetDownloader.cachedPath(cacheId);
+      if (p != null) srsPaths[cacheId] = p;
+    }
+  }
+  // Bundle presets (spec §033, task 011) — expansion + merge. Регистрирует
+  // rule-set и routing-правила в registry, extra DNS-данные возвращает для
+  // передачи в applyCustomDns. Выполняется **до** applyCustomRules, чтобы
+  // bundle получал свои tag'и чисто (без auto-suffix), а inline/srs правила
+  // пользователя, если вдруг совпадают по name с bundle-tag'ом, ушли
+  // в auto-suffix.
+  //
+  // Pre-resolve локально закэшированных remote rule_set'ов пресета:
+  // spec §011 требует `type: local, path: <кэш>` вместо `type: remote`.
+  // Ключ плоский: `<presetId>|<rule_set_tag>`.
+  final presetSrsPaths = <String, String>{};
+  for (final cr in customRules) {
+    if (cr is! CustomRulePreset) continue;
+    if (cr.presetId.isEmpty) continue;
+    SelectableRule? preset;
+    for (final p in template.selectableRules) {
+      if (p.presetId == cr.presetId) {
+        preset = p;
+        break;
+      }
+    }
+    if (preset == null) continue;
+    for (final rs in preset.ruleSets) {
+      if (rs['type'] != 'remote') continue;
+      final tag = rs['tag'];
+      if (tag is! String || tag.isEmpty) continue;
+      final path = await RuleSetDownloader.cachedPathForPreset(cr.presetId, tag);
+      if (path != null) {
+        presetSrsPaths['${cr.presetId}|$tag'] = path;
+      }
+    }
+  }
+
+  // §257: DNS-аспект пресета теперь гейтится магической var `dns_enable`
+  // (внутри _applyPresetSingle) — прежний isPresetDnsEnabled из
+  // dns_options.rules[kind:preset].enabled удалён (два тумблера на один
+  // флаг = источник багов «поставил, а не сработало»). Запись kind:preset
+  // остаётся только позиционным якорем mirror-группы (§117); её `enabled` —
+  // мёртвое поле. Storage всё ещё читаем — для kind:srs cached-paths ниже.
+  final dnsRulesStorage = await SettingsStorage.getDnsRulesList();
+
+  // §033: presetIds with custom_rules.kind:preset entry AND dns_rules defined
+  // in template — для auto-discovery `kind:preset` записей в dns_options.rules.
+  // §121: routing-тоггл = король — выключенный пресет (cr.enabled=false) не
+  // считается active'ным для DNS-правил, поэтому его kind:preset запись в
+  // dns_options.rules orphan-чистится (симметрия с серверами).
+  final activePresetIdsWithDnsRule = <String>{
+    for (final cr in customRules)
+      if (cr is CustomRulePreset && cr.enabled && cr.presetId.isNotEmpty)
+        if (template.selectableRules
+            .any((p) => p.presetId == cr.presetId && p.dnsRules.isNotEmpty))
+          cr.presetId,
+  };
+
+  // §033: Resolve cached paths for kind:srs DNS-rules. Same RuleSetDownloader
+  // as routing srs but separate id namespace (prefix `ds_` vs route's `r_`).
+  final dnsSrsCachedPaths = <String, String>{};
+  for (final entry in dnsRulesStorage.whereType<DnsRuleSrs>()) {
+    final p = await RuleSetDownloader.cachedPath(entry.id);
+    if (p != null) dnsSrsCachedPaths[entry.id] = p;
+  }
+
+  // §062: единый entry-point — обходит все custom rules (preset/inline/srs)
+  // в storage order, dispatch по kind. Сохраняет user-managed order между
+  // kind'ами (старый pipeline разделял на 2 прохода что ломало порядок).
+  final unifiedApply = applyAllCustomRules(
+    ruleSets,
+    customRules,
+    template.selectableRules,
+    srsPaths: srsPaths,
+    presetSrsPaths: presetSrsPaths,
+    globalVars: vars, // §265 — ref-vars резолвятся из flat global vars
+    presetNodes: presetNodes, // §578
+  );
+  emitWarnings.addAll(unifiedApply.warnings);
+
+  // Flush реестра в config.route. Один раз в конце — следующие post-steps
+  // (tls_fragment, mixed_case_sni) не трогают rule_set/rules.
+  route['rule_set'] = ruleSets.getRuleSets();
+  route['rules'] = ruleSets.getRules();
+  config['route'] = route;
+
+  // §215 — idle-suspend недостижимых WG/AWG эндпоинтов (ядро SPEC 020).
+  // Пишем поле только когда порог задан (непустой), чтобы сохранить
+  // omitempty-семантику ядра: отсутствие/пусто = фича выключена (идл-тик
+  // не запускается — безопасный kill-switch).
+  //
+  // §535 — ключи сна переехали из `route` в корневой блок `lx.wg`
+  // (ядро SPEC 098, пин v1.14.2-lx.1). Старые `route.lx_idle_*` ядро ещё
+  // принимает, но пишет WARN на каждый ключ, поэтому эмитим ТОЛЬКО новые
+  // имена: одно место записи, без дублей (значение в обоих местах = WARN,
+  // разное значение = ядро не стартует).
+  final idle = settings.idleSuspend.trim();
+  if (idle.isNotEmpty) {
+    final wg = <String, dynamic>{'idle_suspend': idle};
+    // §272 — reachable-окно валидно ТОЛЬКО при включённом базовом пороге
+    // (ядро: "lx.wg.idle_suspend_reachable requires lx.wg.idle_suspend").
+    final reachable = settings.idleSuspendReachable.trim();
+    if (reachable.isNotEmpty) {
+      wg['idle_suspend_reachable'] = reachable;
+    }
+    // §536 — ленивая сборка WG/AWG эндпоинтов (ядро SPEC 097). Решение
+    // владельца 24.09.2026: включаем всегда рядом с порогом сна. Ядро
+    // требует `lazy_build` вместе с `idle_suspend`, поэтому оба ключа живут
+    // в этой же ветке: нет порога сна — нет и блока `lx`.
+    // `build_overflow` НЕ пишем (дефолт ядра `wait` нас устраивает),
+    // `lx.masque.idle_timeout` тоже: у WARP MASQUE-узлов свой idle_timeout
+    // внутри самого узла.
+    // §542 — оба значения из настроек. Тумблер lazy выключен → ни
+    // `lazy_build`, ни `build_max`; `0` в build_max пишется как есть (ядро:
+    // без потолка).
+    if (settings.wgLazyBuild) {
+      wg['lazy_build'] = true;
+      wg['build_max'] = settings.wgBuildMax < 0 ? 0 : settings.wgBuildMax;
+    }
+    config['lx'] = <String, dynamic>{'wg': wg};
+  }
+
+  // §125 — деградация dangling route_final → vpn-1. Ссылка на удалённое Направление
+  // или legacy ✨auto (которого больше нет, Решение 2/3) схлопывается в vpn-1
+  // (неудаляем → всегда валидная мишень).
+  // §219 — валидные мишени берём из ФАКТИЧЕСКИ эмитированных `presetOutbounds`
+  // (теги селекторов + auto-двойники), а не переугадываем `[tag, autoTag]`:
+  // auto-двойник `<tag>-auto` эмитится лишь при `auto != null && nodes.isNotEmpty`
+  // (см. `_buildDirectionGroups`), поэтому статичный `autoTag` для Направления с пустым
+  // node-set давал бы висячую ссылку в конфиге (fatal в sing-box).
+  // §274 — detour-Направления валидные rules-мишени (вычитание detourDirectionTags
+  // из validFinals снято вместе с взаимоисключением ролей §248).
+  if (settings.routeFinal.isNotEmpty) {
+    final validFinals = <String>{
+      kDirectOutboundTag,
+      kBlockOutboundTag, // §201 — block системный outbound, валидная route_final-мишень
+      for (final o in presetOutbounds)
+        if (o['tag'] is String) o['tag'] as String,
+      ...replaceBuild.emitted, // фича 565 фаза B — корневые имена свёрток
+    };
+    var finalTag = settings.routeFinal;
+    if (!validFinals.contains(finalTag)) {
+      emitWarnings.add(
+          'Route final "$finalTag" no longer exists — switched to vpn-1.');
+      finalTag = 'vpn-1';
+    }
+    route['final'] = finalTag;
+  }
+
+  // Фича 565 фаза B (§74 п.4) — правило на свёртку, чья группа не написана
+  // (ноль узлов): цель подменяется на `route.final`, если он жив, иначе
+  // правило снимается. Включённое правило с целью в никуда роняет конфиг.
+  if (replaceBuild.dropped.isNotEmpty) {
+    emitWarnings.addAll(retargetRulesOffDroppedReplaces(
+      route,
+      replaceBuild.dropped,
+      liveFinals: {
+        kDirectOutboundTag,
+        kBlockOutboundTag,
+        for (final o in presetOutbounds)
+          if (o['tag'] is String) o['tag'] as String,
+        ...replaceBuild.emitted,
+      },
+    ));
+  }
+
+  // Контракт 1.1.65 — поля, уступающие дописанному сборкой `detour`
+  // (`listen_port` WireGuard), снимаются кодом связи реестра. Контракт 1.1.84
+  // — туда же `tls.fragment` (`detour_with_tls_fragment`). Код ложится и в
+  // предупреждения узла по его config-тегу — рядом с кодами гарда реестра.
+  // §577 — тела авторских записей (identity: карты тел и есть элементы
+  // `outbounds[]`/`endpoints[]` конфига).
+  final authoredBodies = Set<Map<String, dynamic>>.identity()
+    ..addAll([
+      for (final e in <SingboxEntry>[...ctx.outbounds, ...ctx.endpoints])
+        if (e.authored) e.map,
+    ]);
+  for (final w in applyDetourYields(config, authored: authoredBodies)) {
+    emitWarnings
+        .add(w.applied ? w.renderEn() : '${w.renderEn()} (not applied)');
+    if (w.ownerTag.isNotEmpty) {
+      registryReport.warningsByEmittedTag
+          .putIfAbsent(w.ownerTag, () => [])
+          .add(w);
+    }
+  }
+  applyTlsFragment(config, vars);
+  applyMixedCaseSni(config, vars);
+
+  // §419 / §441 — умолчания шаблона резолверов DNS: замены битых ссылок
+  // (сервер пресета ушёл — [healDanglingDnsResolvers]; сервер выпал из-за
+  // висячего detour — [healDetourDroppedDnsRefs] внутри applyCustomDns).
+  final resolverDefaults = <String, String>{
+    for (final name in const ['dns_final', 'dns_default_domain_resolver'])
+      name: byName[name]?.defaultValue ?? '',
+  };
+
+  await applyCustomDns(
+    config,
+    template.dnsOptions,
+    extraServers: unifiedApply.extraDnsServers,
+    extraServerPresetIds: unifiedApply.dnsServerPresetIdByTag,
+    extraDnsRulesByPresetId: unifiedApply.dnsRulesByPresetId,
+    activePresetIdsWithDnsRule: activePresetIdsWithDnsRule,
+    dnsSrsCachedPaths: dnsSrsCachedPaths,
+    dnsMirrors: unifiedApply.dnsMirrors,
+    warningsOut: emitWarnings, // §312 — дропы членов DNS-групп
+    resolverDefaults: resolverDefaults, // §441 — Н10
+    globalVars: vars, // §555/§570 — тела шаблонных серверов видят весь шаблон
+  );
+
+  // §119/§120: VPN-mode (tun-in/mixed-in/route-rules) теперь декларативен —
+  // резолвится #if-walker'ом в substitution-фазе (выше, по @vpn_mode/@proxy_*).
+  // applyVpnMode удалён. К этому моменту inbounds[] уже финальный: в proxy
+  // tun-in физически отсутствует → applyTunPackages (по type=='tun') no-op'ит.
+
+  // §046: OS-level split-tunneling. Должен быть **последним** post-step'ом —
+  // финальный transform tun-inbound, после всего остального.
+  if (settings.tunApps != null) {
+    applyTunPackages(config, settings.tunApps!);
+  }
+
+  // §103 C7 — миграция ссылок на теги пресетов. ДО деградаций ниже: они
+  // снимают битую ссылку, а мы её чиним, и порядок наоборот означал бы, что
+  // настройка пользователя теряется вместо переезда на новый тег.
+  final healedPrefixes = healPresetTagPrefix(config);
+  if (healedPrefixes.isNotEmpty) {
+    final shown = healedPrefixes.take(5).map((h) => '${h.from} → ${h.to}');
+    emitWarnings.add(
+        'Preset tags migrated to namespaced form (${healedPrefixes.length}): '
+        '${shown.join(', ')}${healedPrefixes.length > 5 ? ', …' : ''}');
+  }
+
+  // §247 — деградация битых `server`-ссылок у resolve-правил (симметрично
+  // detour-heal выше): ядро валит каждое сматчившееся соединение лениво
+  // («DNS server not found»), а не на старте — validator этого не видит.
+  // Снятый server → резолв через обычный DNS-роутинг.
+  final healedResolve = healDanglingResolveServers(config);
+  for (final h in healedResolve) {
+    emitWarnings.add(
+        'Resolve server removed: route rule #${h.ruleIndex} referenced '
+        'missing DNS server "${h.target}" — falling back to DNS routing.');
+  }
+
+  // §419 — битые `dns.final` / `route.default_domain_resolver` (сервер
+  // выключенного/удалённого пресета) → дефолт шаблона, var уходит в
+  // generatedVars и персистится контроллером. Иначе каждая сборка — fatal
+  // DanglingDnsServerRef, а автосброс §121 срабатывал только при открытии
+  // экрана DNS Settings: плашка «Settings changed» висела вечно.
+  final healedResolvers = healDanglingDnsResolvers(
+    config,
+    defaults: resolverDefaults,
+  );
+  for (final h in healedResolvers) {
+    generatedVars[h.varName] = h.to;
+    emitWarnings.add(
+        '${h.field} reset to "${h.to}": DNS server "${h.from}" is gone '
+        '(its preset was disabled or removed).');
+  }
+
+  // §246 hotfix — легаси `strategy` в dns.rules × query_type/ip_version
+  // (FakeIP §228, Force IPv4 §253) = fatal у ядра 1.14 на старте. Снимаем
+  // strategy, если несовместимая пара присутствует (деградация вместо
+  // мёртвого VPN).
+  final healedDnsStrategy = healLegacyDnsStrategy(config);
+  if (healedDnsStrategy.isNotEmpty) {
+    emitWarnings.add(
+        'DNS rule strategy removed on rules ${healedDnsStrategy.join(", ")}: '
+        'incompatible with query_type/ip_version DNS rules (e.g. FakeIP or '
+        'Force IPv4) — kernel would reject the config. Resolution falls back '
+        'to the global DNS strategy.');
+  }
+
+  // §281 — неизвестный uTLS fingerprint = fatal у ядра при создании outbound
+  // («unknown uTLS fingerprint») — конфиг не встаёт целиком. Парсер уже
+  // канонизирует на входе (xray-псевдонимы hellochrome_* → chrome, мусор →
+  // chrome); этот post-step — страховка для путей мимо парсера.
+  final healedFingerprints = healUnknownUtlsFingerprints(config,
+      authored: authoredBodies);
+  for (final h in healedFingerprints) {
+    emitWarnings.add(
+        'Fingerprint replaced: outbound "${h.owner}" had unknown uTLS '
+        'fingerprint "${h.original}" — using "chrome" instead.');
+  }
+
+  // §343 — битый REALITY-блок (short_id нечётный/не-hex/>16, public_key не
+  // X25519) = fatal ВСЕГО конфига на старте ядра. Парсер гейтит на входе
+  // (§169/§343), этот post-step — страховка для путей мимо парсера (raw
+  // JSON, §302 import rules, vars). Битое значение отбрасывается, нода
+  // деградирует — VPN стартует.
+  final healedReality = healInvalidReality(config, authored: authoredBodies);
+  for (final h in healedReality) {
+    emitWarnings.add(h.field == 'short_id'
+        ? 'REALITY short_id cleared: outbound "${h.owner}" had invalid '
+            'hex "${h.original}" — kernel would reject the whole config.'
+        : 'REALITY removed: outbound "${h.owner}" had invalid public_key '
+            '"${h.original}" — node degraded to plain TLS.');
+  }
+
+  // §393 A4 — ФИНАЛЬНЫЙ граф-санитайзер. Последняя точка, где виден весь
+  // outbound-граф целиком: все heal'ы выше уже отработали и могли сделать
+  // висячими новые ссылки (снятый REALITY ноду не дропает, но §302-патч или
+  // выключенная подписка — вполне). Поглощает §172 `healDanglingDetours`:
+  // висячий detour — лишь одно из его правил, и агрегация «Detour removed»
+  // (§377, одна строка на target) переехала внутрь. Здесь же чинятся
+  // члены-призраки групп, `default` вне состава (L1 — иначе ядро отвергает
+  // конфиг целиком) и кольца зависимостей — ДО валидатора, чей §254-fatal
+  // остаётся последним рубежом на неразруленное.
+  emitWarnings.addAll(sanitizeOutboundGraph(
+    config,
+    directionTags: {for (final c in directions) c.tag},
+  ));
+
+  final validation = validateConfig(config);
+  // §555 — записи template_degraded идут первыми (паритет с «Итогом» desktop).
+  final templateItems = templateWarnings.items;
+  return BuildResult(
+    configJson: jsonEncode(config),
+    config: config,
+    validation: validation,
+    emitWarnings: [
+      for (final w in templateItems) _renderTemplateWarning(w),
+      ...emitWarnings,
+    ],
+    templateWarnings: templateItems,
+    buildCodes: buildCodes,
+    generatedVars: generatedVars,
+    directionsWithoutNodes: directionsWithoutNodes,
+    nodeByEmittedTag: {
+      for (final e in ctx.emittedTagAliases.entries) e.key: e.value,
+      for (final e in ctx.emittedTagByNode.entries) e.value: e.key,
+    },
+    nodeBuildWarningsByEmittedTag: registryReport.warningsByEmittedTag,
+  );
+}
+
+/// §578 — узлы конфига для `for_each` в порядке конфига (`outbounds`, затем
+/// `endpoints`). Берутся только записи узлов из источников, у которых есть
+/// финальный тег в `emittedTagByNode`: выключенный, снятый гейтом реестра,
+/// ядра или detour-проходом узел туда не попадает. `skip_presets` — поле
+/// записи своего сервера или члена папки; у узла подписки записи нет.
+List<PresetNode> _collectPresetNodes(List<ServerList> lists, _BuildCtx ctx) {
+  final skip = <NodeSpec>{};
+  for (final list in lists) {
+    switch (list) {
+      case UserServer u:
+        if (u.skipPresets) skip.addAll(u.nodes);
+      case FolderServers f:
+        for (final m in f.members) {
+          final node = m.node;
+          if (m.skipPresets && node != null) skip.add(node);
+        }
+      case SubscriptionServers():
+        break;
+    }
+  }
+  final nodeByTag = <String, NodeSpec>{
+    for (final e in ctx.emittedTagByNode.entries) e.value: e.key,
+  };
+  return [
+    for (final e in <SingboxEntry>[...ctx.outbounds, ...ctx.endpoints])
+      if (nodeByTag[e.tag] case final NodeSpec node)
+        PresetNode(tag: e.tag, body: e.map, skipPresets: skip.contains(node)),
+  ];
+}
+
+/// Реализация `EmitContext`: vars + аллокатор уникальных тегов +
+/// аккумуляторы entries + RuleSetRegistry.
+class _BuildCtx implements EmitContext {
+  _BuildCtx(
+    this._vars,
+    this._ruleSets, {
+    bool passiveCheck = false,
+    Iterable<String> reservedTags = const [],
+    String coreVersion = '',
+    this.linkTargets,
+    Set<String> blockedReplaces = const {},
+  })  : _passiveCheck = passiveCheck,
+        _coreVersion = coreVersion,
+        _blockedReplaces = blockedReplaces {
+    _taken.addAll(reservedTags); // §351 — теги Направлений, эмитятся мимо аллокатора
+  }
+
+  final Set<String> _blockedReplaces;
+
+  @override
+  bool isReplaceBlocked(String listId) => _blockedReplaces.contains(listId);
+
+  @override
+  final NodeLinkTargets? linkTargets;
+
+  /// §439 — detour-ссылки узлов, ждущие второго прохода.
+  final deferredDetours = <DeferredDetour>[];
+
+  @override
+  void deferDetour(DeferredDetour detour) => deferredDetours.add(detour);
+
+  /// §439 — убрать узлы, выпавшие на втором проходе detour-ссылок, из всех
+  /// аккумуляторов: в конфиг, пулы Направлений и секции они не идут.
+  void dropEntries(DeferredDetourReport report) {
+    if (report.droppedEntries.isEmpty) return;
+    bool gone(SingboxEntry e) => report.droppedEntries.contains(e);
+    outbounds.removeWhere(gone);
+    endpoints.removeWhere(gone);
+    selectorEntries.removeWhere(gone);
+    autoEntries.removeWhere(gone);
+    emittedTagByNode
+        .removeWhere((node, _) => report.droppedNodes.contains(node));
+  }
+
+  /// §460 — убрать записи, снятые гардом реестра (`drop_node`): их тело ядро
+  /// не примет, а конфиг падает целиком, не одним узлом.
+  ///
+  /// §56 (контракт 1.1.60) — из `emittedTagByNode`/`emittedTagAliases` снятое
+  /// чистится по финальному тегу записи: секции узла (NODE_SECTIONS.md —
+  /// DNS-сервер `tailscale` со ссылкой на endpoint) без самого узла ядро
+  /// отвергло бы вместе со всем конфигом.
+  void dropRegistryEntries(List<SingboxEntry> dropped) {
+    if (dropped.isEmpty) return;
+    bool gone(SingboxEntry e) => dropped.contains(e);
+    outbounds.removeWhere(gone);
+    endpoints.removeWhere(gone);
+    selectorEntries.removeWhere(gone);
+    autoEntries.removeWhere(gone);
+    final tags = {for (final e in dropped) e.tag};
+    emittedTagByNode.removeWhere((_, tag) => tags.contains(tag));
+    emittedTagAliases.removeWhere((tag, _) => tags.contains(tag));
+  }
+  final TemplateVars _vars;
+  final RuleSetRegistry _ruleSets;
+  final bool _passiveCheck;
+  final String _coreVersion;
+  final _taken = <String>{kDirectOutboundTag, 'dns-out', 'block-out'};
+
+  final outbounds = <Outbound>[];
+  final endpoints = <Endpoint>[];
+  final selectorEntries = <SingboxEntry>[];
+  final autoEntries = <SingboxEntry>[];
+
+  /// Фича 565 фаза B — планы свёрнутых источников в порядке источников.
+  final replacePlans = <ReplacePlan>[];
+
+  @override
+  void addReplacePlan(ReplacePlan plan) => replacePlans.add(plan);
+
+  /// §435 — узел → финальный тег (после префикса и `allocateTag`).
+  final emittedTagByNode = <NodeSpec, String>{};
+
+  /// Фича 478 — финальный тег хопа цепочки → владелец узла (main outbound).
+  final emittedTagAliases = <String, NodeSpec>{};
+
+  /// §435 — строки отчёта из `ServerList.build` (гейт ядра).
+  final warnings = <String>[];
+
+  @override
+  TemplateVars get vars => _vars;
+
+  @override
+  RuleSetRegistry get ruleSets => _ruleSets;
+
+  @override
+  bool get passiveCheck => _passiveCheck; // §272/§322
+
+  @override
+  String get coreVersion => _coreVersion;
+
+  @override
+  void noteEmitted(NodeSpec node, String finalTag) {
+    emittedTagByNode[node] = finalTag;
+  }
+
+  @override
+  void noteEmittedAlias(String finalTag, NodeSpec owner) {
+    emittedTagAliases[finalTag] = owner;
+  }
+
+  @override
+  void warn(String line) {
+    if (!warnings.contains(line)) warnings.add(line);
+  }
+
+  @override
+  String allocateTag(String baseTag) {
+    if (!_taken.contains(baseTag)) {
+      _taken.add(baseTag);
+      return baseTag;
+    }
+    for (var i = 1; i < 100000; i++) {
+      final c = '$baseTag-$i';
+      if (!_taken.contains(c)) {
+        _taken.add(c);
+        return c;
+      }
+    }
+    return baseTag;
+  }
+
+  @override
+  void addEntry(SingboxEntry entry) {
+    switch (entry) {
+      case Outbound():
+        outbounds.add(entry);
+      case Endpoint():
+        endpoints.add(entry);
+    }
+  }
+
+  @override
+  void addToSelectorTagList(SingboxEntry entry) => selectorEntries.add(entry);
+
+  @override
+  void addToAutoList(SingboxEntry entry) => autoEntries.add(entry);
+}
+
+/// Собирает direction-группы (vpn-1..vpn-10 + их auto-двойники). Приватный
+/// helper `buildConfig` — специфичен для одного вызова, выделение в
+/// отдельный файл/модуль не даёт пользы (YAGNI, решение §Принципы #4).
+/// §125 — собирает outbound-группы из пользовательских [directions] (storage).
+/// Каждый **включённый** Направление эмитит selector `<tag>`; если у Направления есть
+/// `auto` И его node-set непуст — дополнительно urltest-двойник `<tag>-auto`.
+///
+/// Per-direction node-set: `selectorTags`, отфильтрованные `direction.nodeFilter`
+/// (regex по **итоговому tag** ноды, §048-style — что видно в имени, то и
+/// матчится). Пустой/невалидный фильтр → все ноды. Это снимает прежнее
+/// допущение «все selector делят один набор нод».
+List<Map<String, dynamic>> _buildDirectionGroups({
+  required List<Direction> directions,
+  required List<String> selectorTags,
+  required List<Map<String, dynamic>> nodeEntries,
+  required List<String> emitWarnings,
+  required List<String> directionsWithoutNodes, // §274 — display-имена, out-параметр
+  bool passiveCheck = false, // §272 — urltest.passive_check в auto-двойники
+  // §393 C4 — «тег цепочки → её позиции». Пусто = цепочек нет, и весь блок
+  // T9 схлопывается в no-op: конфиги без цепочек собираются как раньше.
+  Map<String, List<String>> chainHops = const {},
+  // Фича 565 фаза B (§74 п.5) — эмитированные имена свёрток: опции `include`
+  // наравне с Направлениями выше по списку.
+  Set<String> includeTargets = const {},
+}) {
+  // §125 — единственный слой фильтрации нод теперь per-direction regex
+  // (node_filter). Глобальный excluded_nodes (§048) удалён.
+  final baseNodes = selectorTags;
+
+  final active = directions.where((c) => c.enabled || c.isRequired).toList();
+
+  /// Ноды Направления после regex-фильтра. Пустой/битый regex → все baseNodes.
+  /// §197 — nodeFilterInvert инвертирует смысл: true → ноды, чей tag НЕ матчит.
+  List<String> nodesFor(Direction c) {
+    if (c.nodeFilter.isEmpty) return baseNodes;
+    final re = tryCompileRegex(c.nodeFilter, caseSensitive: false);
+    if (re == null) return baseNodes;
+    return baseNodes
+        .where((t) => re.hasMatch(t) != c.nodeFilterInvert)
+        .toList();
+  }
+
+  // §248 — member-set'ы считаем один раз: их делят selector и auto-двойник.
+  // §254 — детур-циклы билдер больше НЕ рвёт: детекция и минимальный набор
+  // виновников — в validateConfig (fatal, конфиг не собирается).
+  // §393 C4 / T9 (§393 L6) — Направление НЕ берёт в состав цепочку, которая
+  // через него же проходит (транзитивно). Считается ПОСЛЕ фильтра: фильтр не
+  // знает, что такое цепочка, и знать не должен — «все узлы» обязано означать
+  // все узлы. Самый частый сценарий ломается сразу: цепочка `[proxy-out,
+  // exit]` при фильтре «всё» у `proxy-out` замкнула бы трафик на себя.
+  final memberSets = <List<String>>[];
+  // Отобранное ФИЛЬТРОМ, до вычета T9. Нужно ровно для одного: не соврать в
+  // предупреждении «node filter matched no nodes». Фильтр, поймавший только
+  // цепочку, которую затем вычел T9, отработал ПРАВИЛЬНО, и посылать
+  // пользователя его чинить («Check its node filter») значит отправить его
+  // искать несуществующую опечатку вместо настоящей причины — а она названа
+  // отдельной строкой про цикл, которая уже выдана выше.
+  final filteredCounts = <int>[];
+  for (final c in active) {
+    final filtered = nodesFor(c);
+    filteredCounts.add(filtered.length);
+    final (:kept, :dropped) =
+        dropChainsThroughDirection(filtered, c.tag, chainHops);
+    memberSets.add(kept);
+    if (dropped.isNotEmpty) {
+      emitWarnings.add(chainCycleThroughDirectionLine(c.displayLabel, dropped));
+    }
+  }
+  // §322 — узел автовыбора в urltest-двойник Направления не идёт: urltest внутри
+  // urltest мерил бы уже выбранный внутренней группой узел, а не сервер.
+  // Тип берём из эмитированных entry (там же, откуда его читает AWG-advisory).
+  // §565 — оба рода: selector внутри urltest мерил бы выбранного вручную.
+  final groupTags = {
+    for (final e in nodeEntries)
+      if (GroupGenus.isKnown('${e['type']}')) e['tag'] as String,
+  };
+  final autoSets = [
+    for (final ms in memberSets)
+      [
+        for (final t in ms)
+          if (!groupTags.contains(t)) t,
+      ],
+  ];
+
+  // §393 A3 — теги Направлений, УЖЕ эмитированных выше по списку. Только на
+  // них законна ссылка `include`: эмиссия идёт по порядку, и ссылка вниз
+  // была бы forward-ref (антицикл держится порядком, как у лаунчера —
+  // `tagsAbove` в форме + топологический проход генератора).
+  final emittedAbove = <String>{};
+
+  final result = <Map<String, dynamic>>[];
+  for (var i = 0; i < active.length; i++) {
+    final c = active[i];
+    final nodes = memberSets[i];
+    final autoNodes = autoSets[i]; // §322 — без узлов автовыбора
+    final emitAuto = c.auto != null && autoNodes.isNotEmpty;
+
+    // §393 A3 — фильтр include: в состав идут только теги Направлений,
+    // эмитированных ВЫШЕ. Отсеиваются три случая, все одним warning'ом:
+    //   • ссылка ВНИЗ по списку (в т.ч. после reorder — Направление
+    //     переехало выше своей цели): ядро отвергло бы конфиг на
+    //     forward-ref, поэтому деградируем состав, а не ломаем сборку;
+    //   • ссылка на выключенное Направление: его нет в `active`, значит и
+    //     тега в конфиге нет — dangling ref не даёт ядру стартовать;
+    //   • ссылка на несуществующий тег (удалённое Направление, правленый
+    //     руками файл, restore из чужого бэкапа).
+    // Самоссылка отсеивается тем же условием: свой тег в `emittedAbove` ещё
+    // не лежит (кладём его в конце итерации).
+    final includeTags = <String>[];
+    for (final t in c.include) {
+      if (emittedAbove.contains(t) || includeTargets.contains(t)) {
+        if (!includeTags.contains(t)) includeTags.add(t);
+        continue;
+      }
+      emitWarnings.add(
+          'Direction "${c.displayLabel}" (${c.tag}): option "$t" dropped — '
+          'it must be another direction listed above this one (and enabled).');
+    }
+
+    // §393 A3 — ПОРЯДОК СОСТАВА нормативен (corpus/direction/README.md
+    // «сначала служебные опции и ссылки на другие Направления, потом узлы
+    // в порядке конфига»), потому что первый элемент = НЕЯВНЫЙ default
+    // sing-box: селектор без поля `default` стартует на первой опции.
+    // Служебные опции спереди — это и UX (не листать сотню узлов, чтобы
+    // включить direct), и семантика (узел подписки не должен молча стать
+    // умолчанием Направления, состоящего из ссылок).
+    //
+    // Порядок ВНУТРИ служебного блока: `<tag>-auto`, direct-out, block-out,
+    // include-теги. Эталон — лаунчер: у него direct/block и include лежат
+    // ОДНИМ списком `Direction.AddOutbounds`, который эмитится целиком перед
+    // узлами (outbound_generator.go:575-576 «Add addOutbounds first»), а
+    // собирается формой в фиксированном порядке чекбоксов
+    // `direct-out → block → прочие теги` (edit_dialog.go:462-472). У мобилы
+    // те же данные разложены на два флага + список, поэтому порядок
+    // воспроизводим руками. auto-двойник впереди всех — так его кладёт
+    // `direction_twins.go:112` (`prependUnique(twinTag, parent.AddOutbounds)`).
+    //
+    // Обе фикстуры корпуса сходятся на этом порядке: у
+    // `include_earlier_direction` служебных опций нет → `[vpn-1, узлы…]`;
+    // у `include_direct_and_block` нет include → `[direct-out, block-out,
+    // узел]`. Кейса с обеими категориями сразу в корпусе нет — тай-брейк
+    // взят у лаунчера, а не выдуман.
+    final selectorOutbounds = <String>[
+      if (emitAuto) c.autoTag,
+      if (c.includeDirect) kDirectOutboundTag,
+      if (c.includeBlock) kBlockOutboundTag, // §274 — совместим с detour
+      ...includeTags,
+      // Кандидат-свёртка, уже взятая опцией `include`, второй раз не идёт.
+      for (final t in nodes)
+        if (!includeTags.contains(t)) t,
+    ];
+    // §201/§274 — пустой набор (regex не матчит / нет нод) → fallback на
+    // [block, direct-out] с default=block для ВСЕХ Направлений (безопаснее
+    // блокировать, чем выпускать мимо VPN; direct остаётся доступной
+    // опцией). Detour-исключение §248 Q1 ([direct], «нет хопа») снято:
+    // detour-Направление может одновременно быть целью правил, и direct-fallback
+    // молча выпускал бы rule-трафик мимо VPN. selector не должен быть
+    // пустой группой (fatal в sing-box).
+    final emptyFallback = selectorOutbounds.isEmpty;
+    if (emptyFallback) {
+      selectorOutbounds.addAll([kBlockOutboundTag, kDirectOutboundTag]);
+    }
+    // §200/§274 — предупреждаем, если ИМЕННО фильтр Направления отсёк все ноды
+    // (фильтр непустой, но 0 совпадений): в AppLog текстом, в UI
+    // транзиентным SnackBar (directionsWithoutNodes). Текст отражает
+    // ФАКТИЧЕСКИЙ исход: при emptyFallback ядро берёт default=block, иначе
+    // (include_direct/include_block без нод) — ПЕРВУЮ опцию списка, и при
+    // include_direct это direct-out (юзер сам включил опцию — трафик идёт
+    // мимо VPN, врать «blocked» нельзя). Пустой фильтр с 0 нод (нет
+    // подписки) НЕ варним — это не вина фильтра.
+    if (nodes.isEmpty &&
+        filteredCounts[i] == 0 && // §393 C4 — не винить фильтр за вычет T9
+        c.nodeFilter.isNotEmpty &&
+        selectorTags.isNotEmpty) {
+      final effective =
+          emptyFallback ? kBlockOutboundTag : selectorOutbounds.first;
+      // §393 A3 — исход зависит от того, ЧТО стало первой опцией: block
+      // (пустой fallback), direct-out (юзер включил галку — трафик идёт мимо
+      // VPN, врать «blocked» нельзя) или другое Направление из `include`,
+      // которое ведёт трафик СВОИМИ узлами (ни то, ни другое).
+      final outcome = switch (effective) {
+        kDirectOutboundTag => 'traffic goes direct (no VPN hop)',
+        kBlockOutboundTag => 'traffic is blocked (default)',
+        _ => 'traffic falls back to "$effective"',
+      };
+      emitWarnings.add(
+          'Direction "${c.displayLabel}" (${c.tag}): node filter matched no '
+          'nodes — $outcome. '
+          'Check its node filter.');
+      // §393 A3 — SnackBar «Направления без узлов» гейтится УЖЕ ИСХОДОМ, а не
+      // фактом пустого node-set. Список `directionsWithoutNodes` в UI зовёт
+      // пользователя чинить фильтр СРОЧНО, потому что Направление
+      // фактически не ведёт трафик: block-fallback (`emptyFallback`) или
+      // единственные служебные опции direct/block. Если же `include[]` дал
+      // рабочих участников — Направление живое, трафик идёт узлами цели, и
+      // поднимать тревогу не за что. Текст в AppLog остаётся в обоих
+      // случаях: он информирует, а не требует действия.
+      final onlyMagic = selectorOutbounds
+          .every((t) => t == kDirectOutboundTag || t == kBlockOutboundTag);
+      if (emptyFallback || onlyMagic) {
+        directionsWithoutNodes.add(c.displayLabel);
+      }
+    }
+
+    final selector = <String, dynamic>{
+      'tag': c.tag,
+      'type': 'selector',
+      'outbounds': selectorOutbounds,
+      'interrupt_exist_connections': c.interruptExistConnections,
+    };
+    // §201/§274 — fallback пустого Направления: block для всех.
+    if (emptyFallback) {
+      selector['default'] = kBlockOutboundTag;
+    }
+    // §141 — default = первая нода Направления, чей итоговый tag матчит defaultFilter.
+    // Не матчит/пусто → default не выставляется (sing-box берёт первую опцию).
+    if (c.defaultFilter.isNotEmpty) {
+      final re = tryCompileRegex(c.defaultFilter, caseSensitive: false);
+      final def = re == null ? null : _firstMatch(nodes, re);
+      // Гейт-защита (§141 P1.8b): default обязан быть валидным членом
+      // outbounds — иначе ядро отвергает конфиг ЦЕЛИКОМ («default outbound
+      // not found», L1). Здесь не-член просто НЕ ставится: ключа нет, ядро
+      // берёт первую опцию — это и есть корректный исход, а не расхождение с
+      // эталоном (`outbound_graph_sanitize.go:216-221` подставляет `kept[0]`
+      // там, где ключ УЖЕ записан и оказался вне состава). Ровно этот случай
+      // — состав ужался каскадом, а default остался от прошлой жизни — чинит
+      // правило 3 санитайзера (§393 A4).
+      if (def != null && selectorOutbounds.contains(def)) {
+        selector['default'] = def;
+      }
+    }
+    // §393 A5 — умолчанием Направления с автовыбором становится его двойник:
+    // ради автовыбора галку и включали, и без ключа ядро взяло бы ПЕРВУЮ
+    // опцию — сегодня это тот же `<tag>-auto`, но стоит юзеру включить
+    // direct/block или сослаться include'ом, и умолчание молча уехало бы на
+    // служебную опцию. Эталон — `outbound_generator.go:676-682`
+    // (`defaultTag == "" && TwinTag != ""`), нормативный кейс корпуса —
+    // `auto_twin_emitted_and_default`.
+    //
+    // Только когда `defaultFilter` пользователя НИЧЕГО не поймал: явно
+    // выбранный узел важнее автовыбора (`auto_twin_default_yields_to_
+    // explicit`). Условие вхождения в состав выполнено по построению —
+    // `emitAuto` кладёт `c.autoTag` первым элементом `selectorOutbounds`.
+    if (emitAuto && !selector.containsKey('default')) {
+      selector['default'] = c.autoTag;
+    }
+
+    // urltest-двойник: ТОЛЬКО ноды Направления (без direct/auto). Не эмитим при
+    // пустом наборе (urltest без нод недопустим).
+    // §272 passive_check, §208 round_robin (`mode` + `balancer{}` только у
+    // round_robin, пустой sticky_hash → sentinel ["none"]) — одна форма с
+    // автовыбором свёртки (`buildAutoGroup`).
+    if (emitAuto) {
+      result.add(buildAutoGroup(
+        tag: c.autoTag,
+        outbounds: autoNodes,
+        a: c.auto!,
+        passiveCheck: passiveCheck,
+      ));
+    }
+    // §393 A5 — ПОРЯДОК ЭМИССИИ нормативен (corpus/direction/README.md:
+    // «сначала auto-группа, потом само Направление»), поэтому селектор
+    // добавляется ПОСЛЕ своего двойника, а не до. Дело не в эстетике: и
+    // `default`, и первая опция селектора смотрят на `<tag>-auto`, и запись,
+    // на которую ссылаются, обязана лежать в файле раньше ссылки — так
+    // конфиг читается человеком и так его собирает лаунчер
+    // (`direction_twins.go:105-114`: `out = append(out, buildTwin…)`, затем
+    // родитель). Ядру порядок безразличен, читателю и диффу — нет.
+    result.add(selector);
+
+    // §393 A3 — тег этого Направления становится законной целью `include`
+    // для СЛЕДУЮЩИХ. Регистрируем в конце итерации: свой же тег не должен
+    // попасть в собственный состав (самоссылка = кольцо на одном узле).
+    // Двойник `<tag>-auto` сюда НЕ кладём — он опция только своего
+    // Направления (канон схемы + `direction_twins.go:buildTwin`, где
+    // производная запись помечена TwinOf и другим не предлагается).
+    emittedAbove.add(c.tag);
+  }
+  return result;
+}
+
+/// §125 fallback — синтез `List<Direction>` из `template.groupTemplates`, когда
+/// storage ещё пуст (тесты без storage / первый билд до миграции). Та же
+/// seed-логика, что и one-shot миграция `_migrateDirectionsIfNeeded`, но auto-
+/// параметры резолвятся через [resolve] (@urltest_* vars). §267 — итерируем
+/// `default_directions`, auto-подгруппа при `direction.include ∋ auto`.
+List<Direction> _directionsFromTemplate(
+  GroupTemplates gt,
+  Set<String> enabledGroupTags,
+  VarResolver resolve,
+) {
+  // §327 — дефолты живут в шаблоне (`vars[].default_value`), и `resolve` их уже
+  // применил: `vars` в buildConfig наполнен `userVars[name] ?? defaultValue`.
+  // Прежние литералы (`'50'`, `'15m'`) были недостижимой копией шаблона и
+  // разошлись с ним (шаблон: 30). Здесь остаются только дефолты `DirectionAuto`
+  // — последний рубеж, если var из шаблона исчезнет.
+  const fallback = DirectionAuto();
+  String? s(String name) => resolve(name)?.toString();
+
+  DirectionAuto seedAuto() => DirectionAuto(
+        url: s('urltest_url') ?? fallback.url,
+        interval: s('urltest_interval') ?? fallback.interval,
+        tolerance: int.tryParse(s('urltest_tolerance') ?? '') ?? fallback.tolerance,
+        idleTimeout: fallback.idleTimeout,
+        interruptExistConnections: fallback.interruptExistConnections,
+      );
+
+  final hasAuto = gt.direction.include.contains('auto');
+  final out = <Direction>[];
+  for (final dc in gt.defaultDirections) {
+    final enabled = dc.tag == 'vpn-1'
+        ? true
+        : (enabledGroupTags.isEmpty
+            ? dc.defaultEnabled
+            : enabledGroupTags.contains(dc.tag));
+    final auto = hasAuto ? seedAuto() : null;
+    out.add(
+        Direction.seedFromDefault(dc, gt.direction, enabled: enabled, auto: auto));
+  }
+  return out;
+}
+
+/// Компилирует regex, `null` при невалидном паттерне (caller → fallback на все
+/// ноды). Общий helper для билдера и live-превью редактора (§125 F4).
+
+/// Первая нода (по порядку) из [tags], чей итоговый tag матчит [re]. `null` если
+/// нет совпадений.
+String? _firstMatch(List<String> tags, RegExp re) {
+  for (final t in tags) {
+    if (re.hasMatch(t)) return t;
+  }
+  return null;
+}
+
+// §122 Фаза 1b — `_ensureClashApiDefaults` удалён: clash_api больше не инжектится
+// (ядро rc.3 без with_clash_api → блок даёт фатальный отказ старта). Управление
+// через CommandClient (§122). Рандомизация порта/secret больше не нужна.
+
+/// §120 — typed substitution + `#if`. Тонкая обёртка над общим [walk]-движком
+/// ([if_engine.dart]). `obj` мутируется на месте. Coerce — по `node.type`
+/// (через [resolve]), `#if` — резолвится здесь же (substitution-фаза, до
+/// post-steps). §219 — переписанная версия: заменяет ЛОГИКУ прежних
+/// `_substituteVars`/`_resolveVar` (гадали тип по содержимому строки) на
+/// типизированный walk-движок.
+void _substituteVars(dynamic obj, VarResolver resolve) {
+  walk(obj, resolve);
+}
+
+/// §74 п.4 — носители, чей `detour` (уже разрешённый в финальный тег)
+/// указывает на имя свёртки из [dropped]: группа не написана, и узел обязан
+/// выпасть, а не пойти напрямую (fail-closed). Каскад до неподвижной точки:
+/// кто ходил через выпавшего носителя, выпадает сам. Выпавшие теги
+/// помечаются в [targets] — позиции цепочек на них не разрешатся.
+/// Возвращает строки отчёта сборки, по одной на свёртку.
+List<String> _dropCarriersOfDroppedReplaces(
+  _BuildCtx ctx,
+  Set<String> dropped,
+  NodeLinkTargets targets,
+) {
+  if (dropped.isEmpty) return const [];
+  targets.markDropped(dropped);
+  final entries = <SingboxEntry>[...ctx.outbounds, ...ctx.endpoints];
+  final gone = <String>{...dropped};
+  final carriersBy = <String, List<String>>{};
+  final removed = <SingboxEntry>[];
+  var changed = true;
+  while (changed) {
+    changed = false;
+    for (final e in entries) {
+      if (removed.contains(e)) continue;
+      final d = e.map['detour'];
+      if (d is! String || !gone.contains(d)) continue;
+      removed.add(e);
+      gone.add(e.tag);
+      // Корень причины — имя свёртки: каскад пишется под той же строкой.
+      final root = dropped.contains(d)
+          ? d
+          : carriersBy.entries
+                  .firstWhere((c) => c.value.contains(d),
+                      orElse: () => MapEntry(d, const []))
+                  .key;
+      carriersBy.putIfAbsent(root, () => []).add(e.tag);
+      changed = true;
+    }
+  }
+  if (removed.isEmpty) return const [];
+  ctx.dropRegistryEntries(removed);
+  targets.markDropped(removed.map((e) => e.tag));
+  return [
+    for (final c in carriersBy.entries)
+      '${c.value.length == 1 ? 'Node "${c.value.single}" was' : '${c.value.length} nodes (${c.value.take(5).map((t) => '"$t"').join(', ')}${c.value.length > 5 ? ', and ${c.value.length - 5} more' : ''}) were'} '
+          'skipped: the detour goes through replace group "${c.key}", which '
+          'was not built. A node whose detour does not resolve is not '
+          'emitted, so its traffic never goes direct.',
+  ];
+}

@@ -1,0 +1,446 @@
+<Window x:Class="HateVPN.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="HateVPN" Icon="pack://application:,,,/HateVPN;component/Assets/HateVPN.ico" Width="480" Height="760" WindowStartupLocation="CenterScreen"
+        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent"
+        FontFamily="Segoe UI Variable Display, Segoe UI" Foreground="#F3F5F6" FontSize="13"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display" PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <FormatConvertedBitmap x:Key="StaticWallpaper" DestinationFormat="Gray8">
+            <FormatConvertedBitmap.Source>
+                <BitmapImage UriSource="pack://application:,,,/HateVPN;component/Assets/obsidian-ribbon.png" />
+            </FormatConvertedBitmap.Source>
+        </FormatConvertedBitmap>
+        <SolidColorBrush x:Key="Muted" Color="#AAB3BA" />
+        <Style x:Key="KeyboardFocus" TargetType="Control">
+            <Setter Property="Template"><Setter.Value><ControlTemplate>
+                <Border CornerRadius="13" BorderBrush="#DCE4E9" BorderThickness="2" Margin="2" />
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="WindowButton" TargetType="Button">
+            <Setter Property="Width" Value="34" /><Setter Property="Height" Value="34" />
+            <Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="#BBC4CB" />
+            <Setter Property="Cursor" Value="Hand" /><Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="10">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#30363B" /><Setter Property="Foreground" Value="White" /></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Opacity" Value="0.65" /></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.38" /></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="ConnectStyle" TargetType="Button">
+            <Setter Property="Background" Value="#EFF2F4" /><Setter Property="Foreground" Value="#161A1E" />
+            <Setter Property="FontSize" Value="14" /><Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" /><Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="16" RenderTransformOrigin=".5,.5">
+                    <Border.RenderTransform><ScaleTransform /></Border.RenderTransform>
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12,0" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#FFFFFF" /></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX=".985" ScaleY=".985" /></Setter.Value></Setter><Setter TargetName="Surface" Property="Opacity" Value=".9" /></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value=".48" /></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="ServerStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="#ECEFF1" /><Setter Property="Background" Value="#E61B2024" />
+            <Setter Property="Cursor" Value="Hand" /><Setter Property="FontSize" Value="13" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="17" BorderBrush="#3D454C" BorderThickness="1" Padding="16,0">
+                    <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="#859099" /><Setter TargetName="Surface" Property="Background" Value="#292F34" /></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Opacity" Value=".7" /></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value=".38" /></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="SettingToggle" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#ECEFF1" /><Setter Property="FontSize" Value="14" /><Setter Property="MinHeight" Value="67" />
+            <Setter Property="Cursor" Value="Hand" /><Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
+                <Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions>
+                    <ContentPresenter VerticalAlignment="Center" Margin="0,0,15,0" />
+                    <Border x:Name="Track" Grid.Column="1" Height="25" CornerRadius="13" Background="#3B434A">
+                        <Ellipse x:Name="Knob" Width="19" Height="19" Margin="3" Fill="#E0E5E9" HorizontalAlignment="Left" />
+                    </Border>
+                </Grid>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsChecked" Value="True"><Setter TargetName="Track" Property="Background" Value="#C8D0D6" /><Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" /><Setter TargetName="Knob" Property="Fill" Value="White" /></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value=".45" /></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="FieldCard" TargetType="Border">
+            <Setter Property="Background" Value="#20252A" /><Setter Property="BorderBrush" Value="#3D454C" />
+            <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="16" /><Setter Property="Padding" Value="15,10" />
+            <Style.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="#C4CDD3" /><Setter Property="Background" Value="#252B30" /></Trigger></Style.Triggers>
+        </Style>
+        <Style x:Key="FlatInput" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#F5F6F7" /><Setter Property="CaretBrush" Value="White" />
+            <Setter Property="Padding" Value="0" /><Setter Property="FontSize" Value="15" />
+            <Setter Property="SelectionBrush" Value="#59646D" /><Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        </Style>
+        <Style x:Key="FormInput" TargetType="TextBox" BasedOn="{StaticResource FlatInput}">
+            <Setter Property="Height" Value="47" /><Setter Property="Padding" Value="12,11" /><Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#F5F6F7" /><Setter Property="CaretBrush" Value="#F5F6F7" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+                <Border x:Name="Field" Background="#101316" BorderBrush="#4A535A" BorderThickness="1" CornerRadius="11">
+                    <ScrollViewer x:Name="PART_ContentHost" Foreground="{TemplateBinding Foreground}" Background="Transparent" />
+                </Border>
+                <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Field" Property="BorderBrush" Value="#C4CDD3" /></Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="7" /><Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar">
+                <Track x:Name="PART_Track" Orientation="Vertical" IsDirectionReversed="True" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}" ViewportSize="{TemplateBinding ViewportSize}">
+                    <Track.Thumb><Thumb><Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="#69727A" Width="4" HorizontalAlignment="Center" CornerRadius="2" /></ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
+                </Track>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="ProfileItem" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="#F1F3F5" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="0,0,0,6" /><Setter Property="Padding" Value="13,10" /><Setter Property="Cursor" Value="Hand" />
+            <Setter Property="AutomationProperties.Name" Value="{Binding Name}" /><Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
+                <Border x:Name="Card" Background="#1B1F23" BorderBrush="#363D43" BorderThickness="1" CornerRadius="13" Padding="{TemplateBinding Padding}">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
+                        <ContentPresenter /><TextBlock x:Name="Tick" Grid.Column="1" Text="✓" FontSize="15" Foreground="#DCE3E8" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    </Grid>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Card" Property="Background" Value="#30363B" /></Trigger>
+                    <Trigger Property="IsSelected" Value="True"><Setter TargetName="Card" Property="Background" Value="#2A3035" /><Setter TargetName="Card" Property="BorderBrush" Value="#A3ADB5" /><Setter TargetName="Tick" Property="Visibility" Value="Visible" /></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="ConnectionCard" TargetType="Button">
+            <Setter Property="Foreground" Value="#F1F3F5" /><Setter Property="Background" Value="#1B1F23" />
+            <Setter Property="Cursor" Value="Hand" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Card" Background="{TemplateBinding Background}" BorderBrush="#3D454C" BorderThickness="1" CornerRadius="13" Padding="14,12" Margin="0,0,0,7">
+                    <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Card" Property="Background" Value="#30363B" /><Setter TargetName="Card" Property="BorderBrush" Value="#86929B" /></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Card" Property="Opacity" Value=".72" /></Trigger>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="Card" Property="Background" Value="#2A3035" /><Setter TargetName="Card" Property="BorderBrush" Value="#BBC5CC" /></DataTrigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+    </Window.Resources>
+
+    <Viewbox Stretch="Uniform">
+        <Grid x:Name="DesignSurface" Width="480" Height="760" Background="#080A0C">
+            <Grid.Clip><RectangleGeometry Rect="0,0,480,760" RadiusX="24" RadiusY="24" /></Grid.Clip>
+            <Grid x:Name="HomeSurface">
+                <Image Source="{StaticResource StaticWallpaper}" Stretch="UniformToFill" Opacity=".58" IsHitTestVisible="False" />
+                <Rectangle IsHitTestVisible="False">
+                    <Rectangle.Fill><LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#D7080A0C" Offset="0" />
+                        <GradientStop Color="#4D080A0C" Offset=".42" />
+                        <GradientStop Color="#F2080A0C" Offset=".79" />
+                        <GradientStop Color="#FF080A0C" Offset="1" />
+                    </LinearGradientBrush></Rectangle.Fill>
+                </Rectangle>
+                <StackPanel Margin="32,108,32,0" VerticalAlignment="Top">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse x:Name="StatusDot" Width="6" Height="6" Fill="#B3BDC5" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock x:Name="StatusEyebrow" Text="ВАШ ЛИЧНЫЙ VPN" Foreground="#B3BDC5" FontSize="10" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <TextBlock x:Name="StateTitle" Text="Не подключено" FontSize="34" FontWeight="SemiBold" Margin="-1,10,0,0" />
+                    <TextBlock x:Name="StateSubtitle" Text="Добавьте подписку или настройте свой VPS." Foreground="#B1BBC3" FontSize="13" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="392" HorizontalAlignment="Left" />
+                </StackPanel>
+                <StackPanel Margin="32,0,32,55" VerticalAlignment="Bottom">
+                    <Button x:Name="ProfileButton" Height="76" Style="{StaticResource ServerStyle}" Click="Import_Click" AutomationProperties.AutomationId="ProfileButton" AutomationProperties.Name="Подключения" ToolTip="Выбрать или добавить сервер">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="49" /><ColumnDefinition /><ColumnDefinition Width="18" /></Grid.ColumnDefinitions>
+                            <Border Width="35" Height="35" Background="#2A3035" BorderBrush="#485159" BorderThickness="1" CornerRadius="11" HorizontalAlignment="Left">
+                                <Viewbox Width="18" Height="18"><Canvas Width="24" Height="24">
+                                    <Ellipse Width="20" Height="20" Canvas.Left="2" Canvas.Top="2" Stroke="#D4DBE0" StrokeThickness="1.3" />
+                                    <Ellipse Width="8" Height="20" Canvas.Left="8" Canvas.Top="2" Stroke="#D4DBE0" StrokeThickness="1.3" />
+                                    <Path Data="M 2,12 L 22,12" Stroke="#D4DBE0" StrokeThickness="1.3" />
+                                </Canvas></Viewbox>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="ProfileCaption" Text="Подписка или свой VPS" Foreground="#B3BDC5" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="ProfileName" Text="Добавить подключение" FontSize="15" FontWeight="SemiBold" Margin="0,4,8,0" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <Path Grid.Column="2" Data="M 0,0 L 5,5 0,10" Stroke="#BEC7CE" StrokeThickness="1.4" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+                    <Button x:Name="ConnectButton" Height="58" Style="{StaticResource ConnectStyle}" Margin="0,13,0,0" Click="Connect_Click" AutomationProperties.AutomationId="ConnectButton" AutomationProperties.Name="Подключиться к VPN">
+                        <StackPanel Orientation="Horizontal">
+                            <Viewbox Width="18" Height="18" Margin="0,0,11,0"><Canvas Width="24" Height="24">
+                                <Path Data="M 6,5 A 9,9 0 1 0 18,5 M 12,2 L 12,12" Stroke="#202429" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                            </Canvas></Viewbox>
+                            <TextBlock x:Name="ConnectLabel" Text="Подключиться" FontSize="15" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="DisconnectCurrentButton" Content="Отключить текущий VPN" Visibility="Collapsed" Height="40" Margin="0,8,0,0" Style="{StaticResource ServerStyle}" HorizontalContentAlignment="Center" Click="DisconnectCurrent_Click" AutomationProperties.Name="Отключить текущий VPN" />
+                    <ProgressBar x:Name="HomeProgress" Visibility="Collapsed" Height="2" Margin="14,8,14,0" Foreground="#C4CDD3" Background="#363D43" IsIndeterminate="True" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,23">
+                    <Path Data="M 0,0 L 4,-2 8,0 8,4 Q 8,7 4,9 Q 0,7 0,4 Z" Stroke="#AAB4BC" StrokeThickness="1" Width="8" Height="11" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock x:Name="FooterText" Text="Подписка или собственный сервер" Foreground="#AFB8C0" FontSize="11" />
+                </StackPanel>
+            </Grid>
+
+            <Grid x:Name="ProfileSheet" Visibility="Collapsed" Background="#0B0D0F" IsVisibleChanged="PageVisibility_Changed" KeyboardNavigation.TabNavigation="Cycle">
+                <Grid Margin="28,99,28,24"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
+                    <StackPanel Margin="0,0,0,16">
+                        <Grid><TextBlock Text="Подключения" FontSize="29" FontWeight="SemiBold" /><Button Content="×" FontSize="21" HorizontalAlignment="Right" Style="{StaticResource WindowButton}" Click="CloseSheet_Click" AutomationProperties.Name="Назад на главный экран" /></Grid>
+                        <TextBlock Text="Выберите сервер или добавьте новую ссылку." Foreground="{StaticResource Muted}" Margin="0,8,0,0" />
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,5,0">
+                        <StackPanel>
+                            <Border Background="#20FFFFFF" BorderBrush="#637079" BorderThickness="1" CornerRadius="18" Padding="18">
+                                <StackPanel>
+                                    <TextBlock Text="ДОБАВИТЬ ПО ССЫЛКЕ" Foreground="#D6DEE3" FontSize="10" FontWeight="SemiBold" />
+                                    <TextBlock Text="Одна ссылка — готовое подключение" FontSize="18" FontWeight="SemiBold" Margin="0,9,0,5" TextWrapping="Wrap" />
+                                    <TextBlock Text="Подписка или приглашение от друга. Тип ссылки определим сами." Foreground="#B7C0C8" FontSize="12" Margin="0,0,0,16" TextWrapping="Wrap" />
+                                    <Grid>
+                                        <TextBox x:Name="LinkBox" Style="{StaticResource FormInput}" AutomationProperties.AutomationId="LinkBox" AutomationProperties.Name="Ссылка подписки или приглашения" TextChanged="Link_Changed" KeyDown="Link_KeyDown" />
+                                        <TextBlock x:Name="LinkHint" Text="Вставьте ссылку" Foreground="#89939B" Margin="13,13,0,0" IsHitTestVisible="False" />
+                                    </Grid>
+                                    <Grid Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="102" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                        <Button Content="Вставить" Height="44" HorizontalContentAlignment="Center" Style="{StaticResource ServerStyle}" Click="LinkPaste_Click" AutomationProperties.AutomationId="LinkPasteButton" />
+                                        <Button x:Name="AddLinkButton" Grid.Column="1" Content="Добавить" Height="44" Margin="9,0,0,0" Style="{StaticResource ConnectStyle}" Click="AddLink_Click" AutomationProperties.AutomationId="AddLinkButton" />
+                                    </Grid>
+                                    <TextBlock x:Name="LinkMessage" Foreground="#E9C7C7" TextWrapping="Wrap" FontSize="12" Margin="0,10,0,0" Visibility="Collapsed" />
+                                </StackPanel>
+                            </Border>
+                            <Button Height="90" Margin="0,12,0,0" Style="{StaticResource ServerStyle}" Click="OpenVps_Click" AutomationProperties.AutomationId="OpenVpsButton">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="20" /></Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Свой VPS" FontSize="17" FontWeight="SemiBold" />
+                                        <TextBlock Text="Настройка сервера прямо в приложении" Foreground="#B4BEC6" FontSize="12" Margin="0,7,0,0" />
+                                    </StackPanel>
+                                    <Path Grid.Column="1" Data="M 0,0 L 5,5 0,10" Stroke="#BFC8CF" StrokeThickness="1.4" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                </Grid>
+                            </Button>
+                            <Grid Margin="0,20,0,11"><TextBlock Text="МОИ ПОДКЛЮЧЕНИЯ" Foreground="#ADB7BF" FontSize="10" FontWeight="SemiBold" /><TextBlock x:Name="ProfileCountText" HorizontalAlignment="Right" Foreground="#A3ADB5" FontSize="11" /></Grid>
+                            <ItemsControl x:Name="ProfilesList" AutomationProperties.AutomationId="ProfilesList">
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Button Style="{StaticResource ConnectionCard}" Tag="{Binding}" Click="ConnectionCard_Click" AutomationProperties.Name="{Binding Name}">
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="24" /></Grid.ColumnDefinitions>
+                                            <StackPanel><TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Description}" Foreground="#B6C0C8" FontSize="11" Margin="0,5,0,0" TextTrimming="CharacterEllipsis" /></StackPanel>
+                                            <TextBlock Grid.Column="1" Text="›" FontSize="24" Foreground="#C1CAD0" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock x:Name="EmptyProfiles" Text="Здесь появятся ваши подключения." Foreground="#A7B0B8" FontSize="12" Margin="0,3,0,18" />
+                            <Grid Margin="0,9,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions>
+                                <Button Content="Импорт файла .conf" Height="42" HorizontalContentAlignment="Center" Style="{StaticResource ServerStyle}" Click="AddProfile_Click" AutomationProperties.AutomationId="AddProfileButton" />
+                                <Button x:Name="DeleteProfileButton" Grid.Column="1" Content="Удалить" Foreground="#C4CCD2" Height="42" Margin="8,0,0,0" HorizontalContentAlignment="Center" Style="{StaticResource ServerStyle}" Click="DeleteProfile_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
+
+            <Grid x:Name="SubscriptionSheet" Visibility="Collapsed" Background="#0B0D0F" IsVisibleChanged="PageVisibility_Changed" KeyboardNavigation.TabNavigation="Cycle">
+                <Grid Margin="28,86,28,25"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="44" /><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions>
+                        <Button Content="←" FontSize="22" Style="{StaticResource WindowButton}" Click="CloseSubscription_Click" AutomationProperties.Name="Назад к подключениям" />
+                        <TextBlock Grid.Column="1" Text="Серверы подписки" FontSize="26" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button Grid.Column="2" Content="×" FontSize="21" Style="{StaticResource WindowButton}" Click="CloseSubscription_Click" AutomationProperties.Name="Назад к подключениям" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Margin="0,14,0,16">
+                        <TextBlock x:Name="CurrentSubscriptionTitle" Foreground="#CFD7DD" FontSize="13" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="SubscriptionNodeCount" Foreground="#9FAAB2" FontSize="12" Margin="0,5,0,0" />
+                        <TextBlock x:Name="SubscriptionStatusText" Foreground="#D9E0E5" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed" />
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,5,0">
+                        <ItemsControl x:Name="SubscriptionNodes" AutomationProperties.AutomationId="SubscriptionNodes">
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                                <Button Style="{StaticResource ConnectionCard}" Tag="{Binding}" Click="SubscriptionNode_Click" AutomationProperties.Name="{Binding Name}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="25" /></Grid.ColumnDefinitions>
+                                        <StackPanel><TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Description}" Foreground="#B6C0C8" FontSize="11" Margin="0,5,0,0" TextTrimming="CharacterEllipsis" /></StackPanel>
+                                        <TextBlock Grid.Column="1" Text="✓" FontSize="15" Foreground="#DCE3E8" VerticalAlignment="Center" HorizontalAlignment="Right" Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    </Grid>
+                                </Button>
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <StackPanel Grid.Row="3" Margin="0,14,0,0">
+                        <TextBlock Text="Подключение к выбранному серверу начнётся сразу. Если список устарел, обновите его здесь." TextWrapping="Wrap" Foreground="#AAB4BC" FontSize="11" Margin="0,0,0,12" />
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="105" /></Grid.ColumnDefinitions>
+                            <Button x:Name="RefreshSubscriptionButton" Content="Обновить список" Height="45" HorizontalContentAlignment="Center" Style="{StaticResource ServerStyle}" Click="RefreshSubscription_Click" AutomationProperties.Name="Обновить серверы подписки" />
+                            <Button Grid.Column="1" Content="Удалить" Height="45" Margin="9,0,0,0" HorizontalContentAlignment="Center" Style="{StaticResource ServerStyle}" Click="DeleteSubscription_Click" AutomationProperties.Name="Удалить подписку" />
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <Grid x:Name="VpsSheet" Visibility="Collapsed" Background="#0B0D0F" IsVisibleChanged="PageVisibility_Changed" KeyboardNavigation.TabNavigation="Cycle">
+                <ScrollViewer Margin="22,83,22,72" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,5,0">
+                        <Button Width="34" Height="32" HorizontalAlignment="Left" Style="{StaticResource WindowButton}" Click="BackToProfiles_Click" AutomationProperties.Name="Назад к подключениям">
+                            <Path Data="M 17,7 L 2,7 M 8,1 L 2,7 8,13" Stroke="#E1E7EB" StrokeThickness="1.5" />
+                        </Button>
+                        <TextBlock Text="Настроить ваш сервер" FontSize="28" FontWeight="Normal" Margin="0,5,0,16" />
+                        <Border Style="{StaticResource FieldCard}" Height="76"><StackPanel>
+                            <TextBlock Text="IP-адрес[:порт] сервера" Foreground="#AEB8C0" FontSize="12" />
+                            <Grid Margin="0,7,0,0"><TextBlock x:Name="VpsEndpointHint" Text="255.255.255.255:22" Foreground="#858F97" FontSize="15" IsHitTestVisible="False" />
+                                <TextBox x:Name="VpsEndpointBox" Style="{StaticResource FlatInput}" TextChanged="VpsEndpoint_Changed" AutomationProperties.AutomationId="VpsEndpointBox" AutomationProperties.Name="IP-адрес и порт SSH" />
+                            </Grid>
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource FieldCard}" Height="76" Margin="0,12,0,0"><StackPanel>
+                            <TextBlock Text="Имя пользователя SSH" Foreground="#AEB8C0" FontSize="12" />
+                            <TextBox x:Name="VpsUserBox" Text="root" Style="{StaticResource FlatInput}" Margin="0,7,0,0" AutomationProperties.AutomationId="VpsUserBox" AutomationProperties.Name="Имя пользователя SSH" />
+                        </StackPanel></Border>
+                        <Border Style="{StaticResource FieldCard}" Height="76" Margin="0,12,0,0"><StackPanel>
+                            <TextBlock Text="Пароль или закрытый ключ SSH" Foreground="#AEB8C0" FontSize="12" />
+                            <PasswordBox x:Name="VpsPasswordBox" Background="Transparent" BorderThickness="0" Padding="0" Margin="0,7,0,0" FontSize="15" Foreground="#F2F4F6" CaretBrush="White" DataObject.Pasting="VpsSecret_Pasting" AutomationProperties.AutomationId="VpsPasswordBox" AutomationProperties.Name="Пароль или закрытый ключ SSH" />
+                            <TextBox x:Name="VpsKeyBox" Visibility="Collapsed" AcceptsReturn="True" TextWrapping="NoWrap" Style="{StaticResource FlatInput}" Margin="0,7,0,0" FontSize="12" Height="29" VerticalScrollBarVisibility="Hidden" TextChanged="VpsKey_Changed" AutomationProperties.AutomationId="VpsKeyBox" AutomationProperties.Name="Закрытый ключ SSH" />
+                        </StackPanel></Border>
+                        <Border Background="#1D2227" BorderBrush="#3E464D" BorderThickness="1" CornerRadius="12" Padding="13,12" Margin="0,12,0,0">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="25" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <Viewbox Width="17" Height="17" VerticalAlignment="Top" HorizontalAlignment="Left"><Canvas Width="20" Height="20"><Ellipse Width="18" Height="18" Canvas.Left="1" Canvas.Top="1" Stroke="#CCD4DA" StrokeThickness="1.5" /><Path Data="M 10,5 L 10,10 M 10,13 L 10,15" Stroke="#CCD4DA" StrokeThickness="1.6" /></Canvas></Viewbox>
+                                <TextBlock Grid.Column="1" Text="Требования к SSH-ключу: ED25519 или RSA, PEM / OpenSSH. Вставьте закрытый ключ целиком, включая строки BEGIN/END." Foreground="#C7D0D6" FontSize="12" TextWrapping="Wrap" />
+                            </Grid>
+                        </Border>
+                        <Border x:Name="VpsStatusCard" Visibility="Collapsed" Background="#252B30" BorderBrush="#77838B" BorderThickness="1" CornerRadius="10" Padding="13,10" Margin="0,14,0,0">
+                            <TextBlock x:Name="VpsProgressText" Foreground="#EDF1F3" TextWrapping="Wrap" FontSize="12" />
+                        </Border>
+                        <Button x:Name="InstallVpsButton" Content="Продолжить" Height="55" Style="{StaticResource ConnectStyle}" Margin="0,15,0,0" Click="InstallVps_Click" AutomationProperties.AutomationId="InstallVpsButton" />
+                        <Button Content="Импортировать файл настроек .conf" Height="47" Margin="0,11,0,0" Style="{StaticResource ServerStyle}" HorizontalContentAlignment="Center" Click="ImportExistingAwg_Click" AutomationProperties.Name="Импортировать файл настроек" />
+                        <Button Height="73" Margin="0,17,0,0" Style="{StaticResource ServerStyle}" Click="OpenInvites_Click" AutomationProperties.Name="Управление доступом друзей">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="18" /></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center"><TextBlock Text="Доступ друзей" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="Создать или отозвать приглашение" Foreground="#B7C0C8" FontSize="12" Margin="0,5,0,0" /></StackPanel>
+                                <TextBlock Grid.Column="1" Text="›" FontSize="24" Foreground="#D4DDE3" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+                        <TextBlock x:Name="VpsRequirementsText" Text="Для нового VPS нужна Ubuntu 22.04 или 24.04 и свободный UDP-порт 443. SSH-пароль и ключ не сохраняются." Foreground="#A4AFB8" TextWrapping="Wrap" FontSize="11" Margin="0,18,0,12" />
+                    </StackPanel>
+                </ScrollViewer>
+                <Border VerticalAlignment="Bottom" Height="62" Background="#171B1F" BorderBrush="#343B41" BorderThickness="0,1,0,0">
+                    <Grid Width="228" HorizontalAlignment="Center"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Button Style="{StaticResource WindowButton}" Width="48" Height="42" Click="VpsHome_Click" ToolTip="Главная" AutomationProperties.Name="Главная"><Path Data="M 2,10 L 12,2 22,10 M 5,9 L 5,22 10,22 10,15 14,15 14,22 19,22 19,9" Stroke="#D6DDE2" StrokeThickness="1.6" /></Button>
+                        <Button Grid.Column="1" Style="{StaticResource WindowButton}" Width="48" Height="42" Click="VpsSettings_Click" ToolTip="Настройки" AutomationProperties.Name="Настройки"><Path Data="M 2,4 L 22,4 M 2,12 L 22,12 M 2,20 L 22,20 M 8,0 L 8,8 M 17,8 L 17,16 M 8,16 L 8,24" Stroke="#D6DDE2" StrokeThickness="1.5" /></Button>
+                        <Button Grid.Column="2" Style="{StaticResource WindowButton}" Width="48" Height="42" Click="BackToProfiles_Click" ToolTip="Добавить подключение" AutomationProperties.Name="Добавить подключение"><Path Data="M 11,1 L 11,21 M 1,11 L 21,11" Stroke="#D6DEE3" StrokeThickness="1.8" /></Button>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid x:Name="InviteSheet" Visibility="Collapsed" Background="#0B0D0F" IsVisibleChanged="PageVisibility_Changed" KeyboardNavigation.TabNavigation="Cycle">
+                <ScrollViewer Margin="28,91,28,30" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,5,0">
+                        <Button Content="←" Width="34" Height="32" HorizontalAlignment="Left" Style="{StaticResource WindowButton}" Click="BackToVps_Click" AutomationProperties.Name="Назад к настройке сервера" />
+                        <TextBlock Text="Доступ друзей" FontSize="29" FontWeight="SemiBold" Margin="0,8,0,5" />
+                        <TextBlock Text="Отдельная одноразовая ссылка для каждого устройства. После первой активации ссылка перестанет работать. Доступ можно отозвать в любой момент." Foreground="#B7C0C8" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,18" />
+                        <Border Background="#1B2024" BorderBrush="#44515A" BorderThickness="1" CornerRadius="17" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="ВАШ СЕРВЕР" Foreground="#C4CDD3" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <TextBlock Text="Доступ SSH нужен только для изменения списка друзей. Он не сохраняется." Foreground="#B7C0C8" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,12" />
+                                <TextBlock Text="IP-адрес[:порт] сервера" Foreground="#BBC5CC" FontSize="11" Margin="0,0,0,6" />
+                                <TextBox x:Name="InviteEndpointBox" Style="{StaticResource FormInput}" AutomationProperties.Name="Адрес сервера для приглашений" />
+                                <TextBlock Text="Имя пользователя SSH" Foreground="#BBC5CC" FontSize="11" Margin="0,13,0,6" />
+                                <TextBox x:Name="InviteUserBox" Text="root" Style="{StaticResource FormInput}" AutomationProperties.Name="Имя пользователя SSH для приглашений" />
+                                <TextBlock Text="Пароль или закрытый ключ SSH" Foreground="#BBC5CC" FontSize="11" Margin="0,13,0,6" />
+                                <Border x:Name="InvitePasswordCard" Background="#101316" BorderBrush="#4A535A" BorderThickness="1" CornerRadius="11" Height="47">
+                                    <PasswordBox x:Name="InvitePasswordBox" Background="Transparent" BorderThickness="0" Padding="12,10" Foreground="#F5F6F7" CaretBrush="White" FontSize="13" DataObject.Pasting="InviteSecret_Pasting" AutomationProperties.Name="Пароль SSH для приглашений" />
+                                </Border>
+                                <TextBox x:Name="InviteKeyBox" Visibility="Collapsed" Height="74" AcceptsReturn="True" TextWrapping="Wrap" Style="{StaticResource FormInput}" TextChanged="InviteKey_Changed" AutomationProperties.Name="Закрытый ключ SSH для приглашений" />
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#1B2024" BorderBrush="#44515A" BorderThickness="1" CornerRadius="17" Padding="16" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="НОВОЕ ПРИГЛАШЕНИЕ" Foreground="#C4CDD3" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <TextBlock Text="Имя друга" Foreground="#BBC5CC" FontSize="11" Margin="0,0,0,6" />
+                                <TextBox x:Name="InviteNameBox" Style="{StaticResource FormInput}" AutomationProperties.Name="Имя друга" />
+                                <Button x:Name="CreateInviteButton" Content="Создать приглашение" Height="45" Margin="0,10,0,0" Style="{StaticResource ConnectStyle}" Click="CreateInvite_Click" />
+                                <TextBlock Text="Ссылка содержит личный ключ. Передайте её только этому другу." Foreground="#AEB8C0" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0" />
+                                <TextBox x:Name="CreatedInviteBox" Visibility="Collapsed" IsReadOnly="True" TextWrapping="Wrap" Style="{StaticResource FormInput}" Margin="0,8,0,0" AutomationProperties.Name="Созданное приглашение" />
+                                <Button x:Name="CopyInviteButton" Visibility="Collapsed" Content="Скопировать ссылку" Height="42" Margin="0,8,0,0" Style="{StaticResource ServerStyle}" Click="CopyInvite_Click" />
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#1B2024" BorderBrush="#44515A" BorderThickness="1" CornerRadius="17" Padding="16" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="АКТИВНЫЕ ПРИГЛАШЕНИЯ" Foreground="#C4CDD3" FontSize="10" FontWeight="SemiBold" />
+                                <Button x:Name="RefreshInvitesButton" Content="Показать приглашения" Height="42" Margin="0,12,0,0" Style="{StaticResource ServerStyle}" Click="RefreshInvites_Click" HorizontalContentAlignment="Center" />
+                                <ItemsControl x:Name="InviteList" Margin="0,8,0,0">
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <Border Background="#252B30" CornerRadius="10" Padding="10" Margin="0,5,0,0">
+                                            <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="86" /></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                <Button Grid.Column="1" Content="Отозвать" Height="34" Tag="{Binding}" Click="RevokeInvite_Click" Style="{StaticResource ServerStyle}" HorizontalContentAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border x:Name="InviteStatusCard" Visibility="Collapsed" Background="#252B30" BorderBrush="#77838B" BorderThickness="1" CornerRadius="11" Padding="13,11" Margin="0,14,0,0">
+                            <TextBlock x:Name="InviteStatusText" Foreground="#EDF1F3" TextWrapping="Wrap" FontSize="12" />
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <Grid x:Name="SettingsSheet" Visibility="Collapsed" Background="#F0080A0C" IsVisibleChanged="PageVisibility_Changed" KeyboardNavigation.TabNavigation="Cycle">
+                <Border Background="#1B1F23" BorderBrush="#505961" BorderThickness="1" CornerRadius="22" Margin="22,0,22,24" Padding="24" VerticalAlignment="Bottom">
+                    <StackPanel>
+                        <Grid><TextBlock Text="Настройки" FontSize="27" FontWeight="SemiBold" /><Button Content="×" FontSize="21" HorizontalAlignment="Right" Style="{StaticResource WindowButton}" Click="CloseSettings_Click" AutomationProperties.Name="Закрыть настройки" /></Grid>
+                        <TextBlock Text="Сделайте HateVPN удобным для себя." Foreground="{StaticResource Muted}" Margin="0,8,0,18" />
+                        <TextBlock Text="ПРИЛОЖЕНИЕ" Foreground="#B7C1C9" FontSize="10" FontWeight="SemiBold" />
+                        <CheckBox x:Name="AutostartToggle" Style="{StaticResource SettingToggle}" Checked="Autostart_Click" Unchecked="Autostart_Click" AutomationProperties.Name="Запускать вместе с Windows">
+                            <StackPanel><TextBlock Text="Запускать вместе с Windows" /><TextBlock Text="Приложение откроется в трее" Foreground="#A7B0B8" FontSize="11" Margin="0,6,0,0" /></StackPanel>
+                        </CheckBox>
+                        <CheckBox x:Name="TrayToggle" Style="{StaticResource SettingToggle}" Checked="TraySetting_Click" Unchecked="TraySetting_Click" AutomationProperties.Name="Сворачивать в трей">
+                            <StackPanel><TextBlock Text="Сворачивать в трей" /><TextBlock Text="При закрытии окна VPN продолжит работать" Foreground="#A7B0B8" FontSize="11" Margin="0,6,0,0" /></StackPanel>
+                        </CheckBox>
+                        <Border Height="1" Background="#343B41" Margin="0,13,0,17" />
+                        <TextBlock Text="ПРОВЕРКА СОЕДИНЕНИЯ" Foreground="#B7C1C9" FontSize="10" FontWeight="SemiBold" />
+                        <TextBlock x:Name="ConnectivityStatusText" Text="Проверка связи доступна после подключения." Foreground="#CAD3D9" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,12" />
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Button Content="Проверить сейчас" Height="42" Style="{StaticResource ServerStyle}" HorizontalContentAlignment="Center" Click="CheckNow_Click" AutomationProperties.Name="Проверить связь через VPN" />
+                            <Button Grid.Column="1" Content="Сохранить отчёт" Height="42" Margin="8,0,0,0" Style="{StaticResource ServerStyle}" HorizontalContentAlignment="Center" Click="SaveReport_Click" AutomationProperties.Name="Сохранить отчёт о соединении" />
+                        </Grid>
+                        <Border Height="1" Background="#343B41" Margin="0,16,0,17" />
+                        <TextBlock x:Name="ServiceStatusText" Text="Проверяем службу…" Foreground="#B5BFC7" FontSize="12" TextWrapping="Wrap" />
+                        <TextBlock Text="HateVPN 1.0" Foreground="#8F9AA3" FontSize="11" Margin="0,13,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Shared chrome stays available on every screen. -->
+            <Grid x:Name="TitleChrome" Panel.ZIndex="20" Height="82" VerticalAlignment="Top" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="31,0,0,0">
+                    <Viewbox Width="23" Height="27" Margin="0,1,12,0"><Canvas Width="23" Height="27">
+                        <Path Fill="#EFF2F4" Data="M 4,1 L 10,1 6,26 0,26 Z M 17,1 L 23,1 19,26 13,26 Z M 6,11 L 19,11 18,16 5,16 Z" />
+                    </Canvas></Viewbox>
+                    <TextBlock Text="HateVPN" FontSize="25" FontWeight="SemiBold" Foreground="#F2F4F6" VerticalAlignment="Center" />
+                    <Ellipse Width="5" Height="5" Fill="#DCE2E6" VerticalAlignment="Bottom" Margin="4,0,0,9" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,19,0">
+                    <Button Style="{StaticResource WindowButton}" Click="Settings_Click" ToolTip="Настройки" AutomationProperties.AutomationId="SettingsButton" AutomationProperties.Name="Настройки" Margin="0,0,7,0">
+                        <Path Data="M 1,3 L 15,3 M 1,8 L 15,8 M 1,13 L 15,13 M 5,0 L 5,6 M 11,5 L 11,11 M 6,10 L 6,16" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.2" />
+                    </Button>
+                    <Button Style="{StaticResource WindowButton}" Click="Minimize_Click" ToolTip="Свернуть" AutomationProperties.Name="Свернуть"><Path Data="M 0,0 L 10,0" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1" /></Button>
+                    <Button Style="{StaticResource WindowButton}" Click="Close_Click" ToolTip="Закрыть" AutomationProperties.Name="Закрыть"><Path Data="M 0,0 L 9,9 M 9,0 L 0,9" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1" /></Button>
+                </StackPanel>
+            </Grid>
+            <Border x:Name="ErrorBanner" Panel.ZIndex="30" Visibility="Collapsed" VerticalAlignment="Bottom" Margin="28,0,28,220" Background="#F5292F34" BorderBrush="#87939C" BorderThickness="1" CornerRadius="15" Padding="14">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="27" /></Grid.ColumnDefinitions>
+                    <TextBlock x:Name="ErrorText" Foreground="#EBEFF2" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="×" Style="{StaticResource WindowButton}" Width="27" Click="DismissError_Click" AutomationProperties.Name="Закрыть сообщение" />
+                </Grid>
+            </Border>
+            <Border Panel.ZIndex="40" CornerRadius="24" BorderBrush="#444D54" BorderThickness="1" IsHitTestVisible="False" />
+        </Grid>
+    </Viewbox>
+</Window>

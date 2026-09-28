@@ -1,0 +1,80 @@
+{
+  "_draft": "ОТСТУПЛЕНИЯ LxBox от секций реестра (с контракта 1.1.15, 963dc6d6). Файл НЕ дублирует блок целиком: загрузчик накладывает эти записи поверх реестровых, и здесь лежит только то, что у нас обязано вести себя иначе. Каждая запись — красный кейс, переданный лаунчеру: в DELTAS.md его секции дельты на это нет, а тело РАБОЧЕГО узла меняется. Снятие отступления — отдельной дельтой с правкой identity-фикстуры.",
+  "_overlay": true,
+  "blocks": {
+    "uri": {
+      "ech": {
+        "source": "query.ech",
+        "maps_to": null,
+        "when": {
+          "query.ech": {
+            "not_in": [
+              "",
+              "none"
+            ]
+          }
+        },
+        "on_present": {
+          "action": "note",
+          "code": "ech_ignored",
+          "params": {
+            "query_name": "ech"
+          }
+        },
+        "impl": "КРАСНЫЙ КЕЙС ech_import_test/name+resolver. Запись реестра ставит код с ПОЛНЫМ значением `encryptedsni.com+udp://8.8.8.8`, а наш текст кода (и корпусный кейс) называет только имя пробника — левую часть до «+». Правило «до первого +» это форма значения, то есть данные: выражено extract, чтобы не заводить первую схемную функцию в общем движке. || ЕДИНСТВЕННЫЙ параметр ссылки без адреса в теле (D-122): Xray-форма `ech=<public_name>+<resolver>` несёт ключ ЧУЖОГО клиента (public_name ≠ SNI узла), и рукопожатие с ним не состоится. maps_to: null — значение осознанно никуда не едет, но и молчать нельзя, поэтому on_present ставит код. Условие через not_in, а не через отрицание in: `ech=none` — способ подписки сказать «ECH выключен», сообщать не о чем, и пустое значение тоже; not_in по отсутствующему адресу истинен, поэтому пустую строку перечисляем явно. Блок tls.ech из sing-box-JSON НЕ затрагивается: ECH в ядре скомпилирован всегда, и нативная конфигурация рабочая — различить два случая может только маппер, санитайзер видит уже готовое тело (DRIFT §7.2).",
+        "extract": {
+          "re": "^(?P<name>[^+]*)",
+          "into": {
+            "name": null
+          }
+        },
+        "value_map": {
+          "none": null,
+          "": null
+        },
+        "normalize": "trim",
+        "_delta_id": "D133-21"
+      }
+    },
+    "uri_with_host": {
+      "note": "Вариант диалекта uri для схем, у которых `host` адресует TLS, а НЕ транспорт (сегодня — http). Отличается от uri ровно одной записью — цепочкой sni. Заведён вариантом блока, а не третьим источником в общей записи: у vmess и anytls `host` несёт имя транспорта (node_parser_core.go:866-873), и общая цепочка увела бы transport-host в tls.server_name. Подключается вместо \"tls#uri\", не вместе с ним. DELTAS D133-19.",
+      "sni": {
+        "source": [
+          "query.sni",
+          "query.peer",
+          "query.host"
+        ],
+        "maps_to": "tls.server_name",
+        "default_from": "host",
+        "impl": "Цепочка sni→peer→host — наше сегодняшнее поведение у http: trojanTLSFromNode(node, \"http\") читает те же три написания (node_parser_http.go:131-138, node_parser_transport.go:1014-1020). Фолбэк на server — тот же Q133-08, что у trojan: корпус uri/http/proxy_https_default_port_443 ждёт server_name из адреса. when по ТЕЛУ: блок tls у http заводит только написание схемы (scheme_sets у proxy-https/proxy+https), и без гейта запись сочиняла бы tls.server_name простому HTTP-прокси, где блока быть не должно.",
+        "when": {
+          "tls.enabled": true
+        },
+        "_delta_id": "D133-19"
+      }
+    },
+    "xray": {
+      "security": {
+        "source": "json.streamSettings.security",
+        "selector": true,
+        "normalize": "trim_lower",
+        "priority": 10,
+        "sets": {
+          "tls": {
+            "tls.enabled": true
+          },
+          "reality": {
+            "tls.enabled": true,
+            "tls.utls.enabled": true,
+            "tls.utls.fingerprint": "chrome"
+          },
+          "none": {},
+          "": {}
+        },
+        "impl": "У Xray security=xtls сегодня теряется МОЛЧА (xray_outbound_convert.go:223-225): значение вне набора не даёт tls-блока и не даёт кода. REALITY требует uTLS-блок («uTLS is required by reality client» — fatal при создании outbound), поэтому у этого написания отпечаток материализуется дефолтом ЯДРА; написанное значение перебивает его записью `fp` (priority 20 против 10).",
+        "_why_kept_533": "Синк 1.1.53 — ОСТАЁТСЯ (не снят вместе с прочими записями blocks.xray). REALITY требует uTLS-блок: ядро отвечает fatal «uTLS is required by reality client» при создании outbound, поэтому у написания reality отпечаток материализуется дефолтом ядра (chrome), а написанное значение перебивает его записью fp реестра (priority 20 против 10). У реестра ветка reality ставит только tls.enabled, и без этой записи reality-узел БЕЗ realitySettings.fingerprint уезжает без utls вовсе — реестр сам судит это предупреждением field_requires (tls.reality.enabled requires tls.utls.enabled), то есть признаёт тело неполным. Кейса корпуса на «reality без fingerprint» НЕТ (ревизия зеркала §3 п.15 прямо просит его завести), поэтому снятие здесь опиралось бы не на корпус, а на догадку.",
+        "_delta_id": "D533-xray-reality-utls-required"
+      }
+    }
+  }
+}

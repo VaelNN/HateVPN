@@ -1,0 +1,490 @@
+import 'dart:convert';
+
+import '../../models/node_warning.dart';
+import '../../models/transport_spec.dart';
+import 'uri_utils.dart';
+
+/// Разбор query-параметров URI в `TransportSpec?`.
+///
+/// sing-box поддерживает: http | ws | quic | grpc | httpupgrade.
+/// XHTTP → `XhttpTransport` (fallback в toSingbox).
+///
+/// [networkOverride] — если транспорт лежит под другим ключом, чем `type`
+/// (VMess хранит в `network`). [defaultHost] — fallback для h2 когда
+/// `q['host']`/`q['sni']` пусты.
+/// [warnings] — узловой список: конверсия Xray-хвоста `?ed=N` в пути ws
+/// получает `ws_early_data_converted` (contract/registry/warnings.json).
+TransportSpec? parseTransport(
+  Map<String, String> q, {
+  String? networkOverride,
+  String? defaultHost,
+  List<NodeWarning>? warnings,
+}) {
+  var typ = ((networkOverride ?? q['type']) ?? '').toLowerCase().trim();
+  final headerType = (q['headerType'] ?? '').toLowerCase().trim();
+
+  if ((typ == 'raw' || typ == 'tcp') && headerType == 'http') {
+    final path = _guardUrlPath(q['path'] ?? '/', warnings);
+    final host = q['host'] ?? '';
+    return HttpTransport(
+      path: path,
+      hosts: host.isNotEmpty ? [host] : const [],
+    );
+  }
+
+  switch (typ) {
+    case 'ws':
+      // §303 — `?ed=N` в пути = early data (Xray), а не часть пути.
+      // §320 — путь мог прийти дважды percent-кодированным (`/%2Fassignment`);
+      // снимаем остаток ДО срезки хвоста, иначе `%3Fed%3D2560` не распознается.
+      // §103 D-016(в) — параметр отсутствовал в URI вовсе → путь остаётся ''
+      // (не эмитим); если он БЫЛ (даже как явный `path=/`), пропускаем через
+      // splitEarlyDataPath как обычно (та функция уже нормализует '' → '/'
+      // для случая, когда путь стал пустым ПОСЛЕ среза `?ed=` хвоста).
+      final pathParamPresent = q.containsKey('path');
+      final (splitPath, edFromPath) =
+          splitEarlyDataPath(decodeResidualPercent(q['path'] ?? ''));
+      final path =
+          pathParamPresent ? _guardUrlPath(splitPath, warnings) : '';
+      var host = (q['host'] ?? '').trim();
+      if (host.isEmpty) host = (q['sni'] ?? '').trim();
+      if (host.isEmpty) host = (q['obfsParam'] ?? '').trim();
+      // §320 — вторая форма early data: плоские `ed`/`eh` (хвост пути в
+      // приоритете — он адресует конкретный путь, а не ссылку целиком).
+      final ed = edFromPath ?? _positiveInt(q['ed']);
+      // `eh` без `ed` — не сирота, а ничто: режим early data ядро включает по
+      // `max_early_data > 0`, имя заголовка без размера не значит ничего.
+      var eh = ed == null ? null : _nonEmpty(q['eh']);
+      // §103 D-008 / IDENTITY.md §3 — Xray-форма `?ed=N` хвостом пути БЕЗ
+      // явного `eh`: Go подставляет дефолтный заголовок `Sec-WebSocket-
+      // Protocol` в момент разбора этого самого хвоста (applyWSEarlyData,
+      // node_parser_transport.go:528-536) — только для path-tail формы,
+      // НЕ для плоских ed/eh (те Go вообще не читает). `implicit` — флаг,
+      // а не совпадение строки: явный `eh=Sec-WebSocket-Protocol` не должен
+      // молча выглядеть «неявным» на round-trip.
+      var ehImplicit = false;
+      if (eh == null && edFromPath != null) {
+        eh = 'Sec-WebSocket-Protocol';
+        ehImplicit = true;
+      }
+      // SPEC 103 `ws_early_data_converted` — путь в конфиг уехал НЕ буквально.
+      // Ровно path-tail форма: плоские `ed=`/`eh=` конверсией не считаются
+      // (Go: noteWSEarlyDataConverted читает только хвост пути).
+      if (edFromPath != null) {
+        warnings?.add(NodeWarning.byCode('ws_early_data_converted',
+            path: 'path', value: '$edFromPath'));
+      }
+      return WsTransport(
+        path: path,
+        host: host,
+        earlyDataHeaderImplicit: ehImplicit,
+        maxEarlyData: ed,
+        earlyDataHeaderName: eh,
+      );
+    case 'grpc':
+      // §468 (контракт 1.1.3, ядро v1.14.1-lx.8) — значение идёт ядру как
+      // есть. Ведущий «/» ядро разбирает само: сегменты экранируются по
+      // отдельности, хвост «|…» отбрасывается, «/a/b/Tun» уезжает на провод
+      // готовым путём. Перевод «/<сервис>/Tun» → «<сервис>», заведённый §464
+      // под ядро без такого разбора, снят целиком — он снимал бы «/» там,
+      // где ядро ждёт путь.
+      final sn = (q['serviceName'] ?? q['service_name'] ?? q['path'] ?? '').trim();
+      return GrpcTransport(serviceName: sn);
+    case 'http':
+      final path = _guardUrlPath(q['path'] ?? '/', warnings);
+      final host = (q['host'] ?? '').trim();
+      return HttpTransport(
+        path: path,
+        hosts: host.isNotEmpty ? [host] : const [],
+      );
+    case 'h2':
+      // SPEC 103 PARSING_PRINCIPLES — `h2` разрешён ТОЛЬКО когда пришёл из VMess `net`
+      // ([networkOverride], node_parser_vmess.go: net=h2 маппится в
+      // transport type=http с фолбэком host на sni/server,
+      // node_parser_core.go:679-694). Голый `type=h2` в query VLESS/Trojan
+      // share-URI Go не распознаёт вовсе (uriTransportFromQuery — нет кейса
+      // "h2", падает в default → транспорт не эмитится); тут — то же самое.
+      if (networkOverride == null) return null;
+      final path = _guardUrlPath(q['path'] ?? '/', warnings);
+      var host = (q['host'] ?? '').trim();
+      if (host.isEmpty) host = (q['sni'] ?? '').trim();
+      if (host.isEmpty && defaultHost != null) host = defaultHost;
+      return HttpTransport(
+        path: path,
+        hosts: host.isNotEmpty ? [host] : const [],
+      );
+    case 'httpupgrade':
+      // §303 — early data у httpupgrade в sing-box нет: хвост срезаем, ed
+      // отбрасываем (иначе он уедет в путь и даст 404). §320 — включая форму
+      // плоским `ed`/`eh`: их здесь просто не читаем.
+      // §103 D-016(в) — как и у ws: параметр отсутствовал вовсе → путь ''.
+      final hasPathParam = q.containsKey('path');
+      final (splitPath, _) =
+          splitEarlyDataPath(decodeResidualPercent(q['path'] ?? ''));
+      final path = hasPathParam ? _guardUrlPath(splitPath, warnings) : '';
+      // §103 D-016(в) — Go НЕ подставляет sni как фолбэк host для httpupgrade
+      // (node_parser_transport.go:183-185, в отличие от ws): только явный
+      // `host=`. Фолбэк давал разные конфиги/identity-хеши на пустом host.
+      final host = (q['host'] ?? '').trim();
+      return HttpUpgradeTransport(path: path, host: host);
+    // §463 / контракт §24.2 п. 7.13 — `splithttp` = прежнее имя `xhttp` в
+    // Xray. Раньше оно не распознавалось, и узел уезжал в конфиг ВООБЩЕ БЕЗ
+    // транспорта: соединение шло голым TCP на порт, который ждёт HTTP, —
+    // узел мёртв без единого сообщения.
+    case 'splithttp':
+    case 'xhttp':
+      // §097/§127 — нативный xhttp + расширенные поля Xray splithttp (SPEC 002
+      // v2). Ключи читаем в обеих формах: camelCase (Xray URI) и snake_case
+      // (sing-box). Плюс параметр `extra` (URL-encoded JSON) с доп. полями.
+      // §399 — состав полей общий с JSON-ветками (xhttpFromMap).
+      return xhttpFromMap(mergeXhttpExtra(q));
+    case 'raw':
+    case 'tcp':
+    case '':
+      return null;
+    default:
+      return null;
+  }
+}
+
+/// §463 / контракт §24.6 (`format: url_path` в `registry/transports.json`) —
+/// путь с битым percent-кодированием снимается, узел живёт.
+///
+/// Ядро разбирает путь транспорта через `url.Parse`, и «%zz» роняет ВЕСЬ
+/// config.json («ws: parse path: invalid URL escape», проверено на
+/// 1.14.0-lx.39; то же у httpupgrade и http). То есть один такой узел из
+/// подписки оставлял человека без VPN целиком — вердикт B. Раньше путь
+/// проходил в тело как есть: разбор-то не падал.
+///
+/// Код ставится на РАЗБОРЕ, где сырое значение ещё известно: после снятия
+/// поля санитайзер его уже не увидит.
+String _guardUrlPath(String path, List<NodeWarning>? warnings) {
+  if (path.isEmpty || urlPathOk(path)) return path;
+  warnings?.add(RegistryWarning(
+    code: 'type_invalid',
+    path: 'transport.path',
+    value: path,
+  ));
+  return '';
+}
+
+/// §303 — разделить Xray-путь вида `/api/v2/channel?ed=2560` на чистый путь и
+/// значение early data. Хвост `?…` не является частью пути ни для одного
+/// транспорта sing-box — срезаем всегда, даже если `ed` невалиден или его нет.
+///
+/// Возвращает `(path, maxEarlyData)`; `maxEarlyData == null`, когда `ed`
+/// отсутствует или не является положительным целым.
+(String, int?) splitEarlyDataPath(String raw) {
+  final qIdx = raw.indexOf('?');
+  if (qIdx < 0) return (raw.isEmpty ? '/' : raw, null);
+
+  var path = raw.substring(0, qIdx);
+  if (path.isEmpty) path = '/';
+
+  // Битый percent-encoding в хвосте роняет splitQueryString — путь всё равно
+  // должен быть очищен, поэтому падение гасим до «ed отсутствует».
+  // splitQueryString бросает ArgumentError на битом percent-encoding.
+  String? ed;
+  try {
+    ed = Uri.splitQueryString(raw.substring(qIdx + 1))['ed'];
+  } catch (_) {
+    ed = null;
+  }
+  final parsed = ed == null ? null : int.tryParse(ed.trim());
+  return (path, parsed != null && parsed > 0 ? parsed : null);
+}
+
+/// §320 — снять остаточное percent-кодирование пути. Агрегаторы отдают
+/// `path=%2F%252Fassignment`: `Uri.queryParameters` декодит ровно один раз, и
+/// в путь уходит `/%2Fassignment` вместо `//assignment` → сервер даёт 404.
+///
+/// Тот же приём, что у ALPN в мапперах (§151, `common_parts.dart`), но БЕЗ
+/// проверки валидности: путь может содержать что угодно — эмодзи
+/// (`path=Telegram🇨🇳`), двойные слэши (`//assignment`), `@`. Здесь только
+/// доводим декодирование до конца, ничего не отбрасывая. До 2 проходов:
+/// больше — почти наверняка мусор.
+final _percentSeq = RegExp(r'%[0-9A-Fa-f]{2}');
+
+String decodeResidualPercent(String raw) {
+  var v = raw;
+  var guard = 0;
+  while (_percentSeq.hasMatch(v) && guard < 2) {
+    final decoded = Uri.tryParse('x://x?a=$v')?.queryParameters['a'];
+    if (decoded == null || decoded == v) break;
+    v = decoded;
+    guard++;
+  }
+  return v;
+}
+
+/// Положительное целое из query-значения; иначе `null` (0/отрицательное/мусор).
+int? _positiveInt(String? v) {
+  final n = int.tryParse((v ?? '').trim());
+  return n != null && n > 0 ? n : null;
+}
+
+/// Непустая обрезанная строка; иначе `null`.
+String? _nonEmpty(String? v) {
+  final s = (v ?? '').trim();
+  return s.isEmpty ? null : s;
+}
+
+/// §399 — единственное место, где перечислены имена полей XHTTP.
+///
+/// Принимает **уже слитую** карту (плоские ключи + `extra`, см.
+/// [mergeXhttpExtra]) и читает каждое поле в обеих формах: camelCase (Xray) и
+/// snake_case (sing-box), camelCase в приоритете.
+///
+/// Вызывается из трёх веток парсера — URI (`parseTransport`), Xray-JSON и
+/// sing-box-JSON (`json_parsers.dart`). Поле, добавленное сюда, появляется во
+/// всех трёх сразу; расхождение схем — дефект (§399 R1).
+///
+/// [headers] отдельным параметром: это `Map`, а не скаляр, и в карту полей не
+/// укладывается (в URI-ветке его нет вовсе).
+///
+/// §217 — поля читаются **дословно**. Нормализацию против правил ядра
+/// (`normalizeMeta`, `transport/v2rayxhttp/meta.go`) делает
+/// `XhttpTransport.toSingbox`, где есть канал NodeWarning для ⚠️ в подписке.
+XhttpTransport xhttpFromMap(
+  Map<String, String> m, {
+  Map<String, String> headers = const {},
+}) {
+  // path: срезать `?…`-хвост (реальные ноды: path=/x?ed=2048 — хвост не путь).
+  // §303 — общий хелпер; early data у xhttp нет, значение отбрасываем.
+  // SPEC 103 PARSING_PRINCIPLES §2.4 — без query-параметра path не эмитим дефолт '/'
+  // (Go: xhttpCleanPath, node_parser_transport.go) — только явный path=
+  // доходит до конфига, включая явный path=%2F → "/". splitEarlyDataPath
+  // сама нормализует '' → '/' (для случая, когда путь стал пустым ПОСЛЕ
+  // среза ?ed= хвоста) — поэтому здесь, как и у ws/httpupgrade, отсутствие
+  // ключа проверяем СНАРУЖИ, до вызова хелпера.
+  final hasPathKey = m.containsKey('path');
+  final (splitPath, _) = splitEarlyDataPath(m['path'] ?? '');
+  final path = hasPathKey ? splitPath : '';
+
+  // §103 D-016(в) — Go читает host ТОЛЬКО из явного host= (xhttpBuildTransport,
+  // node_parser_transport.go:280-330) — никакого фолбэка на sni, в отличие
+  // от ws. Фолбэк давал разные конфиги/identity-хеши на пустом host=.
+  final host = (m['host'] ?? '').trim();
+
+  return XhttpTransport(
+    path: path,
+    host: host,
+    mode: (m['mode'] ?? '').trim(),
+    xPaddingBytes: _pick(m, 'xPaddingBytes', 'x_padding_bytes'),
+    noGrpcHeader: _truthy(m['noGRPCHeader'] ?? m['no_grpc_header']),
+    headers: headers,
+    sessionPlacement: _pick(m, 'sessionPlacement', 'session_placement'),
+    sessionKey: _pick(m, 'sessionKey', 'session_key'),
+    seqPlacement: _pick(m, 'seqPlacement', 'seq_placement'),
+    seqKey: _pick(m, 'seqKey', 'seq_key'),
+    uplinkDataPlacement: _pick(m, 'uplinkDataPlacement', 'uplink_data_placement'),
+    uplinkDataKey: _pick(m, 'uplinkDataKey', 'uplink_data_key'),
+    uplinkChunkSize: _pick(m, 'uplinkChunkSize', 'uplink_chunk_size'),
+    uplinkHttpMethod: _pick(m, 'uplinkHTTPMethod', 'uplink_http_method'),
+    xPaddingObfsMode:
+        _truthy(m['xPaddingObfsMode'] ?? m['x_padding_obfs_mode']),
+    xPaddingKey: _pick(m, 'xPaddingKey', 'x_padding_key'),
+    xPaddingHeader: _pick(m, 'xPaddingHeader', 'x_padding_header'),
+    xPaddingPlacement: _pick(m, 'xPaddingPlacement', 'x_padding_placement'),
+    xPaddingMethod: _pick(m, 'xPaddingMethod', 'x_padding_method'),
+    scMaxEachPostBytes:
+        _normScRange(_pick(m, 'scMaxEachPostBytes', 'sc_max_each_post_bytes')),
+    scMinPostsIntervalMs: _normScRange(
+        _pick(m, 'scMinPostsIntervalMs', 'sc_min_posts_interval_ms')),
+    scStreamUpServerSecs: _normScRange(
+        _pick(m, 'scStreamUpServerSecs', 'sc_stream_up_server_secs')),
+    scMaxBufferedPosts:
+        _pickInt(m, 'scMaxBufferedPosts', 'sc_max_buffered_posts'),
+    noSseHeader: _truthy(m['noSSEHeader'] ?? m['no_sse_header']),
+    // xmux — плоские ключи (см. mergeXhttpExtra: вложенный объект из Xray
+    // разворачивается сюда же).
+    maxConnections: _pick(m, 'maxConnections', 'max_connections'),
+    maxConcurrency: _pick(m, 'maxConcurrency', 'max_concurrency'),
+    cMaxReuseTimes: _pick(m, 'cMaxReuseTimes', 'c_max_reuse_times'),
+    hMaxRequestTimes: _pick(m, 'hMaxRequestTimes', 'h_max_request_times'),
+    hMaxReusableSecs: _pick(m, 'hMaxReusableSecs', 'h_max_reusable_secs'),
+    hKeepAlivePeriod: _pickInt(m, 'hKeepAlivePeriod', 'h_keep_alive_period'),
+  );
+}
+
+/// Числовое поле XHTTP: ядро декодирует его как int, а не как строку.
+/// Значения приходят строками из всех трёх веток, поэтому «30» и «30.0» дают
+/// одно и то же. Отсутствующий или нечисловой ключ → -1 («не задано»), чтобы
+/// поле не эмитилось: нуль у этих полей — значащее значение, а не пустота
+/// (эталон Go: xhttpLookupInt).
+int _pickInt(Map<String, String> m, String camel, String snake) {
+  final raw = _pick(m, camel, snake);
+  if (raw.isEmpty) return -1;
+  final i = int.tryParse(raw);
+  if (i != null) return i;
+  final d = double.tryParse(raw);
+  if (d != null) return d.toInt();
+  return -1;
+}
+
+/// §399 — JSON-объект `xhttpSettings` / sing-box `transport` → плоская карта
+/// строк, пригодная для [xhttpFromMap].
+///
+/// Массивы и вложенные объекты отбрасываются — кроме `xmux`, единственного
+/// под-объекта, который XHTTP определяет: его члены разворачиваются в тот же
+/// плоский слой (имена не конфликтуют с верхнеуровневыми, [xhttpFromMap]
+/// соберёт объект обратно). Эталон Go: xrayFlattenScalars. `extra` и `headers`
+/// вызывающая сторона достаёт до этого вызова — у них своя обработка.
+Map<String, String> xhttpScalarsFromJson(Map raw) {
+  final out = <String, String>{};
+  raw.forEach((k, v) {
+    if (k is! String || v == null) return;
+    if (v is Map) {
+      if (k.toLowerCase() == 'xmux') {
+        v.forEach((nk, nv) {
+          if (nk is! String || nv == null || nv is Map || nv is List) return;
+          out[nk] = _scalarToString(nv);
+        });
+      }
+      return;
+    }
+    if (v is List) return;
+    out[k] = _scalarToString(v);
+  });
+  return out;
+}
+
+/// §410 (2) — ключи, которые Xray при слиянии `extra` всегда берёт из
+/// внешнего объекта (плоских параметров ссылки); значения из `extra`
+/// отбрасываются.
+const _xhttpFlatOnlyKeys = {'host', 'path', 'mode'};
+
+/// §399 — слить `extra` в карту полей. `extra` в приоритете для своих ключей
+/// (поведение Xray и URI-ветки).
+///
+/// §410 — приоритет только у **непустого** значения. Xray пишет в `extra` весь
+/// объект транспорта, включая незаданные поля пустыми строками
+/// (`"mode": ""`), и тот же узел несёт `mode=packet-up` плоским параметром.
+/// Пустая строка из `extra` не затирает плоское значение — иначе `mode`
+/// пропадает из конфига, ядро берёт `auto`, и узел с
+/// `uplinkDataPlacement=header` роняет весь конфиг на старте
+/// (`uplink_data_placement can be header only in packet-up mode`).
+/// Эталон Go: `xhttpLookup` читает `extra` первым и при пустом значении
+/// откатывается к плоскому параметру (node_parser_transport.go).
+///
+/// §410 (2) — `host`, `path`, `mode` из `extra` не читаются вовсе. Так делает
+/// сам Xray: `SplitHTTPConfig.Build()` (infra/conf/transport_method.go) при
+/// наличии `extra` берёт его за основу, но host/path/mode перезаписывает
+/// значениями внешнего объекта — то есть плоскими параметрами ссылки. У узла
+/// cumirum в `extra` лежал `"path": "/"`, а рабочий путь `/hls/…` был плоским;
+/// с `/` сервер отвечал 404 на uplink. Здесь LxBox расходится с Go-эталоном
+/// лаунчера (там extra-first и для этих трёх ключей) — расхождение
+/// зафиксировано в таске, предложение в контракт отправлено.
+///
+/// [raw] — источник `extra`: строка с JSON (URI-ветка, где значение уже
+/// percent-декодировано `Uri.queryParameters`) **или** уже распарсенный `Map`
+/// (JSON-ветки). Отсутствующий, битый, не-объектный `extra` игнорируется —
+/// узел остаётся рабочим на плоских полях (§399 R6).
+Map<String, String> mergeXhttpExtra(Map<String, String> q, {Object? raw}) {
+  final src = raw ?? q['extra'];
+  if (src == null) return q;
+
+  Map? decoded;
+  if (src is Map) {
+    decoded = src;
+  } else {
+    final s = src.toString().trim();
+    if (s.isEmpty) return q;
+    try {
+      final parsed = jsonDecode(s);
+      if (parsed is Map) decoded = parsed;
+    } catch (_) {
+      // Битый extra — игнорируем, узел живёт на плоских параметрах.
+      return q;
+    }
+  }
+  if (decoded == null) return q;
+
+  final merged = Map<String, String>.from(q);
+  decoded.forEach((k, v) {
+    if (k is! String || v == null) return;
+    // §410 (2) — host/path/mode только из плоских параметров (Xray Build).
+    if (_xhttpFlatOnlyKeys.contains(k.toLowerCase())) return;
+    if (v is Map) {
+      // `xmux` — единственный вложенный объект XHTTP, и Xray пишет его в
+      // extra именно объектом. Разворачиваем его члены в тот же плоский слой
+      // (их имена не конфликтуют с верхнеуровневыми, xhttpFromMap соберёт
+      // объект обратно) — иначе один и тот же узел читался бы по-разному в
+      // зависимости от формы записи. Эталон Go: xhttpMergeSource /
+      // xrayFlattenScalars.
+      if (k.toLowerCase() == 'xmux') {
+        v.forEach((nk, nv) {
+          if (nk is! String || nv == null || nv is Map || nv is List) return;
+          final s = _scalarToString(nv);
+          if (s.isNotEmpty) merged[nk] = s;
+        });
+      }
+      return;
+    }
+    if (v is List) return;
+    // §410 — пустое значение не перекрывает плоский параметр (см. doc выше).
+    final s = _scalarToString(v);
+    if (s.isNotEmpty) merged[k] = s;
+  });
+  return merged;
+}
+
+/// JSON-скаляр → строка. `30.0` (double без дроби) → `"30"`; bool → `true`/
+/// `false`; число/строка как есть.
+///
+/// §399 — `1000000.0` обязано стать `"1000000"`, а не `1e+06`: эмиттер кладёт
+/// значение в конфиг как есть, и ядро не разберёт экспоненциальную запись.
+String _scalarToString(Object v) {
+  if (v is bool) return v ? 'true' : 'false';
+  if (v is double && v == v.truncateToDouble()) {
+    return v.toInt().toString();
+  }
+  return v.toString();
+}
+
+/// camelCase ИЛИ snake_case (camelCase в приоритете — Xray-форма URL).
+String _pick(Map<String, String> q, String camel, String snake) =>
+    (q[camel] ?? q[snake] ?? '').trim();
+
+/// §127 §2.4 — `sc*`-поле: дробное число `30.0` → `"30"`. Транспорт примет и
+/// `"N"`, и `"N-N"` — нормализуем только float-хвост, range-форму не трогаем.
+String _normScRange(String v) {
+  if (v.isEmpty) return v;
+  final d = double.tryParse(v);
+  if (d != null && d == d.truncateToDouble()) return d.toInt().toString();
+  return v;
+}
+
+/// §320 — ECH из подписки НЕ включаем, только предупреждаем.
+///
+/// Xray-форма `ech=<name>+<resolver>` не несёт ECH-ключа: она означает «возьми
+/// ECHConfigList из DNS HTTPS-записи имени `<name>`». Ключ привязан к тому
+/// имени, у которого взят, — а подписки кладут туда публичные ECH-пробники
+/// (`ip.gs`, `encryptedsni.com`). DEVICE-VERIFIED: DNS отдаёт для обоих ОДИН
+/// конфиг с `public_name = cloudflare-ech.com`, тогда как SNI узла —
+/// `www.ignitelimit.com`. Ключ не от того сервера ⇒ ClientHello зашифрован
+/// впустую и рукопожатие падает.
+///
+/// Замер на устройстве (узел 172.67.149.60 `/in-pdr`): с `ech` — мёртв, без
+/// `ech` — 723 мс. NekoBox этот параметр отбрасывает (в его базе 103 узла, ни
+/// одного упоминания `ech`) и держит тот же узел живым на 23 мс.
+///
+/// Проверить пригодность до подключения нельзя: `public_name` виден только
+/// после DNS-запроса, уже в рантайме ядра, а fallback на обычный TLS в sing-box
+/// отсутствует (`ech.go` при неудаче возвращает ошибку, а не откат). Поэтому
+/// единственное безопасное поведение — не включать, но сказать об этом.
+///
+/// `echfq` не читаем: Xray-шный pq-signature-schemes, парная опция ядра
+/// помечена «legacy… removed in sing-box 1.13.0» и при `true` роняет конфиг.
+void warnEchIgnored(Map<String, String> q, List<NodeWarning> warnings) {
+  final raw = (q['ech'] ?? '').trim();
+  if (raw.isEmpty || raw.toLowerCase() == 'none') return;
+  warnings.add(NodeWarning.byCode('ech_ignored',
+      path: 'ech', value: raw.split('+').first.trim()));
+}
+
+/// §097 — query-bool: `true`/`1` → true (для `no_grpc_header`).
+bool _truthy(String? v) {
+  final s = (v ?? '').toLowerCase().trim();
+  return s == 'true' || s == '1';
+}

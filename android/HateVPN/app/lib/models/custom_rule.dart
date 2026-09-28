@@ -1,0 +1,1232 @@
+import 'dart:convert';
+
+import '../config/consts.dart' show kDirectOutboundTag;
+import '../services/parser/uri_utils.dart' show newUuidV4;
+import '../services/l10n/locale_controller.dart';
+
+/// Sealed-иерархия пользовательских правил маршрутизации (spec §030, v1.4.1
+/// task 011). Три варианта с разным шейпом и поведением:
+///
+/// - [CustomRuleInline] — юзер вручную описал match-поля (domain / suffix /
+///   keyword / ip_cidr / port / package / protocol / private-ip). Данные
+///   копией живут в самом правиле; билдер собирает headless rule_set.
+/// - [CustomRuleSrs] — локально закэшированный `.srs`-бинарь по URL. Юзер
+///   качает через ☁ (spec §011), sing-box получает `type: local, path`.
+///   Доп-фильтры (port/packages/protocol/ipIsPrivate) применяются на
+///   routing-rule уровне.
+/// - [CustomRulePreset] — тонкая ссылка на `SelectableRule` в шаблоне.
+///   Bundle-пресет с типизированными vars. Содержимое (rule_set / DNS /
+///   routing) разворачивается на каждом `buildConfig`'е — обновил шаблон,
+///   новое поведение у всех юзеров (spec §033).
+///
+/// Хранение — записи `rules[]` контракта 1.0 кодеком
+/// `codec/rule_record.dart` (§439). В рантайме предпочтительнее
+/// pattern-match `switch(cr)` — даёт exhaustive-проверку от компилятора.
+
+/// §366 — TTL кэша rule-set'а по умолчанию: неделя. Списки блокировок и
+/// geosite меняются медленно, чаще раза в неделю ходить в сеть незачем.
+const int kDefaultSrsTtlHours = 168;
+
+/// §366 — вшитый список вариантов TTL для выпадающего списка в редакторе
+/// правила (часы). `0` = никогда не обновлять автоматически. Свободного
+/// ввода нет: набор фиксирован, опечатки в «168h» никому не нужны.
+const List<int> kSrsTtlChoicesHours = [
+  0, // Never
+  24, // 1 day
+  168, // 1 week (default)
+  336, // 2 weeks
+  720, // 1 month
+  4320, // 6 months
+  8760, // 1 year
+];
+
+sealed class CustomRule {
+  CustomRule({
+    String? id,
+    required this.name,
+    required this.enabled,
+    this.orderNum,
+  }) : id = id ?? newUuidV4();
+
+  final String id;
+  String name;
+  bool enabled;
+
+  /// §370 — позиция на разреженной оси порядка правил (см. `parser_config.dart`
+  /// `kUserRuleNumStart`). В JSON — ключ `num`; в Dart поле названо `orderNum`,
+  /// потому что `num` — встроенный тип и линтер ругается на такое имя.
+  ///
+  /// `null` = правило ещё не размечено: так приезжает storage, записанный до
+  /// §370. Разметка (`markRuleOrder`) проставляет номер при первой загрузке —
+  /// отдельного версионированного шага миграции нет.
+  int? orderNum;
+
+  /// Enum-дискриминатор вида. Значения совпадают с именами подклассов
+  /// по convention (inline/srs/preset/json).
+  CustomRuleKind get kind;
+
+  /// Короткая сводка для subtitle на RoutingScreen. Пустая → UI покажет
+  /// заглушку "Tap to edit". Существительные-счётчики через getLocalText.plural
+  /// (рендер по локали в момент показа).
+  String summary();
+
+  // ─── Convenience getters — упрощают чтение в UI/builder без pattern-match.
+  // Поля, которых нет в данном subclass, возвращают пустое/дефолтное
+  // значение. Для записи используются type-specific `copyWith` и/или
+  // `withEnabled` / `withName` / `withOutbound` ниже.
+
+  List<String> get domains => switch (this) {
+        CustomRuleInline(:final domains) => domains,
+        _ => const [],
+      };
+  List<String> get domainSuffixes => switch (this) {
+        CustomRuleInline(:final domainSuffixes) => domainSuffixes,
+        _ => const [],
+      };
+  List<String> get domainKeywords => switch (this) {
+        CustomRuleInline(:final domainKeywords) => domainKeywords,
+        _ => const [],
+      };
+  List<String> get ipCidrs => switch (this) {
+        CustomRuleInline(:final ipCidrs) => ipCidrs,
+        _ => const [],
+      };
+  List<String> get ports => switch (this) {
+        CustomRuleInline(:final ports) => ports,
+        CustomRuleSrs(:final ports) => ports,
+        _ => const [],
+      };
+  List<String> get portRanges => switch (this) {
+        CustomRuleInline(:final portRanges) => portRanges,
+        CustomRuleSrs(:final portRanges) => portRanges,
+        _ => const [],
+      };
+  List<String> get packages => switch (this) {
+        CustomRuleInline(:final packages) => packages,
+        CustomRuleSrs(:final packages) => packages,
+        _ => const [],
+      };
+  List<String> get protocols => switch (this) {
+        CustomRuleInline(:final protocols) => protocols,
+        CustomRuleSrs(:final protocols) => protocols,
+        _ => const [],
+      };
+
+  /// §240 — L4-транспорт (`network`: tcp/udp/icmp). Routing-rule level
+  /// (headless rule не выражает `network`), симметрично [protocols]. OR внутри
+  /// списка, AND с остальным правилом.
+  List<String> get network => switch (this) {
+        CustomRuleInline(:final network) => network,
+        CustomRuleSrs(:final network) => network,
+        _ => const [],
+      };
+  bool get ipIsPrivate => switch (this) {
+        CustomRuleInline(:final ipIsPrivate) => ipIsPrivate,
+        CustomRuleSrs(:final ipIsPrivate) => ipIsPrivate,
+        _ => false,
+      };
+
+  /// §030/new_fields — source-IP-CIDR (источник пакета). Эмитится в **headless
+  /// rule_set** (sing-box 1.14 `DefaultHeadlessRule` принимает `source_ip_cidr`);
+  /// для srs — на routing-rule level (своего headless нет). OR между собой,
+  /// AND с группой назначения.
+  List<String> get sourceIpCidrs => switch (this) {
+        CustomRuleInline(:final sourceIpCidrs) => sourceIpCidrs,
+        CustomRuleSrs(:final sourceIpCidrs) => sourceIpCidrs,
+        _ => const [],
+      };
+
+  /// §030/new_fields — `source_ip_is_private`. Headless rule_set его НЕ
+  /// принимает (нет в `DefaultHeadlessRule`) → всегда routing-rule level,
+  /// симметрично [ipIsPrivate].
+  bool get sourceIpIsPrivate => switch (this) {
+        CustomRuleInline(:final sourceIpIsPrivate) => sourceIpIsPrivate,
+        CustomRuleSrs(:final sourceIpIsPrivate) => sourceIpIsPrivate,
+        _ => false,
+      };
+
+  /// §030/new_fields — `inbound`-ось: теги inbound'ов билдера (`tun-in`/
+  /// `mixed-in`, §119). Headless rule_set `inbound` НЕ принимает → routing-rule
+  /// level (как `ip_is_private`). AND с остальным правилом.
+  List<String> get inbounds => switch (this) {
+        CustomRuleInline(:final inbounds) => inbounds,
+        CustomRuleSrs(:final inbounds) => inbounds,
+        _ => const [],
+      };
+
+  /// §051 — список SSID'ов для условия `wifi_ssid` в sing-box rule. Empty —
+  /// условие не эмитится. Чтение текущего ssid требует
+  /// `NEARBY_WIFI_DEVICES + ACCESS_BACKGROUND_LOCATION` permission на API 33+
+  /// (см. §050 findings); permission проверяется в `BoxService.startSingbox`
+  /// через `cs.needWIFIState()`.
+  List<String> get wifiSsids => switch (this) {
+        CustomRuleInline(:final wifiSsids) => wifiSsids,
+        CustomRuleSrs(:final wifiSsids) => wifiSsids,
+        _ => const [],
+      };
+
+  /// §051 — список BSSID'ов (`xx:xx:xx:xx:xx:xx` lower-case). Условие
+  /// `wifi_bssid` в sing-box rule.
+  List<String> get wifiBssids => switch (this) {
+        CustomRuleInline(:final wifiBssids) => wifiBssids,
+        CustomRuleSrs(:final wifiBssids) => wifiBssids,
+        _ => const [],
+      };
+
+  /// §117 задача 3 — DNS-опция правила (ортогональное поле, только
+  /// inline/srs; у preset DNS-аспект живёт в `dns_options.rules` §033).
+  /// `null` = выкл (backward-compat: старые записи без `dns`).
+  RuleDns? get dns => switch (this) {
+        CustomRuleInline(:final dns) => dns,
+        CustomRuleSrs(:final dns) => dns,
+        _ => null,
+      };
+
+  /// §117: правило DNS-mirror-**способно** — включено, сервер выбран, нет
+  /// ports/protocols (headless-гейт: порт/протокол неизвестны в момент
+  /// DNS-запроса). НЕ зависит от `dns.enabled` — строка mirror-группы видна
+  /// и при выключенном DNS-аспекте (switch off, серая), чтобы его можно было
+  /// включить обратно отсюда (симметрично preset-строке).
+  bool get dnsMirrorEligible =>
+      enabled &&
+      (dns?.serverTag.isNotEmpty ?? false) &&
+      ports.isEmpty &&
+      portRanges.isEmpty &&
+      protocols.isEmpty &&
+      network.isEmpty;
+
+  /// §117: DNS-mirror **активен** — [dnsMirrorEligible] И галка DNS включена.
+  /// Build (эмиссия) и UI (lifecycle-локи серверов) используют этот предикат.
+  bool get dnsMirrorActive => dnsMirrorEligible && (dns?.enabled ?? false);
+
+  /// §256: Force IPv4 (AAAA-глушилка) **применима** — правило DNS-mirror-
+  /// способно по headless-гейту (порт/протокол неизвестны в момент
+  /// DNS-запроса → DNS-слой слеп), но БЕЗ требования `serverTag`: глушилка
+  /// `predefined` отвечает локально, серверу не нужна. Домен / приложение
+  /// (`package_name`) / source_ip — работает.
+  bool get forceIpv4Eligible =>
+      enabled &&
+      ports.isEmpty &&
+      portRanges.isEmpty &&
+      protocols.isEmpty &&
+      network.isEmpty;
+
+  /// §256: Force IPv4 **активна** — [forceIpv4Eligible] И галка включена.
+  /// Build (эмиссия serverless-mirror'а) и UI (маркер) используют этот предикат.
+  bool get forceIpv4Active => forceIpv4Eligible && (dns?.forceIpv4 ?? false);
+
+  /// §247 — resolve-опция правила (только inline/srs). `null` = обычный
+  /// outbound (backward-compat: старые записи без `resolve`).
+  RuleResolve? get resolve => switch (this) {
+        CustomRuleInline(:final resolve) => resolve,
+        CustomRuleSrs(:final resolve) => resolve,
+        _ => null,
+      };
+
+  /// §247: правило resolve-**способно** — есть чему резолвиться. inline:
+  /// domain-группа непуста (чистый ip_cidr/protocol/port-матч резолвить
+  /// нечего — UI прячет шестерёнку); srs: всегда true (содержимое `.srs`
+  /// не парсим — домены возможны).
+  bool get resolveEligible => switch (this) {
+        CustomRuleInline() => domains.isNotEmpty ||
+            domainSuffixes.isNotEmpty ||
+            domainKeywords.isNotEmpty,
+        CustomRuleSrs() => true,
+        _ => false,
+      };
+
+  /// §247: resolve **активен** — опция задана И правило resolve-способно.
+  /// Билдер (эмиссия resolve-правила) и UI (✳-маркер в списке) используют
+  /// этот предикат.
+  bool get resolveActive => resolve != null && resolveEligible;
+
+  String get srsUrl => switch (this) {
+        CustomRuleSrs(:final srsUrl) => srsUrl,
+        _ => '',
+      };
+
+  /// ## 12 контракта (D-100) — все `.srs`-наборы правила по порядку; пусто
+  /// у прочих kind'ов.
+  List<String> get srsUrls => switch (this) {
+        CustomRuleSrs(:final srsUrls) => srsUrls,
+        _ => const [],
+      };
+
+  /// §225 — сырое тело json-правила. Пусто для остальных kind'ов.
+  String get json => switch (this) {
+        CustomRuleJson(:final json) => json,
+        _ => '',
+      };
+  String get presetId => switch (this) {
+        CustomRulePreset(:final presetId) => presetId,
+        _ => '',
+      };
+  Map<String, String> get varsValues => switch (this) {
+        CustomRulePreset(:final varsValues) => varsValues,
+        _ => const {},
+      };
+
+  /// Effective outbound tag. Для `preset` возвращает **user override**
+  /// `varsValues['outbound']` или пустую строку если не задан. Пустое
+  /// значение в expansion означает "template-решение as is" (будь то
+  /// `@outbound`-sub, hardcoded `outbound`, или shorthand `action: reject`).
+  /// Непустое — universal override, заменяет template-решение любым
+  /// Направлением (spec §033 Expansion §5).
+  String get outbound => switch (this) {
+        CustomRuleInline(:final outbound) => outbound,
+        CustomRuleSrs(:final outbound) => outbound,
+        CustomRulePreset(:final varsValues) => varsValues['outbound'] ?? '',
+        // §225 — у json-правила действие внутри сырого тела; отдельного
+        // outbound-tag нет (не участвует в OutboundPicker/dangling-миграциях).
+        CustomRuleJson() => '',
+      };
+
+  /// Int-порты для sing-box (`port: [80, 443]`). Нерасспарсенное /
+  /// out-of-range молча отбрасывается.
+  List<int> get intPorts => ports
+      .map(int.tryParse)
+      .whereType<int>()
+      .where((p) => p >= 0 && p <= 65535)
+      .toList();
+
+  // ─── Type-preserving mutators для UI.
+  // Эти методы возвращают тот же runtime-type что у `this` (каждый subclass
+  // переопределяет). Позволяют UI писать `rule.withEnabled(v)` вместо
+  // `switch(rule) { case Inline() => rule.copyWith(enabled: v), ... }`.
+
+  CustomRule withEnabled(bool enabled);
+  CustomRule withName(String name);
+
+  /// Устанавливает outbound. Для `preset` пишет в `varsValues['outbound']`,
+  /// для inline/srs — в поле `outbound`.
+  CustomRule withOutbound(String outbound);
+}
+
+enum CustomRuleKind { inline, srs, preset, json }
+
+/// §117 задача 3 — DNS-опция правила («DNS follows the rule»). Правило
+/// **ссылается** на существующий DNS-сервер по tag (выбор из списка, не ввод
+/// адреса — locked decision №2); detour сервера — зона задач 1/2, правило
+/// его не трогает (№1). `enabled: false` сохраняет выбранный `serverTag`,
+/// чтобы повторное включение не теряло выбор.
+class RuleDns {
+  const RuleDns({
+    this.enabled = false,
+    this.serverTag = '',
+    this.forceIpv4 = false,
+  });
+
+  final bool enabled;
+  final String serverTag;
+
+  /// §256 — Force IPv4: гасить AAAA (IPv6) для матча правила пустым
+  /// authoritative-ответом (`ip_version: 6, action: predefined, rcode:
+  /// NOERROR`), приложение чисто берёт A. Ортогонально [enabled]/[serverTag]
+  /// — глушилка отвечает локально, DNS-серверу не нужна.
+  final bool forceIpv4;
+
+  Map<String, dynamic> toJson() => {
+        'enabled': enabled,
+        'serverTag': serverTag,
+        if (forceIpv4) 'forceIpv4': true,
+      };
+
+  /// Backward-compat: не-Map (отсутствует в старых записях) → null.
+  static RuleDns? fromJson(dynamic j) {
+    if (j is! Map) return null;
+    return RuleDns(
+      enabled: j['enabled'] == true,
+      serverTag: j['serverTag']?.toString() ?? '',
+      forceIpv4: j['forceIpv4'] == true,
+    );
+  }
+
+  RuleDns copyWith({bool? enabled, String? serverTag, bool? forceIpv4}) =>
+      RuleDns(
+        enabled: enabled ?? this.enabled,
+        serverTag: serverTag ?? this.serverTag,
+        forceIpv4: forceIpv4 ?? this.forceIpv4,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RuleDns &&
+          enabled == other.enabled &&
+          serverTag == other.serverTag &&
+          forceIpv4 == other.forceIpv4);
+
+  @override
+  int get hashCode => Object.hash(enabled, serverTag, forceIpv4);
+}
+
+/// §247 — resolve-опция правила (route rule action `resolve`, sing-box 1.14).
+/// `null` на правиле = обычный outbound (backward-compat: старые записи).
+///
+/// Два режима:
+/// - `only == false` — **route + resolve**: билдер эмитит ДВА правила —
+///   нетерминальный resolve ПЕРЕД терминальным route (тот же матч);
+/// - `only == true` — **resolve only** (advanced): одно нетерминальное
+///   правило; трафик проваливается к следующим правилам / route.final.
+///   `outbound` правила при этом сохраняется в модели (переключение
+///   режимов не теряет выбор), но билдером игнорируется.
+///
+/// Пустая строка / null у опциональных полей = ключ не эмитится
+/// (минимальный конфиг, дефолты ядра).
+class RuleResolve {
+  const RuleResolve({
+    this.only = false,
+    this.strategy = '',
+    this.serverTag = '',
+    this.disableCache = false,
+    this.disableOptimisticCache = false,
+    this.rewriteTtl,
+    this.timeout = '',
+    this.clientSubnet = '',
+  });
+
+  final bool only;
+
+  /// '' = inherit `dns.strategy`; иначе prefer_ipv4/prefer_ipv6/ipv4_only/ipv6_only.
+  final String strategy;
+
+  /// '' = auto (резолв через DNS-роутинг); иначе tag DNS-сервера.
+  final String serverTag;
+
+  final bool disableCache;
+  final bool disableOptimisticCache;
+
+  /// null = не эмитить. sing-box: uint32.
+  final int? rewriteTtl;
+
+  /// '' = не эмитить. Duration-строка sing-box ('5s', '500ms').
+  final String timeout;
+
+  /// '' = не эмитить. CIDR/IP для edns0-subnet.
+  final String clientSubnet;
+
+  Map<String, dynamic> toJson() => {
+        'only': only,
+        if (strategy.isNotEmpty) 'strategy': strategy,
+        if (serverTag.isNotEmpty) 'serverTag': serverTag,
+        if (disableCache) 'disableCache': true,
+        if (disableOptimisticCache) 'disableOptimisticCache': true,
+        if (rewriteTtl != null) 'rewriteTtl': rewriteTtl,
+        if (timeout.isNotEmpty) 'timeout': timeout,
+        if (clientSubnet.isNotEmpty) 'clientSubnet': clientSubnet,
+      };
+
+  /// Backward-compat: не-Map (отсутствует в старых записях) → null.
+  static RuleResolve? fromJson(dynamic j) {
+    if (j is! Map) return null;
+    return RuleResolve(
+      only: j['only'] == true,
+      strategy: j['strategy']?.toString() ?? '',
+      serverTag: j['serverTag']?.toString() ?? '',
+      disableCache: j['disableCache'] == true,
+      disableOptimisticCache: j['disableOptimisticCache'] == true,
+      rewriteTtl: switch (j['rewriteTtl']) {
+        final int v when v >= 0 => v,
+        final String s => int.tryParse(s),
+        _ => null,
+      },
+      timeout: j['timeout']?.toString() ?? '',
+      clientSubnet: j['clientSubnet']?.toString() ?? '',
+    );
+  }
+
+  RuleResolve copyWith({
+    bool? only,
+    String? strategy,
+    String? serverTag,
+    bool? disableCache,
+    bool? disableOptimisticCache,
+    int? rewriteTtl,
+    bool clearRewriteTtl = false,
+    String? timeout,
+    String? clientSubnet,
+  }) =>
+      RuleResolve(
+        only: only ?? this.only,
+        strategy: strategy ?? this.strategy,
+        serverTag: serverTag ?? this.serverTag,
+        disableCache: disableCache ?? this.disableCache,
+        disableOptimisticCache:
+            disableOptimisticCache ?? this.disableOptimisticCache,
+        rewriteTtl: clearRewriteTtl ? null : (rewriteTtl ?? this.rewriteTtl),
+        timeout: timeout ?? this.timeout,
+        clientSubnet: clientSubnet ?? this.clientSubnet,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RuleResolve &&
+          only == other.only &&
+          strategy == other.strategy &&
+          serverTag == other.serverTag &&
+          disableCache == other.disableCache &&
+          disableOptimisticCache == other.disableOptimisticCache &&
+          rewriteTtl == other.rewriteTtl &&
+          timeout == other.timeout &&
+          clientSubnet == other.clientSubnet);
+
+  @override
+  int get hashCode => Object.hash(only, strategy, serverTag, disableCache,
+      disableOptimisticCache, rewriteTtl, timeout, clientSubnet);
+}
+
+/// Sentinel-значение для `CustomRuleInline.outbound` / `CustomRuleSrs.outbound`.
+/// Билдер матчит на `{action: "reject"}` вместо `{outbound: <tag>}`. sing-box
+/// не имеет outbound'а с таким именем — коллизий нет.
+const String kOutboundReject = 'reject';
+
+/// Известные L7-протоколы для sing-box `protocol` field. Применяется на
+/// routing-rule уровне (headless rule не поддерживает `protocol`).
+/// Актуально для sing-box 1.12.x.
+const List<String> kKnownProtocols = [
+  'bittorrent',
+  'dns',
+  'dtls',
+  'http',
+  'ntp',
+  'quic',
+  'rdp',
+  'ssh',
+  'stun',
+  'tls',
+];
+
+/// §240 — L4-транспорты для sing-box `network` field (route-rule level).
+/// Закрытый набор: по документации допустимы ровно `tcp`, `udp`, `icmp`
+/// (нет `icmpv6`, нет отдельного `ip_protocol`).
+const List<String> kKnownNetworks = [
+  'tcp',
+  'udp',
+  'icmp',
+];
+
+// ─── Inline ────────────────────────────────────────────────────────────
+
+/// Inline правило — юзер ввёл match-поля через «+ Add rule». Билдер
+/// собирает headless rule с OR-семантикой внутри category, AND между.
+///
+/// Per sing-box default rule matching: одно правило с
+/// `domainSuffixes=[.ru], ports=[443], packages=[...firefox]` матчится как
+/// `(domain_suffix == .ru) && (port == 443) && (package_name == ...firefox)`.
+/// `protocols` и `ipIsPrivate` не поддерживаются в headless — билдер
+/// выносит их на routing-rule level.
+class CustomRuleInline extends CustomRule {
+  CustomRuleInline({
+    super.id,
+    required super.name,
+    super.enabled = true,
+    super.orderNum,
+    this.domains = const [],
+    this.domainSuffixes = const [],
+    this.domainKeywords = const [],
+    this.ipCidrs = const [],
+    this.ports = const [],
+    this.portRanges = const [],
+    this.packages = const [],
+    this.protocols = const [],
+    this.network = const [],
+    this.ipIsPrivate = false,
+    this.sourceIpCidrs = const [],
+    this.sourceIpIsPrivate = false,
+    this.inbounds = const [],
+    this.wifiSsids = const [],
+    List<String> wifiBssids = const [],
+    this.outbound = kDirectOutboundTag,
+    this.dns,
+    this.resolve,
+  }) : wifiBssids = _normalizeBssids(wifiBssids);
+
+  // OR-группа #1 (domain-family + ip). Внутри OR, между остальными — AND.
+  @override
+  List<String> domains;
+  @override
+  List<String> domainSuffixes;
+  @override
+  List<String> domainKeywords;
+  @override
+  List<String> ipCidrs;
+
+  // OR-группа #2 (port-family). AND с domain-family.
+  @override
+  List<String> ports;       // user-input, int-parse на emit
+  @override
+  List<String> portRanges;  // "8000:9000", ":3000", "4000:"
+
+  // OR-группа #3 (package_name). AND с остальными.
+  @override
+  List<String> packages;
+
+  // Routing-rule-level AND (не в headless).
+  @override
+  List<String> protocols;   // subset of kKnownProtocols
+  /// §240 — L4-транспорт (subset of kKnownNetworks). Routing-rule level.
+  @override
+  List<String> network;
+  @override
+  bool ipIsPrivate;
+
+  /// §030/new_fields — source-IP-CIDR. В headless `match` (sing-box 1.14
+  /// принимает). OR между собой, AND с domain/port-группами.
+  @override
+  List<String> sourceIpCidrs;
+
+  /// §030/new_fields — `source_ip_is_private`. Routing-rule level (headless
+  /// не принимает), симметрично [ipIsPrivate].
+  @override
+  bool sourceIpIsPrivate;
+
+  /// §030/new_fields — `inbound` (теги `tun-in`/`mixed-in`, §119). Routing-rule
+  /// level (headless не принимает). AND с остальным.
+  @override
+  List<String> inbounds;
+
+  /// §051 — wifi-условия. С sing-box 1.14 эмитятся в **headless rule_set**
+  /// (`DefaultHeadlessRule.wifi_ssid/wifi_bssid`); для srs остаются на
+  /// routing-rule level. AND с остальным match.
+  @override
+  List<String> wifiSsids;
+  @override
+  List<String> wifiBssids;
+
+  /// Outbound-тег либо `kOutboundReject` (→ action: reject).
+  @override
+  String outbound;
+
+  /// §117 задача 3 — DNS-опция (mirror DNS-rule на выбранный сервер).
+  @override
+  RuleDns? dns;
+
+  /// §247 — resolve-опция (route action `resolve` перед/вместо route).
+  @override
+  RuleResolve? resolve;
+
+  @override
+  CustomRuleKind get kind => CustomRuleKind.inline;
+
+  @override
+  String summary() {
+    final parts = <String>[];
+    if (domains.isNotEmpty) parts.add(getLocalText.plural("%d domains", domains.length));
+    if (domainSuffixes.isNotEmpty) {
+      parts.add(getLocalText.plural("%d suffixes", domainSuffixes.length));
+    }
+    if (domainKeywords.isNotEmpty) {
+      parts.add(getLocalText.plural("%d keywords", domainKeywords.length));
+    }
+    if (ipCidrs.isNotEmpty) parts.add(getLocalText.plural("%d cidrs", ipCidrs.length));
+    if (ipIsPrivate) parts.add(getLocalText.s("private ip"));
+    if (sourceIpCidrs.isNotEmpty) {
+      parts.add(getLocalText.plural("%d src", sourceIpCidrs.length));
+    }
+    if (sourceIpIsPrivate) parts.add(getLocalText.s("private src"));
+    final totalPorts = ports.length + portRanges.length;
+    if (totalPorts > 0) parts.add(getLocalText.plural("%d ports", totalPorts));
+    if (packages.isNotEmpty) parts.add(getLocalText.plural("%d apps", packages.length));
+    if (protocols.isNotEmpty) parts.add(getLocalText.plural("%d proto", protocols.length));
+    if (network.isNotEmpty) parts.add(getLocalText.plural("%d net", network.length));
+    if (inbounds.isNotEmpty) parts.add(getLocalText.s("%d in", inbounds.length));
+    if (wifiSsids.isNotEmpty) parts.add(getLocalText.s("%d wifi", wifiSsids.length));
+    return parts.join(' · ');
+  }
+
+  CustomRuleInline copyWith({
+    String? name,
+    bool? enabled,
+    int? orderNum,
+    List<String>? domains,
+    List<String>? domainSuffixes,
+    List<String>? domainKeywords,
+    List<String>? ipCidrs,
+    List<String>? ports,
+    List<String>? portRanges,
+    List<String>? packages,
+    List<String>? protocols,
+    List<String>? network,
+    bool? ipIsPrivate,
+    List<String>? sourceIpCidrs,
+    bool? sourceIpIsPrivate,
+    List<String>? inbounds,
+    List<String>? wifiSsids,
+    List<String>? wifiBssids,
+    String? outbound,
+    RuleDns? dns,
+    // §257: `dns ?? this.dns` не позволяет обнулить — явный флаг (паттерн
+    // clearRewriteTtl в RuleResolve.copyWith). DNS Settings обнуляет dns,
+    // когда сняты оба аспекта (не копить мёртвый RuleDns{}).
+    bool clearDns = false,
+    RuleResolve? resolve,
+    // `"resolve": null` в PATCH Debug API — тот же приём, что clearDns.
+    bool clearResolve = false,
+  }) =>
+      CustomRuleInline(
+        id: id,
+        name: name ?? this.name,
+        enabled: enabled ?? this.enabled,
+        orderNum: orderNum ?? this.orderNum,
+        domains: domains ?? this.domains,
+        domainSuffixes: domainSuffixes ?? this.domainSuffixes,
+        domainKeywords: domainKeywords ?? this.domainKeywords,
+        ipCidrs: ipCidrs ?? this.ipCidrs,
+        ports: ports ?? this.ports,
+        portRanges: portRanges ?? this.portRanges,
+        packages: packages ?? this.packages,
+        protocols: protocols ?? this.protocols,
+        network: network ?? this.network,
+        ipIsPrivate: ipIsPrivate ?? this.ipIsPrivate,
+        sourceIpCidrs: sourceIpCidrs ?? this.sourceIpCidrs,
+        sourceIpIsPrivate: sourceIpIsPrivate ?? this.sourceIpIsPrivate,
+        inbounds: inbounds ?? this.inbounds,
+        wifiSsids: wifiSsids ?? this.wifiSsids,
+        wifiBssids: wifiBssids ?? this.wifiBssids,
+        outbound: outbound ?? this.outbound,
+        dns: clearDns ? null : (dns ?? this.dns),
+        resolve: clearResolve ? null : (resolve ?? this.resolve),
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CustomRuleInline &&
+          id == other.id &&
+          name == other.name &&
+          enabled == other.enabled &&
+          orderNum == other.orderNum &&
+          _listEq(domains, other.domains) &&
+          _listEq(domainSuffixes, other.domainSuffixes) &&
+          _listEq(domainKeywords, other.domainKeywords) &&
+          _listEq(ipCidrs, other.ipCidrs) &&
+          _listEq(ports, other.ports) &&
+          _listEq(portRanges, other.portRanges) &&
+          _listEq(packages, other.packages) &&
+          _listEq(protocols, other.protocols) &&
+          _listEq(network, other.network) &&
+          ipIsPrivate == other.ipIsPrivate &&
+          _listEq(sourceIpCidrs, other.sourceIpCidrs) &&
+          sourceIpIsPrivate == other.sourceIpIsPrivate &&
+          _listEq(inbounds, other.inbounds) &&
+          _listEq(wifiSsids, other.wifiSsids) &&
+          _listEq(wifiBssids, other.wifiBssids) &&
+          outbound == other.outbound &&
+          dns == other.dns &&
+          resolve == other.resolve);
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        name,
+        enabled,
+        orderNum,
+        Object.hashAll(domains),
+        Object.hashAll(domainSuffixes),
+        Object.hashAll(domainKeywords),
+        Object.hashAll(ipCidrs),
+        Object.hashAll(ports),
+        Object.hashAll(portRanges),
+        Object.hashAll(packages),
+        Object.hashAll(protocols),
+        Object.hashAll(network),
+        ipIsPrivate,
+        Object.hashAll(sourceIpCidrs),
+        sourceIpIsPrivate,
+        Object.hashAll(inbounds),
+        Object.hashAll(wifiSsids),
+        Object.hashAll(wifiBssids),
+        outbound,
+        dns,
+        resolve,
+      ]);
+
+  @override
+  CustomRuleInline withEnabled(bool enabled) => copyWith(enabled: enabled);
+  @override
+  CustomRuleInline withName(String name) => copyWith(name: name);
+  @override
+  CustomRuleInline withOutbound(String outbound) => copyWith(outbound: outbound);
+}
+
+// ─── Srs ───────────────────────────────────────────────────────────────
+
+/// Локально закэшированный `.srs`-бинарь по URL (spec §011). Юзер качает
+/// через ☁-кнопку в UI; sing-box получает `type: local, path: <кэш>` — URL
+/// в конфиг не попадает, никакого auto-download.
+class CustomRuleSrs extends CustomRule {
+  CustomRuleSrs({
+    super.id,
+    required super.name,
+    super.enabled = true,
+    super.orderNum,
+    String srsUrl = '',
+    List<String> srsUrls = const [],
+    this.ports = const [],
+    this.portRanges = const [],
+    this.packages = const [],
+    this.protocols = const [],
+    this.network = const [],
+    this.ipIsPrivate = false,
+    this.sourceIpCidrs = const [],
+    this.sourceIpIsPrivate = false,
+    this.inbounds = const [],
+    this.wifiSsids = const [],
+    List<String> wifiBssids = const [],
+    this.outbound = kDirectOutboundTag,
+    this.dns,
+    this.resolve,
+    this.updateIntervalHours = kDefaultSrsTtlHours,
+  })  : wifiBssids = _normalizeBssids(wifiBssids),
+        srsUrls = normalizeSrsUrls(srsUrl, srsUrls);
+
+  /// ## 12 контракта (D-100) — все `.srs`-наборы правила по порядку. Правило
+  /// одно, наборов может быть несколько: сборка регистрирует `rule_set` на
+  /// каждый и эмитит одно routing-правило со списком тегов. Первый набор =
+  /// [srsUrl] (совместимость: хранение пишет `srsUrl` всегда и `srsUrls` при
+  /// двух и более, бэкап — `ref` и `refs`). Кэш каждого набора — свой файл,
+  /// см. [cacheIds].
+  @override
+  List<String> srsUrls;
+
+  @override
+  String get srsUrl => srsUrls.isEmpty ? '' : srsUrls.first;
+
+  /// ## 12 — id файла кэша для набора [index]: первый — сам `id` правила
+  /// (файлы, скачанные до ## 12, остаются валидными), остальные —
+  /// `<id>~<index>`. `~` не встречается в uuid, коллизий с preset-ключами
+  /// (`preset__…`) нет.
+  static String cacheIdAt(String ruleId, int index) =>
+      index == 0 ? ruleId : '$ruleId~$index';
+
+  /// ## 12 — id кэша каждого набора, по порядку [srsUrls].
+  List<String> get cacheIds =>
+      [for (var i = 0; i < srsUrls.length; i++) cacheIdAt(id, i)];
+
+  /// §366 — через сколько часов кэш считается протухшим. Авто-обновление
+  /// (`RuleSetAutoUpdater`) берёт TTL отсюда; `0` = не обновлять
+  /// автоматически (ручной ⟳ работает всегда). Значения — из
+  /// [kSrsTtlChoicesHours], в UI выпадающий список.
+  int updateIntervalHours;
+
+  /// Доп-фильтры на routing-rule level (AND с `.srs`-match внутри rule_set).
+  /// Используются когда remote `.srs` слишком широкий: например, «только
+  /// на 443 + только Firefox».
+  @override
+  List<String> ports;
+  @override
+  List<String> portRanges;
+  @override
+  List<String> packages;
+  @override
+  List<String> protocols;
+  /// §240 — L4-транспорт (subset of kKnownNetworks). Routing-rule level.
+  @override
+  List<String> network;
+  @override
+  bool ipIsPrivate;
+
+  /// §030/new_fields — source/inbound доп-фильтры. У srs нет своего headless
+  /// `match` (rule_set внешний) → ВСЕ эти поля эмитятся на routing-rule level
+  /// (включая `source_ip_cidr` — в отличие от inline, где он в headless).
+  @override
+  List<String> sourceIpCidrs;
+  @override
+  bool sourceIpIsPrivate;
+  @override
+  List<String> inbounds;
+
+  /// §051 — wifi-условия. Для srs — routing-rule level (своего headless нет).
+  @override
+  List<String> wifiSsids;
+  @override
+  List<String> wifiBssids;
+
+  @override
+  String outbound;
+
+  /// §117 задача 3 — DNS-опция. Серая пометка в UI: mirror работает, только
+  /// если в `.srs` есть домены (содержимое бинаря не парсим — IP-only лист
+  /// в DNS-контексте молча не сматчит).
+  @override
+  RuleDns? dns;
+
+  /// §247 — resolve-опция. Для srs всегда eligible (домены в `.srs`
+  /// возможны, содержимое не парсим — симметрично dns-пометке выше).
+  @override
+  RuleResolve? resolve;
+
+  @override
+  CustomRuleKind get kind => CustomRuleKind.srs;
+
+  @override
+  String summary() {
+    if (srsUrl.trim().isEmpty) return '';
+    final host = Uri.tryParse(srsUrl)?.host;
+    final first = host?.isNotEmpty == true ? host! : srsUrl;
+    // ## 12 — несколько наборов: хост первого и число остальных.
+    if (srsUrls.length > 1) {
+      return getLocalText.s("SRS: %s (+%d)", first, srsUrls.length - 1);
+    }
+    return getLocalText.s("SRS: %s", first);
+  }
+
+  /// §366 — TTL из JSON. Отсутствие, мусор и отрицательные значения → дефолт;
+  /// `0` (Never) сохраняем как есть, это осознанный выбор юзера.
+  static int ttlHoursFrom(Object? v) {
+    final n = v is num ? v.toInt() : null;
+    if (n == null || n < 0) return kDefaultSrsTtlHours;
+    return n;
+  }
+
+  CustomRuleSrs copyWith({
+    String? name,
+    bool? enabled,
+    int? orderNum,
+    String? srsUrl,
+    List<String>? srsUrls,
+    List<String>? ports,
+    List<String>? portRanges,
+    List<String>? packages,
+    List<String>? protocols,
+    List<String>? network,
+    bool? ipIsPrivate,
+    List<String>? sourceIpCidrs,
+    bool? sourceIpIsPrivate,
+    List<String>? inbounds,
+    List<String>? wifiSsids,
+    List<String>? wifiBssids,
+    String? outbound,
+    RuleDns? dns,
+    bool clearDns = false, // §257 — см. CustomRuleInline.copyWith
+    RuleResolve? resolve,
+    bool clearResolve = false, // см. CustomRuleInline.copyWith
+    int? updateIntervalHours,
+  }) =>
+      CustomRuleSrs(
+        id: id,
+        name: name ?? this.name,
+        enabled: enabled ?? this.enabled,
+        orderNum: orderNum ?? this.orderNum,
+        // Список главнее одиночного URL; одиночный (старые вызовы) заменяет
+        // весь список одним набором.
+        srsUrls: srsUrls ?? (srsUrl != null ? [srsUrl] : this.srsUrls),
+        ports: ports ?? this.ports,
+        portRanges: portRanges ?? this.portRanges,
+        packages: packages ?? this.packages,
+        protocols: protocols ?? this.protocols,
+        network: network ?? this.network,
+        ipIsPrivate: ipIsPrivate ?? this.ipIsPrivate,
+        sourceIpCidrs: sourceIpCidrs ?? this.sourceIpCidrs,
+        sourceIpIsPrivate: sourceIpIsPrivate ?? this.sourceIpIsPrivate,
+        inbounds: inbounds ?? this.inbounds,
+        wifiSsids: wifiSsids ?? this.wifiSsids,
+        wifiBssids: wifiBssids ?? this.wifiBssids,
+        outbound: outbound ?? this.outbound,
+        dns: clearDns ? null : (dns ?? this.dns),
+        resolve: clearResolve ? null : (resolve ?? this.resolve),
+        updateIntervalHours:
+            updateIntervalHours ?? this.updateIntervalHours,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CustomRuleSrs &&
+          id == other.id &&
+          name == other.name &&
+          enabled == other.enabled &&
+          orderNum == other.orderNum &&
+          _listEq(srsUrls, other.srsUrls) &&
+          _listEq(ports, other.ports) &&
+          _listEq(portRanges, other.portRanges) &&
+          _listEq(packages, other.packages) &&
+          _listEq(protocols, other.protocols) &&
+          _listEq(network, other.network) &&
+          ipIsPrivate == other.ipIsPrivate &&
+          _listEq(sourceIpCidrs, other.sourceIpCidrs) &&
+          sourceIpIsPrivate == other.sourceIpIsPrivate &&
+          _listEq(inbounds, other.inbounds) &&
+          _listEq(wifiSsids, other.wifiSsids) &&
+          _listEq(wifiBssids, other.wifiBssids) &&
+          outbound == other.outbound &&
+          dns == other.dns &&
+          resolve == other.resolve &&
+          updateIntervalHours == other.updateIntervalHours);
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        name,
+        enabled,
+        orderNum,
+        Object.hashAll(srsUrls),
+        Object.hashAll(ports),
+        Object.hashAll(portRanges),
+        Object.hashAll(packages),
+        Object.hashAll(protocols),
+        Object.hashAll(network),
+        ipIsPrivate,
+        Object.hashAll(sourceIpCidrs),
+        sourceIpIsPrivate,
+        Object.hashAll(inbounds),
+        Object.hashAll(wifiSsids),
+        Object.hashAll(wifiBssids),
+        outbound,
+        dns,
+        resolve,
+        updateIntervalHours,
+      ]);
+
+  @override
+  CustomRuleSrs withEnabled(bool enabled) => copyWith(enabled: enabled);
+  @override
+  CustomRuleSrs withName(String name) => copyWith(name: name);
+  @override
+  CustomRuleSrs withOutbound(String outbound) => copyWith(outbound: outbound);
+}
+
+// ─── Preset (bundle thin reference) ────────────────────────────────────
+
+/// Тонкая ссылка на `SelectableRule(presetId=...)` в шаблоне (spec §033).
+/// Хранит только `{presetId, varsValues}` — всё остальное разворачивается
+/// при каждом `buildConfig` через `expandPreset`. Обновил шаблон → новое
+/// поведение у всех юзеров.
+///
+/// `name` хранится snapshot'ом `preset.label`, но в UI редакторе
+/// **read-only** (🔒). Билдер периодически обновляет snapshot из текущего
+/// шаблона, так что переименование пресета дойдёт до существующих правил.
+///
+/// `outbound` нет как отдельного поля — значение `varsValues['outbound']`
+/// подставляется в шаблонный `@outbound`-плейсхолдер при expansion.
+class CustomRulePreset extends CustomRule {
+  CustomRulePreset({
+    super.id,
+    required super.name,
+    super.enabled = true,
+    super.orderNum,
+    required this.presetId,
+    Map<String, String>? varsValues,
+  }) : varsValues = Map<String, String>.from(varsValues ?? const {});
+
+  @override
+  String presetId;
+
+  /// Значения переменных пресета, выставленные юзером в UI.
+  ///
+  /// Семантика (spec §033 expansion):
+  /// - ключ **отсутствует** → юзер не трогал контрол → применяется
+  ///   `default_value` из шаблона.
+  /// - ключ **есть, значение непустое** → явный выбор.
+  /// - ключ **есть, значение пустое** → explicit "— (none)" для optional var;
+  ///   фрагменты с unresolved `@name` выкидываются.
+  @override
+  Map<String, String> varsValues;
+
+  @override
+  CustomRuleKind get kind => CustomRuleKind.preset;
+
+  @override
+  String summary() {
+    // Preset-факт уже виден в UI — read-only `name` (snapshot template-label'а)
+    // плюс 🔒 иконка. Дублировать «preset: <id>» в subtitle не нужно.
+    // Показываем только user-выставленные vars (если есть и непусты).
+    // `l` не нужен: var-имена/значения — wire-данные, не переводятся.
+    if (presetId.isEmpty) return '';
+    if (varsValues.isEmpty) return '';
+    return varsValues.entries
+        .where((e) => e.value.isNotEmpty)
+        .map((e) => '${e.key}=${e.value}')
+        .take(2)
+        .join(', ');
+  }
+
+  CustomRulePreset copyWith({
+    String? name,
+    bool? enabled,
+    int? orderNum,
+    String? presetId,
+    Map<String, String>? varsValues,
+  }) =>
+      CustomRulePreset(
+        id: id,
+        name: name ?? this.name,
+        enabled: enabled ?? this.enabled,
+        orderNum: orderNum ?? this.orderNum,
+        presetId: presetId ?? this.presetId,
+        varsValues: varsValues ?? this.varsValues,
+      );
+
+  /// `varsValues` сравнивается как словарь: порядок ключей не значим.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CustomRulePreset &&
+          id == other.id &&
+          name == other.name &&
+          enabled == other.enabled &&
+          orderNum == other.orderNum &&
+          presetId == other.presetId &&
+          _mapEq(varsValues, other.varsValues));
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        name,
+        enabled,
+        orderNum,
+        presetId,
+        Object.hashAllUnordered(
+            varsValues.entries.map((e) => Object.hash(e.key, e.value))),
+      );
+
+  @override
+  CustomRulePreset withEnabled(bool enabled) => copyWith(enabled: enabled);
+  @override
+  CustomRulePreset withName(String name) => copyWith(name: name);
+
+  /// Для preset outbound хранится в `varsValues['outbound']`. Применяется
+  /// в `preset_expand` как **universal override**: полностью заменяет
+  /// template-решение независимо от того, задан в шаблоне `@outbound`,
+  /// hardcoded `outbound: "<tag>"` или shorthand `action: "reject"`.
+  /// Юзер может переключить Block Ads с reject на vpn-1, и наоборот любой
+  /// Направление на reject. См. spec §033 Expansion §5 "Universal outbound override".
+  @override
+  CustomRulePreset withOutbound(String outbound) {
+    final updated = Map<String, String>.from(varsValues);
+    updated['outbound'] = outbound;
+    return copyWith(varsValues: updated);
+  }
+}
+
+// ─── Raw JSON (§225) ─────────────────────────────────────────────────────
+
+/// §225 (#17) — правило заданное сырым JSON. Юзер пишет тело правила (или
+/// массив тел) для `route.rules`, билдер кладёт его как есть — это открывает
+/// ЛЮБОЙ sing-box route-action (`hijack-dns`/`sniff`/`resolve`/`route-options`
+/// и т.д.) без модели-на-каждое-поле. Действие — часть самого JSON, поэтому
+/// `outbound` отсутствует, а match-секции UI (domain/port/wifi/dns) скрыты.
+///
+/// Валидность синтаксиса проверяется в UI (inline) и в билдере (skip+warning
+/// на битом JSON, без падения сборки). Dangling `outbound` внутри тела ловит
+/// `validateConfig` тем же путём, что и обычные правила.
+///
+/// §439 — вид модели, не записи: в записи 1.0 это `inline` + `verbatim: true`
+/// с телом-объектом (`codec/rule_record.dart`), форматирование текста в
+/// состояние не входит. Отсюда равенство по содержимому JSON.
+class CustomRuleJson extends CustomRule {
+  CustomRuleJson({
+    super.id,
+    required super.name,
+    super.enabled = true,
+    super.orderNum,
+    this.json = '',
+  });
+
+  /// Сырой текст правила: JSON-объект `{...}` или массив объектов `[{...}]`.
+  @override
+  final String json;
+
+  @override
+  CustomRuleKind get kind => CustomRuleKind.json;
+
+  @override
+  String summary() {
+    // `l` не нужен: сырой JSON — wire-данные, не переводятся.
+    final oneLine = json.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (oneLine.isEmpty) return '';
+    return oneLine.length <= 48 ? oneLine : '${oneLine.substring(0, 48)}…';
+  }
+
+  CustomRuleJson copyWith({String? name, bool? enabled, int? orderNum, String? json}) =>
+      CustomRuleJson(
+        id: id,
+        name: name ?? this.name,
+        enabled: enabled ?? this.enabled,
+        orderNum: orderNum ?? this.orderNum,
+        json: json ?? this.json,
+      );
+
+  /// [json] сравнивается по содержимому: тексты, которые разбираются в один
+  /// и тот же JSON (порядок ключей значим), равны при любых пробелах; текст,
+  /// который не разбирается, — посимвольно.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CustomRuleJson &&
+          id == other.id &&
+          name == other.name &&
+          enabled == other.enabled &&
+          orderNum == other.orderNum &&
+          (json == other.json ||
+              (_canonicalJson(json) ?? json) ==
+                  (_canonicalJson(other.json) ?? other.json)));
+
+  @override
+  int get hashCode =>
+      Object.hash(id, name, enabled, orderNum, _canonicalJson(json) ?? json);
+
+  @override
+  CustomRuleJson withEnabled(bool enabled) => copyWith(enabled: enabled);
+  @override
+  CustomRuleJson withName(String name) => copyWith(name: name);
+
+  /// json-правило не имеет outbound-поля (действие внутри тела) — no-op.
+  @override
+  CustomRuleJson withOutbound(String outbound) => this;
+}
+
+// ─── helpers ───────────────────────────────────────────────────────────
+
+/// Компактная запись разобранного JSON-текста; не разбирается — null.
+String? _canonicalJson(String text) {
+  try {
+    return jsonEncode(jsonDecode(text));
+  } on FormatException {
+    return null;
+  }
+}
+
+/// ## 12 — нормализация списка `.srs`-наборов: непустой [srsUrls] главнее
+/// одиночного [srsUrl]; trim, пустые и повторы (с сохранением порядка) — вон.
+List<String> normalizeSrsUrls(String srsUrl, List<String> srsUrls) {
+  final out = <String>[];
+  for (final u in srsUrls.isEmpty ? [srsUrl] : srsUrls) {
+    final t = u.trim();
+    if (t.isNotEmpty && !out.contains(t)) out.add(t);
+  }
+  return out;
+}
+
+/// ## 12 — список наборов из текста поля редактора: по одному URL на строку
+/// (любые пробельные разделители), пустые и повторы отбрасываются.
+List<String> parseSrsUrlsText(String text) =>
+    normalizeSrsUrls('', text.split(RegExp(r'\s+')));
+
+bool _listEq(List<String> a, List<String> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+bool _mapEq(Map<String, String> a, Map<String, String> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (final e in a.entries) {
+    if (!b.containsKey(e.key) || b[e.key] != e.value) return false;
+  }
+  return true;
+}
+
+/// §051 — нормализует BSSID к lower-case формату `xx:xx:xx:xx:xx:xx`.
+/// Юзер мог ввести uppercase из браузера/`adb shell` — sing-box матчит
+/// case-sensitive по строкам. Здесь tolerant'но lower-case'им и trim'аем,
+/// строгую regex-валидацию делает Debug API parser (на write-side).
+List<String> _normalizeBssids(List<String> bssids) {
+  if (bssids.isEmpty) return const [];
+  return bssids.map((b) => b.trim().toLowerCase()).toList(growable: false);
+}

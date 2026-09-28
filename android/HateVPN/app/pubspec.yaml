@@ -1,0 +1,107 @@
+name: lxbox
+description: HateVPN — VPN client for Android.
+publish_to: 'none'
+
+version: 2.25.8+22508500
+# ↑ ФИКСИРОВАННЫЙ placeholder. НЕ редактируется вручную и НЕ бампится в git.
+# Реальная версия вычисляется из git-состояния В МОМЕНТ СБОРКИ и переписывает
+# эту строку прямо перед `flutter build` (файл в репо остаётся 0.0.0+1):
+#   • CI release build (.github/workflows/ci.yml → "Inject release version") —
+#     `version: ${tag#v}+${git rev-list --count HEAD}`.
+#   • Локальная сборка (scripts/build-local-apk.sh) — `git describe --tags --abbrev=0`
+#     для versionName и `rev-list --count <TAG>` (пин к тегу, §186 — против
+#     downgrade-блока при установке релиза) для versionCode.
+# Runtime берёт версию из APK-манифеста через PackageInfo (lib/services/version_info.dart),
+# а не из этой строки — потому placeholder в git безвреден.
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations: # §285 — Global*Localizations (Flutter chrome строки)
+    sdk: flutter
+  intl: any # §279 — версию пинит flutter_localizations
+  cupertino_icons: ^1.0.8
+  http: ^1.2.2
+  cryptography: ^2.7.0 # §025 — X25519 keygen; §130 — ECDSA P-256 keygen для MASQUE-WARP
+  asn1lib: ^1.5.0 # §130 — SEC1/PKIX DER-сериализация ECDSA-ключей (контракт с ядром MASQUE)
+  json5: ^0.8.2
+  file_picker: ^12.3.0
+  path_provider: ^2.1.5
+  shared_preferences: ^2.3.4
+  share_plus: ^13.3.0
+  device_info_plus: ^13.2.0
+  package_info_plus: ^10.2.1
+  connectivity_plus: ^7.3.1
+  collection: ^1.18.0
+  crypto: ^3.0.3 # §283 — sha256 для identity-хеша ноды подписки
+  pointycastle: ^4.0.0 # §130 — ECDSA P-256 keygen (pure-Dart, работает на Android; cryptography P-256 keygen не реализует)
+  re_editor: ^0.10.0
+  re_highlight: ^0.0.3 # §554 — подсветка синтаксиса JSON в LxCodeEditor (langJson + темы atom-one)
+  flutter_zxing: ^3.0.1 # §382 — QR-сканер (ZXing-C++ через FFI; §380 FOSS); §432 — zxing-cpp 3.1.1
+  camera: ^0.12.0 # §382 — типы CameraController/CameraException в исходе сканера
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  analyzer: ^7.7.1 # §279 — AST-checkers tool/l10n. §431 — пин: раньше 7.x держал build_runner; на 14.x чекеры не собираются (другой AST-API) — миграция отдельной таской
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/obsidian-ribbon.png
+    - assets/wizard_template.json
+    - assets/l10n/ru/ # §285 — русская локализация (ui.json + template.json; английский базовый, в коде)
+    - assets/l10n/zh/ # 简体中文本地化（ui.json + template.json；英文为基准键）
+    - assets/donate.json # §362/§423 — способы поддержки: единственный источник, бандлится и раздаётся с GitHub
+    - assets/support.json # §356/§422 — лента сообщений автора: единственный источник, бандлится и раздаётся с GitHub
+    - assets/warp_endpoints.json # §136 — WARP endpoint/SNI random pools
+    # §460 — реестр контракта (зеркало app/contract/registry, кладёт
+    # tool/sync_contract.sh). Каталоги Flutter не рекурсивны — protocols/
+    # объявлен отдельно. Читает ContractRegistry: схема тела узла и тексты
+    # кодов предупреждений.
+    - assets/contract/VERSION
+    - assets/contract/registry/
+    - assets/contract/registry/protocols/
+    # §480 — ЧЕРНОВЫЕ секции-мапперы, пока лаунчер не влил их в сам реестр:
+    # исполняет движок маппера, и без бандлинга разбор остался бы без таблицы.
+    # Загрузчик берёт секцию из реестра, если она там исполняемая, и только
+    # иначе — отсюда; каталог временный.
+    # Каталоги Flutter не рекурсивны — каждый вид источника отдельной строкой.
+    - assets/contract_draft/uri/
+    # `conf/` больше нет: секция `.conf` приехала реестром целиком (диалект
+    # ini — контракт 1.1.30, код незнакомого ключа — 1.1.32), и последнее
+    # отличие (дефолтный порт пира) сняла ветка `endpoint.on_no_match`.
+    # §480 W6 — реестр ВИДОВ ИСТОЧНИКА приехал нормой (контракт 1.1.41,
+    # `assets/contract/registry/source_kinds.json`), черновик снят.
+    - assets/icons/app_icon.png
+    - assets/icons/cloudflare.png # §025 — официальный логотип Cloudflare (Simple Icons, CC0)
+
+# Иконка из sing-box Launcher (macOS .app Resources/app.icns → PNG 1024²).
+flutter_launcher_icons:
+  image_path: assets/icons/hatevpn.png
+  android: true
+  # Адаптивная иконка (Android 8+): без неё система сама подставляет белую
+  # подложку под legacy-PNG — это и была белая рамка в лаунчере и в F-Droid.
+  adaptive_icon_background: '#080d11'
+  adaptive_icon_foreground: assets/icons/hatevpn.png
+  # Графика уже вписана в безопасную зону самого файла (60% холста),
+  # поэтому собственный отступ генератора выключен.
+  adaptive_icon_foreground_inset: 0
+  ios: true
+  # iOS сам накладывает скругление (~22.4%), поэтому исходник для него —
+  # полный квадрат без своего радиуса: иначе по углам остаётся белое и
+  # маска срезает графику. App Store не принимает альфа-канал.
+  image_path_ios: assets/icons/app_icon_ios.png
+  remove_alpha_ios: true
+  macos:
+    generate: true
+  windows:
+    generate: true
+  web:
+    generate: true
+

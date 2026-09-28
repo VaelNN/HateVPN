@@ -1,0 +1,432 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../../../controllers/home_controller.dart';
+import '../../../controllers/subscription_controller.dart';
+import '../../../models/home_state.dart';
+import '../../../services/core_reject/core_reject_state.dart';
+import '../../../services/crash_banner_state.dart';
+import '../core_reject_ui.dart';
+import '../../../services/crash_share.dart';
+import '../../../services/haptic_service.dart';
+import '../home_dialogs.dart';
+import '../home_menus.dart';
+import '../node_list_presenter.dart';
+import 'app_banner.dart';
+import '../../../services/l10n/locale_controller.dart';
+import '../../../services/networks_direction.dart';
+
+/// Controls-блок главного экрана.
+///
+/// Поведение байт-в-байт идентично. Все state-mutating flows (rebuild /
+/// reconnect / start) приходят callback'ами из `_HomeScreenState`, чтобы
+/// владение side-effect'ами (`setState`, `configDirty=false`, SnackBars)
+/// оставалось в State — этот widget только рисует + диспатчит.
+class HomeControls extends StatelessWidget {
+  const HomeControls({
+    super.key,
+    required this.controller,
+    required this.subController,
+    required this.presenter,
+    required this.connectingAnimChild,
+    required this.state,
+    required this.startActive,
+    required this.startEnabled,
+    required this.stopEnabled,
+    required this.needsRestart,
+    this.autoApplying = false,
+    required this.errorTimerOnDismiss,
+    required this.onStartWithAutoRefresh,
+    required this.onRebuildAndClearDirty,
+    required this.onRebuildAndReconnect,
+    required this.onRebuildAndStart,
+  });
+
+  final HomeController controller;
+  final SubscriptionController subController;
+  final NodeListPresenter presenter;
+
+  /// Готовый StatusChip (создаётся в State с доступом к `_connectingAnim`).
+  final Widget connectingAnimChild;
+  final HomeState state;
+  final bool startActive;
+  final bool startEnabled;
+  final bool stopEnabled;
+  final bool needsRestart;
+
+  /// §338 — авто-применение в полёте (воронка пересборки при включённой
+  /// галке): розовая плашка подавляется на окно rebuild+reload.
+  final bool autoApplying;
+
+  /// Cancel + clear lastError (раньше inline в `_buildControls`: отменял
+  /// `_errorTimer` и звал `clearError`). Side-effect живёт в State.
+  final VoidCallback errorTimerOnDismiss;
+
+  final void Function() onStartWithAutoRefresh;
+  final Future<void> Function() onRebuildAndClearDirty;
+  final Future<void> Function() onRebuildAndReconnect;
+  final Future<void> Function() onRebuildAndStart;
+
+  /// §316 — отдать краш-репорт и погасить плашку. Штамп пишем в любом
+  /// случае: пользователь плашку уже увидел, повторять на каждом запуске —
+  /// навязчиво, даже если share сорвался (файл никуда не делся, он есть
+  /// в Diagnostics → Crash reports).
+  Future<void> _shareCrash() async {
+    final report = CrashBannerState.I.pending;
+    if (report == null) return;
+    await shareCrashReport(report);
+    await CrashBannerState.I.markShown();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isConnecting = state.tunnel == TunnelStatus.connecting;
+    final isStopping = state.tunnel == TunnelStatus.stopping;
+    final canToggle = !state.busy && !isConnecting && !isStopping;
+    final toggleEnabled = canToggle && (state.tunnelUp || state.configRaw.isNotEmpty);
+    // Задача 579 — пункт NETWORKS в перечне направлений.
+    final hasNetworks = state.tunnelUp && state.networksNodes.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              // Фича 478 — подпись кнопки зависит от фазы страховки, и
+              // HomeState о ней не знает: подписка отдельная, как у плашки.
+              AnimatedBuilder(
+                animation: CoreRejectState.I,
+                builder: (context, _) {
+                  // Фича 478 — во время тихого цикла кнопка остаётся тем же
+                  // местом и становится отменой: иконка остановки, нажатие =
+                  // `cancel()` автомата (итог как у Stop в диалоге предела —
+                  // VPN не поднят, выключенные остаются выключенными). Своих
+                  // строк отмена не заводит: подпись та же, что у фазы.
+                  final checking = CoreRejectState.I.checking;
+                  final guardActive = CoreRejectState.I.guardActive;
+                  final pressable =
+                      checking || (!guardActive && toggleEnabled);
+                  return FilledButton.icon(
+                // §372 — D-pad: на Android TV фокус при открытии экрана должен
+                // стоять на главном действии, иначе первое нажатие пульта
+                // уходит в никуда и выглядит как «кнопки не работают».
+                autofocus: true,
+                onPressed: pressable
+                    ? () {
+                        HapticService.I.onConnectTap();
+                        if (checking) {
+                          CoreRejectState.I.cancelRun();
+                        } else if (state.tunnelUp) {
+                          confirmStop(context, controller, state);
+                        } else {
+                          onStartWithAutoRefresh();
+                        }
+                      }
+                    : null,
+                icon: Icon(
+                  state.tunnelUp || checking
+                      ? Icons.stop_rounded
+                      : Icons.play_arrow_rounded,
+                  size: 20,
+                ),
+                label: Text(state.tunnelUp
+                    ? getLocalText.s("Stop")
+                    // Фича 478 — во время тихого цикла кнопка говорит, чем
+                    // занята и сколько уже выключено; отмена доступна всегда.
+                    : checking
+                        ? getLocalText.plural(
+                            "Checking servers… (%d disabled)",
+                            CoreRejectState.I.disabled.length)
+                        : getLocalText.s("Start")),
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+              // Статус-чип отдаёт ширину первым: Start/Stop и reload имеют
+              // натуральный размер, а длинный статус сжимается с эллипсисом.
+              Flexible(child: connectingAnimChild),
+              const SizedBox(width: 8),
+              _buildReloadButton(context),
+            ],
+          ),
+          // §116 — единый banner-механизм: проекция состояния → BannerStack.
+          // Три исторических плашки (settings_changed / restart / last_error)
+          // + config_load_error деривятся в activeBanners.
+          // §316 — плашка «ядро падало» приходит не из HomeState, а из
+          // CrashBannerState (файловая система + storage-отметка), поэтому
+          // подписка отдельная.
+          AnimatedBuilder(
+            // Фича 478 — плашка «выключено N серверов» приходит из
+            // CoreRejectState, как краш-плашка из CrashBannerState: это
+            // итог прогона страховки, а не поле HomeState.
+            animation: Listenable.merge(
+                [CrashBannerState.I, CoreRejectState.I]),
+            builder: (context, _) => BannerStack(
+              banners: activeBanners(
+                state,
+                configDirty: subController.configDirty,
+                busy: subController.busy,
+                crashPending: CrashBannerState.I.pending != null,
+                coreRejected: CoreRejectState.I.bannerVisible
+                    ? CoreRejectState.I.bannerNodes
+                    : const [],
+                autoApplying: autoApplying, // §338
+                actions: BannerActions(
+                  onRebuild: () => unawaited(onRebuildAndClearDirty()),
+                  // Не гасим restart на тап — если юзер отменит Stop-диалог,
+                  // banner остаётся; гаснет реальным tunnel up↔down.
+                  onConfirmStop: () =>
+                      confirmStop(context, controller, controller.state),
+                  onClearError: errorTimerOnDismiss,
+                  onShareCrash: () => unawaited(_shareCrash()),
+                  onDismissCrash: () =>
+                      unawaited(CrashBannerState.I.markShown()),
+                  onShowCoreRejected: () => unawaited(showCoreRejectList(
+                      context, CoreRejectState.I.bannerNodes,
+                      subController: subController)),
+                  onDismissCoreRejected: CoreRejectState.I.dismissBanner,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Text(getLocalText.s("Direction"),
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Theme.of(context).colorScheme.outline),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      isDense: true,
+                      // Задача 579 — NETWORKS: значение-заглушка, не тег,
+                      // поэтому настоящее направление с тегом `NETWORKS` с
+                      // ним не совпадает.
+                      value: state.showingNetworks
+                          ? kNetworksDirectionValue
+                          : state.groups.contains(state.selectedGroup)
+                              ? state.selectedGroup
+                              : null,
+                      // Поле высотой 40: перенос строки обрезал подсказку
+                      // пополам (ru «Выберите Направление»). Одна строка с
+                      // многоточием и у подсказки, и у длинного имени.
+                      hint: Text(getLocalText.s("Select direction"),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      items: state.groups
+                          .map((g) => DropdownMenuItem(
+                              value: g,
+                              child: Text(state.groupLabelOf(g),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis)))
+                          .followedBy([
+                        // Задача 579 — псевдо-направление последним.
+                        if (hasNetworks)
+                          const DropdownMenuItem(
+                              value: kNetworksDirectionValue,
+                              child: Text(kNetworksLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis)),
+                      ]).toList(),
+                      onChanged: (!state.tunnelUp ||
+                              state.busy ||
+                              (state.groups.isEmpty && !hasNetworks))
+                          ? null
+                          : (value) async {
+                              if (value == kNetworksDirectionValue) {
+                                controller.openNetworks();
+                                return;
+                              }
+                              controller.setSelectedGroup(value);
+                              await controller.applyGroup(value);
+                            },
+                    ),
+                  ),
+                ),
+              ),
+              // §372 — InkWell, не GestureDetector: у последнего нет фокусного
+              // узла, и на Android TV кнопка была недостижима с пульта
+              // (D-pad её просто пропускал). InkWell фокусируется и
+              // подсвечивается, поведение тапа/long-press то же.
+              InkWell(
+                borderRadius: BorderRadius.circular(20),
+                // Задача 579 — в NETWORKS замера задержки нет.
+                onTap: (!state.tunnelUp ||
+                        state.busy ||
+                        state.nodes.isEmpty ||
+                        state.showingNetworks)
+                    ? null
+                    : () {
+                        if (controller.massPingRunning) {
+                          controller.cancelMassPing();
+                        } else {
+                          // §078 — пингуем в порядке отображения. Фильтр и
+                          // sort учитываются: ping всё что **видно**, в том
+                          // порядке как видно. Control-outbounds тоже в
+                          // списке (clash.delay для них вернёт error или
+                          // реальный latency для direct-out).
+                          unawaited(controller.runMassUrltest(
+                              order: presenter.computeDisplayList(state)));
+                        }
+                      },
+                onLongPress: () => showPingSettings(context, controller),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                    controller.massPingRunning ? Icons.stop_circle_outlined : Icons.speed,
+                    color: (!state.tunnelUp ||
+                            state.busy ||
+                            state.nodes.isEmpty ||
+                            state.showingNetworks)
+                        ? Theme.of(context).disabledColor
+                        : null,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Кнопка справа от status chip. Short tap = умный default (reconnect /
+  /// rebuild+start / rebuild+reconnect в зависимости от состояния), long
+  /// press = меню с 3 явными действиями. Иконка refresh читается как
+  /// «переподключиться», что и является default-поведением.
+  Widget _buildReloadButton(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final dirty = subController.configDirty || needsRestart;
+    final enabled = !state.busy && !subController.busy;
+    final fg = dirty ? cs.onPrimaryContainer : null;
+    final bg = dirty ? cs.primaryContainer : Colors.transparent;
+    // Без Tooltip: на mobile он сам хватает long-press (его default trigger)
+    // и наш `onLongPress` на InkWell никогда не срабатывает. Label доступен
+    // через Semantics для accessibility.
+    return Semantics(
+      button: true,
+      label: _defaultReloadLabel(state, dirty),
+      child: Material(
+        color: bg,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        // Builder нужен чтобы `findRenderObject` в _showReloadMenu нашёл саму
+        // кнопку, а не родительский Row/Column (иначе меню всплывёт с краю).
+        child: Builder(builder: (inkCtx) => InkWell(
+          onTap: enabled ? () => _runDefaultReload(state) : null,
+          onLongPress: enabled ? () => _showReloadMenu(inkCtx, state) : null,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Icon(Icons.refresh, size: 20, color: fg),
+          ),
+        )),
+      ),
+    );
+  }
+
+  String _defaultReloadLabel(HomeState state, bool dirty) {
+    if (!state.tunnelUp) return 'Rebuild config + connect';
+    // §030: default tap теперь делает in-place reload (легче чем reconnect).
+    // Long-press menu всё ещё даёт явный 'Reconnect' для full restart.
+    return dirty ? 'Rebuild config + reconnect' : 'Reload';
+  }
+
+  void _runDefaultReload(HomeState state) {
+    HapticService.I.onConnectTap();
+    if (!state.tunnelUp) {
+      unawaited(onRebuildAndStart());
+      return;
+    }
+    final dirty = subController.configDirty || needsRestart;
+    if (dirty) {
+      unawaited(onRebuildAndReconnect());
+    } else {
+      // §030 — in-place reload через `commandServer.startOrReloadService`.
+      // Раньше тут был `reconnect()` (full stop+start с recreate Android Service);
+      // новый путь не убивает Service, tunnel дропается на ~3s вместо 5-10s.
+      // Long-press menu даёт fallback на full reconnect для случаев когда
+      // in-place reload не помог.
+      unawaited(controller.reloadVpn());
+    }
+  }
+
+  Future<void> _showReloadMenu(BuildContext anchorCtx, HomeState state) async {
+    final box = anchorCtx.findRenderObject() as RenderBox?;
+    final overlay = Overlay.of(anchorCtx).context.findRenderObject() as RenderBox?;
+    if (box == null || overlay == null) return;
+    final pos = box.localToGlobal(Offset.zero, ancestor: overlay);
+    final size = box.size;
+    final rect = RelativeRect.fromLTRB(
+      pos.dx,
+      pos.dy + size.height,
+      overlay.size.width - pos.dx - size.width,
+      overlay.size.height - pos.dy,
+    );
+    final reconnectLabel = state.tunnelUp ? 'Reconnect' : 'Connect';
+    final rebuildReconnectLabel =
+        state.tunnelUp ? 'Rebuild config + reconnect' : 'Rebuild config + connect';
+    final choice = await showMenu<String>(
+      context: anchorCtx,
+      position: rect,
+      items: [
+        // Reload первый — самый light recovery (in-place через CommandServer.
+        // startOrReloadService). Tap по кнопке выполняет это же действие.
+        if (state.tunnelUp)
+          PopupMenuItem(
+            value: 'reload',
+            child: Row(children: [
+              const Icon(Icons.bolt, size: 18),
+              const SizedBox(width: 12),
+              Text(getLocalText.s("Reload")),
+            ]),
+          ),
+        PopupMenuItem(
+          value: 'reconnect',
+          child: Row(children: [
+            const Icon(Icons.sync, size: 18),
+            const SizedBox(width: 12),
+            Text(reconnectLabel),
+          ]),
+        ),
+        PopupMenuItem(
+          value: 'rebuild',
+          child: Row(children: [
+            const Icon(Icons.build_circle_outlined, size: 18),
+            const SizedBox(width: 12),
+            Text(getLocalText.s("Rebuild config only")),
+          ]),
+        ),
+        PopupMenuItem(
+          value: 'rebuild_reconnect',
+          child: Row(children: [
+            const Icon(Icons.refresh, size: 18),
+            const SizedBox(width: 12),
+            Text(rebuildReconnectLabel),
+          ]),
+        ),
+      ],
+    );
+    if (!anchorCtx.mounted || choice == null) return;
+    HapticService.I.onConnectTap();
+    switch (choice) {
+      case 'reload':
+        unawaited(controller.reloadVpn());
+      case 'reconnect':
+        unawaited(controller.reconnect());
+      case 'rebuild':
+        unawaited(onRebuildAndClearDirty());
+      case 'rebuild_reconnect':
+        unawaited(onRebuildAndReconnect());
+    }
+  }
+}

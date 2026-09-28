@@ -1,0 +1,82 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="HateVPN" Manufacturer="DarkSide" Version="1.0.13" Language="1049" Codepage="1251" UpgradeCode="ED1E499C-910E-4EF0-8A73-FFB03843607A" Scope="perMachine" InstallerVersion="500">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of HateVPN is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Launch Condition="VersionNT64" Message="HateVPN requires Windows 10 or 11 (64-bit)." />
+    <Property Id="ARPPRODUCTICON" Value="HateVPNIcon.ico" />
+    <Property Id="DESKTOPSHORTCUT" Value="1" Secure="yes" />
+    <Property Id="INSTALLFOLDER" Secure="yes" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="HATEVPNUSERDATA">
+      <RegistrySearch Id="HateVpnUserDataSearch" Root="HKLM" Key="Software\HateVPN" Name="UserDataPath" Type="raw" />
+    </Property>
+    <Icon Id="HateVPNIcon.ico" SourceFile="$(var.Root)/app/HateVPN.Desktop/Assets/HateVPN.ico" />
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.Root)/installer/License.rtf" />
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="HateVPN">
+        <Directory Id="APPFOLDER" Name="App">
+          <Component Id="UiComponent" Guid="*">
+            <File Id="UiExe" Source="$(var.Root)/dist/Release/App/HateVPN.exe" KeyPath="yes" />
+            <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="HateVPN" Target="[APPFOLDER]HateVPN.exe" WorkingDirectory="APPFOLDER" Icon="HateVPNIcon.ico" Advertise="no" />
+          </Component>
+          <Component Id="DotNetLicense" Guid="*"><File Source="$(var.Root)/licenses/DotNET-LICENSE.txt" KeyPath="yes" /></Component>
+          <Component Id="DotNetNotices" Guid="*"><File Source="$(var.Root)/licenses/DotNET-THIRD-PARTY-NOTICES.txt" KeyPath="yes" /></Component>
+          <Component Id="DesktopLicense" Guid="*"><File Source="$(var.Root)/licenses/WindowsDesktop-LICENSE.txt" KeyPath="yes" /></Component>
+          <Component Id="SshNetLicense" Guid="*"><File Source="$(var.Root)/licenses/SSH.NET-LICENSE.txt" KeyPath="yes" /></Component>
+          <Component Id="BouncyCastleLicense" Guid="*"><File Source="$(var.Root)/licenses/BouncyCastle-LICENSE.txt" KeyPath="yes" /></Component>
+        </Directory>
+        <Directory Id="SERVICEFOLDER" Name="Service">
+          <Component Id="ServiceComponent" Guid="*">
+            <File Id="ServiceExe" Source="$(var.Root)/dist/Release/Service/HateVPN.Service.exe" KeyPath="yes" />
+            <ServiceInstall Id="BrokerInstall" Name="HateVPNBroker" DisplayName="HateVPN VPN Service" Description="Manages the encrypted HateVPN tunnel." Type="ownProcess" Start="auto" ErrorControl="normal" Account="LocalSystem" Vital="yes">
+              <ServiceDependency Id="Nsi" /><ServiceDependency Id="Tcpip" />
+              <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" RestartServiceDelayInSeconds="5" ResetPeriodInDays="1" />
+            </ServiceInstall>
+            <ServiceControl Id="BrokerControl" Name="HateVPNBroker" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+            <ServiceControl Id="AwgTunnelControl" Name="HateVPNAWG" Stop="uninstall" Remove="uninstall" Wait="yes" />
+            <ServiceControl Id="WgTunnelControl" Name="WireGuardTunnel$HateVPN" Stop="uninstall" Remove="uninstall" Wait="yes" />
+          </Component>
+          <Component Id="TunnelDll" Guid="*"><File Source="$(var.Root)/dist/Release/Service/tunnel.dll" KeyPath="yes" /></Component>
+          <Component Id="AmneziaTunnelDll" Guid="*"><File Source="$(var.Root)/dist/Release/Service/amneziawg-tunnel.dll" KeyPath="yes" /></Component>
+          <Component Id="DriverDll" Guid="*"><File Source="$(var.Root)/dist/Release/Service/wireguard.dll" KeyPath="yes" /></Component>
+          <Component Id="XrayExe" Guid="*"><File Source="$(var.Root)/dist/Release/Service/xray.exe" KeyPath="yes" /></Component>
+          <Component Id="WintunDll" Guid="*"><File Source="$(var.Root)/dist/Release/Service/wintun.dll" KeyPath="yes" /></Component>
+          <Component Id="XrayLicense" Guid="*"><File Source="$(var.Root)/dist/Release/Service/Xray-LICENSE.txt" KeyPath="yes" /></Component>
+          <Component Id="WintunLicense" Guid="*"><File Source="$(var.Root)/dist/Release/Service/Wintun-LICENSE.txt" KeyPath="yes" /></Component>
+          <Component Id="EngineLicense" Guid="*"><File Source="$(var.Root)/dist/Release/Service/WireGuard-LICENSE.txt" KeyPath="yes" /></Component>
+          <Component Id="DriverLicense" Guid="*"><File Source="$(var.Root)/dist/Release/Service/WireGuardNT-LICENSE.txt" KeyPath="yes" /></Component>
+          <Component Id="AmneziaWindowsLicense" Guid="*"><File Source="$(var.Root)/dist/Release/Service/AmneziaWG-Windows-LICENSE.txt" KeyPath="yes" /></Component>
+          <Component Id="AmneziaGoLicense" Guid="*"><File Source="$(var.Root)/dist/Release/Service/AmneziaWG-Go-LICENSE.txt" KeyPath="yes" /></Component>
+          <Directory Id="STATEDIR" Name="State">
+            <Component Id="StateCleanup" Guid="{B5ACB7F0-CE04-4E4E-A5EC-85BC824FE9F3}">
+              <CreateFolder /><RemoveFile Id="RemoveTunnelState" Name="*" On="uninstall" /><RemoveFolder Id="RemoveStateFolder" On="uninstall" />
+            </Component>
+          </Directory>
+        </Directory>
+      <Component Id="UninstallerComponent" Guid="*">
+        <File Id="UninstallExe" Name="Удалить HateVPN.exe" Source="$(var.Root)/dist/Release/Uninstall/HateVPN.Uninstall.exe" KeyPath="yes" />
+        <Shortcut Id="UninstallStartMenuShortcut" Directory="ProgramMenuFolder" Name="Удалить HateVPN" Target="[INSTALLFOLDER]Удалить HateVPN.exe" Icon="HateVPNIcon.ico" Advertise="no" />
+        <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
+      </Component>
+      <Component Id="UserDataCleanup" Guid="{8EA7825D-4D36-42C5-89A4-7F01CA91A2EB}" Bitness="always64">
+        <util:RemoveFolderEx Id="RemoveHateVpnUserData" Property="HATEVPNUSERDATA" On="uninstall" Condition="NOT UPGRADINGPRODUCTCODE" />
+        <RegistryValue Root="HKLM" Key="Software\HateVPN" Name="UserDataPath" Type="string" Value="[LocalAppDataFolder]HateVPN" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\HateVPN" Name="InstallPath" Type="string" Value="[INSTALLFOLDER]" />
+      </Component>
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+    <Component Id="DesktopShortcutComponent" Guid="{CA1AA4F2-ECA0-43D4-B9BE-726F7AC928E2}" Directory="DesktopFolder" Condition="DESKTOPSHORTCUT = &quot;1&quot;" Bitness="always64">
+      <Shortcut Id="DesktopShortcut" Name="HateVPN" Description="HateVPN by DarkSide" Target="[APPFOLDER]HateVPN.exe" WorkingDirectory="APPFOLDER" Icon="HateVPNIcon.ico" />
+      <RegistryValue Root="HKCU" Key="Software\HateVPN" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+    <Feature Id="MainFeature" Title="HateVPN" Level="1">
+      <ComponentRef Id="UiComponent" /><ComponentRef Id="ServiceComponent" /><ComponentRef Id="TunnelDll" /><ComponentRef Id="AmneziaTunnelDll" /><ComponentRef Id="DriverDll" /><ComponentRef Id="XrayExe" /><ComponentRef Id="WintunDll" /><ComponentRef Id="XrayLicense" /><ComponentRef Id="WintunLicense" /><ComponentRef Id="EngineLicense" /><ComponentRef Id="DriverLicense" /><ComponentRef Id="AmneziaWindowsLicense" /><ComponentRef Id="AmneziaGoLicense" /><ComponentRef Id="StateCleanup" />
+      <ComponentRef Id="DotNetLicense" /><ComponentRef Id="DotNetNotices" /><ComponentRef Id="DesktopLicense" /><ComponentRef Id="SshNetLicense" /><ComponentRef Id="BouncyCastleLicense" />
+      <ComponentRef Id="DesktopShortcutComponent" />
+      <ComponentRef Id="UninstallerComponent" /><ComponentRef Id="UserDataCleanup" />
+    </Feature>
+  </Package>
+</Wix>

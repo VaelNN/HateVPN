@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework><ImplicitUsings>enable</ImplicitUsings><AllowUnsafeBlocks>true</AllowUnsafeBlocks><Version>1.0.13</Version><ApplicationManifest>app.manifest</ApplicationManifest></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../HateVPN.Core/HateVPN.Core.csproj" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+    <Content Include="Native/*.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" Link="%(Filename)%(Extension)" ExcludeFromSingleFile="true" />
+    <Content Include="WireGuard-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+</Project>

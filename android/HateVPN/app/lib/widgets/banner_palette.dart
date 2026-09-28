@@ -1,0 +1,136 @@
+import 'package:flutter/material.dart';
+
+import '../models/node_warning.dart';
+
+/// §206 — единый источник theme-aware цветов для всех плашек/предупреждений
+/// в приложении. Раньше каждая плашка хардкодила `Colors.amber.shadeXXX`, что
+/// ломалось в тёмной теме (светлый текст на светлом amber-фоне нечитаем). Здесь
+/// цвета деривятся из семантических токенов `ColorScheme` — Material сам держит
+/// контраст в light/dark. Любая новая плашка должна брать цвета отсюда, а не
+/// заводить свои `Colors.*`.
+///
+/// `app_banner.dart` (home) использует тот же принцип через `ColorScheme`
+/// напрямую — этот модуль выносит его в переиспользуемый helper для остальных
+/// экранов (DNS settings, resolver picker, stats и т.д.).
+enum BannerSeverity { info, warning, error, success }
+
+/// Набор согласованных цветов одной плашки: фон, рамка, основной текст/иконка,
+/// и цвет для action-кнопок (чуть ярче на тёмном фоне).
+class BannerColors {
+  const BannerColors({
+    required this.background,
+    required this.border,
+    required this.foreground,
+    required this.action,
+  });
+
+  final Color background;
+  final Color border;
+  final Color foreground;
+  final Color action;
+}
+
+/// Возвращает theme-aware цвета для заданной severity.
+///
+/// `info`/`error` берутся из семантических токенов `ColorScheme` (они корректны
+/// в обеих темах из коробки). `warning`/`success` зафиксированы явными light/dark
+/// пресетами (amber/green) — тема приложения построена через `ColorScheme.fromSeed`,
+/// где производные `tertiary`/`secondary` НЕ гарантированно жёлтый/зелёный, а
+/// warning должен читаться именно как «жёлтое предупреждение». Это и есть единое
+/// место light/dark-пресетов: меняем тут — меняется во всех плашках.
+BannerColors bannerColors(BuildContext context, BannerSeverity severity) {
+  final cs = Theme.of(context).colorScheme;
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  switch (severity) {
+    case BannerSeverity.info:
+      return BannerColors(
+        background: cs.primaryContainer,
+        border: cs.onPrimaryContainer.withValues(alpha: 0.35),
+        foreground: cs.onPrimaryContainer,
+        action: cs.onPrimaryContainer,
+      );
+    case BannerSeverity.error:
+      return BannerColors(
+        background: cs.errorContainer,
+        border: cs.onErrorContainer.withValues(alpha: 0.35),
+        foreground: cs.onErrorContainer,
+        action: cs.onErrorContainer,
+      );
+    case BannerSeverity.warning:
+      // Тёмная тема: глубокий полупрозрачный янтарный фон + светлый текст.
+      // Светлая: классический amber.shade100 + тёмно-коричневый текст
+      // (brown.800) — amber.shade900 ещё оранжевый и бледнит на светлом фоне;
+      // brown даёт настоящий тёмный контраст, сохраняя тёплый тон.
+      return BannerColors(
+        background: isDark
+            ? Colors.amber.shade900.withValues(alpha: 0.18)
+            : Colors.amber.shade100,
+        border: isDark ? Colors.amber.shade700 : Colors.amber.shade400,
+        foreground: isDark ? Colors.amber.shade100 : Colors.brown.shade800,
+        action: isDark ? Colors.amber.shade200 : Colors.brown.shade800,
+      );
+    case BannerSeverity.success:
+      return BannerColors(
+        background: isDark
+            ? Colors.green.shade900.withValues(alpha: 0.18)
+            : Colors.green.shade100,
+        border: isDark ? Colors.green.shade700 : Colors.green.shade400,
+        foreground: isDark ? Colors.green.shade100 : Colors.green.shade900,
+        action: isDark ? Colors.green.shade200 : Colors.green.shade900,
+      );
+  }
+}
+
+/// Цвет одиночной иконки (без фоновой плашки) — напр. ⚠ в заголовке поля или
+/// в таб-баре, на обычном `surface`-фоне. В отличие от [bannerColors] (который
+/// даёт `on*Container` для контраста с контейнером), здесь нужен «акцентный»
+/// токен на фоне surface. Theme-aware. Заменяет россыпь `Colors.amber.shade700`.
+Color bannerIconColor(BuildContext context, BannerSeverity severity) {
+  final cs = Theme.of(context).colorScheme;
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return switch (severity) {
+    BannerSeverity.info => cs.primary,
+    BannerSeverity.error => cs.error,
+    BannerSeverity.warning =>
+      isDark ? Colors.amber.shade300 : Colors.amber.shade800,
+    BannerSeverity.success =>
+      isDark ? Colors.green.shade300 : Colors.green.shade700,
+  };
+}
+
+/// §471 — цвет и значок уровня предупреждения узла. Одно место на всё
+/// приложение: строка под узлом, шторка Warnings, шапка подписки. Раньше
+/// `switch` по [WarningSeverity] повторялся в каждом виджете и расходился:
+/// info был серым (`onSurfaceVariant`) и читался как выключенный текст,
+/// warning — плоский `Colors.orange` без поправки на тему.
+///
+/// error берётся из семантического токена `ColorScheme.error` — он корректен
+/// в обеих темах. warning и info зафиксированы явными light/dark-пресетами по
+/// тем же соображениям, что и [bannerColors]: тема собрана
+/// `ColorScheme.fromSeed`, где `primary` зависит от seed'а и жёлтым/синим не
+/// обязан быть, а уровень должен читаться как уровень, а не как акцент темы.
+/// Шкалы — те же Material-палитры, что у плашек (amber), плюс blue для info.
+(Color, IconData) warningSeverityStyle(BuildContext context,
+    WarningSeverity severity) {
+  final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
+  return switch (severity) {
+    WarningSeverity.error => (theme.colorScheme.error, Icons.error_outline),
+    // amber.300 на тёмном / amber.800 на светлом — как у bannerIconColor:
+    // shade800 ещё жёлтый, но уже держит контраст с белым фоном.
+    WarningSeverity.warning => (
+        isDark ? Colors.amber.shade300 : Colors.amber.shade800,
+        Icons.warning_amber,
+      ),
+    // blue.300 на тёмном / blue.700 на светлом: светлее — сливается с фоном,
+    // темнее — спорит по весу с error.
+    WarningSeverity.info => (
+        isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+        Icons.info_outline,
+      ),
+  };
+}
+
+/// Цвет уровня без значка — для мест, где иконка своя (шапка подписки).
+Color warningSeverityColor(BuildContext context, WarningSeverity severity) =>
+    warningSeverityStyle(context, severity).$1;

@@ -1,0 +1,122 @@
+part of '../post_steps.dart';
+
+/// Post-step: рандомизация регистра букв в `server_name` first-hop outbound'ов
+/// (§028 spec). Mixed-case SNI ломает exact-match DPI без изменения поведения
+/// сервера (RFC 6066 §3 — SNI case-insensitive). First-hop only — inner hops
+/// в туннеле, локальный DPI их не видит. Punycode-метки (`xn--…`) не трогаем —
+/// `xn--` префикс зарезервирован, регистр в Punycode-payload sensitive.
+///
+/// Выполняется на этапе emit конфига; зафиксировано на жизнь туннеля.
+/// Re-randomization на каждый handshake потребовала бы патча libbox.
+void applyMixedCaseSni(Map<String, dynamic> config, Map<String, String> vars) {
+  if (vars['tls_mixed_case_sni'] != 'true') return;
+  final rng = Random.secure();
+  final outbounds = config['outbounds'] as List<dynamic>? ?? const [];
+  for (final ob in outbounds) {
+    if (ob is! Map<String, dynamic>) continue;
+    if (ob.containsKey('detour')) continue;
+    final tls = ob['tls'];
+    if (tls is! Map<String, dynamic>) continue;
+    // §363 — REALITY: SNI входит в AAD хендшейка (клиент шифрует SessionId с
+    // hello.Raw целиком), а сервер матчит имя по map с точным строковым ключом
+    // и БЕЗ нормализации регистра. Любая изменённая буква → промах по map →
+    // молчаливый fallback на маскировочный сайт, узел не поднимается.
+    // Обфусцировать тут и нечего: SNI у REALITY и так фиктивный.
+    final reality = tls['reality'];
+    if (reality is Map<String, dynamic> && reality['enabled'] == true) continue;
+    final sn = tls['server_name'];
+    if (sn is! String || sn.isEmpty) continue;
+    tls['server_name'] = _randomizeHostCase(sn, rng);
+  }
+}
+
+String _randomizeHostCase(String host, Random rng) {
+  // Идём по DNS-меткам (split по '.'). xn--… — Punycode, не трогаем.
+  final labels = host.split('.');
+  for (var i = 0; i < labels.length; i++) {
+    final label = labels[i];
+    if (label.startsWith('xn--')) continue;
+    final buf = StringBuffer();
+    for (final cu in label.codeUnits) {
+      // ASCII letter? рандомим. Всё остальное (цифры, дефис, не-ASCII) — как есть.
+      final isUpper = cu >= 0x41 && cu <= 0x5A;
+      final isLower = cu >= 0x61 && cu <= 0x7A;
+      if (isUpper || isLower) {
+        buf.writeCharCode(rng.nextBool() ? (cu | 0x20) : (cu & ~0x20));
+      } else {
+        buf.writeCharCode(cu);
+      }
+    }
+    labels[i] = buf.toString();
+  }
+  return labels.join('.');
+}
+
+/// Post-step: применение tls_fragment к first-hop'ам (без `detour`).
+/// Inner hops уже в туннеле, DPI не видит их TLS — фрагментация не нужна.
+///
+/// Контракт 1.1.64 — годность поля узлу спрашивается у реестра ПО ТЕЛУ
+/// ([fieldAllowedOn]): «оставил бы санитайзер `tls.fragment` при этом
+/// теле». Так naive (`forbidden_for`) и masque на `vhttp: h3` (связь
+/// `conflicts` с `when`) фрагментацию не получают, masque на h2/auto —
+/// получает, без списка схем в коде.
+void applyTlsFragment(Map<String, dynamic> config, Map<String, String> vars) {
+  final fragment = vars['tls_fragment'] == 'true';
+  final recordFragment = vars['tls_record_fragment'] == 'true';
+  if (!fragment && !recordFragment) return;
+
+  final fallbackDelay = vars['tls_fragment_fallback_delay'] ?? '500ms';
+  final outbounds = config['outbounds'] as List<dynamic>? ?? const [];
+  for (final ob in outbounds) {
+    if (ob is! Map<String, dynamic>) continue;
+    if (ob.containsKey('detour')) continue;
+    final addFragment = fragment && fieldAllowedOn(ob, 'tls.fragment');
+    final addRecord =
+        recordFragment && fieldAllowedOn(ob, 'tls.record_fragment');
+    if (!addFragment && !addRecord) continue;
+    Map<String, dynamic> tls;
+    // §393 — masque: TLS всегда включён по природе транспорта, выключателя
+    // `enabled` у него нет, а блок `tls{}` появляется только если задан SNI.
+    if (ob['type'] == 'masque') {
+      tls = (ob['tls'] ??= <String, dynamic>{}) as Map<String, dynamic>;
+    } else {
+      final t = ob['tls'];
+      if (t is! Map<String, dynamic>) continue;
+      if (t['enabled'] != true) continue;
+      tls = t;
+    }
+    if (addFragment) tls['fragment'] = true;
+    if (addRecord) tls['record_fragment'] = true;
+    tls['fragment_fallback_delay'] = fallbackDelay;
+  }
+}
+
+/// Post-step (контракт 1.1.65): `detour` дописывает сборка ПОСЛЕ санитайзера,
+/// поэтому связи `conflicts {with: detour}` реестра перепроверяются здесь, по
+/// готовому телу каждого outbound/endpoint с `detour`: уступающие поля
+/// снимаются с кодом связи ([yieldToBuildDetour]). Хоп сохраняется — снять
+/// detour значило бы тихий прямой дозвон.
+///
+/// Контракт 1.1.84 (§81) — туда же `tls.fragment` (код
+/// `detour_with_tls_fragment`) у любого узлового флага, откуда бы он ни
+/// пришёл. Порядок в сборке: после проставления `detour` (цепочки,
+/// `override_detour`) и ДО [applyTlsFragment].
+///
+/// §577 — [authored] (identity-множество карт тел): авторскому телу уступка
+/// идёт через точку правки, мягкая (`tls.fragment`) не применяется.
+List<RegistryWarning> applyDetourYields(
+  Map<String, dynamic> config, {
+  Set<Map<String, dynamic>> authored = const {},
+}) {
+  final out = <RegistryWarning>[];
+  for (final key in const ['outbounds', 'endpoints']) {
+    final list = config[key];
+    if (list is! List) continue;
+    for (final e in list) {
+      if (e is! Map<String, dynamic>) continue;
+      if (!e.containsKey('detour')) continue;
+      out.addAll(yieldToBuildDetour(e, authored: authored.contains(e)));
+    }
+  }
+  return out;
+}

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>HateVPN</AssemblyName>
+    <Version>1.0.13</Version>
+    <Product>HateVPN</Product>
+    <ApplicationIcon>Assets\HateVPN.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+    <ProjectReference Include="../HateVPN.Core/HateVPN.Core.csproj" />
+    <Resource Include="Assets\HateVPN.ico" />
+    <Resource Include="Assets\obsidian-ribbon.png" />
+    <EmbeddedResource Include="../../scripts/install-xray-server.sh" LogicalName="HateVPN.install-xray-server.sh" />
+    <EmbeddedResource Include="../../scripts/install-amneziawg-server.sh" LogicalName="HateVPN.install-amneziawg-server.sh" />
+    <EmbeddedResource Include="../../scripts/add-amnezia-container-client.sh" LogicalName="HateVPN.add-amnezia-container-client.sh" />
+    <EmbeddedResource Include="../../scripts/manage-amnezia-container-invites.sh" LogicalName="HateVPN.manage-amnezia-container-invites.sh" />
+    <EmbeddedResource Include="../../scripts/install-one-time-invites.sh" LogicalName="HateVPN.install-one-time-invites.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
+  </ItemGroup>
+
+</Project>
