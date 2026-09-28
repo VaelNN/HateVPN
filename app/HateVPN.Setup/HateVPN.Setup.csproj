@@ -13,7 +13,7 @@
   <ItemGroup>
     <Resource Include="../HateVPN.Desktop/Assets/HateVPN.ico" Link="Assets/HateVPN.ico" />
     <Resource Include="Assets/installer-background.png" />
-    <EmbeddedResource Include="Assets/installer-track.mp3" LogicalName="HateVPN.Setup.Track.mp3" Condition="Exists('Assets/installer-track.mp3')" />
+    <EmbeddedResource Include="Assets/installer-video.mp4" LogicalName="HateVPN.Setup.Video.mp4" />
     <EmbeddedResource Include="../../dist/HateVPN-1.0-x64.msi" LogicalName="HateVPN.Setup.Payload.msi" />
   </ItemGroup>
 </Project>

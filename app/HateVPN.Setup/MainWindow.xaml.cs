@@ -13,8 +13,7 @@ namespace HateVPN.Setup;
 public partial class MainWindow : Window
 {
     private readonly bool _preview;
-    private readonly MediaPlayer _music = new();
-    private bool _wantMusic = true;
+    private bool _wantVideo = true;
     private bool _installing;
     private bool _installed;
     private string? _installedPath;
@@ -25,12 +24,9 @@ public partial class MainWindow : Window
         _preview = preview;
         InitializeComponent();
         InstallPathBox.Text = PreferredInstallPath();
-        Loaded += (_, _) => { if (!_preview) StartMusic(); };
+        Loaded += (_, _) => { if (!_preview) StartVideo(); };
         Closing += OnClosing;
-        _music.MediaOpened += (_, _) => { if (_wantMusic) _music.Play(); };
-        _music.MediaEnded += (_, _) => { _music.Position = TimeSpan.Zero; if (_wantMusic) _music.Play(); };
-        _music.MediaFailed += (_, _) => { MusicButton.IsEnabled = false; MusicButton.Content = "Недоступно"; };
-        _music.Volume = .12;
+        InstallerVideo.Volume = .12;
     }
 
     private string WorkingDirectory => _workingDirectory ??= CreateWorkingDirectory();
@@ -50,32 +46,50 @@ public partial class MainWindow : Window
         resource.CopyTo(output);
     }
 
-    private void StartMusic()
+    private void StartVideo()
     {
         try
         {
-            var path = Path.Combine(WorkingDirectory, "installer-track.mp3");
-            CopyResource("HateVPN.Setup.Track.mp3", path);
-            _music.Open(new Uri(path));
+            var path = Path.Combine(WorkingDirectory, "installer-video.mp4");
+            CopyResource("HateVPN.Setup.Video.mp4", path);
+            InstallerVideo.Source = new Uri(path);
+            InstallerVideo.Play();
         }
         catch
         {
-            MusicButton.IsEnabled = false;
-            MusicButton.Content = "Недоступно";
+            VideoButton.IsEnabled = false;
+            VideoButton.Content = "Недоступно";
         }
     }
 
-    private void Music_Click(object sender, RoutedEventArgs e)
+    private void Video_MediaOpened(object sender, RoutedEventArgs e)
     {
-        _wantMusic = !_wantMusic;
-        if (_wantMusic) _music.Play(); else _music.Pause();
-        MusicButton.Content = _wantMusic ? "Пауза" : "Включить";
+        if (_wantVideo) InstallerVideo.Play();
+    }
+
+    private void Video_MediaEnded(object sender, RoutedEventArgs e)
+    {
+        InstallerVideo.Position = TimeSpan.Zero;
+        if (_wantVideo) InstallerVideo.Play();
+    }
+
+    private void Video_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+    {
+        VideoButton.IsEnabled = false;
+        VideoButton.Content = "Недоступно";
+    }
+
+    private void Video_Click(object sender, RoutedEventArgs e)
+    {
+        _wantVideo = !_wantVideo;
+        if (_wantVideo) InstallerVideo.Play(); else InstallerVideo.Pause();
+        VideoButton.Content = _wantVideo ? "Пауза" : "Включить";
     }
 
     private void Volume_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_music is null || VolumeValue is null || VolumeSlider is null) return;
-        _music.Volume = VolumeSlider.Value / 100;
+        if (InstallerVideo is null || VolumeValue is null || VolumeSlider is null) return;
+        InstallerVideo.Volume = VolumeSlider.Value / 100;
         VolumeValue.Text = $"{VolumeSlider.Value:0}%";
     }
 
@@ -217,7 +231,8 @@ public partial class MainWindow : Window
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         if (_installing) { e.Cancel = true; return; }
-        _music.Close();
+        InstallerVideo.Stop();
+        InstallerVideo.Source = null;
         if (_workingDirectory is not null)
         {
             try { Directory.Delete(_workingDirectory, recursive: true); } catch { }

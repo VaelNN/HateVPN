@@ -71,6 +71,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="246" /><ColumnDefinition /></Grid.ColumnDefinitions>
                 <Grid Grid.Column="0" ClipToBounds="True">
                     <Image Source="pack://application:,,,/HateVPN.Setup;component/Assets/installer-background.png" Stretch="UniformToFill" Width="455" HorizontalAlignment="Left" IsHitTestVisible="False" />
+                    <MediaElement x:Name="InstallerVideo" Stretch="UniformToFill" LoadedBehavior="Manual" UnloadedBehavior="Manual" IsHitTestVisible="False" MediaOpened="Video_MediaOpened" MediaEnded="Video_MediaEnded" MediaFailed="Video_MediaFailed" />
                     <Rectangle Fill="#460B1115" IsHitTestVisible="False" />
                     <Rectangle IsHitTestVisible="False"><Rectangle.Fill><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#0010161A" Offset="0" /><GradientStop Color="#ED0A1014" Offset="1" /></LinearGradientBrush></Rectangle.Fill></Rectangle>
                     <StackPanel VerticalAlignment="Bottom" Margin="23,0,18,24">
@@ -132,10 +133,10 @@
 
             <Grid Grid.Row="2" Background="#121A1E">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="92" /><ColumnDefinition Width="82" /><ColumnDefinition Width="148" /><ColumnDefinition Width="45" /></Grid.ColumnDefinitions>
-                <TextBlock Text="♪   Музыка установки" Foreground="#C1CDD2" VerticalAlignment="Center" FontSize="11" Margin="21,0,0,0" />
-                <Button x:Name="MusicButton" Grid.Column="1" Content="Пауза" Width="76" Height="30" Style="{StaticResource GhostButton}" Click="Music_Click" AutomationProperties.Name="Остановить или включить музыку" />
+                <TextBlock Text="▶   Видео со звуком" Foreground="#C1CDD2" VerticalAlignment="Center" FontSize="11" Margin="21,0,0,0" />
+                <Button x:Name="VideoButton" Grid.Column="1" Content="Пауза" Width="76" Height="30" Style="{StaticResource GhostButton}" Click="Video_Click" AutomationProperties.Name="Остановить или включить видео" />
                 <TextBlock Grid.Column="2" Text="Громкость" Foreground="#9BABB3" VerticalAlignment="Center" FontSize="10" HorizontalAlignment="Right" Margin="0,0,9,0" />
-                <Slider x:Name="VolumeSlider" Grid.Column="3" Width="132" Minimum="0" Maximum="100" Value="12" VerticalAlignment="Center" ValueChanged="Volume_Changed" ToolTip="Громкость музыки" AutomationProperties.Name="Громкость музыки" />
+                <Slider x:Name="VolumeSlider" Grid.Column="3" Width="132" Minimum="0" Maximum="100" Value="12" VerticalAlignment="Center" ValueChanged="Volume_Changed" ToolTip="Громкость видео" AutomationProperties.Name="Громкость видео" />
                 <TextBlock x:Name="VolumeValue" Grid.Column="4" Text="12%" Foreground="#C1CDD2" VerticalAlignment="Center" FontSize="10" Margin="1,0,0,0" />
             </Grid>
         </Grid>
