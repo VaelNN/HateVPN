@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,12 +7,12 @@ import '../controllers/home_controller.dart';
 import '../controllers/subscription_controller.dart';
 import '../models/node_spec.dart';
 import '../models/server_list.dart';
-import '../services/file_import.dart';
 import '../services/subscription/auto_updater.dart';
 import '../services/tag_resolver.dart';
 import '../widgets/hate_desktop_style.dart';
 import 'chain_edit/chain_edit_flow.dart';
 import 'home/source_lookup.dart';
+import 'hate_vps_setup_screen.dart';
 
 class HateConnectionsScreen extends StatefulWidget {
   const HateConnectionsScreen({
@@ -102,40 +101,21 @@ class _HateConnectionsScreenState extends State<HateConnectionsScreen> {
     });
   }
 
-  Future<void> _importConf() async {
-    final picked = await pickFileSafely(
-      type: FileType.custom,
-      allowedExtensions: const ['conf'],
+  Future<void> _setupVps() async {
+    final result = await Navigator.of(context).push<HateVpsSetupResult>(
+      MaterialPageRoute(builder: (_) => const HateVpsSetupScreen()),
     );
-    if (!mounted || picked is PickCancelled) return;
-    if (picked is! PickedFiles) {
-      setState(
-        () => _message = pickProblemText(picked) ?? 'Не удалось открыть файл.',
-      );
-      return;
-    }
-    final file = picked.single;
-    final contents = file.text.trim();
-    if (contents.isEmpty) {
-      setState(() => _message = 'Файл пуст.');
-      return;
-    }
+    if (result == null || !mounted) return;
     setState(() {
       _busy = true;
       _message = null;
     });
     final before = widget.subController.entries.map((e) => e.id).toSet();
     try {
-      final asSubscription = await widget.subController.addFileSubscription(
-        contents,
-        file.name,
+      await widget.subController.addFromInput(
+        result.config,
+        nameHint: 'Мой сервер · ${result.host}',
       );
-      if (!asSubscription) {
-        await widget.subController.addFromInput(
-          contents,
-          nameHint: SubscriptionController.fileBaseName(file.name),
-        );
-      }
       if (!mounted) return;
       final error = widget.subController.lastError;
       if (error != null) {
@@ -148,15 +128,19 @@ class _HateConnectionsScreenState extends State<HateConnectionsScreen> {
       );
       if (!mounted) return;
       if (applied == null) {
-        setState(() => _message = 'Не удалось сохранить конфигурацию.');
+        setState(() => _message = 'Не удалось сохранить подключение.');
         return;
       }
       final added = widget.subController.entries
           .where((e) => !before.contains(e.id) && e.list.nodes.isNotEmpty)
           .firstOrNull;
-      if (added != null) _choose(added, added.list.nodes.first);
+      if (added != null) {
+        _choose(added, added.list.nodes.first);
+      } else {
+        setState(() => _message = 'Сервер добавлен. Выберите подключение.');
+      }
     } catch (e) {
-      if (mounted) setState(() => _message = 'Ошибка импорта: $e');
+      if (mounted) setState(() => _message = 'Не удалось добавить сервер: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -429,8 +413,8 @@ class _HateConnectionsScreenState extends State<HateConnectionsScreen> {
                     const SizedBox(height: 12),
                     HateConnectionCard(
                       title: 'Свой VPS',
-                      subtitle: 'Импорт готового файла конфигурации .conf',
-                      onTap: _busy ? () {} : () => unawaited(_importConf()),
+                      subtitle: 'Настроить сервер прямо в приложении',
+                      onTap: _busy ? () {} : () => unawaited(_setupVps()),
                     ),
                     const SizedBox(height: 22),
                     Row(
