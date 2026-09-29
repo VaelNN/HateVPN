@@ -5,14 +5,14 @@
 ## Скачать
 
 - [Windows — HateVPN 1.0 Setup](https://github.com/VaelNN/HateVPN/releases/download/v1.0.0/HateVPN-1.0-Setup.exe)
-- [Android — HateVPN 1.0.3 APK](https://github.com/VaelNN/HateVPN/releases/download/v1.0.0/HateVPN-Android-1.0.3-arm64.apk)
+- [Android — HateVPN 1.0.4 APK](https://github.com/VaelNN/HateVPN/releases/download/v1.0.0/HateVPN-Android-1.0.4-arm64.apk)
 
 [Все файлы и описание релиза](https://github.com/VaelNN/HateVPN/releases/tag/v1.0.0).
 
 ## Возможности
 
 - Подключение по HTTPS-подписке, группировка серверов и выбор подключения.
-- Собственный VPN-сервер: настройка по SSH в Windows, импорт `.conf` на обеих платформах.
+- Собственный VPN-сервер: настройка по SSH в Windows и Android прямо в приложении.
 - Одноразовые приглашения для друзей и отзыв доступа владельцем VPS.
 - Windows: работа в трее, автозапуск, проверка соединения и диагностический отчёт.
 - Android: фоновая VPN-служба, управление из уведомления и компактный первый запуск.
