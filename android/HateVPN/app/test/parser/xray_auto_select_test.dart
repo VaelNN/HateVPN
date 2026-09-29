@@ -14,19 +14,19 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import 'engine_test_setup.dart';
 
-/// §322 — `routing.balancers` + `burstObservatory` → узел автовыбора.
-///
-/// Провайдер задаёт пул префиксом тега; после §321-дедупа этих тегов уже нет
-/// (сервер выжил под именем страны), поэтому резолв идёт через таблицу
-/// синонимов §321 P6.
+
+
+
+
+
 void main() {
-  // §480 — разбор Xray-элемента исполняет секции реестра; без них конвейера
-  // нет вовсе (критерий 7 спеки 480), и узлы не собираются.
+
+
   setUpAll(loadEngineSections);
 
-  // §480 — реестр объявляет у поля `format: uuid`, и заглушка `u-1`
-  // отбраковывается разбором. Проверяемое кейсами (сборка групп) от формы
-  // uuid не зависит.
+
+
+
   Map<String, dynamic> vless(String addr,
           {String? tag, String uuid = '8f2e1c44-0000-4000-8000-000000000001'}) =>
       {
@@ -94,7 +94,7 @@ void main() {
   List<NodeSpec> parse(List<Map<String, dynamic>> elements) =>
       parseAll(decode(jsonEncode(elements)));
 
-  /// Эмуляция билдера: обычные узлы получают итоговые теги, потом резолв пула.
+
   List<String> poolOf(List<NodeSpec> nodes, AutoSelectSpec a) =>
       resolveAutoSelectMembers(a, {
         for (final n in nodes)
@@ -129,7 +129,7 @@ void main() {
       expect(a.isGroup, isTrue);
       expect(a.server, isEmpty);
       expect(a.port, 0);
-      // §439 — в папке группа хранится записью kind: auto, URI-формы нет.
+
       expect(a.toUri(), isEmpty);
     });
 
@@ -139,8 +139,8 @@ void main() {
       ]).whereType<AutoSelectSpec>().single;
       final m = a.emitRaw(const TemplateVars()).map;
       expect(m['type'], 'urltest');
-      // §565 — состав, названный `selector`, тело разбора несёт сразу;
-      // итоговые теги дописывает билдер.
+
+
       expect(m['outbounds'], ['Авто proxy-1']);
     });
   });
@@ -167,8 +167,8 @@ void main() {
     });
 
     test('группа берёт чистый remarks, узлы — с тегом', () {
-      // Реальный баг Liberty: первый узел и группа дрались за одно имя, и
-      // группа получала `-1` от allocateTag.
+
+
       final labels = labelsOf([
         withBalancer('🇪🇺 Авто', [
           vless('1.1.1.1', tag: 'proxy-a'),
@@ -176,16 +176,16 @@ void main() {
         ])
       ]);
       expect(labels, ['🇪🇺 Авто proxy-a', '🇪🇺 Авто proxy-b', '🇪🇺 Авто']);
-      // Ровно одна сущность носит чистое имя.
+
       expect(labels.where((l) => l == '🇪🇺 Авто'), hasLength(1));
     });
 
     test('элемент с группой: даже один выживший НЕ берёт remarks', () {
-      // Все шесть «БС»-групп Liberty таковы: из трёх узлов уцелел один.
+
       final labels = labelsOf([
         plain('🇩🇪 Германия', [vless('1.1.1.1', uuid: 'u-de')]),
         withBalancer('Пул', [
-          vless('1.1.1.1', tag: 'proxy-dup', uuid: 'u-de'), // дубль
+          vless('1.1.1.1', tag: 'proxy-dup', uuid: 'u-de'),
           vless('9.9.9.9', tag: 'proxy-uniq'),
         ]),
       ]);
@@ -211,7 +211,7 @@ void main() {
           vless('2.2.2.2', tag: 'b'),
         ])
       ]);
-      // Порядок — как в элементе: пустой тег стоит первым.
+
       expect(labels, ['Пул 1', 'Пул b']);
       expect(labels.every((l) => l.trim() == l), isTrue);
     });
@@ -228,7 +228,7 @@ void main() {
         ]).whereType<AutoSelectSpec>().single;
 
     test('random (дефолт Xray) → round_robin по ВСЕМУ набору', () {
-      // У `random` нет ни settings, ни expected: раскладка по всем членам.
+
       final a = parse([
         withBalancer('A', [
           vless('1.1.1.1', tag: 'proxy-1'),
@@ -246,7 +246,7 @@ void main() {
           ...plain('A', [vless('1.1.1.1', tag: 'proxy-1')]),
           'routing': {
             'balancers': [
-              {'tag': 'B', 'selector': ['proxy']}, // без strategy вовсе
+              {'tag': 'B', 'selector': ['proxy']},
             ],
           },
         }
@@ -276,8 +276,8 @@ void main() {
     });
 
     test('expected≤1 → least_test, а не пул из одного', () {
-      // «Держи ОДНОГО живого» — это простой urltest. Балансировщику с пулом
-      // из одного нечего балансировать (все шесть «БС»-групп Liberty).
+
+
       for (final e in [1, 0]) {
         expect(build(type: 'leastLoad', settings: {'expected': e}).params.mode,
             UrltestMode.leastTest,
@@ -296,8 +296,8 @@ void main() {
     });
 
     test('maxRTT → pool_tolerance (1:1, семантика расходится)', () {
-      // Xray: абсолютный потолок. Наш: окно от лучшего. Числа переносим как
-      // есть — минимум по пулу на парсинге неизвестен.
+
+
       expect(build(settings: {'maxRTT': '1500ms'}).params.poolTolerance, 1500);
       expect(build(settings: {'maxRTT': '3s'}).params.poolTolerance, 3000);
     });
@@ -320,14 +320,14 @@ void main() {
   });
 
   group('битые формы balancers не роняют парсинг', () {
-    // Подписку пишет провайдер: любое поле может приехать другого типа.
-    // Каст вместо `is` уронил бы парсинг ВСЕЙ подписки, а не одного пункта.
+
+
     Map<String, dynamic> withRouting(Object? routing) => {
           ...plain('X', [
             vless('1.1.1.1', tag: 'proxy-1'),
             vless('2.2.2.2', tag: 'proxy-2'),
           ]),
-          // ignore: use_null_aware_elements — читаемость важнее краткости
+
           if (routing != null) 'routing': routing,
         };
 
@@ -415,7 +415,7 @@ void main() {
   group('резолв пула через синонимы (§321 P6)', () {
     test('находит узлы, выжившие под именами стран', () {
       final nodes = parse([
-        // Одиночные короче → по P2 идут первыми и дают имена.
+
         plain('🇪🇸 Испания', [vless('1.1.1.1')]),
         plain('🇩🇪 Германия', [vless('2.2.2.2')]),
         withBalancer('🇪🇺 Авто', [
@@ -424,13 +424,13 @@ void main() {
         ]),
       ]);
       final a = nodes.whereType<AutoSelectSpec>().single;
-      // Правило написано на тегах провайдера, а узлы зовутся по-русски.
+
       expect(poolOf(nodes, a), ['L: 🇪🇸 Испания', 'L: 🇩🇪 Германия']);
     });
 
     test('пул ограничен СВОИМ элементом', () {
-      // Тег `proxy` есть у обоих одиночных элементов; без ограничения
-      // областью `^(proxy)` затянул бы их в пул (реальный баг на Liberty).
+
+
       final nodes = parse([
         plain('🇪🇸 Испания', [vless('1.1.1.1')]),
         plain('🇩🇪 Германия', [vless('2.2.2.2')]),
@@ -451,7 +451,7 @@ void main() {
         plain('🇪🇸 Испания', [vless('1.1.1.1')]),
         withBalancer('Авто', [
           vless('1.1.1.1', tag: 'proxy-a'),
-          vless('9.9.9.9', tag: 'proxy-uniq'), // только здесь
+          vless('9.9.9.9', tag: 'proxy-uniq'),
         ]),
       ]);
       final a = nodes.whereType<AutoSelectSpec>().single;
@@ -467,7 +467,7 @@ void main() {
         ]),
       ]);
       final a = nodes.whereType<AutoSelectSpec>().single;
-      // Резолвим по неполному набору — как если бы узел выключили (§283).
+
       final partial = {
         for (final n in nodes)
           if (n is VlessSpec && n.server == '1.1.1.1') n: 'L: 🇪🇸 Испания',
@@ -477,8 +477,8 @@ void main() {
   });
 
   group('явный список', () {
-    // §439 — явный член — ссылка {folder_id, tag} на СЫРОЙ тег узла контейнера
-    // (у подписки — тег, уникализированный в источнике, NODE_LINK §2.2).
+
+
     test('порядок задаёт список, не обход контейнера', () {
       final nodes = parse([
         plain('A', [vless('1.1.1.1', uuid: 'u-a')]),
@@ -555,8 +555,8 @@ void main() {
         ).emitRaw(const TemplateVars()).map;
 
     test('round_robin: pool/tolerance/sticky ВНУТРИ balancer{}', () {
-      // Плоские `pool`/`pool_tolerance` ядро отвергает как unknown field —
-      // падает весь конфиг, а не одна группа (device 31.07.2026).
+
+
       final m = emit(const AutoSelectParams(
         mode: UrltestMode.roundRobin,
         pool: 7,
@@ -576,7 +576,7 @@ void main() {
     test('least_test: ни mode, ни balancer (бит-в-бит апстрим)', () {
       final m = emit(const AutoSelectParams());
       expect(m.containsKey('mode'), isFalse);
-      // `balancer` без round_robin роняет старт ядра.
+
       expect(m.containsKey('balancer'), isFalse);
       expect(m.keys, containsAll(['tag', 'type', 'outbounds', 'url', 'interval']));
     });
@@ -591,7 +591,7 @@ void main() {
     });
 
     test('снятая липкость → sentinel ["none"] (§210)', () {
-      // Пустой список ядро схлопывает в nil = дефолт ["process","domain"].
+
       final m = emit(const AutoSelectParams(
         mode: UrltestMode.roundRobin,
         stickyHash: [],
@@ -602,8 +602,8 @@ void main() {
 
   group('URI-формы у группы нет (§439 N2)', () {
     test('autogroup:// не разбирается, toUri пуст', () {
-      // Группа в папке хранится записью kind: auto (codec/auto_group_record),
-      // текст autogroup:// переводит только миграция.
+
+
       expect(AutoSelectSpec(id: 'z', tag: 't', label: 'A').toUri(), isEmpty);
       expect(parseUri('autogroup://?include=DE#Old'), isNot(isA<AutoSelectSpec>()));
     });
@@ -623,7 +623,7 @@ void main() {
       label: 'Auto',
       membership: const RuleMembers(include: '[unclosed'),
     );
-    // Битый include = пустой → берём всех (как nodesFor §125).
+
     expect(resolveAutoSelectMembers(a, {for (final n in nodes) n: 'L: A'}),
         ['L: A']);
   });

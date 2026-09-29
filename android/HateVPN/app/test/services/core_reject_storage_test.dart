@@ -1,4 +1,4 @@
-// Фича 478 — хранение вердикта и его снятие (PARSING_PRINCIPLES §9.4). Переезд в бэкап — §489.
+
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -30,8 +30,8 @@ SubscriptionServers _sub({
     );
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('запись вердикта', () {
@@ -282,8 +282,8 @@ void main() {
 
   group('снятие вердикта ручной правкой узла (PARSING_PRINCIPLES §9.4 п. 1)', () {
     final verdict = [StoredWarning.coreRejected('bad')];
-    // `late`: разбор обязан случиться ПОСЛЕ загрузки секций, а объявление
-    // группы исполняется до `setUpAll`.
+
+
     late final a = parseUri('vless://11111111-1111-1111-1111-111111111111@h:443?type=ws&security=tls&sni=x#A')!;
 
     test('тело изменилось → вердикт снимается', () {
@@ -302,7 +302,7 @@ void main() {
         verdictDroppedByEdit(
           warnings: verdict,
           before: a,
-          // Другой порядок параметров — то же тело после нормализации.
+
           after: parseUri('vless://11111111-1111-1111-1111-111111111111@h:443?security=tls&sni=x&type=ws#A')!,
         ),
         false,

@@ -8,12 +8,12 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import 'engine_test_setup.dart';
 
-/// §480 — дефекты входа, найденные проверкой на эмуляторе через Debug API
-/// `addFromInput` (тот же путь, что вставка из буфера).
-///
-/// Вход берётся ровно тем же вызовом, что и у контроллера: `decode` опознаёт
-/// вид источника, `parseAll` собирает узлы. Красное здесь = «вставил, узла
-/// нет» на устройстве.
+
+
+
+
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -47,9 +47,9 @@ void main() {
 
   nodesOf(String input) => parseAll(decode(input));
 
-  /// Гейт контроллера (`_addJsonNodes`): вход, чья ветка узлов не даёт,
-  /// отвергается ДО разбора — `parseAll` его уже не видит. Дефект как раз
-  /// тут и жил, поэтому ветка проверяется отдельно от числа узлов.
+
+
+
   JsonConfig? jsonOf(String input) {
     final d = decode(input);
     return d is JsonConfig ? d : null;
@@ -73,9 +73,9 @@ void main() {
     });
 
     test('все три формы проходят гейт вставки, а не только разбор', () {
-      // Ветка без маппера здесь = «вставка ответит 400», даже если `parseAll`
-      // узел собирает: контроллер до разбора не доходит. Маппер же называет
-      // диалект — все четыре вида Xray отвечают одним `xray`.
+
+
+
       for (final input in [
         xrayOutbound,
         '{"outbounds":[$xrayOutbound]}',
@@ -126,10 +126,10 @@ void main() {
 
     test('завёрнутое тело отличается от голого списка по исходному тексту',
         () {
-      // Признак, по которому контроллер решает, снимать ли оболочку: у
-      // голого списка `://` есть в САМОМ вводе, у завёрнутого — только
-      // после распаковки. Обе формы дают `UriLines`, и без этого признака
-      // они неразличимы.
+
+
+
+
       final wrapped = base64.encode(utf8.encode(plain));
       expect(decode(wrapped), isA<UriLines>());
       expect(wrapped.contains('://'), isFalse);
@@ -139,11 +139,11 @@ void main() {
   });
 
   group('Д-2 — host-часть в mport не роняет конфиг', () {
-    // По реестру (`protocols/hysteria2.json`, запись mport) host в mport —
-    // ВОССТАНОВЛЕННАЯ authority: в `server_ports` едут только диапазоны, а
-    // одиночный порт authority принадлежит `server_port`. Форма ядра —
-    // "low:high"; всё, что не `N:M`, даёт фатал «bad port range» и роняет
-    // ВЕСЬ конфиг, а не одну ноду.
+
+
+
+
+
     List<String>? portsOf(String uri) {
       final spec = parseUri(uri);
       return spec is Hysteria2Spec ? spec.serverPorts : null;
@@ -183,11 +183,11 @@ void main() {
   });
 
   group('Д-6 — REALITY pbk приводится к RawURL', () {
-    // Ядро декодирует public_key ТОЛЬКО RawURLEncoding: std-алфавит («+»,
-    // «/», «=») даёт `decode public_key: illegal base64 data` и роняет ВЕСЬ
-    // конфиг. Реестр (`tls.json` → reality.pbk) объявляет законными оба
-    // алфавита, с паддингом и без, — значит вход годен, а привести его к
-    // форме ядра обязаны мы.
+
+
+
+
+
     const keyStd = 'jmkCSfA0rAyVmB/CkYESE34r92HHXxePk7MnKp++9zk=';
     const keyRawUrl = 'jmkCSfA0rAyVmB_CkYESE34r92HHXxePk7MnKp--9zk';
 
@@ -214,8 +214,8 @@ void main() {
     });
 
     test('не декодируется в 32 байта — REALITY не строится', () {
-      // Гейт блока по реестру: `public_key` required, негодный снимает
-      // REALITY целиком (узел деградирует до plain TLS), а не уезжает в тело.
+
+
       expect(pbkOf('enabled'), isNull);
       expect(pbkOf('%%%'), isNull);
     });

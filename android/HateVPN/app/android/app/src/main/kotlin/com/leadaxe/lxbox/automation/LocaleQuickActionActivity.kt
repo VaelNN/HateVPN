@@ -6,20 +6,20 @@ import android.os.Bundle
 import com.leadaxe.lxbox.R
 import com.leadaxe.lxbox.vpn.L10n
 
-/// §047 Шаг 2 — headless edit-Activity для частых команд (Start / Stop /
-/// Toggle). Host (Tasker / MacroDroid) показывает их **отдельными строками** в
-/// списке плагинов (через `activity-alias` с разными label в манифесте). Тап по
-/// строке открывает эту activity, но UI не рисуется — мы сразу формируем готовый
-/// bundle и `setResult`, как «one-tap» плагин (как у VPN Hotspot).
-///
-/// Какую команду отдавать — определяется alias'ом, через который нас открыли
-/// (`componentName.className`), сматченным в [ALIAS_CMD]. Кастомные команды с
-/// extra (switch-node и т.п.) — в [LocaleSettingEditActivity] под «Custom…».
+
+
+
+
+
+
+
+
+
 class LocaleQuickActionActivity : Activity() {
 
     companion object {
-        /// alias FQN → (cmd, blurb-resource). Alias'ы объявлены в манифесте.
-        /// §279 — cmd = wire, блёрб display-only (host матчит по extras).
+
+
         private val ALIAS_CMD = mapOf(
             "com.leadaxe.lxbox.automation.LocaleStartAlias" to
                 ("start-vpn" to R.string.automation_blurb_start),
@@ -32,7 +32,7 @@ class LocaleQuickActionActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Имя alias'а, через который host нас открыл.
+
         val alias = intent.component?.className
         val entry = ALIAS_CMD[alias]
             ?: ("toggle-vpn" to R.string.automation_blurb_toggle)
@@ -47,6 +47,6 @@ class LocaleQuickActionActivity : Activity() {
             putExtra(LocaleApi.EXTRA_STRING_BLURB, blurb)
         }
         setResult(RESULT_OK, data)
-        finish()   // UI не показываем — мгновенный one-tap плагин.
+        finish()
     }
 }

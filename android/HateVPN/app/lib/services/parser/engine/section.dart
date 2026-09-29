@@ -1,45 +1,45 @@
-/// §480 W1 — МОДЕЛЬ СЕКЦИИ-МАППЕРА: JSON реестра в типизированную форму.
-///
-/// Имена атрибутов — СТРОГО по SPEC 133 `PRIMITIVES.md` §0 (грамматика
-/// заморожена 19.09.2026, sha `4a3dbf3f`) и машиночитаемой
-/// `contract/schema/registry_mapper.schema.json` (`f43f86fe`). Своих имён у
-/// нас нет: разъехавшееся имя — это молчаливое расхождение двух приложений,
-/// то есть ровно то, ради чего затеяна кампания.
-///
-/// DRAFT-примитивы (§0.7: `ini_dialect`, `ini.$comment.<Section>`, `$base`,
-/// служебные `$`-записи, `emit.form_from`, `round_trip: false`, `unwrap`)
-/// изолированы в [DraftNames] — одно место на всю их поверхность, чтобы
-/// переименование у лаунчера правилось одной правкой.
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
-/// §0.7 DRAFT — имена, которые лаунчер может переименовать.
-///
-/// Вынесены сюда все разом, а не разбросаны по коду: это и есть «изолировать
-/// чтение draft-примитивов в одном месте». Ни одно из них не является именем
-/// схемы или протокола — греп-страж `engine_no_scheme_names_test.dart` это
-/// проверяет.
+
+
+
+
+
+
 abstract final class DraftNames {
-  /// Префикс служебной записи без `maps_to` (`$multiport`, `$plaintext_port`).
-  /// Такая запись в документацию не идёт и параметром источника не считается.
+
+
   static const serviceParamPrefix = r'$';
 
-  /// Якорь пути формы, подставляемый в `source` вместо префикса.
+
   static const baseAnchor = r'$base';
 
-  /// Источник «значение из комментария секции INI» (G7).
+
   static const iniCommentPrefix = r'ini.$comment.';
 
-  /// Диалект INI-разбора у секции вида источника `conf`.
+
   static const iniDialect = 'ini_dialect';
 
-  /// Выбор формы эмита по телу (W7).
+
   static const emitFormFrom = 'form_from';
 
-  /// Оболочка-распаковщик у вида источника.
+
   static const unwrap = 'unwrap';
 }
 
-/// Форма источника (P1, FROZEN `forms[]`).
+
 final class MapperForm {
   const MapperForm({
     required this.id,
@@ -64,40 +64,40 @@ final class MapperForm {
   final String id;
   final Map<String, dynamic>? detect;
 
-  /// Конвейер декодеров оболочки: `url`, `percent`, `base64`, `base64url`,
-  /// `base64?`, `json`, `ini`, `{reparse: url|authority}`.
+
+
   final List<dynamic> decode;
 
-  /// Итоговое пространство источников: `url` | `json` | `ini`.
+
   final String space;
 
-  /// DRAFT `$base` — якорь пути (xray, W5).
+
   final String? base;
 
-  /// Уровень документа sing-box: `outbound` | `endpoint`.
+
   final String? level;
 
-  /// **Обратный ход ЭТОЙ формы.** Перекрывает одноимённые ключи `emit`
-  /// секции, пока форма выбрана.
-  ///
-  /// Зачем форме своё написание. Секция объявляет ОДИН набор источников на
-  /// все формы, а написания у форм законно разные: у записи с фолбэком
-  /// источников (`serviceName ∥ service_name ∥ path`) канон зовётся первым
-  /// источником, а форма-КОНТЕЙНЕР знает только последний. Выбор «по первому
-  /// источнику» уводил такую запись в ключ, которого чужой клиент не читает,
-  /// и поле терялось на круге. Различие принадлежит ФОРМЕ, а не записи:
-  /// переставить цепочку у записи нельзя — это меняет её набор `source`, и по
-  /// норме §7.1 реестровая запись перестаёт изыматься оверлеем.
+
+
+
+
+
+
+
+
+
+
+
   final Map<String, dynamic>? emit;
 }
 
-/// Наложенное пространство источников (FROZEN `overlays[]`, контракт 1.1.15).
-///
-/// Вложенный слой чужого диалекта, адресуемый в `source` своим префиксом
-/// (`extra.scMaxEachPostBytes`). Слой держится ОТДЕЛЬНО от query, а не
-/// сливается с ним, потому что «кто из двух побеждает» обязана решать сама
-/// запись порядком своих источников: у части полей сильнее слой, у части —
-/// плоский слой, причём даже будучи пустым.
+
+
+
+
+
+
+
 final class OverlaySpec {
   const OverlaySpec({
     required this.name,
@@ -113,20 +113,20 @@ final class OverlaySpec {
         flatten: ((j['flatten'] as List?) ?? const []).cast<String>(),
       );
 
-  /// Префикс, под которым слой адресуется в `source`.
+
   final String name;
 
-  /// Откуда берётся ТЕКСТ слоя.
+
   final List<String> source;
 
-  /// Конвейер декодеров текста: `percent`, `base64?`, `base64`.
+
   final List<String> decode;
 
-  /// Вложенные объекты слоя, чьи члены поднимаются в плоский слой.
+
   final List<String> flatten;
 }
 
-/// Разбор userinfo (P2, FROZEN `userinfo`).
+
 final class UserinfoSpec {
   const UserinfoSpec({
     this.decode = const [],
@@ -145,8 +145,8 @@ final class UserinfoSpec {
       decode: ((j['decode'] as List?) ?? const []).cast<String>(),
       decodeRequiresSeparator: j['decode_requires_separator'] as String?,
       splitSep: split?['sep'] as String?,
-      // `limit: 2` — резать по ПЕРВОМУ разделителю: иначе пароль с двоеточием
-      // теряется (живой дефект у лаунчера).
+
+
       splitLimit: (split?['limit'] as num?)?.toInt(),
       into: ((j['into'] as List?) ?? const []).cast<String>(),
       singleInto: j['single_into'] as String?,
@@ -155,33 +155,33 @@ final class UserinfoSpec {
 
   final List<String> decode;
 
-  /// `decode_requires_separator` (контракт 1.1.52) — признак, по которому
-  /// судится, НУЖЕН ли конвейер `decode` вообще. Работает В ОБЕ СТОРОНЫ, и обе
-  /// половины обязательны:
-  ///
-  /// - разделитель есть ВО ВХОДЕ → форма открытая, конвейер не применяется;
-  /// - разделителя нет → декодер пробуется, но результат принимается ЛИШЬ
-  ///   когда разделитель в нём ПОЯВИЛСЯ.
-  ///
-  /// Без второй половины try-decode рушит открытое ОДИНОЧНОЕ имя: у версии 4
-  /// прокси-схемы userid законен сам по себе (пароля у неё нет по протоколу),
-  /// но такое имя проходит RawStdEncoding и уехало бы байтами мусора. Ровно
-  /// этим признаком читает и сам v2rayN, который пишет такую ссылку как
-  /// base64(«user:pass») ВСЕГДА.
+
+
+
+
+
+
+
+
+
+
+
+
+
   final String? decodeRequiresSeparator;
   final String? splitSep;
   final int? splitLimit;
   final List<String> into;
   final String? singleInto;
 
-  /// `required: true` — ссылка БЕЗ userinfo не узел этой схемы: элемент
-  /// отбраковывается целиком. Судит ОБОЛОЧКУ, а не запись таблицы, поэтому
-  /// объявлен здесь: поля, которые userinfo наполняет, приходят позициями
-  /// `into`, и записи под ними у части схем нет вовсе.
+
+
+
+
   final bool required;
 }
 
-/// Метка узла (P11, FROZEN `label`).
+
 final class LabelSpec {
   const LabelSpec({
     this.source = const ['fragment'],
@@ -197,12 +197,12 @@ final class LabelSpec {
 
   factory LabelSpec.fromJson(Map<String, dynamic> j) {
     final fb = (j['fallback'] as Map?)?.cast<String, dynamic>();
-    // §480 — `label.source` КАРТОЙ ПО ФОРМАМ, той же записью, что и
-    // `params[].source` (§0.10 PRIMITIVES): у входа с двумя формами имя узла
-    // лежит в разных местах — в ключе контейнера у одной и во фрагменте
-    // ссылки у другой. Плоским списком это не выражается: список пробует
-    // источники ПО ОЧЕРЕДИ, и форма, у которой фрагмент не читается вовсе,
-    // подхватила бы его как запасной.
+
+
+
+
+
+
     final srcRaw = j['source'];
     return LabelSpec(
       source: srcRaw is Map
@@ -215,23 +215,23 @@ final class LabelSpec {
       normalize: ((j['normalize'] as List?) ?? const []).cast<String>(),
       valueMap: ((j['value_map'] as Map?) ?? const {}).cast<String, dynamic>(),
       fallbackTemplate: fb?['template'] as String?,
-      // §0.5 FROZEN — решение владельца: `singbox_type`. У схем, где написание
-      // ссылки и тип тела совпадают, разницы нет; там, где нет (`hy2`, `ss`),
-      // это решение переименовывает узлы и оформляется дельтой своей волной.
+
+
+
       fallbackSchemeSource: fb?['scheme_source'] as String? ?? 'singbox_type',
-      // `scheme` — ЯВНОЕ написание имени в теге-фолбэке безымянного узла,
-      // когда оно не равно типу тела. Совпадений нет у двух протоколов, и
-      // обе разницы историчны: прежние ветки этого входа звали фолбэк
-      // короткой формой. Тег И ЕСТЬ identity (`node_hash.dart`), поэтому
-      // написание объявлено ДАННЫМИ, а не остаётся свойством кода: возьми
-      // конвейер имя типа, у живых безымянных узлов слетели бы выбор,
-      // отключения и цепочки.
+
+
+
+
+
+
+
       fallbackScheme: fb?['scheme'] as String?,
-      // Где в ТЕЛЕ лежит адрес, которым шаблон фолбэка заполняет `{server}` и
-      // `{server_port}`. По умолчанию корень (`server`/`server_port`), но у
-      // схем уровня `endpoint` корневого адреса не бывает вовсе — он лежит в
-      // элементе массива. Объявляется ДАННЫМИ: тег и есть identity, и
-      // «откуда брать адрес» — свойство формы тела, а не ветка в коде.
+
+
+
+
+
       fallbackServerPath: fb?['server_path'] as String?,
       fallbackPortPath: fb?['port_path'] as String?,
     );
@@ -239,8 +239,8 @@ final class LabelSpec {
 
   final List<String> source;
 
-  /// `id` формы → её источники метки. Непустая карта ОТМЕНЯЕТ [source]:
-  /// форма, которой в карте нет, метки не имеет вовсе.
+
+
   final Map<String, List<String>> sourceByForm;
   final List<String> normalize;
   final Map<String, dynamic> valueMap;
@@ -251,7 +251,7 @@ final class LabelSpec {
   final String? fallbackPortPath;
 }
 
-/// Правила списка (P9, FROZEN `list`).
+
 final class ListSpec {
   const ListSpec({this.sep = ',', this.item, this.len, this.coerceScalar = false});
 
@@ -268,7 +268,7 @@ final class ListSpec {
   final bool coerceScalar;
 }
 
-/// Правило ПОВТОРНОЙ секции INI (`ini_dialect.sections.<Name>`).
+
 final class IniSectionRule {
   const IniSectionRule({this.repeat, this.onExtraCode});
 
@@ -277,20 +277,20 @@ final class IniSectionRule {
         onExtraCode: ((j['on_extra'] as Map?)?['code']) as String?,
       );
 
-  /// `first_only` — читается первая, прочие отбрасываются.
+
   final String? repeat;
 
-  /// Код о том, что повтор отброшен; `null` — отбрасывается молча.
+
   final String? onExtraCode;
 }
 
-/// §0.11 DRAFT — ДИАЛЕКТ разбора INI (`ini_dialect`).
-///
-/// Правила входа объявлены данными, а не зашиты в адаптер: «как принято в
-/// wg-quick» — это один диалект из нескольких возможных, и второй (панельный
-/// `.ini`, `.ovpn`) потребовал бы ветки в коде, будь первый умолчанием
-/// движка. Значения по умолчанию здесь — не «правила wg-quick», а
-/// нейтральный разбор INI, который диалект уточняет.
+
+
+
+
+
+
+
 final class IniDialect {
   const IniDialect({
     this.keyCase = 'lower',
@@ -304,10 +304,10 @@ final class IniDialect {
   factory IniDialect.fromJson(Map<String, dynamic> j) => IniDialect(
         keyCase: j['key_case'] as String? ?? 'lower',
         valueCase: j['value_case'] as String? ?? 'preserve',
-        // GRAMMAR_SYNC §0.11 — имя `line_comment_prefixes`; у секций волны W4
-        // написано прежнее `comment_prefixes`. Читаются оба, потому что
-        // секция приедет реестром с новым именем, а черновик сегодня несёт
-        // старое, и разъехаться они не должны молча.
+
+
+
+
         lineCommentPrefixes: ((j['line_comment_prefixes'] ??
                     j['comment_prefixes']) as List?)
                 ?.cast<String>() ??
@@ -322,29 +322,29 @@ final class IniDialect {
         },
       );
 
-  /// `lower` | `preserve` — регистр ИМЁН ключей в пространстве.
+
   final String keyCase;
 
-  /// `lower` | `preserve` — регистр ЗНАЧЕНИЙ.
+
   final String valueCase;
 
-  /// Префиксы строчного комментария.
+
   final List<String> lineCommentPrefixes;
 
-  /// Комментарий ХВОСТОМ строки значения. У wg-quick его нет: `#` внутри
-  /// значения — часть значения (имя `CH-FREE#11` ровно такое).
+
+
   final bool inlineComments;
 
-  /// `last_wins` | `first_wins` — судьба повторного ключа.
+
   final String repeatedKey;
 
-  /// Правила повторных секций, по имени в нижнем регистре.
+
   final Map<String, IniSectionRule> sections;
 
   IniSectionRule? sectionRule(String name) => sections[name.toLowerCase()];
 }
 
-/// Правила повторного percent-декода (FROZEN `decode_extra`).
+
 final class DecodeExtraSpec {
   const DecodeExtraSpec({
     this.mode = 'query',
@@ -370,11 +370,11 @@ final class DecodeExtraSpec {
   final bool untilStable;
   final int max;
 
-  /// `null` — не указано явно, выводится из `format: base64*` поля (§0.4).
+
   final bool? plusLiteral;
 }
 
-/// Раскладка одного значения по нескольким путям (P8, FROZEN `extract`).
+
 final class ExtractSpec {
   const ExtractSpec({required this.re, this.into = const {}});
 
@@ -385,11 +385,11 @@ final class ExtractSpec {
 
   final String re;
 
-  /// Имя группы → путь тела (строкой) либо объект с `path`/`type`/`implies`.
+
   final Map<String, dynamic> into;
 }
 
-/// Запись таблицы: один параметр источника (FROZEN `params.<имя>`).
+
 final class MapperParam {
   const MapperParam({
     required this.name,
@@ -461,9 +461,9 @@ final class MapperParam {
       source: source,
       sourceByForm: byForm,
       mapsTo: j['maps_to'] as String?,
-      // `maps_to: null` — ЗАЯВЛЕННОЕ «никуда не едет» (ech, padding). От
-      // «ключа нет вовсе» отличается тем, что параметр объявлен и в
-      // `uri_param_unknown` не попадает.
+
+
+
       mapsToPresent: j.containsKey('maps_to'),
       aliases: ((j['aliases'] as List?) ?? const []).cast<String>(),
       type: j['type'] as String?,
@@ -477,11 +477,11 @@ final class MapperParam {
       implies: ((j['implies'] as Map?) ?? const {}).cast<String, dynamic>(),
       when: ((j['when'] as Map?) ?? const {}).cast<String, dynamic>(),
       extract: ex == null ? null : ExtractSpec.fromJson(ex),
-      // `compose` ДВУХ форм (PRIMITIVES §0.12): строка-шаблон и объект
-      // `{template, from, omit_when_empty}`. Здесь остаётся только строковая —
-      // объектную читает эмиттер из `raw`, разбору она не нужна вовсе.
-      // Слепой каст к String? ронял загрузку секции целиком, как только
-      // реестр объявил объектную форму у `ws.path` (контракт 1.1.36).
+
+
+
+
+
       compose: j['compose'] is String ? j['compose'] as String : null,
       list: ls == null ? null : ListSpec.fromJson(ls),
       splitInto:
@@ -534,15 +534,15 @@ final class MapperParam {
   final String? merge;
   final Map<String, dynamic> valueMap;
 
-  /// `allow` — написания, ПРОХОДЯЩИЕ `value_map` как есть (контракт 1.1.50).
-  ///
-  /// Без него «промахом» таблицы оказывается и законное значение, совпадающее
-  /// с каноном ядра, и `on_invalid` снял бы годный узел. Заведён вместе с
-  /// исполнением `on_invalid` у СЕЛЕКТОРА: у `$selector.network` диалекта xray
-  /// таблица называет только ПЕРЕВОДИМЫЕ написания (`h2` → `http`) и те, что
-  /// означают отсутствие транспорта (`tcp`/`raw`/пусто → null), а `ws`, `grpc`,
-  /// `httpupgrade`, `xhttp` едут дословно — им перевод не нужен, но и мусором
-  /// они не являются.
+
+
+
+
+
+
+
+
+
   final List<String> allow;
   final Map<String, dynamic> sets;
   final Map<String, dynamic> implies;
@@ -563,98 +563,98 @@ final class MapperParam {
   final bool sortKeys;
   final String empty;
 
-  /// Формат значения поля; из `base64*` выводится `decode_extra.plus_literal`
-  /// (§0.4 FROZEN) — то самое «исключение из реестра, а не из списка имён».
+
+
   final String? format;
   final Map<String, dynamic> onInvalid;
   final Map<String, dynamic> onPresent;
 
-  /// `on_len_gt: {n, action, code}` — у источника-МАССИВА больше `n`
-  /// элементов, и лишние отбрасываются. Сегодня это молчаливая потеря
-  /// (Q133-18: второй сервер подписки просто исчезает); запись даёт ей код,
-  /// не меняя поведения.
+
+
+
+
   final Map<String, dynamic> onLenGt;
 
-  /// `on_no_match: {action, code}` — значение не попало ни в один ключ
-  /// `sets`/`value_map`. `action: drop_node` снимает узел целиком.
+
+
   final Map<String, dynamic> onNoMatch;
 
-  /// `on_when_false: {action, code}` — код за ПОДАВЛЕНИЕ значения условием
-  /// `when`: во входе значение было, но структурное правило не дало ему
-  /// доехать до тела. Ставится только когда источник действительно ответил —
-  /// иначе запись, чьё условие ложно на каждом втором узле, шумела бы впустую.
+
+
+
+
   final Map<String, dynamic> onWhenFalse;
 
-  /// `on_implies_written: {action, code}` — код за то, что `implies` и вправду
-  /// ДОПИСАЛ значение, которого во входе не было. Отличается от простого
-  /// наличия `implies`: при занятом пути присваивание проигрывает владельцу,
-  /// и сообщать не о чем.
+
+
+
+
   final Map<String, dynamic> onImpliesWritten;
 
-  /// `on_item_invalid: {action, code}` — элемент списка не совпал с
-  /// регуляркой `extract` и пропущен. Код ставится ОДИН раз на узел, сколько
-  /// бы элементов ни отсеялось.
+
+
+
   final Map<String, dynamic> onItemInvalid;
 
-  /// `on_empty: {code}` — код за ПУСТОЕ значение записи: источник места под
-  /// него не дал вовсе либо дал пустым.
-  ///
-  /// Отличается от [onInvalid] тем, что судит не написание, а НАЛИЧИЕ: пустая
-  /// строка форму значения не нарушает, и ни одна проверка типа её не ловит.
-  /// Отличается от `required` тем, что узел ОСТАЁТСЯ: «значения нет» — это
-  /// цена соединения, о которой человеку говорят, а не приговор записи.
-  ///
-  /// Ставится одинаково на оба написания отсутствия, потому что для тела они
-  /// неразличимы: пустой хвост (`uuid:@host`) и отсутствие хвоста
-  /// (`uuid@host`) дают одно и то же — значения нет.
+
+
+
+
+
+
+
+
+
+
+
   final Map<String, dynamic> onEmpty;
 
-  /// `value_map_case: "sensitive"` — регистр значения ЗНАЧИМ. Общее правило
-  /// обратное (живые списки шлют `NONE`), но там, где ядро сравнивает литерал
-  /// точно, регистронезависимое попадание молча проглатывало бы негодное
-  /// значение вместо того, чтобы дать ему доехать до тела и быть отвергнутым.
+
+
+
+
   final String? valueMapCase;
 
   final bool implicit;
 
-  /// `round_trip_only: "emit"` — только обратный ход; разбором не исполняется.
-  /// `"parse"` — только разбор; эмиттер молчит.
+
+
   final String? roundTripOnly;
 
-  /// §480 W7 — СЫРОЙ JSON записи.
-  ///
-  /// Нужен ЭМИТТЕРУ: атрибуты обратного хода (`emit_as`, `emit_name`,
-  /// `round_trip`) ещё не в замороженной грамматике, имена могут поменяться по
-  /// итогам согласования с лаунчером, и заводить под каждое типизированное
-  /// поле значило бы править модель на каждом переименовании. Читаются они в
-  /// ОДНОМ месте — `emitter.dart`, через [EmitNames].
+
+
+
+
+
+
+
   final Map<String, dynamic> raw;
 
-  /// Контракт 1.1.63 — `deref {key, as}`: значение записи есть ссылка на
-  /// соседа по документу (исполняет движок, см. `_applyDeref`).
+
+
   Map<String, dynamic>? get deref => (raw['deref'] as Map?)?.cast<String, dynamic>();
 
-  /// Контракт 1.1.63 — `substitute {sep, join, tokens}`: подстановка
-  /// плейсхолдеров значения из источников.
+
+
   Map<String, dynamic>? get substitute =>
       (raw['substitute'] as Map?)?.cast<String, dynamic>();
 
-  /// Служебная запись (DRAFT `$`-префикс): у неё нет `maps_to`, и параметром
-  /// источника она не считается.
+
+
   bool get isService => name.startsWith(DraftNames.serviceParamPrefix);
 
-  /// `+` читается буквально: явное указание либо вывод из формата.
+
   bool get plusLiteral =>
       decodeExtra?.plusLiteral ?? (format?.startsWith('base64') ?? false);
 
-  /// Все написания имени параметра: канон плюс алиасы. Канон — первое (§0.6).
+
   Iterable<String> get spellings sync* {
     yield name;
     yield* aliases;
   }
 }
 
-/// Одна секция-маппер: вид источника у одного протокола (FROZEN `mapper`).
+
 final class MapperSection {
   const MapperSection({
     required this.kind,
@@ -686,12 +686,12 @@ final class MapperSection {
   ) {
     final uk = (j['unknown_key'] as Map?)?.cast<String, dynamic>();
     final params = <String, MapperParam>{};
-    // Запись со значением `null` — ключ ОБЪЯВЛЕН, но телом не становится:
-    // «знаем и намеренно не переносим». Отличается от отсутствия записи тем,
-    // что при `unknown_key.action: keep` отсутствующая дала бы коду
-    // `uri_param_unknown` повод сработать, а объявленная — нет: сообщать не о
-    // чем, потеря осознанная. Значения у неё нет по построению, поэтому
-    // параметром она не заводится, а пополняет набор игнорируемых ключей.
+
+
+
+
+
+
     final nullParams = <String>{};
     final rawParams = (j['params'] as Map?)?.cast<String, dynamic>() ?? const {};
     for (final e in rawParams.entries) {
@@ -743,22 +743,22 @@ final class MapperSection {
     );
   }
 
-  /// РОД узла, объявленный ВХОДОМ, а не уцелевшими полями тела (G1).
-  ///
-  /// Карта «имя рода → предикат по источнику». Нужна там, где правило реестра
-  /// судит тело условием `any_set`, а вход мог попросить подвид протокола и не
-  /// донести НИ ОДНОГО годного поля: тело такого узла от базового протокола
-  /// неотличимо, а правило (например, потолок MTU) — свойство ЗАПРОШЕННОГО
-  /// протокола, и без него туннель поднимается, но данные по нему не идут.
-  ///
-  /// Предикат смотрит на ИСТОЧНИК, потому что к моменту суда тело уже не
-  /// помнит, что в нём было.
+
+
+
+
+
+
+
+
+
+
   final Map<String, dynamic> kindWhen;
 
-  /// Вид источника: `uri` | `xray` | `singbox` | `conf`.
+
   final String kind;
 
-  /// Тип тела (`type` в карте sing-box) — его секция и строит.
+
   final String singboxType;
 
   final Map<String, dynamic>? detect;
@@ -769,7 +769,7 @@ final class MapperSection {
   final Map<String, MapperParam> params;
   final List<String> include;
 
-  /// Наложенные пространства источников (FROZEN `overlays[]`).
+
   final List<OverlaySpec> overlays;
   final Map<String, dynamic> schemeSets;
   final Map<String, String> typeSynonyms;
@@ -777,29 +777,29 @@ final class MapperSection {
   final String unknownKeyAction;
   final String? unknownKeyCode;
 
-  /// `unknown_key.ignore` — ключи ВИДА ИСТОЧНИКА, которые полем узла не
-  /// являются и неизвестными не считаются: бухгалтерия элемента
-  /// (`protocol`/`type` — по ним элемент и опознан, `tag`, `remarks` — имя,
-  /// которое читает сборка документа, а не маппер одного узла).
+
+
+
+
   final Set<String> ignoredKeys;
 
-  /// `unknown_key.nested_quiet` (контракт 1.1.52) — ПОДДЕРЕВЬЯ, молчащие
-  /// целиком при частичном объявлении.
-  ///
-  /// Роль контейнеров в [ignoredKeys] двойная: НАВЕРХУ они молчат (полем узла
-  /// контейнер не является), а ВНУТРЬ идёт обход — иначе всё, что лежит в
-  /// контейнере и не названо ни одним `source`, теряется АБСОЛЮТНО МОЛЧА.
-  /// `nested_quiet` называет те поддеревья, где обход не нужен: у `sockopt`
-  /// объявлена лишь часть листьев, и код на остальных был бы шумом.
+
+
+
+
+
+
+
+
   final Set<String> nestedQuiet;
 
-  /// §0.11 DRAFT — диалект разбора INI; `null` у видов источника, где входом
-  /// служит не текст `.conf`.
+
+
   final IniDialect? iniDialect;
 
   final Map<String, dynamic>? emit;
 
-  /// Секция с вмонтированными блоками `include` (общие tls/transports).
+
   MapperSection withParams(Map<String, MapperParam> merged) => MapperSection(
         kind: kind,
         singboxType: singboxType,

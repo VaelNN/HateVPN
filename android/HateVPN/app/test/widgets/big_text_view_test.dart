@@ -13,7 +13,7 @@ void main() {
     });
 
     test('trailing newline does not add a phantom line', () {
-      // LineSplitter: 'a\n' — одна строка.
+
       expect(chunkTextLines('a\n'), ['a']);
     });
 
@@ -32,7 +32,7 @@ void main() {
     });
 
     test('single-line 100 KB base64 blob chunks losslessly', () {
-      // §333 — undecoded тело подписки: одна строка без \n.
+
       final blob = 'A' * (100 * 1024);
       final chunks = chunkTextLines(blob);
       expect(chunks, hasLength((100 * 1024 / 4096).ceil()));
@@ -52,7 +52,7 @@ void main() {
         home: Scaffold(body: BigTextView(text: text)),
       ));
       expect(find.text('line-0 payload'), findsOneWidget);
-      // Виртуализация: хвост документа не построен.
+
       expect(find.text('line-49999 payload'), findsNothing);
     });
 

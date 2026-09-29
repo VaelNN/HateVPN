@@ -9,14 +9,14 @@ import '../../vpn/box_vpn_client.dart';
 import '../../vpn/pprof_profile.dart';
 import '../../widgets/safe_bottom.dart';
 
-/// §207 — вкладка «Profiling» на экране Debug: pprof-слепки живого ядра
-/// (goroutines / CPU / heap / allocs) через libbox PProfServer.
-///
-/// Жила в App Settings → Diagnostics, переехала сюда: это инструмент
-/// диагностики, а не настройка — рядом с логами и крашами ему место, а
-/// в списке тумблеров он был чужеродным.
-///
-/// Гейт — активный туннель: без работающего ядра снимать нечего.
+
+
+
+
+
+
+
+
 class ProfilingTab extends StatefulWidget {
   const ProfilingTab({super.key});
 
@@ -28,13 +28,13 @@ class _ProfilingTabState extends State<ProfilingTab>
     with SnackHelper, AutomaticKeepAliveClientMixin {
   final _vpn = BoxVpnClient();
 
-  /// Один PProfServer на порт — параллельные захваты дизейблим.
+
   bool _capturing = false;
 
   @override
   bool get wantKeepAlive => true;
 
-  /// `[p]` несёт path+query, имя файла, text/binary и blocking-секунды.
+
   Future<void> _capture(PprofProfile p) async {
     if (_capturing) return;
     if (!(await _vpn.getVpnStatus()).isUp) {

@@ -7,11 +7,11 @@ import '../../services/template_loader.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// §070 — modal bottom sheet опций сортировки нод (long-press по sort-кнопке
-/// в [NodesHeader]). Sheet остаётся открытым — можно тоггнуть несколько опций
-/// подряд; `StatefulBuilder` перерисовывает чекбоксы локально. Изменения сразу
-/// пишутся в [controller] (его `state` читается свежим на каждый rebuild —
-/// между нашими `setSheetState` контроллер мог emit'нуть).
+
+
+
+
+
 Future<void> showSortOptionsMenu(
   BuildContext context,
   HomeController controller,
@@ -31,9 +31,9 @@ Future<void> showSortOptionsMenu(
                 Text(getLocalText.s("Sort options"),
                     style: Theme.of(sheetCtx).textTheme.titleMedium),
                 const SizedBox(height: 12),
-                // §100 — выбор режима сортировки (incl. Custom = ручная,
-                // включает видимые drag-полоски §098). Раньше manual входился
-                // только через drag; теперь — явный выбор.
+
+
+
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
@@ -93,24 +93,24 @@ Future<void> showSortOptionsMenu(
   );
 }
 
-/// §040 — modal bottom sheet настроек ping (long-press по reload-кнопке).
-/// Scope-переключатель All directions / текущее Направление (если у Направления есть
-/// override — стартует в group-mode с его значениями). Пресеты URL из
-/// template, ручные URL/timeout. Save пишет в [SettingsStorage] (глобально
-/// или per-group) и дёргает `controller.reloadPingOptions()`.
+
+
+
+
+
 Future<void> showPingSettings(
   BuildContext context,
   HomeController controller,
 ) async {
-  // §279 — typed PingOptionsModel из локализованного шаблона (load() на
-  // каждое открытие sheet'а → имена пресетов всегда на активной локали).
+
+
   final template = await TemplateLoader.load();
   final presets = template.pingOptionsModel.presets;
 
   if (!context.mounted) return;
-  // §040: dialog scope — global / per-group. Если у текущего Направления есть
-  // override → стартуем в group-mode с его значениями. Иначе global-mode
-  // с глобальным URL/timeout (resolved через storage > template).
+
+
+
   final currentGroup = controller.state.selectedGroup ?? '';
   final allOpts = await SettingsStorage.getPingOptions();
   final groupsRaw = allOpts['groups'];

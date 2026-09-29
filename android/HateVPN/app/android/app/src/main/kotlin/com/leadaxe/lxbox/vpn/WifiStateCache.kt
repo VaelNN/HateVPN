@@ -10,33 +10,33 @@ import android.os.Build
 import android.os.SystemClock
 import android.util.Log
 
-/**
- * §569 — кэш текущей Wi-Fi сети для Android 12+ (API 31+).
- *
- * `WifiManager.getConnectionInfo()` deprecated с API 31. Замена —
- * `NetworkCallback(FLAG_INCLUDE_LOCATION_INFO)`: только такому колбэку
- * `NetworkCapabilities.transportInfo` приходит с SSID/BSSID (синхронный
- * `cm.getNetworkCapabilities(net)` отдаёт `WifiInfo` с вырезанным SSID).
- * Поэтому данные читаются из кэша, который наполняет колбэк.
- *
- * - Регистрация ленивая: из [ensureCurrent] при первом успешном preflight
- *   в `WifiInfoReader.read` (пользователь без Wi-Fi-правил и Add current
- *   колбэк с location-флагом не получает).
- * - Редактирование SSID фиксируется на момент регистрации, поэтому при смене
- *   снимка разрешений/геолокации колбэк перерегистрируется; при провале
- *   preflight — снимается ([stop]).
- * - Колбэк живёт весь процесс (как `WifiNetworkObserver`), намеренно.
- * - Отдельный объект от `WifiNetworkObserver`: свой колбэк, свой lifecycle.
- *
- * На API < 31 объект существует, но [start]/[ensureCurrent] — no-op,
- * [latest] всегда null.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class WifiStateCache(private val ctx: Context) {
 
     data class WifiSnapshot(
-        /// Нормализованный SSID (без кавычек); пустой = Android не отдал.
+
         val ssid: String,
-        /// BSSID lower-case; пустой = не отдан или placeholder.
+
         val bssid: String,
         val network: Network,
         val atMillis: Long,
@@ -48,7 +48,7 @@ class WifiStateCache(private val ctx: Context) {
 
     private var callback: ConnectivityManager.NetworkCallback? = null
 
-    /// Снимок разрешений и геолокации, при котором зарегистрирован колбэк.
+
     private var registeredWith: String? = null
 
     private val cm: ConnectivityManager
@@ -57,9 +57,9 @@ class WifiStateCache(private val ctx: Context) {
     val isRegistered: Boolean
         @Synchronized get() = callback != null
 
-    /// Вызывается из `WifiInfoReader.read` после успешного preflight.
-    /// Не зарегистрирован — регистрирует; снимок разрешений сменился —
-    /// перерегистрирует. Иначе ничего не делает (лимит 100 колбэков на процесс).
+
+
+
     @Synchronized
     fun ensureCurrent() {
         if (Build.VERSION.SDK_INT < 31) return
@@ -72,9 +72,9 @@ class WifiStateCache(private val ctx: Context) {
         start()
     }
 
-    /// Регистрирует колбэк, если preflight 567 проходит. Ошибки регистрации
-    /// (SecurityException, TooManyRequestsException — RuntimeException) пишутся
-    /// в лог, кэш считается не запущенным: `read` уходит в fallback.
+
+
+
     @Synchronized
     fun start() {
         if (Build.VERSION.SDK_INT < 31) return
@@ -102,8 +102,8 @@ class WifiStateCache(private val ctx: Context) {
         Log.d(TAG, "started (perms=$registeredWith)")
     }
 
-    /// Снимает колбэк и очищает кэш. Вызывается при перерегистрации и при
-    /// провале preflight (разрешение отозвано, геолокация выключена).
+
+
     @Synchronized
     fun stop() {
         latest = null
@@ -120,8 +120,8 @@ class WifiStateCache(private val ctx: Context) {
             ConnectivityManager.NetworkCallback.FLAG_INCLUDE_LOCATION_INFO,
         ) {
             override fun onCapabilitiesChanged(net: Network, caps: NetworkCapabilities) {
-                // На некоторых OEM transportInfo может быть не WifiInfo
-                // (или VPN-сеть с underlying Wi-Fi) — не трогаем кэш.
+
+
                 val info = caps.transportInfo as? WifiInfo ?: return
                 val snap = WifiSnapshot(
                     ssid = WifiInfoReader.normalizeSsid(info.ssid),

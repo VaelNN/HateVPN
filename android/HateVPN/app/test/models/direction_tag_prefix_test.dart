@@ -3,10 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/direction.dart';
 import 'package:lxbox/models/direction_tag_prefix.dart';
 
-/// §393 A6 — смена `tag_prefix` источника молча ломала regex-фильтры
-/// Направлений: билдер эмитит тег как `'$prefix $bare'`, а Направление
-/// отбирает узлы regex'ом по итоговому тегу. Здесь — разбор паттерна на
-/// «литерал / конструкция» и решение чинить-или-предупредить.
+
+
+
+
 void main() {
   group('rewriteLiteralPrefix — однозначные вхождения переписываются', () {
     test('якорь + префикс + разделитель', () {
@@ -39,7 +39,7 @@ void main() {
     test('новый префикс экранируется — не становится конструкцией', () {
       final r = rewriteLiteralPrefix('^RU: ', 'RU:', 'D(E)');
       expect(r.pattern, r'^D\(E\) ');
-      // Переписанный фильтр обязан ловить ЛИТЕРАЛЬНЫЙ новый тег.
+
       expect(RegExp(r.pattern).hasMatch('D(E) Frankfurt'), isTrue);
     });
 
@@ -88,8 +88,8 @@ void main() {
     });
 
     test('метасимвол ВМЕСТО символа префикса — это не вхождение', () {
-      // `R.:` матчит `RU:`, но написано это НЕ префиксом: пользователь
-      // задал шаблон. Ни чинить, ни пугать.
+
+
       final r = rewriteLiteralPrefix('R.:', 'RU:', 'DE:');
       expect(r.changed, isFalse);
       expect(r.ambiguous, isFalse);
@@ -163,7 +163,7 @@ void main() {
     });
 
     test('пустой СТАРЫЙ префикс каскада не даёт', () {
-      // Пустая строка — подстрока любого фильтра; каскад по ней снёс бы всё.
+
       final c = analyzeTagPrefixChange(
         directions: [dir('vpn-1', node: '^RU: ')],
         oldPrefix: '',

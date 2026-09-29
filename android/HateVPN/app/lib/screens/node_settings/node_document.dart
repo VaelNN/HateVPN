@@ -1,21 +1,21 @@
-/// §435 — подготовка текста JSON-вкладки редактора узла к сохранению.
-/// Чистая функция без Flutter: экран отдаёт ей текст и поле Tag, получает
-/// либо текст для контроллера, либо причину отказа.
-///
-/// §576 — в источник записи уходит ТОЛЬКО ТЕЛО УЗЛА (вид `singbox_outbound`,
-/// PARSING_PRINCIPLES §11). Документ и массив — формы ввода, не хранения:
-/// - голое тело (объект с `type`) — текст как набран, байт в байт;
-///   перекодируется только при смене тега;
-/// - документ (`outbounds`/`endpoints` в корне) — тело первого узла, не
-///   служебного (`direct`, `block`, `dns`) и не группы (`selector`,
-///   `urltest`); подходящего узла нет — отказ;
-/// - массив тел — первый элемент.
-///
-/// Извлечённое тело пишется JSON с отступом в два пробела. Было во входе
-/// что-то кроме этого узла — [NodeDocumentReady.droppedExtras], экран
-/// говорит одно сообщение: узел сохранён, остальное нет.
-///
-/// Тег из поля Tag подмешивается в тело узла.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import 'dart:convert';
@@ -33,37 +33,37 @@ sealed class NodeDocumentPrep {
   const NodeDocumentPrep();
 }
 
-/// Текст готов к `updateConnectionAt` / `updateMemberAt`.
+
 final class NodeDocumentReady extends NodeDocumentPrep {
   const NodeDocumentReady(this.text,
       {required this.isDocument,
       this.droppedExtras = false,
       this.commentsRemoved = false});
 
-  /// §585 — во входе были комментарии `//` или `/* */`; в [text] их нет.
+
   final bool commentsRemoved;
 
-  /// §576 — голое тело узла: как набрано, либо извлечённое из документа или
-  /// массива (JSON с отступом в два пробела).
+
+
   final String text;
 
-  /// true — вход был документом (`endpoints`/`outbounds` в корне).
+
   final bool isDocument;
 
-  /// §576 — во входе было что-то кроме сохранённого узла (прочие записи
-  /// документа или массива, `dns`, `route`, `sections`): оно не сохранено.
+
+
   final bool droppedExtras;
 }
 
-/// Сохранение отказано; [message] — готовая строка для снекбара.
+
 final class NodeDocumentRejected extends NodeDocumentPrep {
   const NodeDocumentRejected(this.message);
   final String message;
 }
 
-/// Служебные и групповые типы sing-box — не тело узла (зеркало приватных
-/// наборов парсера `singbox_config.dart`: `_kSingboxServiceTypes` +
-/// `_kSingboxGroupTypes`).
+
+
+
 const Set<String> _kNonNodeTypes = {
   'direct',
   'block',
@@ -72,11 +72,11 @@ const Set<String> _kNonNodeTypes = {
   'urltest',
 };
 
-/// Ключи документа, где лежат узлы.
+
 const Set<String> _kNodeListKeys = {'outbounds', 'endpoints'};
 
 NodeDocumentPrep prepareNodeDocumentForSave(String text, String tag) {
-  // §585 — комментарии снимаются до разбора; в источник уходит текст без них.
+
   final uncommented = uncommentedJson(text);
   if (uncommented == null) return _prepare(text, tag);
   final prep = _prepare(uncommented, tag);
@@ -134,7 +134,7 @@ NodeDocumentPrep _prepare(String text, String tag) {
           "JSON must be an outbound object with \"type\" or a document with \"endpoints\"/\"outbounds\""));
   }
 
-  // Порядок выбора прежний (§435): `endpoints`, затем `outbounds`.
+
   final endpoints = map['endpoints'];
   final outbounds = map['outbounds'];
   final entries = <Object?>[
@@ -155,27 +155,27 @@ NodeDocumentPrep _prepare(String text, String tag) {
   );
 }
 
-/// Извлечённое тело узла с тегом из поля Tag, JSON с отступом в два пробела.
+
 String _bodyText(Map<String, dynamic> body, String newTag) {
   final out = Map<String, dynamic>.from(body);
   if (newTag.isNotEmpty) out['tag'] = newTag;
   return const JsonEncoder.withIndent('  ').convert(out);
 }
 
-/// §455 — полезная нагрузка для `Libbox.checkConfig()`: минимальный конфиг
-/// из одного узла — тело источника (`rawSource` первого узла, §454: оригинал
-/// outbound'а и у голого тела, и у документа) без `detour` (ссылка на чужой
-/// тег ядру неизвестна) под `outbounds` или `endpoints` по типу узла.
-/// `null` — текст не дал узла; об этом скажет контроллер при сохранении.
-///
-/// Д-1 (эмулятор 19.09.2026) — проверяется РОВНО ТО, ЧТО УЙДЁТ В ЯДРО.
-/// Дословно уходит только sing-box-источник (`verbatimBodyOf`); Xray-объект
-/// собирается моделью, и отдать ядру его оригинал значило бы отвергнуть на
-/// Save узел, который в конфиге работает.
+
+
+
+
+
+
+
+
+
+
 String? checkPayloadFor(String text) {
   final List<NodeSpec> nodes;
   try {
-    // §585 — разбор своего источника: узел незнакомого типа тоже проверяется.
+
     nodes = parseAll(decode(text), own: true);
   } catch (_) {
     return null;
@@ -206,8 +206,8 @@ String? checkPayloadFor(String text) {
   });
 }
 
-/// Первый элемент, похожий на тело узла: объект с `type`, не служебный и
-/// не группа. `null` — тела нет (контроллер сам скажет, что узлов не вышло).
+
+
 Map<String, dynamic>? _firstNodeBody(List<Object?> entries) {
   for (final e in entries) {
     if (e is! Map) continue;

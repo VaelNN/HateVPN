@@ -5,8 +5,8 @@ import '../subscription_detail_screen/widgets/node_warnings_sheet.dart'
     show showNodeWarningsSheet;
 import '../../services/l10n/locale_controller.dart';
 
-/// Dialog «Unknown format» — показывает обрезанный текст clipboard'а.
-/// Поведение 1:1 с прежней inline-версией в `_pasteFromClipboard`.
+
+
 void showUnknownFormatDialog(BuildContext context, String text) {
   showDialog(
     context: context,
@@ -41,8 +41,8 @@ void showUnknownFormatDialog(BuildContext context, String text) {
   );
 }
 
-/// Confirm-dialog «Add from clipboard» — детект + предпросмотр. Возвращает
-/// `true` если юзер нажал «Add» (поведение 1:1 с прежней inline-версией).
+
+
 Future<bool?> showConfirmAddDialog(
     BuildContext context, ClipboardAnalysis analysis) {
   return showDialog<bool>(
@@ -59,9 +59,9 @@ Future<bool?> showConfirmAddDialog(
             const SizedBox(height: 4),
             Text(analysis.subtitle, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
-          // §368 §8 — полный конфиг несёт больше, чем мы переносим. Молча взять
-          // узлы и выбросить маршрутизацию нельзя: пользователь не должен
-          // узнать о потере своих правил по факту.
+
+
+
           if (analysis.notImported.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
@@ -79,8 +79,8 @@ Future<bool?> showConfirmAddDialog(
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
-          // §561 / задача 570 — записи, которые не станут узлами: счётчик
-          // и та же шторка причин, что в сводке источника.
+
+
           if (analysis.dropped.isNotEmpty) ...[
             const SizedBox(height: 12),
             InkWell(

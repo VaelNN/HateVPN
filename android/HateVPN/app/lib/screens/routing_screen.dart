@@ -64,12 +64,12 @@ class RoutingScreen extends StatefulWidget {
   final SubscriptionController subController;
   final HomeController homeController;
 
-  /// §258 — при открытии показать Направление с этим тегом и мигнуть его тайлом
-  /// (навигация «хоп рантайм-цепочки → Направление», openTagOwner). null = нет.
+
+
   final String? focusDirectionTag;
 
-  /// §262 — открыть сразу на табе Presets (каталог пресетов). Навигация из
-  /// листа DNS-health «Enable FakeIP» → юзер видит каталог, находит FakeIP.
+
+
   final bool initialPresetsTab;
 
   @override
@@ -85,36 +85,36 @@ class _RoutingScreenState extends State<RoutingScreen>
         SnackHelper<RoutingScreen> {
   @override
   WizardTemplate? _template;
-  // §534 — снимок глобального userVars (`SettingsStorage.getAllVars()`) для
-  // гейта rule_set'ов пресетов на ref-переменной (§265): гейт на пути
-  // скачивания/UI считается по тому же словарю, что у билдера. Обновляется в
-  // начале каждого `_refreshSrsCache` (сейчас он зовётся из `_load` — на
-  // открытии экрана). Может отстать, если глобальную переменную поменяли, не
-  // покидая Routing; у наборов текущего шаблона ref-гейтов нет, а появится
-  // такой — пересчёт на следующем `_refreshSrsCache`.
+
+
+
+
+
+
+
   @override
   Map<String, String> _userVars = const {};
   @override
-  final _directions = <Direction>[]; // §125 — source-of-truth Направлений (storage)
-  // §219 — кэш опций outbound: _outboundOptions() звался в itemBuilder на КАЖДЫЙ
-  // custom-rule tile (N Направлений × M правил реконструкций/build). Инвалидируем
-  // при любой мутации _directions (_invalidateOutboundOptions).
+  final _directions = <Direction>[];
+
+
+
   List<RoutingOutboundOption>? _cachedOutboundOptions;
   @override
   String _routeFinal = '';
   @override
   final _customRules = <CustomRule>[];
   @override
-  final _srsCached = <String>{}; // rule.id → файл есть в кэше
+  final _srsCached = <String>{};
   @override
-  final _srsDownloading = <String>{}; // rule.id → идёт загрузка
+  final _srsDownloading = <String>{};
   @override
   bool _loading = true;
-  // §076/§085 R4/§107: staging через LazyPersistMixin (markDirty/stageChanges).
 
-  // §258 — подсветка Направления при focusDirectionTag (навигация из рантайм-цепочки
-  // View-экрана). Ключи per-tag: таб Directions — нелениый ListView(children:),
-  // тайл смонтирован с первого кадра, retry (§255) не нужен.
+
+
+
+
   final _directionKeys = <String, GlobalKey>{};
   String? _highlightedDirectionTag;
   Timer? _directionHighlightTimer;
@@ -122,10 +122,10 @@ class _RoutingScreenState extends State<RoutingScreen>
   @override
   SubscriptionController get lazyController => widget.subController;
 
-  // §279 — загрузка стартует из onLocaleTemplateFetch (TemplateAwareState):
-  // первый вызов (до первого build) — полный _load(); смена локали — только
-  // refetch локализованного шаблона (буферы Направлений/правил юзера не трогаем;
-  // live-label'ы пресетов и каталог перерендерятся из нового _template).
+
+
+
+
   @override
   void onLocaleTemplateFetch({required bool first}) {
     if (first) {
@@ -144,8 +144,8 @@ class _RoutingScreenState extends State<RoutingScreen>
   @override
   void initState() {
     super.initState();
-    // §578 — правка узла при открытом Routing (редактор узла, Debug API,
-    // toggle источника) меняет подпись пресета с `for_each`.
+
+
     widget.subController.addListener(_onSubControllerChanged);
   }
 
@@ -158,23 +158,23 @@ class _RoutingScreenState extends State<RoutingScreen>
 
   void _onSubControllerChanged() {
     if (!mounted || _loading) return;
-    // §578 — строка пресета с `for_each` показывает обслуживаемые узлы:
-    // правка источника (включение, `skip_presets`) её меняет.
+
+
     if (forEachNodeTypes(_template?.selectableRules ?? const []).isNotEmpty) {
       setState(() {});
     }
   }
 
-  /// §578 — узлы источников для пресетов с `for_each` (строка пресета и
-  /// превью редактора), см. [presetNodesForView].
+
+
   List<PresetNode> _presetViewNodes() => presetNodesForView(
         [for (final e in widget.subController.entries) e.list],
         nodeTypes: forEachNodeTypes(_template?.selectableRules ?? const []),
         lastEmittedTagMap: widget.subController.lastEmittedTagMap,
       );
 
-  /// §258 — после загрузки Направлений: скролл к focusDirectionTag + вспышка 2.2 с
-  /// (зеркало _focusMember в folder_detail_screen, §255).
+
+
   void _focusDirectionIfAny() {
     final tag = widget.focusDirectionTag;
     if (tag == null || !mounted) return;
@@ -200,36 +200,36 @@ class _RoutingScreenState extends State<RoutingScreen>
     });
   }
 
-  // §085 R4 — alias: сохраняет существующие call-sites `_markDirty()`.
+
   @override
   void _markDirty() => markDirty();
 
-  /// См. [RoutingHelpers.remoteRuleSetsOf].
+
   @override
   List<PresetRemoteRuleSet> _remoteRuleSetsOf(
     SelectableRule preset, [
     CustomRulePreset? rule,
   ]) => RoutingHelpers.remoteRuleSetsOf(preset, rule, _userVars);
 
-  /// См. [RoutingHelpers.presetSrsKey].
+
   @override
   String _presetSrsKey(CustomRulePreset rule, String tag) =>
       RoutingHelpers.presetSrsKey(rule, tag);
 
-  /// См. [RoutingHelpers.presetNeedsDownload].
+
   @override
   bool _presetNeedsDownload(CustomRulePreset rule, SelectableRule preset) =>
       RoutingHelpers.presetNeedsDownload(rule, preset, _srsCached,
           globalVars: _userVars);
 
-  /// §219 — сбросить кэш опций после мутации `_directions`.
+
   @override
   void _invalidateOutboundOptions() => _cachedOutboundOptions = null;
 
-  /// См. [RoutingHelpers.outboundOptions] (семантика списка — там). Глобальный
-  /// ✨auto убран — каждое Направление имеет свой `<tag>-auto`, который опцией
-  /// роутинга не выставляем (это внутренняя деталь Направления). Кэш §219
-  /// инвалидируется на любой мутации Направлений.
+
+
+
+
   List<RoutingOutboundOption> _outboundOptions() =>
       _cachedOutboundOptions ??= RoutingHelpers.outboundOptions(_directions);
 
@@ -247,18 +247,18 @@ class _RoutingScreenState extends State<RoutingScreen>
 
     return DefaultTabController(
       length: 4,
-      // §262 — таб Presets (index 1) первым при навигации из DNS-health листа.
+
       initialIndex: widget.initialPresetsTab ? 1 : 0,
       child: Builder(
         builder: (tabCtx) => Scaffold(
           appBar: AppBar(
             title: Text(getLocalText.s("Routing")),
             actions: [
-              // §396 — меню экспорта/импорта правил. Живёт в AppBar (решение
-              // владельца: «⋮ на самом верху, напротив Routing»), но видно
-              // только на табе Rules (index 2) — на остальных табах меню про
-              // правила сбивало бы с толку. animation (а не index) — чтобы
-              // кнопка появлялась уже во время свайпа, а не по его завершении.
+
+
+
+
+
               AnimatedBuilder(
                 animation: DefaultTabController.of(tabCtx).animation!,
                 builder: (_, _) {
@@ -269,10 +269,10 @@ class _RoutingScreenState extends State<RoutingScreen>
                       2;
                   if (!onRulesTab) return const SizedBox.shrink();
                   return RulesMenuButton(
-                  // §398 — пресеты не экспортируются; при этом уйти на шаг
-                  // DNS можно и без правил, поэтому гейт снят до «есть хоть
-                  // какие-то настройки» (пустой storage — экран пуст в любом
-                  // случае).
+
+
+
+
                   canExport: true,
                     onExport: _exportRules,
                     onImport: _importRules,
@@ -293,18 +293,18 @@ class _RoutingScreenState extends State<RoutingScreen>
           ),
           body: TabBarView(
             children: [
-              // ─── Directions: Направления (CRUD) + default fallback + Auto tuning ───
+
               RoutingDirectionsTab(
                 bottomPad: bottomPad,
                 groupTiles: _directions.map(_buildDirectionTile).toList(),
                 directionCount: _directions.length,
-                // §393 A3 — лимита на количество Направлений больше нет
-                // (паритет с лаунчером); счётчик показывает, сколько их.
+
+
                 onAddDirection: _addDirection,
                 routeFinalTile: _buildRouteFinalTile(),
               ),
 
-              // ─── Presets: catalog of pre-built rules to copy into Rules ───
+
               RoutingPresetsTab(
                 bottomPad: bottomPad,
                 catalogTiles: template.selectableRules
@@ -312,7 +312,7 @@ class _RoutingScreenState extends State<RoutingScreen>
                     .toList(),
               ),
 
-              // ─── Rules: unified custom routing (spec §030) ───
+
               RoutingRulesTab(
                 bottomPad: bottomPad,
                 itemCount: _customRules.length,
@@ -322,7 +322,7 @@ class _RoutingScreenState extends State<RoutingScreen>
                 onAdd: _addCustomRule,
               ),
 
-              // ─── Tunnel apps: §046 OS-level split-tunneling ───
+
               TunAppsTab(
                 homeController: widget.homeController,
                 subController: widget.subController,
@@ -335,7 +335,7 @@ class _RoutingScreenState extends State<RoutingScreen>
   }
 
   Widget _buildDirectionTile(Direction direction) {
-    // §258 — вспышка при focusDirectionTag (стиль как у члена папки, §255).
+
     final cs = Theme.of(context).colorScheme;
     final highlighted = _highlightedDirectionTag == direction.tag;
     return AnimatedContainer(
@@ -356,11 +356,11 @@ class _RoutingScreenState extends State<RoutingScreen>
     );
   }
 
-  /// Вкл/выкл Направления. §202/§248 — идёт через storage-API: disable лечит
-  /// ссылки покинутых ролей (rules → vpn-1, detour-ссылки → None) и
-  /// возвращает счётчики для SnackBar. Storage мутируем ДО локальных
-  /// буферов: stageChanges (markDirty) тогда пишет в кэш уже вылеченные
-  /// значения, а не затирает их устаревшим буфером экрана.
+
+
+
+
+
   Future<void> _toggleDirection(Direction direction, bool val) async {
     final next = direction.copyWith(enabled: val);
     final healed = await DirectionMutations.update(next, widget.subController);
@@ -373,17 +373,17 @@ class _RoutingScreenState extends State<RoutingScreen>
       _invalidateOutboundOptions();
       _markDirty();
     });
-    // enable heal'ов не даёт (нулевые счётчики) — SnackBar молчит.
+
     _notifyHealed(next, healed, ruleLead: getLocalText.s('disabled'));
   }
 
-  /// §248 — heal мог переписать route_final / custom-rule outbounds в storage
-  /// (→ vpn-1); подтягиваем локальные буферы экрана, иначе следующий
-  /// stageChanges затёр бы вылеченные значения устаревшим буфером.
-  ///
-  /// §275 — detour-ссылки живут в `_entries` контроллера (не в буферах
-  /// экрана); их зеркальный ресинк делает `DirectionMutations` в той же
-  /// операции, что и storage-heal — здесь только буферы экрана.
+
+
+
+
+
+
+
   Future<void> _resyncHealedRefs(DirectionHealResult healed) async {
     if (healed.rules == 0) return;
     final storedFinal = await SettingsStorage.getRouteFinal();
@@ -393,10 +393,10 @@ class _RoutingScreenState extends State<RoutingScreen>
       ..addAll(await SettingsStorage.getCustomRules());
   }
 
-  /// §248 Q3 — heal молчаливым не бывает: SnackBar со счётчиками вылеченных
-  /// ссылок после мутации Направления. [ruleLead] — вводная для rules-части
-  /// («disabled» / «deleted»; §274 убрал flag-set-heal и его вводную).
-  /// Оба счётчика ненулевые → один суммарный SnackBar. Нулевые → тишина.
+
+
+
+
   void _notifyHealed(
     Direction direction,
     DirectionHealResult healed, {
@@ -405,47 +405,47 @@ class _RoutingScreenState extends State<RoutingScreen>
     if (healed.rules == 0 &&
         healed.detours == 0 &&
         healed.includes == 0 &&
-        // §393 D2 — вычистка позиций цепочек тоже бывает одиночной: на
-        // Направление могла ссылаться только цепочка. Без этого условия
-        // укорачивание маршрута прошло бы молча.
+
+
+
         healed.chainPositions == 0 &&
         healed.dnsServers == 0) {
       return;
     }
     final label = direction.label.isNotEmpty ? direction.label : direction.tag;
-    // §393 A3 — include-heal бывает ТОЛЬКО на удалении, и там `ruleLead` уже
-    // «deleted»: одиночный include-heal (правила и detour'ы на Направление не
-    // ссылались) берёт ту же вводную, а не detour'ную.
+
+
+
     final lead = healed.rules > 0 ||
             healed.includes > 0 ||
             healed.chainPositions > 0 ||
             healed.dnsServers > 0
         ? getLocalText.s('Direction "%1\$s" %2\$s', label, ruleLead)
         : getLocalText.s('Direction "%s" is no longer a detour target', label);
-    // §292 — части сообщения из единого форматтера (общий с node_list).
+
     final parts = DirectionMutations.healMessageParts(healed);
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('$lead — ${parts.join(', ')}.')));
   }
 
-  /// Кол-во нод Направления после regex-фильтра (для subtitle). -1 = снимок нод
-  /// недоступен (туннель не поднят).
+
+
   int _nodeCountFor(Direction direction) {
     final all = _allNodeTags();
     if (all.isEmpty) return -1;
     if (direction.nodeFilter.isEmpty) return all.length;
     try {
-      // §301 — регистронезависимо, как основное окно и билдер.
+
       final re = RegExp(direction.nodeFilter, caseSensitive: false);
       return all.where(re.hasMatch).length;
     } catch (_) {
-      return all.length; // невалидный regex → все ноды (как в билдере)
+      return all.length;
     }
   }
 
-  /// Снимок всех node-тегов подписки из ccGroups (union по группам, без самих
-  /// групп). Для live-превью фильтров в редакторе. Пусто = туннель не поднят.
+
+
   List<String> _allNodeTags() {
     final groupTags = widget.homeController.state.ccGroups
         .map((g) => g.tag)
@@ -454,7 +454,7 @@ class _RoutingScreenState extends State<RoutingScreen>
     final out = <String>[];
     for (final g in widget.homeController.state.ccGroups) {
       for (final item in g.items) {
-        if (groupTags.contains(item.tag)) continue; // это группа, не нода
+        if (groupTags.contains(item.tag)) continue;
         if (seen.add(item.tag)) out.add(item.tag);
       }
     }
@@ -462,9 +462,9 @@ class _RoutingScreenState extends State<RoutingScreen>
   }
 
   Future<void> _addDirection() async {
-    // §393 A3 — спрашиваем тег ДО создания: после создания он immutable
-    // (на него ссылаются правила/detour'ы). Поле преднаполнено первым
-    // свободным `vpn-N`, так что «просто Create» = прежнее поведение.
+
+
+
     final req = await showNewDirectionDialog(
       context,
       existingTags: _directions.map((c) => c.tag).toList(),
@@ -477,8 +477,8 @@ class _RoutingScreenState extends State<RoutingScreen>
         label: req.label.isEmpty ? null : req.label,
       );
     } on StateError catch (e) {
-      // Гонка со вторым источником мутаций (Debug API): форма считала тег
-      // свободным, storage — уже нет. Показываем и не создаём.
+
+
       if (!mounted) return;
       showSnack(e.message);
       return;
@@ -493,9 +493,9 @@ class _RoutingScreenState extends State<RoutingScreen>
   }
 
   Future<void> _editDirection(Direction direction) async {
-    // §393 A3 — кандидаты для `include`: только Направления ВЫШЕ текущего по
-    // списку. Порядок исключает циклы по построению, поэтому запрет живёт
-    // прямо в наборе кандидатов, а не в проверке после выбора.
+
+
+
     final idx = _directions.indexWhere((c) => c.tag == direction.tag);
     final result = await openDirectionEditor(
       context,
@@ -503,7 +503,7 @@ class _RoutingScreenState extends State<RoutingScreen>
       canDelete: !direction.isRequired,
       allNodeTags: _allNodeTags(),
       directionsAbove: idx <= 0 ? const [] : _directions.sublist(0, idx),
-      // §568 / задача 570 — свёртки источников тоже законные опции.
+
       foldCandidates: foldCandidatesOf([
         for (final e in widget.subController.entries)
           (name: e.displayName, replace: e.list.replace),
@@ -511,9 +511,9 @@ class _RoutingScreenState extends State<RoutingScreen>
     );
     if (result == null || !mounted) return;
     if (result.wasDeleted) {
-      // deleteDirection в storage лечит ссылки: rules → vpn-1 (§202),
-      // detour-ссылки → None (§248), include-ссылки вычеркнуты (§393 A3).
-      // Счётчики — в SnackBar ниже.
+
+
+
       final healed = await DirectionMutations.delete(
         direction.tag,
         widget.subController,
@@ -523,10 +523,10 @@ class _RoutingScreenState extends State<RoutingScreen>
       if (!mounted) return;
       setState(() {
         _directions.removeWhere((c) => c.tag == direction.tag);
-        // §393 A3 — include-heal зеркалим в буфер экрана. `_directions` —
-        // не проекция storage, а рабочая копия, и хвост метода
-        // безусловно пишет её обратно через `bulkReplace`: без зеркала
-        // stale-буфер воскресил бы только что вычеркнутый тег на диске.
+
+
+
+
         if (healed.includes > 0) {
           final r = clearIncludeDirectionRefs(_directions, direction.tag);
           _directions
@@ -539,9 +539,9 @@ class _RoutingScreenState extends State<RoutingScreen>
       _notifyHealed(direction, healed, ruleLead: getLocalText.s('deleted'));
     } else if (result.saved != null) {
       final saved = result.saved!;
-      // §202/§248/§274 — persist Направления: disable лечит оба рода ссылок,
-      // flag-unset — detour-ссылки; счётчики — в SnackBar ниже.
-      // §275 — DirectionMutations зеркалит detour-heal в _entries контроллера.
+
+
+
       final healed = await DirectionMutations.update(saved, widget.subController);
       if (!mounted) return;
       await _resyncHealedRefs(healed);
@@ -552,33 +552,33 @@ class _RoutingScreenState extends State<RoutingScreen>
         _invalidateOutboundOptions();
       });
       _markDirty();
-      // §274 — rules-ссылки лечатся только при disable (flag-set больше не
-      // heal-триггер: detour-флаг — разрешение, Направление остаётся целью
-      // правил). ruleLead поэтому один; detours-часть (flag-unset) свою
-      // вводную берёт в _notifyHealed.
+
+
+
+
       _notifyHealed(saved, healed, ruleLead: getLocalText.s('disabled'));
     }
-    // §125 — обновить tag→label кеш для home-dropdown (label мог измениться,
-    // Направление мог удалиться). stageChanges уже застейджила directions; здесь только
-    // освежаем labels в HomeState. Persist Направления — flushToDisk на dispose.
+
+
+
     await DirectionMutations.bulkReplace(_directions, flush: true);
     await widget.homeController.refreshDirectionLabels();
   }
 
-  /// Каталог пресетов (read-only). Tap на "Copy" → клонирует в `_customRules`
-  /// через `selectableRuleToCustom`, переходит на таб Rules. Если пресет уже
-  /// есть по label (или конверсия неудачна) — показываем snackbar.
+
+
+
   Widget _buildPresetCatalogTile(SelectableRule rule) {
     final template = _template!;
-    // Bundle-пресеты (spec §033) матчим по стабильному `presetId`, legacy —
-    // по label (как было в 1.4). Юзер может переименовать CustomRule;
-    // для bundle это не должно ломать "In Rules"-индикатор.
-    // Identity-match по `presetId` (стабильный slug, не ломается при
-    // переименовании CustomRule). Kind не фильтруем — для legacy-пресетов
-    // CustomRule имеет `kind: inline|srs`, но presetId проставлен через
-    // `selectableRuleToCustom` (spec §033). Пресет без `preset_id` → в
-    // каталоге всегда кнопка "Add to Rules" (дубли на совести юзера:
-    // по label не матчим, т.к. юзер может переименовать).
+
+
+
+
+
+
+
+
+
     final existing =
         rule.presetId.isNotEmpty &&
         _customRules.any((c) => c.presetId == rule.presetId);
@@ -591,16 +591,16 @@ class _RoutingScreenState extends State<RoutingScreen>
 
   void _copyPreset(SelectableRule rule, WizardTemplate template) {
     CustomRule cr = selectableRuleToCustom(rule, template);
-    // Правила нуждающиеся в SRS-файле добавляются disabled — юзер сначала
-    // качает через ☁, потом включает switch (или toggle-on сам auto-
-    // download'ит и enable на успехе).
+
+
+
     final needsSrs =
         cr is CustomRuleSrs ||
         (cr is CustomRulePreset && _remoteRuleSetsOf(rule, cr).isNotEmpty);
     if (needsSrs) cr = cr.withEnabled(false);
 
-    // §370 — пресет из каталога садится на свой шаблонный `num`; если тот
-    // занят, соседи сдвигаются лениво. Позиция в списке — производная от оси.
+
+
     cr.orderNum = rule.num;
     setState(() {
       _customRules.add(cr);
@@ -610,9 +610,9 @@ class _RoutingScreenState extends State<RoutingScreen>
         ..addAll(sorted);
       _markDirty();
     });
-    // §266 — при создании пресета применяем on_change по начальному состоянию
-    // (@rule_enable = cr.enabled). FakeIP добавлен включённым → resolve_enabled
-    // сразу выставляется согласно положению (q2).
+
+
+
     if (cr is CustomRulePreset) {
       unawaited(applyPresetOnChange(rule, cr));
     }
@@ -630,20 +630,20 @@ class _RoutingScreenState extends State<RoutingScreen>
     );
   }
 
-  // ─── §396 — экспорт/импорт правил файлом ───────────────────────────────
+
 
   Future<void> _exportRules() async {
     final template = _template;
     if (template == null) return;
-    // §398 — пресеты вне обмена: они есть у каждого получателя (из шаблона
-    // приложения), а вторая копия в списке ещё и неудаляема (seed §264
-    // держит инвариант по presetId).
+
+
+
     final exportable = [
       for (final r in _customRules)
         if (r.kind != CustomRuleKind.preset) r,
     ];
-    // Данные шага 2 (DNS): серверы без preset-refs (их резолвер §294
-    // порождает сам), правила — только пользовательские inline/srs.
+
+
     final dnsServers = [
       for (final s in await SettingsStorage.getDnsServers())
         if (s is! DnsServerPreset) s
@@ -663,8 +663,8 @@ class _RoutingScreenState extends State<RoutingScreen>
         for (final s in template.dnsOptionsModel.servers) s.tag
       },
     );
-    // §398 — DNS-only экспорт допустим: правил может не быть вовсе. Пусто
-    // целиком (ни правил, ни DNS) — выходим молча.
+
+
     if (selected == null || !mounted) return;
     if (selected.rules.isEmpty &&
         selected.dnsServers.isEmpty &&
@@ -673,8 +673,8 @@ class _RoutingScreenState extends State<RoutingScreen>
     }
 
     try {
-      // §374 — доступные способы выясняем до шита; обе проверки платформенные,
-      // поэтому параллельно.
+
+
       final availability = await Future.wait([
         UrlLauncher.hasRealFilePicker(),
         UrlLauncher.canSaveToDownloads(),
@@ -685,14 +685,14 @@ class _RoutingScreenState extends State<RoutingScreen>
         canSaveToFile: availability[0],
         canSaveToDownloads: availability[1],
       );
-      if (action == null) return; // юзер закрыл шит
+      if (action == null) return;
 
       String? appVersion;
       try {
         final info = await PackageInfo.fromPlatform();
         appVersion = '${info.version}+${info.buildNumber}';
       } catch (_) {
-        // PackageInfo может упасть в test environment — graceful skip.
+
       }
       final json = buildRulesExport(
         selected.rules,
@@ -701,8 +701,8 @@ class _RoutingScreenState extends State<RoutingScreen>
         dnsRules: selected.dnsRules,
       );
       final filename = suggestedRulesFilename();
-      // Размер в БАЙТАХ, а не code units (§374: String.length считает UTF-16,
-      // на кириллице цифра расходилась с файлом на диске).
+
+
       final bytes = utf8.encode(json).length;
 
       final SaveOutcome outcome;
@@ -715,8 +715,8 @@ class _RoutingScreenState extends State<RoutingScreen>
             content: json,
           );
         case ExportAction.share:
-          // Share требует файл на диске: кэш подходит — получатель копирует
-          // его себе, а очистка кэша системой нам не важна.
+
+
           final tmpDir = await getTemporaryDirectory();
           final path = '${tmpDir.path}/$filename';
           await File(path).writeAsString(json);
@@ -741,9 +741,9 @@ class _RoutingScreenState extends State<RoutingScreen>
             getLocalText.s("Saved to Downloads: %s (%d bytes)", name, bytes),
           );
         case SaveCancelled():
-          break; // юзер закрыл диалог сохранения — молчим
+          break;
         case SaveNoTarget() || SaveFailed():
-          break; // покрыто saveProblemText выше
+          break;
       }
     } catch (e) {
       showSnack(
@@ -756,7 +756,7 @@ class _RoutingScreenState extends State<RoutingScreen>
     final template = _template;
     if (template == null) return;
     try {
-      // §372 — см. pickFileSafely: Android TV без DocumentsUI.
+
       final outcome = await pickFileSafely(
         type: FileType.custom,
         allowedExtensions: ['json'],
@@ -764,7 +764,7 @@ class _RoutingScreenState extends State<RoutingScreen>
       if (outcome is! PickedFiles) {
         final problem = pickProblemText(outcome);
         if (problem != null) showSnack(problem);
-        return; // cancelled / нет пикера / сбой
+        return;
       }
       final file = outcome.single;
       final raw = utf8DecodeOrNull(file.bytes);
@@ -781,9 +781,9 @@ class _RoutingScreenState extends State<RoutingScreen>
         return;
       }
 
-      // Контекст санации: теги ВСЕХ Направлений (ссылку на выключенный лечит
-      // существующая механика §274/§277) + DNS-теги как в дропдауне §117
-      // (`edit_controller._loadDnsServerTags`: storage-refs ∪ template).
+
+
+
       final directionTags = {for (final c in _directions) c.tag};
       final existingServers = await SettingsStorage.getDnsServers();
       final existingServerTags = <String>{
@@ -795,7 +795,7 @@ class _RoutingScreenState extends State<RoutingScreen>
         for (final s in template.dnsOptionsModel.servers) s.tag,
       };
 
-      // §5.3a — DNS-секции файла санируются до превью.
+
       final dnsServerItems = [
         for (final entry in contents.rawDnsServers)
           sanitizeImportedDnsServer(
@@ -815,8 +815,8 @@ class _RoutingScreenState extends State<RoutingScreen>
           ),
       ];
 
-      // Правило и его сервер, приехавшие одним файлом, связываются без
-      // лечения: теги импортируемых серверов — валидные ссылки (§5.3a).
+
+
       final dnsServerTags = <String>{
         ...existingServerTags,
         ...templateServerTags,
@@ -824,9 +824,9 @@ class _RoutingScreenState extends State<RoutingScreen>
           if (it.item case final server?) server.tag,
       };
 
-      // §398 — дедуп по видимому имени (§279): имена получателя плюс имена
-      // уже принятых элементов этого же файла (два одноимённых правила в
-      // одном файле не пройдут оба).
+
+
+
       final takenNames = visibleRuleNames(_customRules, template);
       final items = <SanitizedImportRule>[];
       for (final entry in contents.rawRules) {
@@ -865,8 +865,8 @@ class _RoutingScreenState extends State<RoutingScreen>
       final dnsCount = picked.dnsServers.length + picked.dnsRules.length;
       if (inserted.isEmpty && dnsCount == 0) return;
 
-      // DNS-сущности — прямо в хранение (append; санация уже разобрала их
-      // в модели).
+
+
       if (picked.dnsServers.isNotEmpty) {
         await SettingsStorage.saveDnsServers(
             [...existingServers, ...picked.dnsServers]);
@@ -885,7 +885,7 @@ class _RoutingScreenState extends State<RoutingScreen>
             ..addAll(sorted);
           _markDirty();
         });
-        // §266 — как _copyPreset: on_change по начальному состоянию пресета.
+
         for (final cr in inserted) {
           if (cr is CustomRulePreset) {
             final preset = _presetFor(cr.presetId);
@@ -921,24 +921,24 @@ class _RoutingScreenState extends State<RoutingScreen>
     );
   }
 
-  // ─── Custom Rules (Routing, spec §030) ───
 
-  /// §370 — drag: правило встаёт СРАЗУ ЗА тем, на чьё место его бросили,
-  /// и получает `num = target.num + 1` (ленивый сдвиг соседей, см.
-  /// `placeRuleAfter`). Порядок в списке — производная от оси, поэтому после
-  /// пересчёта номеров список пересортировывается, а не переставляется руками.
+
+
+
+
+
   void _onReorderCustomRule(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= _customRules.length) return;
     if (newIndex < 0 || newIndex > _customRules.length - 1) return;
     final moved = _customRules[oldIndex];
-    if (!_isSortable(moved)) return; // несортируемое не двигаем
+    if (!_isSortable(moved)) return;
     setState(() {
-      // Приходит из `onReorderItem` (RoutingTabs) — newIndex уже приведён к
-      // списку БЕЗ перетаскиваемого элемента, ручного сдвига «-1 при move
-      // вниз» здесь быть не должно. Цель — правило, ЗА которым встаём, в
-      // списке БЕЗ самого moved. Бросок в начало (newIndex 0) — «перед
-      // первым»: target = null, `placeRuleAfter` уводит в начало сортируемой
-      // части, несортируемая шапка при этом не двигается.
+
+
+
+
+
+
       final rest = [..._customRules]..removeAt(oldIndex);
       final target = newIndex == 0 ? null : rest[newIndex - 1];
       placeRuleAfter(_customRules, moved, target, isSortable: _isSortable);
@@ -950,10 +950,10 @@ class _RoutingScreenState extends State<RoutingScreen>
     });
   }
 
-  /// §370 — можно ли двигать правило drag'ом. Несортируемые
-  /// (`traffic-processing`) держат позицию: они несут `sniff`, который обязан
-  /// быть первым правилом `route.rules`. Правило, которого нет в шаблоне
-  /// (пользовательское inline/srs/json), сортируемо всегда.
+
+
+
+
   bool _isSortable(CustomRule rule) {
     if (rule.kind != CustomRuleKind.preset) return true;
     return _presetFor(rule.presetId)?.isSortable ?? true;
@@ -965,7 +965,7 @@ class _RoutingScreenState extends State<RoutingScreen>
     final preset = rule.kind == CustomRuleKind.preset
         ? _presetFor(rule.presetId)
         : null;
-    // §578 — у пресета с `for_each` подпись — обслуживаемые узлы.
+
     final servedTags = rule is CustomRulePreset && preset != null
         ? presetServedTags(rule, preset, _presetViewNodes())
         : null;
@@ -976,12 +976,12 @@ class _RoutingScreenState extends State<RoutingScreen>
         ? _presetOut(rule, preset)
         : rule.outbound;
     final pickerDisabled = rule.kind == CustomRuleKind.preset && preset == null;
-    // json-правило и DNS-only пресет — без пикера (см. хелпер).
+
     final showOutbound = RoutingHelpers.showsOutboundPicker(rule, preset);
-    // §231 — трогает ли правило DNS (для чипа «DNS»). Пресет → touchesDns
-    // (dns_rule/dns_servers); inline/srs → dnsMirrorActive ИЛИ forceIpv4Active
-    // (§256 — оба гейтятся так же, как билдер; не над-репортят при
-    // ports/protocols).
+
+
+
+
     final touchesDns = rule.kind == CustomRuleKind.preset
         ? (preset?.touchesDns ?? false)
         : (rule.dnsMirrorActive || rule.forceIpv4Active);
@@ -998,8 +998,8 @@ class _RoutingScreenState extends State<RoutingScreen>
     return CustomRuleTile(
       index: index,
       rule: rule,
-      // §279 (§3.5.1) — live display-имя: label пресета из локализованного
-      // шаблона + порядковый суффикс копий; fallback — сохранённый снапшот.
+
+
       displayName: ruleDisplayName(rule, _customRules, _template),
       options: options,
       subtitle: subtitle,
@@ -1028,8 +1028,8 @@ class _RoutingScreenState extends State<RoutingScreen>
           _customRules[index] = rule.withEnabled(v);
           _markDirty();
         });
-        // §266 — toggle пресета меняет @rule_enable → каскад on_change
-        // (напр. FakeIP вкл → resolve_enabled off).
+
+
         final updated = _customRules[index];
         if (updated is CustomRulePreset && preset != null) {
           unawaited(applyPresetOnChange(preset, updated));
@@ -1053,9 +1053,9 @@ class _RoutingScreenState extends State<RoutingScreen>
     );
   }
 
-  /// ☁-кнопка для preset-правил с remote rule_set'ами. "cached" = все
-  /// remote rule_set'ы пресета имеют локальный `.srs` (spec §011 compliance,
-  /// task 011).
+
+
+
   Widget _presetSrsStatusButton(CustomRulePreset rule, SelectableRule preset) {
     return PresetSrsStatusButton(
       rule: rule,
@@ -1071,18 +1071,18 @@ class _RoutingScreenState extends State<RoutingScreen>
     );
   }
 
-  /// Грубое определение центра виджета для показа popup меню от long-press.
-  /// BuildContext в момент long-press не доступен (InkWell.onLongPress без
-  /// details), поэтому используем координаты текущего контекста экрана.
+
+
+
   Future<Offset?> _centerOf(BuildContext ctx) async {
     final box = ctx.findRenderObject() as RenderBox?;
     if (box == null) return null;
     return box.localToGlobal(box.size.center(Offset.zero));
   }
 
-  /// Long-press меню у ☁ для preset-rule: Refresh / Clear. Refresh =
-  /// повторный download всех remote rule_set'ов. Clear = удалить все cached
-  /// файлы + disabled switch (правило не матчит без кэша).
+
+
+
   Future<void> _showPresetCloudMenu(
     CustomRulePreset rule,
     SelectableRule preset,
@@ -1111,8 +1111,8 @@ class _RoutingScreenState extends State<RoutingScreen>
     }
   }
 
-  /// Контекстное меню по long-press на tile — только Delete. Refresh для
-  /// srs живёт в редакторе (long-press на cloud ☁).
+
+
   Future<void> _showRuleContextMenu(int index, Offset pos) async {
     if (index < 0 || index >= _customRules.length) return;
     final action = await showRuleContextMenu(context, pos);
@@ -1135,10 +1135,10 @@ class _RoutingScreenState extends State<RoutingScreen>
       _srsCached.remove(rule.id);
       _markDirty();
     });
-    // Подчищаем cached-файлы: SRS — один файл по `id`, preset — по каждому
-    // remote rule_set'у пресета + убираем composite-ключи из _srsCached.
+
+
     if (rule is CustomRuleSrs) {
-      // ## 12 — файл на каждый набор.
+
       for (final cacheId in rule.cacheIds) {
         unawaited(RuleSetDownloader.delete(cacheId));
       }
@@ -1154,9 +1154,9 @@ class _RoutingScreenState extends State<RoutingScreen>
   }
 
   void _addCustomRule() async {
-    // Новое пользовательское правило — inline (default). Juzer в редакторе
-    // может переключить на srs; `preset` добавляется только через
-    // каталог Presets.
+
+
+
     final fresh = CustomRuleInline(
       name: _uniqueCustomRuleName('Rule ${_customRules.length + 1}', ''),
     );
@@ -1166,16 +1166,16 @@ class _RoutingScreenState extends State<RoutingScreen>
       outboundOptions: _outboundOptions()
           .map((o) => OutboundOption(value: o.tag, label: o.label))
           .toList(),
-      // §279 — дедуп по ВИДИМЫМ именам: inline-правило не может взять
-      // live-label пресета (display-резолв + снапшоты).
+
+
       existingNames: visibleRuleNames(_customRules, _template),
     );
     if (result == null) return;
-    if (result.wasDeleted) return; // нечего удалять — только что создали
+    if (result.wasDeleted) return;
     if (result.saved != null && mounted) {
       final saved = result.saved!;
-      // §370 — новое пользовательское правило уезжает в конец занятой части
-      // зоны 1000..1100 (см. `nextUserRuleNum`).
+
+
       saved.orderNum = nextUserRuleNum(_customRules);
       setState(() {
         _customRules.add(saved);
@@ -1191,7 +1191,7 @@ class _RoutingScreenState extends State<RoutingScreen>
   Future<void> _openCustomRuleEditor(int index) async {
     if (index < 0 || index >= _customRules.length) return;
     final current = _customRules[index];
-    // §279 — дедуп по видимым именам (live-label'ы пресетов + снапшоты).
+
     final existing = visibleRuleNames(
       _customRules,
       _template,
@@ -1207,12 +1207,12 @@ class _RoutingScreenState extends State<RoutingScreen>
       preset: current.kind == CustomRuleKind.preset
           ? _presetFor(current.presetId)
           : null,
-      // §578 — превью пресета с `for_each` раскрывается по узлам.
+
       presetNodes: current.kind == CustomRuleKind.preset
           ? _presetViewNodes()
           : const [],
-      // §279 — display-имя для read-only Name-поля preset-ветки редактора
-      // (live-label + порядковый суффикс копии).
+
+
       displayName: current.kind == CustomRuleKind.preset
           ? ruleDisplayName(current, _customRules, _template)
           : null,
@@ -1230,8 +1230,8 @@ class _RoutingScreenState extends State<RoutingScreen>
           current.srsUrls.join('\n') != saved.srsUrls.join('\n');
       final kindChanged = current.kind != saved.kind;
       setState(() {
-        // URL или kind поменялись → старый cached-файл невалидный, правило
-        // выключаем до повторного Download.
+
+
         final next = (urlChanged || kindChanged)
             ? saved.withEnabled(false)
             : saved;
@@ -1240,7 +1240,7 @@ class _RoutingScreenState extends State<RoutingScreen>
         _markDirty();
       });
       if (urlChanged || kindChanged) {
-        // ## 12 — старые файлы всех наборов прежнего правила.
+
         for (final cacheId in current is CustomRuleSrs
             ? current.cacheIds
             : <String>[current.id]) {
@@ -1250,9 +1250,9 @@ class _RoutingScreenState extends State<RoutingScreen>
     }
   }
 
-  /// Находит bundle-пресет по id в загруженном шаблоне. null если
-  /// `_template == null` или пресет отсутствует (broken preset — show error
-  /// card в редакторе + skip при сборке).
+
+
+
   @override
   SelectableRule? _presetFor(String presetId) {
     if (presetId.isEmpty) return null;
@@ -1264,21 +1264,21 @@ class _RoutingScreenState extends State<RoutingScreen>
     return null;
   }
 
-  /// Текущий effective outbound для preset-правила — используется как
-  /// value для OutboundPicker'а. Fallback-chain:
-  ///
-  /// 1. `rule.varsValues['outbound']` — explicit user override. Универсально
-  ///    применяется в `preset_expand` независимо от формы template'а.
-  /// 2. `preset.vars['outbound'].default_value` — если template объявил
-  ///    outbound-var (Russian domains direct → `direct-out`).
-  /// 3. `preset.terminalRule['action']` — template shorthand вроде Block Ads
-  ///    (`action: reject`). Отдаём сам `action`; picker интерпретирует
-  ///    `reject` как пункт "Reject". §246: terminalRule — терминальный
-  ///    элемент rule-массива (промежуточные resolve/sniff пропускаются).
-  /// 4. `preset.terminalRule['outbound']` — hardcoded literal (ru-inside →
-  ///    `direct-out`).
-  /// 5. Fallback `'direct-out'`.
-  ///
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   String _presetOut(CustomRule rule, SelectableRule? preset) =>
       RoutingHelpers.presetOut(rule, preset);

@@ -1,18 +1,18 @@
 part of '../routing_screen.dart';
 
-/// SRS-cache / download оркестрация экрана Routing. Вынесено `part`'ом из
-/// `routing_screen.dart` — это та же библиотека и тот же `_RoutingScreenState`,
-/// так что поведение (setState/mounted/context/private-поля) идентично.
+
+
+
 mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScreen> {
-  // Поля и хелперы предоставляет `_RoutingScreenState`; объявляем требуемую
-  // поверхность абстрактно.
+
+
   Set<String> get _srsCached;
   Set<String> get _srsDownloading;
   List<CustomRule> get _customRules;
-  List<Direction> get _directions; // §125
-  void _invalidateOutboundOptions(); // §219 — сброс кэша опций outbound
+  List<Direction> get _directions;
+  void _invalidateOutboundOptions();
   set _template(WizardTemplate? value);
-  Map<String, String> get _userVars; // §534 — userVars для гейта наборов
+  Map<String, String> get _userVars;
   set _userVars(Map<String, String> value);
   String get _routeFinal;
   set _routeFinal(String value);
@@ -30,9 +30,9 @@ mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScr
     final template = await TemplateLoader.load();
     final storedFinal = await SettingsStorage.getRouteFinal();
 
-    // §125 — Направления из storage. Миграция enabled_groups→directions уже отработала
-    // в main() init; на пустом списке (старт без миграции в тестах) синтезируем
-    // из template, чтобы экран не был пустым.
+
+
+
     final stored = await SettingsStorage.getDirections();
     if (stored.isEmpty) {
       await SettingsStorage.migrateDirectionsIfNeeded(
@@ -45,42 +45,42 @@ mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScr
     } else {
       _directions.addAll(stored);
     }
-    _invalidateOutboundOptions(); // §219 — сброс кэша после load Направлений
+    _invalidateOutboundOptions();
 
     _routeFinal = storedFinal.isNotEmpty ? storedFinal : 'vpn-1';
-    // §578 — разовый шаг до чтения правил: поздний дефолтный пресет.
+
     await SettingsStorage.seedLateDefaultPresets(template);
     _customRules.addAll(await SettingsStorage.getCustomRules());
 
-    // Выставляем `_template` ДО `_refreshSrsCache` — он через `_presetFor`
-    // ищет `SelectableRule` в `_template.selectableRules`, иначе получит
-    // null и проскочит auto-disable для preset-правил с uncached
-    // remote rule_set'ами (task 011).
+
+
+
+
     _template = template;
 
     await _seedDefaultPresets(template);
 
-    // §265/§266 — вычистить осиротевшие ref-var значения из varsValues пресетов
-    // (напр. resolve_enabled застряла в varsValues с тех пор, как была обычной
-    // preset-var — теперь ref, значение в userVars). Иначе subtitle/Debug API
-    // показывают неверное значение из varsValues.
+
+
+
+
     final stripped =
         stripRefVarsFromVarsValues(_customRules, template.selectableRules);
     final strippedChanged = !identical(stripped, _customRules);
 
-    // §370 — нормализация порядка по оси `num` на UI/storage-уровне.
-    // `_seedDefaultPresets` сидит дефолты только при первой установке
-    // (`hasDefaultsSeeded` guard); у существующих юзеров обязательный пресет
-    // (traffic-processing) НЕ засеется и не появится в списке правил, хотя
-    // билдер добавляет его правила в route.rules на лету. Здесь же случается
-    // разметка storage, записанного до §370 (`num` отсутствует) — отдельного
-    // версионированного шага миграции нет. Если список изменился — персистим,
-    // чтобы номера видели все потребители: Routing UI, Debug API /rules,
-    // DNS-экран.
-    // Неразмеченные правила ловим ДО нормализации: `markRuleOrder` мутирует
-    // `orderNum` на месте, после неё разницы «было/стало» уже не видно.
-    // D-117 — сдвинутая голова тоже: её номер меняется, а порядок может и
-    // не поменяться.
+
+
+
+
+
+
+
+
+
+
+
+
+
     final needsMarking = stripped.any((r) => r.orderNum == null) ||
         requiredRuleNumsShifted(stripped, template.selectableRules);
     final normalized =
@@ -101,49 +101,49 @@ mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScr
     });
   }
 
-  /// §107: staging — буфер экрана в `_cache` на каждую мутацию; дисковый
-  /// flush — mixin'ом (flushToDisk) на dispose/paused.
+
+
   @override
   Future<void> stageChanges() async {
-    await DirectionMutations.bulkReplace(_directions, flush: false); // §125/§292
+    await DirectionMutations.bulkReplace(_directions, flush: false);
     await SettingsStorage.saveRouteFinal(_routeFinal, flush: false);
     await SettingsStorage.saveCustomRules(_customRules, flush: false);
-    // §076: configDirty уже true (set синхронно в markDirty). НЕ
-    // переставляем тут — race с home return observer (banner blink).
+
+
   }
 
-  /// Обновить `_srsCached` + принудительно **отключить** правила у которых
-  /// нет нужного кэша (task 011): без локального `.srs` правило не может
-  /// работать, sing-box просто пропустит соответствующий rule_set при
-  /// expansion (см. preset_expand.dart), а enabled-switch visually обманывал
-  /// бы — «вкл.», но ничего не матчит. Выключаем явно → юзер видит OFF и
-  /// понимает, что надо тапнуть ☁ для download'а.
-  ///
-  /// Проверяется:
-  /// - `CustomRuleSrs` — один файл по `id`.
-  /// - `CustomRulePreset` — remote rule_set'ы пресета
-  ///   (`preset__<presetId>__<tag>`), включённые гейтом (§534: `#enable` и
-  ///   легаси `enabled`, семантика билдера). Выключенный гейтом набор не
-  ///   требуется в кэше и правило из-за него не гаснет, но его файл от
-  ///   `pruneOrphans` защищён ([RoutingHelpers.presetCachePlan]).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   Future<void> _refreshSrsCache() async {
-    // §534 — свежий снимок userVars до пересчёта: гейт набора на
-    // ref-переменной (§265) читает значение из глобального словаря.
+
+
     _userVars = await SettingsStorage.getAllVars();
     _srsCached.clear();
     var changed = false;
-    // Set известных disk-cache ID'шников. Нужен для `pruneOrphans`
-    // ниже — disk-ID отличается от `_srsCached` композитного ключа
-    // (`_presetSrsKey` использует `rule.id|tag`, а файл лежит под
-    // `preset__<presetId>__<tag>`).
+
+
+
+
     final activeDiskIds = <String>{};
     for (var i = 0; i < _customRules.length; i++) {
       final r = _customRules[i];
       if (r is CustomRuleSrs) {
-        // Srs-правило резервирует свой id в disk-namespace'е независимо от
-        // того, скачан файл или нет — чтобы prune не удалил ещё-не-скачанный.
+
+
         activeDiskIds.add(r.id);
-        // ## 12 — по файлу на набор; правило «скачано», когда есть ВСЕ.
+
         activeDiskIds.addAll(r.cacheIds);
         var cached = r.cacheIds.isNotEmpty;
         for (final cacheId in r.cacheIds) {
@@ -157,9 +157,9 @@ mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScr
       } else if (r is CustomRulePreset) {
         final preset = _presetFor(r.presetId);
         if (preset == null) continue;
-        // §534 — файл выключенного гейтом набора не сирота: вернут галку —
-        // качать заново не придётся; свежесть при возврате обеспечит
-        // автообновление по TTL. Требуются только включённые гейтом.
+
+
+
         final plan = RoutingHelpers.presetCachePlan(r, preset,
             globalVars: _userVars);
         activeDiskIds.addAll(plan.keepCacheIds);
@@ -181,15 +181,15 @@ mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScr
         }
       }
     }
-    // Fire-and-forget: удалить orphan'ов (файлы без соответствующего правила).
-    // Не критично по времени, не влияет на UI — unawaited'им.
+
+
     unawaited(RuleSetDownloader.pruneOrphans(activeDiskIds));
     if (changed) _markDirty();
   }
 
-  /// §264 — совпадают ли два списка правил по порядку и составу (по `id`).
-  /// Чтобы не персистить, когда нормализация ничего не изменила (pinned уже
-  /// на месте) — избегаем лишней записи в storage на каждом открытии экрана.
+
+
+
   bool _sameRuleOrder(List<CustomRule> a, List<CustomRule> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
@@ -198,11 +198,11 @@ mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScr
     return true;
   }
 
-  /// Fresh-install seed: засеять `_customRules` из `template.selectableRules`
-  /// с `default: true`. One-shot — защищаемся флагом `defaultsSeeded` (тот же
-  /// storage-ключ `presets_migrated`: §159 удалил legacy-миграцию
-  /// `enabled_rules`/`rule_outbounds`, но флаг переиспользуем, чтобы юзеры,
-  /// которые ранее уже мигрировали/засеялись, НЕ получили повторный seed).
+
+
+
+
+
   Future<void> _seedDefaultPresets(WizardTemplate template) async {
     if (await SettingsStorage.hasDefaultsSeeded()) return;
 
@@ -215,13 +215,13 @@ mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScr
     await SettingsStorage.markDefaultsSeeded();
   }
 
-  /// Качает SRS и при успехе включает правило. Вызывается из Switch'а
-  /// "включить" по правилу с не-закэшеным SRS — раньше Switch был disabled
-  /// и юзеру приходилось сначала тапать ☁ вручную, потом сам Switch.
+
+
+
   Future<void> _enableAfterDownload(CustomRule rule) async {
     await _downloadSrs(rule);
     if (!mounted) return;
-    // Проверка "всё ли закачалось" — per-kind.
+
     bool ok;
     if (rule is CustomRuleSrs) {
       ok = _srsCached.contains(rule.id);
@@ -259,7 +259,7 @@ mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScr
       return;
     }
     setState(() => _srsDownloading.add(rule.id));
-    // ## 12 — все наборы по порядку; первый провал = провал правила.
+
     String? path;
     for (var i = 0; i < rule.srsUrls.length; i++) {
       path = await RuleSetDownloader.download(
@@ -281,9 +281,9 @@ mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScr
     if (path != null) _markDirty();
   }
 
-  /// Скачивает все remote rule_set'ы пресета в локальный кэш
-  /// (`$docs/rule_sets/preset__<presetId>__<tag>.srs`, spec §011). Успех =
-  /// **все** скачались. Частичный успех отображается snackbar'ом.
+
+
+
   Future<void> _downloadSrsForPresetRule(CustomRulePreset rule) async {
     final preset = _presetFor(rule.presetId);
     if (preset == null) {
@@ -292,9 +292,9 @@ mixin _RoutingSrsCacheMixin on State<RoutingScreen>, LazyPersistMixin<RoutingScr
       );
       return;
     }
-    // §045/§107/§534: качаем только наборы, включённые гейтом.
+
     final remotes = _remoteRuleSetsOf(preset, rule);
-    if (remotes.isEmpty) return; // inline-only preset — нечего качать
+    if (remotes.isEmpty) return;
     setState(() => _srsDownloading.add(rule.id));
     var ok = 0;
     var failed = 0;

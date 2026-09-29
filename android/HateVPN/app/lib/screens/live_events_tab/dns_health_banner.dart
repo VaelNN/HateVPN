@@ -1,13 +1,13 @@
-// §262 — warning banner для деградации DNS в Live system-wide tab.
-//
-// Показывается, когда детектор здоровья DNS в профайлере считает вердикт
-// [TrafficProfiler.I.dnsHealthUnhealthy] истинным: массовые fail-резолвы при
-// живой связи (fail-доля ≥20% + ≥3 fail + есть conn-активность за окно 30с).
-// «DNS дохнет, а туннель жив → проблема в DNS».
-//
-// По образцу [UnattributedBanner], но кликабельный: тап открывает лист-подсказку
-// с переходами в DNS settings / каталог пресетов (FakeIP). Контроллеры нужны
-// для навигационных кнопок листа — прокидываются из [LiveEventsTab].
+
+
+
+
+
+
+
+
+
+
 
 import 'package:flutter/material.dart';
 

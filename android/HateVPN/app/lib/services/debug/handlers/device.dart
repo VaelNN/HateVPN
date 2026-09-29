@@ -9,11 +9,11 @@ import '../context.dart';
 import '../transport/request.dart';
 import '../transport/response.dart';
 
-/// `GET /device` — метаданные устройства и приложения (§031).
-///
-/// Баг-репорты без этого — гадание: "у меня не работает" зависит от
-/// версии ОС, ABI, battery-opt и network type. Этот endpoint даёт
-/// полный снимок окружения в одном запросе.
+
+
+
+
+
 Future<DebugResponse> deviceHandler(
   DebugRequest req,
   DebugContext ctx,
@@ -43,8 +43,8 @@ Future<DebugResponse> deviceHandler(
   final batteryOk = await vpn.isIgnoringBatteryOptimizations().catchError(
         (_) => false,
       );
-  // Версия ядра (libbox / sing-box-lx) — что РЕАЛЬНО вкомпилировано в APK,
-  // не пин в libbox.version. Пусто на timeout/ошибку → caller рендерит unknown.
+
+
   final coreVersion = await vpn.getCoreVersion().catchError((_) => '');
   final connResults = await connectivity.checkConnectivity();
   final networkType = _networkLabel(connResults);
@@ -74,7 +74,7 @@ String _networkLabel(List<ConnectivityResult> results) {
   if (results.isEmpty || results.contains(ConnectivityResult.none)) {
     return 'none';
   }
-  // Приоритет: vpn > ethernet > wifi > mobile > bluetooth > other
+
   if (results.contains(ConnectivityResult.vpn)) return 'vpn';
   if (results.contains(ConnectivityResult.ethernet)) return 'ethernet';
   if (results.contains(ConnectivityResult.wifi)) return 'wifi';

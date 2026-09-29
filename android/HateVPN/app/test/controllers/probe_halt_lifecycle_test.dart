@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:async';
 import 'dart:io';
@@ -22,13 +22,13 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationSupportPath() async => tempRoot;
 }
 
-/// §286 — детерминированная остановка пробирования. Через §250-мост
-/// `debugHandleStatusEvent` (и публичный `onAppPaused`) гоняем переходы и
-/// проверяем, что активная folder-probe (зарегистрированная в `ProbeLifecycle`)
-/// отменяется на: disconnected, revoked, сворачивание приложения.
-///
-/// §307 — сворачивание гасит folder-probe и auto-ping-таймер, но НЕ mass-ping:
-/// «запустил пинг списка → свернул → вернулся к результатам» — штатный сценарий.
+
+
+
+
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -64,7 +64,7 @@ void main() {
       });
     }
     controller = HomeController();
-    ProbeLifecycle.I.haltAll(); // чистый старт
+    ProbeLifecycle.I.haltAll();
   });
 
   tearDown(() async {
@@ -77,7 +77,7 @@ void main() {
     if (await tempDir.exists()) await tempDir.delete(recursive: true);
   });
 
-  // Регистрирует «активную пробу» и возвращает функцию-детектор отмены.
+
   bool Function() armProbe() {
     var cancelled = false;
     ProbeLifecycle.I.register(() => cancelled = true);
@@ -115,10 +115,10 @@ void main() {
     expect(ProbeLifecycle.I.isProbing, isFalse);
   });
 
-  // §307 — регресс жалобы «с v2.16.0 пинг останавливается при сворачивании».
-  // Запускаем НАСТОЯЩИЙ прогон (`order` минует state.nodes, нужен только
-  // tunnelUp), сворачиваем и проверяем, что он жив: флаг не сброшен и
-  // `ccCancelPing` (рвёт in-flight urltest'ы в ядре, §175) не вызывался.
+
+
+
+
   test('сворачивание приложения НЕ отменяет mass-ping', () async {
     controller.debugHandleStatusEvent(event(TunnelStatus.connected));
     unawaited(controller.runMassUrltest(order: const ['a', 'b', 'c']));
@@ -131,7 +131,7 @@ void main() {
     expect(methodCalls, isNot(contains('ccCancelPing')));
   });
 
-  // Контраст (§286 не регрессирует): «сессия мертва» рвёт mass-ping полностью.
+
   test('disconnected отменяет идущий mass-ping', () async {
     controller.debugHandleStatusEvent(event(TunnelStatus.connected));
     unawaited(controller.runMassUrltest(order: const ['a', 'b', 'c']));

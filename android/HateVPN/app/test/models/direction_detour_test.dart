@@ -2,11 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/config/consts.dart';
 import 'package:lxbox/models/direction.dart';
 
-/// §248/§274 — parse-гейт detour-инвариантов в Direction.fromJson: restore из
-/// backup и ручная правка файла пишут raw JSON мимо UI/storage/API — read-time
-/// коэрс единственная точка, которую не обойти. После §274 гейт остался один:
-/// «vpn-1 не detour». Комбинация detour × include_block легальна — detour
-/// теперь разрешение, а не роль-исключение.
+
+
+
+
+
 void main() {
   group('§248/§274 — Direction.fromJson parse-гейт', () {
     test('vpn-1 + detour:true → isDetour коэрсится в false', () {
@@ -59,7 +59,7 @@ void main() {
       expect(c.copyWith(isDetour: true).isDetour, true);
       expect(c.copyWith(isDetour: true).copyWith(isDetour: false).isDetour,
           false);
-      // copyWith без параметра не трогает роль.
+
       expect(c.copyWith(label: 'Y').isDetour, false);
     });
   });
@@ -91,10 +91,10 @@ void main() {
     });
   });
 
-  // §274 — ⚙ живёт в самом label (storage), как ⚙-метка в тегах
-  // detour-серверов: смена флага через copyWith переименовывает Направление,
-  // fromJson нормализует restore/ручную правку. Руками маркер не снять —
-  // нормализация вернёт (⚙ зарезервирован).
+
+
+
+
   group('§274 — normalizeLabel: ⚙ в storage-label', () {
     test('copyWith(isDetour:true) переименовывает label в ⚙-форму', () {
       const c = Direction(tag: 'vpn-2', label: 'Relay');

@@ -12,7 +12,7 @@ internal static class Program
 
     static int Main(string[] args)
     {
-        SetDefaultDllDirectories(0x00000200 | 0x00000800); // Application directory and System32 only.
+        SetDefaultDllDirectories(0x00000200 | 0x00000800);
         if (args.Length > 0 && args[0] == "--native-check")
         {
             foreach(var item in new[]{("tunnel.dll","WireGuardTunnelService"),("wireguard.dll","WireGuardOpenAdapter"),("amneziawg-tunnel.dll","WireGuardTunnelService")})

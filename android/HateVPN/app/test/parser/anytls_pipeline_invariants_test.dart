@@ -11,14 +11,14 @@ import 'package:lxbox/services/node_hash.dart';
 import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §472 шаг 6, раздел 3 спеки — инварианты переезда anytls на конвейер.
-///
-/// Инварианты 1 и 2 (корпус и golden) держат свои тесты: корпус URI —
-/// `test/contract/`, эталоны конфигов — `test/builder/` и
-/// `test/storage_migration/`. Здесь то, что специфично для переезда
-/// протокола: identity, round-trip, цена и коды из реестра.
 
-/// Снимок identity, снятый СТАРЫМ путём ДО правки (18.09.2026).
+
+
+
+
+
+
+
 const _identityFixture = 'test/fixtures/anytls/pipeline_identity_before.json';
 
 Map<String, Map<String, dynamic>> _identityBefore() {
@@ -28,7 +28,7 @@ Map<String, Map<String, dynamic>> _identityBefore() {
   );
 }
 
-/// Все anytls-ссылки корпуса, в порядке файлов.
+
 List<String> _corpusUris() {
   final out = <String>[];
   final files = Directory('$kVendorRoot/corpus/uri/anytls')
@@ -98,7 +98,7 @@ void main() {
             reason: 'круг изменил identity: $u');
         checked++;
       }
-      // У anytls круг проходят ВСЕ разбираемые кейсы, без исключений.
+
       expect(checked, greaterThan(9));
     }, skip: corpusSkip);
   });
@@ -113,7 +113,7 @@ void main() {
               '&min_idle_session=2#node$i',
       ];
 
-      // Прогрев кэша схем и JIT.
+
       for (var i = 0; i < 200; i++) {
         parseUri(uris[i]);
       }
@@ -141,11 +141,11 @@ void main() {
 
   group('§472 — коды anytls приходят из реестра, с путём и значением', () {
     test('min_idle_session судит РЕЕСТР, а не рукописный класс', () {
-      // Прежде это правило исполнял `AnyTlsMinIdleInvalidWarning` — код без
-      // пути и без значения. На нём же стоял дедуп-пример
-      // `parse_warnings_test.dart`, переехавший шагом 6 на masque.
-      // §472 шаг 9 — сам класс снят (производителей в lib/ не осталось),
-      // поэтому проверять его отсутствие больше нечем: он не компилируется.
+
+
+
+
+
       for (final raw in ['-5', 'abc']) {
         final spec = parseUri('anytls://pw@h.example:443?sni=a.example'
             '&min_idle_session=$raw#n')!;
@@ -158,7 +158,7 @@ void main() {
             isFalse,
             reason: 'поле снято — ядро подставит свой дефолт');
       }
-      // Ноль — законное значение, кода нет.
+
       final zero =
           parseUri('anytls://pw@h.example:443?min_idle_session=0#n')!;
       expect(_registry(zero).map((w) => w.code),
@@ -184,24 +184,24 @@ void main() {
       final tls = ok.emit(TemplateVars.empty).map['tls'] as Map;
       expect((tls['reality'] as Map)['public_key'], pbk);
 
-      // Мусорный ключ: блок создаёт маппер, снимает реестр по `base64_32`.
+
       final junk =
           parseUri('anytls://pw@h.example:443?security=reality&pbk=enabled#n')!;
       final junkTls = junk.emit(TemplateVars.empty).map['tls'] as Map;
       expect(junkTls.containsKey('reality'), isFalse);
       expect(_registry(junk).map((w) => w.code),
           contains('reality_pbk_invalid'));
-      // Узел жив и деградировал до plain TLS — так же, как прежде.
+
       expect(junkTls['enabled'], isTrue);
     });
   });
 
   group('§472 — anytls: перевод, который остаётся за маппером', () {
     test('security=none НЕ снимает блок TLS и не теряет параметры', () {
-      // AnyTLS живёт только поверх TLS (`body.fields.tls` → `required`), и
-      // `security=none` для него бессмысленен. Правило `security_none_no_tls`
-      // унесло бы весь блок вместе с `sni`/`alpn`/`insecure`, которые автор
-      // написал; кейс корпуса `security_none_params_kept` нормирует обратное.
+
+
+
+
       final spec = parseUri('anytls://pw@h.example:8443?security=none'
           '&sni=cdn.example&alpn=h2&fp=chrome#n')!;
       final tls = spec.emit(TemplateVars.empty).map['tls'] as Map;
@@ -211,8 +211,8 @@ void main() {
     });
 
     test('эвристика SNI: имя без точки и 🔒 уступают адресу сервера', () {
-      // `sni_heuristic_falls_back_to_server` — у anytls правило есть на обоих
-      // проектах (в отличие от trojan/vless/vmess).
+
+
       for (final bad in ['localhost', '🔒']) {
         final spec = parseUri(
             'anytls://pw@h.example:443?sni=${Uri.encodeComponent(bad)}#n')!;
@@ -232,8 +232,8 @@ void main() {
     });
 
     test('голое число duration-поля читается как секунды', () {
-      // Та же конвенция, что `heartbeat_bare_number` у tuic: ядро отвергает
-      // «30» без единицы измерения фаталом на весь конфиг.
+
+
       final spec = parseUri('anytls://pw@h.example:443?sni=a.b'
           '&idle_session_timeout=30&idle_session_check_interval=15s#n')!;
       final body = spec.emit(TemplateVars.empty).map;
@@ -242,18 +242,18 @@ void main() {
     });
 
     test('пароль с двоеточием внутри остаётся целым', () {
-      // userinfo у anytls это пароль ЦЕЛИКОМ (в отличие от tuic, где до
-      // первого двоеточия лежит uuid).
+
+
       final spec = parseUri('anytls://p%40ss%3Aword@h.example:443#n')!;
       expect(spec.emit(TemplateVars.empty).map['password'], 'p@ss:word');
     });
 
     test('дефект: нечисловой min_idle_session в ТЕЛЕ не роняет узел', () {
-      // `parseSingboxEntry` читал поле жёстким кастом `as num?`, и на любом
-      // нечисловом значении бросал; `parseUri`/`parseAll` исключение ловят и
-      // отдают `null` — узел исчезал ЦЕЛИКОМ и молча. Строка вместо числа у
-      // агрегаторов обычное дело, и до конвейера это было незаметно: URI-путь
-      // приводил значение к int сам, ещё до модели.
+
+
+
+
+
       final node = parseSingboxEntry({
         'type': 'anytls',
         'tag': 'n',
@@ -266,7 +266,7 @@ void main() {
       expect(node, isNotNull, reason: 'узел пережил нечисловое значение');
       expect((node as AnyTlsSpec).minIdleSession, isNull);
 
-      // Число строкой — законная форма провайдера, и она читается.
+
       final asString = parseSingboxEntry({
         'type': 'anytls',
         'tag': 'n',

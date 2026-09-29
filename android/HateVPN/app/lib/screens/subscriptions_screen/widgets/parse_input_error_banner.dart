@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../models/ui_msg.dart';
 import '../../subscription_detail_screen/widgets/node_warnings_sheet.dart';
 
-/// §500 — ошибка вставки под полем Servers: базовая фраза; причины из
-/// `dropped[]` — в шторке уведомлений (тап по строке открывает снова).
+
+
 class ParseInputErrorBanner extends StatelessWidget {
   const ParseInputErrorBanner(this.error, {super.key});
 

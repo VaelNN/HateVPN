@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 import 'l10n/locale_controller.dart';
 
-/// §219 — общий snackbar-хелпер для State'ов. До этого `_snack`/`_showSnack`
-/// дублировались приватно в backup/debug/warp_wizard/add_server_wizard экранах.
-///
-/// Mixin (а не extension на BuildContext): `mounted` здесь — `State.mounted`,
-/// поэтому `use_build_context_synchronously`-линт доволен guard'ом внутри, и
-/// call-site'ам не нужны свои проверки после await.
+
+
+
+
+
+
 mixin SnackHelper<T extends StatefulWidget> on State<T> {
-  /// Показать snackbar, если State ещё смонтирован. [duration] — опционально
-  /// (по умолчанию материаловские 4s; экраны-визарды раньше ставили 2s).
+
+
   void showSnack(String message, {Duration? duration}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -19,9 +19,9 @@ mixin SnackHelper<T extends StatefulWidget> on State<T> {
   }
 }
 
-/// §219 — единый confirm-диалог удаления (Cancel / Delete). Delete —
-/// `colorScheme.error`. Был продублирован в custom_rule_edit / direction_edit /
-/// dns_server_edit / routing_screen_menus. Возвращает `true` при подтверждении.
+
+
+
 Future<bool?> showDeleteConfirmDialog(
   BuildContext context, {
   required String title,
@@ -49,10 +49,10 @@ Future<bool?> showDeleteConfirmDialog(
   );
 }
 
-/// §219 — единый диалог «Unsaved changes» (Discard / Keep / Save). Был
-/// идентично продублирован в direction_edit / custom_rule_edit / dns_server_edit
-/// (`_handleBack`). Возвращает `'save'` / `'discard'` / `'keep'` / `null`
-/// (dismiss). Стилизация: Discard — `colorScheme.error`, Save — bold primary.
+
+
+
+
 Future<String?> showUnsavedChangesDialog(BuildContext context) {
   return showDialog<String>(
     context: context,
@@ -61,7 +61,7 @@ Future<String?> showUnsavedChangesDialog(BuildContext context) {
       return AlertDialog(
         title: Text(getLocalText.s("Unsaved changes")),
         content: Text(getLocalText.s("You have unsaved changes. Save before leaving?")),
-        // §045 — все TextButton + короткие надписи вмещаются в строку.
+
         actionsPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         actions: [
           TextButton(

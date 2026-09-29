@@ -5,9 +5,9 @@ import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/screens/routing_screen/widgets/custom_rule_tile.dart';
 import 'package:lxbox/services/rule_display_names.dart';
 
-/// §279 Phase 2 (§3.5.1) — тайлы двух копий одного пресета рендерятся
-/// РАЗЛИЧИМО: live-label + порядковый суффикс " (N)" у N-й копии.
-/// Без дизамбигуации live-резолюция схлопнула бы оба тайла в один текст.
+
+
+
 void main() {
   final template = WizardTemplate.fromJson({
     'selectable_rules': [
@@ -46,7 +46,7 @@ void main() {
   testWidgets('две копии одного пресета различимы (bare + " (2)")',
       (tester) async {
     final rules = <CustomRule>[
-      // Оба снапшота идентичны — различает только live-ordinal.
+
       CustomRulePreset(name: 'Block Ads', presetId: 'block-ads'),
       CustomRulePreset(name: 'Block Ads', presetId: 'block-ads'),
     ];

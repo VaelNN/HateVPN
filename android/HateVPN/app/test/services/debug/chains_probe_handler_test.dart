@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -30,9 +30,9 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => tempRoot;
 }
 
-/// Прогон-заглушка: отдаёт заранее заданный отчёт (или бросает), запоминая,
-/// с какими позициями и бюджетом её позвали. Ядро в юнит-тесте недоступно, а
-/// проверять надо ЛОГИКУ хендлера, не транспорт.
+
+
+
 class _StubProbe extends ChainLayerProbe {
   _StubProbe({this.report, this.error});
 
@@ -60,8 +60,8 @@ class _StubProbe extends ChainLayerProbe {
   }
 }
 
-/// §394 — `GET /chains/{tag}/probe`: маршрутизация под-ресурса, предусловия
-/// (нет цепочки / нет в собранном конфиге / VPN выключен) и форма ответа.
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -88,7 +88,7 @@ void main() {
   Map<String, Object?> asMap(DebugResponse r) =>
       (r as JsonResponse).body as Map<String, Object?>;
 
-  /// Конфиг с узлом цепочки [tag] и позициями [hops].
+
   String cfgWithChain(String tag, List<String> hops) => jsonEncode({
         'outbounds': [
           for (final h in hops) {'tag': h, 'type': 'vless'},
@@ -111,8 +111,8 @@ void main() {
     HapticService.I.enabled = false;
     for (final ch in [methods, ccStatus, ccGroups]) {
       messenger.setMockMethodCallHandler(ch, (call) async {
-        // saveParsedConfig отдаёт false, если native не подтвердил запись, —
-        // тогда configModel не обновится и все тесты уйдут в «нет в конфиге».
+
+
         if (call.method == 'saveConfig') return true;
         return null;
       });
@@ -157,7 +157,7 @@ void main() {
     test('под-ресурс не съедает обычный GET /chains/{tag}', () async {
       final r = asMap(await chainsHandler(get('/chains/chain-1'), ctx()));
       expect(r['tag'], 'chain-1');
-      // §439 — позиции в ответе — ссылки {folder_id?, tag}.
+
       expect(r['hops'], [
         {'tag': 'warp'},
         {'tag': 'al'},
@@ -167,7 +167,7 @@ void main() {
 
   group('предусловия', () {
     test('цепочки нет в собранном конфиге → 409, ядро не зовём', () async {
-      // configModel пуст: конфиг ни разу не собирался.
+
       final stub = _StubProbe(report: reportOf('chain-1', const []));
       chainProbeFactory = () => stub;
       await expectLater(
@@ -199,7 +199,7 @@ void main() {
 
   group('позиции и параметры', () {
     test('позиции берутся из СОБРАННОГО конфига, не из storage', () async {
-      // В storage — два хопа; в собранном конфиге — три (конфиг ушёл вперёд).
+
       await controller
           .saveParsedConfig(cfgWithChain('chain-1', ['warp', 'al', 'exit']));
       final stub = _StubProbe(
@@ -259,7 +259,7 @@ void main() {
       expect(layers.length, 3);
       expect(layers[0]['probe_tag'], 'chain-1#0');
       expect(layers[0]['cumulative_ms'], 127);
-      // Первый слой цены не несёт — вычитать не из чего.
+
       expect(layers[0].containsKey('delta_ms'), isFalse);
       expect(layers[1]['delta_ms'], 189);
       expect(layers[2]['delta_ms'], 359);
@@ -287,7 +287,7 @@ void main() {
           .cast<Map<String, Object?>>();
 
       expect(layers[1]['error'], 'dial: i/o timeout');
-      // Ноль миллисекунд читался бы как «хоп бесплатный» — ключа нет вовсе.
+
       expect(layers[1].containsKey('cumulative_ms'), isFalse);
       expect(layers[1].containsKey('delta_ms'), isFalse);
       expect(layers[2]['not_reached'], isTrue);

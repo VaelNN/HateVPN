@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/builder/core_chain_capability.dart';
 
-// §393 C5 — гейт поддержки цепочек по версии ядра.
-//
-// Ядро без `with_lx_chain` отвергает конфиг ЦЕЛИКОМ на неизвестном типе
-// outbound'а, то есть одна цепочка оставила бы пользователя вообще без VPN.
-// На мобиле список тегов сборки libbox наружу не отдаёт — единственный шов
-// это `Libbox.version()`, и сравнивать версии строкой нельзя (лексикографика
-// ставит `rc.10` перед `rc.5`).
+
+
+
+
+
+
+
 
 void main() {
   group('CoreVersion.parse', () {
@@ -30,8 +30,8 @@ void main() {
     });
 
     test('сборка не с тега (хвост -g<hash>) читается по номеру rc', () {
-      // `build_shared/tag.go` дописывает короткий хеш коммита. Хвост значит
-      // «после этого rc», а не «до», поэтому игнорируется.
+
+
       final v = CoreVersion.parse('1.14.0-lx.27-rc.5-g1a2b3c4')!;
       expect(v.rc, 5);
     });
@@ -46,8 +46,8 @@ void main() {
 
   group('CoreVersion.compareTo', () {
     test('rc сравниваются ЧИСЛАМИ, а не строками', () {
-      // Ровно та ошибка, ради которой гейт не сравнивает строки:
-      // 'rc.10'.compareTo('rc.5') < 0.
+
+
       final ten = CoreVersion.parse('1.14.0-lx.27-rc.10')!;
       final five = CoreVersion.parse('1.14.0-lx.27-rc.5')!;
       expect(ten.compareTo(five), greaterThan(0));
@@ -89,13 +89,13 @@ void main() {
     });
 
     test('кривая / пустая / апстримная строка — FAIL-OPEN', () {
-      // Деградировать на догадке нельзя: это отняло бы у пользователя
-      // рабочий маршрут, а отвергнутый ядром конфиг он хотя бы увидит
-      // ошибкой старта.
+
+
+
       expect(coreSupportsChain(''), isTrue);
       expect(coreSupportsChain('   '), isTrue);
       expect(coreSupportsChain('unknown'), isTrue);
-      expect(coreSupportsChain('1.13.11'), isTrue); // апстрим без -lx.N
+      expect(coreSupportsChain('1.13.11'), isTrue);
       expect(coreSupportsChain('lx.27-rc.5'), isTrue);
     });
   });
@@ -130,8 +130,8 @@ void main() {
 
     test('пустой ответ НЕ кэшируется — следующая сборка спросит снова',
         () async {
-      // Пусто значит «ядро не ответило», а не «версии нет». Закэшировав его,
-      // мы бы навсегда зафиксировали fail-open вердикт по сорванному вызову.
+
+
       var calls = 0;
       Future<String> read() async {
         calls++;

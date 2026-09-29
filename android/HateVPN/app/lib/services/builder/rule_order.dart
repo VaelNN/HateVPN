@@ -1,38 +1,38 @@
-/// §370 — разметка и упорядочивание правил по разреженной оси `num`.
-///
-/// Ось — сквозная нумерация всех правил (см. `docs/spec/tasks/370-…` §2):
-/// `0` голова (traffic-processing), `950..990` специфичные пресеты,
-/// `1000..1100` зона пользовательских правил, `1110..1150` широкие
-/// перехватчики. Шаг 10 между шаблонными оставлен намеренно — в зазор можно
-/// вписать новый пресет, не переделывая раскладку.
-///
-/// `num` — СТАРТОВАЯ позиция, а не забитая навсегда сортировка: юзер двигает
-/// правило drag'ом, номер пересчитывается (`reorderByNum`). Но живёт он в
-/// storage и является авторитетным источником порядка — именно поэтому
-/// зазоры должны сохраняться, а не схлопываться при каждом перетаскивании.
-///
-/// Заменяет §264 `pinned` (фиксированная позиция «всегда первый»): тот умел
-/// только прибить к началу и ничего не говорил про остальные правила.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../models/custom_rule.dart';
 import '../../models/parser_config.dart';
 import '../selectable_to_custom.dart';
 
-/// §370 — проставить `num` правилам, у которых его ещё нет.
-///
-/// Отдельного версионированного шага миграции НЕТ (решение владельца): storage,
-/// записанный до §370, приезжает с `orderNum == null`, и разметка случается при
-/// первой же загрузке.
-///
-/// - правило-пресет, чей `presetId` есть в шаблоне → `num` из шаблона;
-/// - всё остальное (пользовательские inline/srs/json + пресеты, которых в
-///   шаблоне уже нет) → подряд от [kUserRuleNumStart] в текущем порядке списка.
-///
-/// Принятое следствие: правила из старого storage садятся в начало
-/// пользовательской зоны и оказываются приоритетнее добавленных после
-/// обновления. Мутирует элементы на месте (поле `orderNum` не final);
-/// возвращает true, если что-то размечено — вызывающий персистит.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool markRuleOrder(
   List<CustomRule> customRules,
   List<SelectableRule> selectableRules,
@@ -53,20 +53,20 @@ bool markRuleOrder(
   return changed;
 }
 
-/// D-117 (BACKUP.md §9 п. 7) — несортируемый пресет шаблона (`isSortable:
-/// false`, голова `traffic-processing`) встаёт на номер шаблона, даже если
-/// номер у него уже стоит.
-///
-/// Номер головы — часть инварианта оси: `sniff` обязан быть первым правилом
-/// `route.rules`. Сплошная перенумерация импорта (лаунчер 1.5.3–1.5.6, `1000 +
-/// i`) уводила голову в пользовательскую зону, и пресет, включённый позже со
-/// своим номером шаблона (950–990), вставал перед ней. Здесь такие оси
-/// лечатся при загрузке, сборке и после импорта.
-///
-/// Сортируемые пресеты и пользовательские правила не трогаются: их номер
-/// ставит и перетаскивание, и отличить одно от другого по состоянию нечем.
-/// Мутирует элементы на месте; возвращает true, если номер хоть у одного
-/// правила изменён — вызывающий персистит.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool pinRequiredRuleNums(
   List<CustomRule> customRules,
   List<SelectableRule> selectableRules,
@@ -87,9 +87,9 @@ bool pinRequiredRuleNums(
   return changed;
 }
 
-/// D-117 — есть ли несортируемый пресет не на номере шаблона (без мутации):
-/// экран, решающий, персистить ли нормализованный список, спрашивает ДО
-/// [normalizeRuleOrder] — после неё разницы уже не видно.
+
+
+
 bool requiredRuleNumsShifted(
   List<CustomRule> customRules,
   List<SelectableRule> selectableRules,
@@ -104,12 +104,12 @@ bool requiredRuleNumsShifted(
       cr.orderNum != pinned[cr.presetId]);
 }
 
-/// §370 — отсортировать правила по оси `num` (возрастание).
-///
-/// При равных `num` сохраняется взаимный порядок (стабильная сортировка):
-/// равенство возможно после исчерпания пользовательской зоны, см.
-/// [nextUserRuleNum]. Неразмеченные (`orderNum == null`) считаются
-/// [kDefaultRuleNum] — но в норме [markRuleOrder] отрабатывает раньше.
+
+
+
+
+
+
 List<CustomRule> sortRulesByNum(List<CustomRule> customRules) {
   final indexed = [
     for (var i = 0; i < customRules.length; i++) (i, customRules[i]),
@@ -122,16 +122,16 @@ List<CustomRule> sortRulesByNum(List<CustomRule> customRules) {
   return [for (final e in indexed) e.$2];
 }
 
-/// §370 — seed недостающих пресетов, объявленных в шаблоне как `default: true`
-/// И несортируемых (`isSortable: false`).
-///
-/// Продуктовый инвариант §264: `traffic-processing` ДОЛЖЕН присутствовать
-/// независимо от того, что в storage (fresh install, backup-restore, ручная
-/// правка Debug API, апгрейд со старого storage, где пресета ещё не было).
-/// Он несёт `sniff`/`hijack-dns`/`resolve`, а `sniff` обязан быть первым
-/// правилом `route.rules` — иначе домен не извлечётся до матчинга роутинга.
-///
-/// Сортируемые пресеты здесь НЕ сидятся: их состав — выбор юзера.
+
+
+
+
+
+
+
+
+
+
 List<CustomRule> seedRequiredPresets(
   List<CustomRule> customRules,
   List<SelectableRule> selectableRules,
@@ -161,18 +161,18 @@ List<CustomRule> seedRequiredPresets(
   return out;
 }
 
-/// §398 — схлопнуть повторы preset-правил: из группы с одинаковым `presetId`
-/// остаётся **последний** в порядке списка.
-///
-/// Откуда берутся повторы: импорт v2.20.11 позволял привезти пресет файлом, а
-/// `seedRequiredPresets` держит инвариант §264 по `presetId` — при двух копиях
-/// он доволен, и удаление одной ничего не меняло («удалить невозможно»).
-/// Импорт пресетов закрыт, но задвоенный storage надо починить у тех, кто уже
-/// успел; heal идёт в общем пути загрузки, отдельной миграции не нужно.
-///
-/// Почему последний, а не первый — решение владельца (17.08.2026): при импорте
-/// второй экземпляр приехал из файла, то есть отражает более свежее намерение.
-/// Возвращает новый список; порядок оставшихся элементов сохраняется.
+
+
+
+
+
+
+
+
+
+
+
+
 List<CustomRule> dedupePresetRules(List<CustomRule> customRules) {
   final lastIndexByPresetId = <String, int>{};
   for (var i = 0; i < customRules.length; i++) {
@@ -181,7 +181,7 @@ List<CustomRule> dedupePresetRules(List<CustomRule> customRules) {
     lastIndexByPresetId[cr.presetId] = i;
   }
   if (lastIndexByPresetId.length == customRules.where((c) => c.kind == CustomRuleKind.preset).length) {
-    return customRules; // повторов нет — список не пересобираем
+    return customRules;
   }
   return [
     for (var i = 0; i < customRules.length; i++)
@@ -191,34 +191,34 @@ List<CustomRule> dedupePresetRules(List<CustomRule> customRules) {
   ];
 }
 
-/// §370 — полный проход: seed обязательных → номер головы → разметка →
-/// сортировка.
-///
-/// Идемпотентен: повторный вызов на нормализованном списке ничего не меняет.
-/// Значения vars существующих пресетов сохраняются (seed только если пресета
-/// нет вовсе).
+
+
+
+
+
+
 List<CustomRule> normalizeRuleOrder(
   List<CustomRule> customRules,
   List<SelectableRule> selectableRules,
   WizardTemplate template,
 ) {
-  // §398 — дедуп ПЕРЕД seed'ом: seed проверяет наличие по presetId, и на
-  // задвоенном списке он молчал бы, оставив обе копии.
+
+
   final deduped = dedupePresetRules(customRules);
   final seeded = seedRequiredPresets(deduped, selectableRules, template);
-  // D-117 — голова на номере шаблона ДО разметки: разметка трогает только
-  // неразмеченные, а сдвинутая голова размечена.
+
+
   pinRequiredRuleNums(seeded, selectableRules);
   markRuleOrder(seeded, selectableRules);
   return sortRulesByNum(seeded);
 }
 
-/// §370 — номер для нового пользовательского правила: конец занятой части
-/// зоны [kUserRuleNumStart]..[kUserRuleNumEnd].
-///
-/// Зона исчерпана (максимум уже на границе) → возвращаем ту же границу:
-/// равенство `num` допустимо, порядок доопределяется позицией в списке.
-/// Раздвигать зону не нужно — сто слотов на пользовательские правила.
+
+
+
+
+
+
 int nextUserRuleNum(List<CustomRule> customRules) {
   var maxInZone = kUserRuleNumStart - 1;
   for (final cr in customRules) {
@@ -230,31 +230,31 @@ int nextUserRuleNum(List<CustomRule> customRules) {
   return next > kUserRuleNumEnd ? kUserRuleNumEnd : next;
 }
 
-/// §370 — поставить правило [moved] сразу за правилом [target] («ленивый сдвиг»).
-///
-/// ```
-/// want = target.num + 1
-/// want свободен → moved.num = want            (соседи не трогаются)
-/// want занят    → сдвигаем СПЛОШНОЙ занятый блок от want вверх на +1,
-///                 останавливаясь на первой дырке; moved.num = want
-/// ```
-///
-/// **Почему сдвиг ленивый, а не безусловный (не переизобретать):** каскад +1 на
-/// каждом drag'е съедал бы зазоры и двигал шаблонные якоря — тогда `num` из
-/// шаблона перестал бы что-либо гарантировать, и вписать новый пресет между
-/// `ru-inside` (1110) и `ru-direct` (1120) стало бы невозможно. При ленивом
-/// сдвиге уплотнение локально (только в точке перетаскивания), вся ось ниже
-/// стоит на месте. Перенумерация зон намеренно НЕ делается — она ломала бы
-/// ровно эти якоря.
-///
-/// **Каскад обязан останавливаться на первой дырке.** Сдвигать всех с
-/// `num >= want` недостаточно лениво: правило на 1001 вытесняется законно
-/// (номер занят), но якорь на 1120 за сотней свободных номеров вытеснять
-/// некуда — а он всё равно уезжал на 1121 (наблюдалось на устройстве при
-/// drag'е в занятую точку). Двигаем только сплошной занятый блок.
-///
-/// Несортируемые (`isSortable: false`) не двигаются и не сдвигаются: их номера
-/// — часть инварианта (`traffic-processing` = 0).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void placeRuleAfter(
   List<CustomRule> customRules,
   CustomRule moved,
@@ -262,13 +262,13 @@ void placeRuleAfter(
   required bool Function(CustomRule) isSortable,
 }) {
   if (!isSortable(moved)) return;
-  // target == null → правило уезжает в самое начало сортируемой части.
+
   final want = target == null
       ? kUserRuleNumStart
       : (target.orderNum ?? kDefaultRuleNum) + 1;
 
-  // Занятые номера от `want` вверх — без самого moved и без несортируемых
-  // (их номера часть инварианта, вытеснять их нельзя).
+
+
   final occupied = <int, List<CustomRule>>{};
   for (final cr in customRules) {
     if (identical(cr, moved) || !isSortable(cr)) continue;
@@ -276,36 +276,36 @@ void placeRuleAfter(
     if (n != null && n >= want) (occupied[n] ??= []).add(cr);
   }
 
-  // Сплошной занятый блок от `want`: 1001,1002,1003 — сдвигаем; на первой
-  // дырке останавливаемся, всё что ниже неё (включая якоря) не трогаем.
+
+
   final block = <CustomRule>[];
   for (var n = want; occupied.containsKey(n); n++) {
     block.addAll(occupied[n]!);
   }
-  // Сдвигаем сверху вниз — иначе +1 наложился бы на ещё не сдвинутого соседа.
+
   for (final cr in block.reversed) {
     cr.orderNum = cr.orderNum! + 1;
   }
   moved.orderNum = want;
 }
 
-/// §265/§266 — вычистить ref-var значения из `varsValues` пресетов.
-///
-/// Ref-var (`{"ref": name}`) хранит значение в ГЛОБАЛЬНОМ userVars, НЕ в
-/// varsValues. Но при переезде обычной preset-var в ref (напр. `resolve_enabled`
-/// стала ref в §265) старое значение остаётся в varsValues осиротевшим — и
-/// subtitle/Debug API/любой varsValues-читатель показывает застрявшее неверное
-/// значение (resolve_enabled: true, когда глобаль уже false).
-///
-/// Проходим по каждому preset-правилу: если в его varsValues есть ключ, который
-/// в шаблоне объявлен как ref-var, — удаляем. Возвращает новый список (или тот
-/// же, если чистить нечего — вызывающий сравнивает и персистит только при
-/// изменении). Идемпотентна.
+
+
+
+
+
+
+
+
+
+
+
+
 List<CustomRule> stripRefVarsFromVarsValues(
   List<CustomRule> customRules,
   List<SelectableRule> selectableRules,
 ) {
-  // presetId → множество имён ref-vars этого пресета.
+
   final refNamesByPreset = <String, Set<String>>{};
   for (final sr in selectableRules) {
     final refs = {for (final v in sr.vars) if (v.isRef) v.ref};

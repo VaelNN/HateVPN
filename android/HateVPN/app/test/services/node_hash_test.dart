@@ -9,14 +9,14 @@ import 'package:lxbox/services/parser/json_parsers.dart';
 import '../parser/engine_test_setup.dart';
 import '../parser/parse_link_as.dart';
 
-/// §400 (контракт 0.10.0, IDENTITY.md) — идентичность узла = его ТЕГ,
-/// уникализированный внутри источника. Контент-хеш остался shim'ом
-/// ([legacyNodeIdentityHash]) для миграции ключей и отпечатка содержимого.
-///
-/// Узел с ЗАДАННЫМ тегом. Конструктор, а не `parseUri`: парсер восполняет имя
-/// из схемы и адреса, и пустой тег через него не выразить — а именно пустой
-/// тег проверяет пункт «идентичности нет» (§2.3). Тёзки обязаны быть РАЗНЫМИ
-/// объектами: карта строится через `Map.identity()`.
+
+
+
+
+
+
+
+
 NodeSpec _node(String tag, {String server = 'h.example', int port = 443}) =>
     VlessSpec(
       id: 'n${_seq++}',
@@ -30,8 +30,8 @@ NodeSpec _node(String tag, {String server = 'h.example', int port = 443}) =>
 
 int _seq = 0;
 
-/// Узел-ГРУППА (§322): идентичности не имеет — цепляться через группу задача
-/// detour, отметок выключения у групп нет.
+
+
 NodeSpec _group(String tag) => AutoSelectSpec(
       id: 'g${_seq++}',
       tag: tag,
@@ -39,11 +39,11 @@ NodeSpec _group(String tag) => AutoSelectSpec(
       membership: const RuleMembers(include: '.'),
     );
 
-/// §283 — identity-хеш ноды: стабилен через reparse и переименования,
-/// меняется при смене сути; TTL-порог и GC отметок disable.
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('nodeIdentityHash', () {
@@ -144,12 +144,12 @@ void main() {
 
   group('disabledHashTtl (clamp 3×interval, пол 24ч, потолок месяц)', () {
     test('таблица порогов', () {
-      expect(disabledHashTtl(1), const Duration(hours: 24)); // пол
+      expect(disabledHashTtl(1), const Duration(hours: 24));
       expect(disabledHashTtl(24), const Duration(hours: 72));
       expect(disabledHashTtl(168), const Duration(hours: 504));
-      expect(disabledHashTtl(336), const Duration(hours: 720)); // потолок
-      expect(disabledHashTtl(0), const Duration(hours: 24)); // respect-server
-      expect(disabledHashTtl(-1), const Duration(hours: 24)); // file:
+      expect(disabledHashTtl(336), const Duration(hours: 720));
+      expect(disabledHashTtl(0), const Duration(hours: 24));
+      expect(disabledHashTtl(-1), const Duration(hours: 24));
     });
   });
 
@@ -171,7 +171,7 @@ void main() {
       final out = gcDisabledHashes(
         {'h1': lastSeen},
         const {},
-        updateIntervalHours: 24, // порог 72ч
+        updateIntervalHours: 24,
         now: now,
       );
       expect(out, {'h1': lastSeen}, reason: 'lastSeen не трогаем без находки');
@@ -257,9 +257,9 @@ void main() {
     });
   });
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // §400 — идентичность = тег (контракт 0.10.0, IDENTITY.md)
-  // ══════════════════════════════════════════════════════════════════════════
+
+
+
 
   group('§439 sourceNodeRawTags — группы на общем счётчике, после узлов', () {
     test('узел и группа-тёзка: узел X, группа X-2', () {
@@ -274,8 +274,8 @@ void main() {
       final node = _node('X');
       final raw = sourceNodeRawTags([group, node]);
       expect([raw[node], raw[group]], ['X', 'X-2']);
-      // Отметка disabled_hashes ключуется идентичностью узла — от группы она
-      // не сдвигается.
+
+
       expect(sourceNodeIdentities([group, node])[node], 'X');
     });
 
@@ -307,9 +307,9 @@ void main() {
     });
 
     test('кандидат проверяется на ЗАНЯТОСТЬ: X, X-2, X → X, X-2, X-3', () {
-      // Находка аудита M2 (SPEC 113-A §5): без проверки третий узел получил бы
-      // сгенерированное `X-2`, уже принадлежащее настоящему имени из подписки.
-      // Две идентичности с одним ключом — и одна отметка гасила бы ОБА узла.
+
+
+
       final first = _node('X');
       final real = _node('X-2');
       final third = _node('X');
@@ -320,8 +320,8 @@ void main() {
     });
 
     test('тёзки не схлопываются: карта по ССЫЛКЕ (Map.identity)', () {
-      // `NodeSpec.==` сравнивает id+tag. Обычная Map сложила бы два узла с
-      // одинаковым тегом в одну ячейку, и второй остался бы без ключа.
+
+
       final a = _node('Same');
       final b = _node('Same');
       final map = sourceNodeIdentities([a, b]);
@@ -339,8 +339,8 @@ void main() {
     });
 
     test('безымянный узел идентичности не имеет — пустая строка НЕ ключ', () {
-      // Иначе все безымянные узлы схлопнулись бы в одну отметку и гасились
-      // разом. «Идентичности нет» выражено структурно: узла нет в карте.
+
+
       final blank = _node('');
       final spaces = _node('   ');
       final named = _node('Named');
@@ -361,8 +361,8 @@ void main() {
 
     test('идентичность не зависит от содержимого: ротация IP её не двигает',
         () {
-      // Ровно то, ради чего контракт сменил модель: провайдер вправе поменять
-      // сервер под тем же именем, и отметка обязана следовать за узлом.
+
+
       final before = _node('NL-1', server: 'old.example');
       final after = _node('NL-1', server: 'new.example');
       expect(sourceNodeIdentities([before])[before],
@@ -404,15 +404,15 @@ void main() {
     });
 
     test('коллизия: побеждает более свежий lastSeen', () {
-      // Два legacy-ключа опознались как один узел (дубли по содержимому
-      // различаются только именем). Отметке нужно ОДНО время, и это последняя
-      // встреча — иначе GC снесёт её раньше срока.
+
+
+
       final node = _node('DE-1');
       final legacy = legacyNodeIdentityHash(node);
       final older = seen.subtract(const Duration(days: 5));
-      // Один и тот же ключ дважды в карту не положить, поэтому коллизию даём
-      // через второй узел-тёзку с тем же содержимым: у него другой хеш быть
-      // не может, а идентичность — `DE-1-2`.
+
+
+
       final twin = _node('DE-1');
       final out = migrateLegacyDisabledKeys({legacy: older}, [node, twin]);
       expect(out, {'DE-1': older},
@@ -420,8 +420,8 @@ void main() {
     });
 
     test('идемпотентность: без legacy-ключей возвращается ТА ЖЕ ссылка', () {
-      // По `identical` вызывающий решает, нужен ли лишний persist: иначе
-      // legacy-прогон повторялся бы на каждом запуске.
+
+
       final current = {'DE-1': seen};
       final out = migrateLegacyDisabledKeys(current, [_node('DE-1')]);
       expect(identical(out, current), isTrue);
@@ -443,8 +443,8 @@ void main() {
     });
 
     test('узел без идентичности legacy-ключ не принимает', () {
-      // Безымянный узел ключа не имеет, переезжать отметке некуда — она
-      // выбрасывается, а не садится на пустую строку.
+
+
       final blank = _node('');
       final out =
           migrateLegacyDisabledKeys({legacyNodeIdentityHash(blank): seen}, [blank]);
@@ -466,11 +466,11 @@ void main() {
 
   group('§400 legacyNodeIdentityHash — воспроизводимость', () {
     test('фиксированный вход → фиксированный hex', () {
-      // Алгоритм обязан остаться воспроизводимым, пока в природе есть
-      // непереехавшие состояния: правка эмиттера, сдвинувшая этот хеш,
-      // означает, что legacy-ключи на устройствах перестанут опознаваться и
-      // отметки пользователей молча исчезнут. Литерал — якорь именно для
-      // этого; менять его вместе с эмиттером НЕЛЬЗЯ, это и есть сигнал.
+
+
+
+
+
       final node = VlessSpec(
         id: 'fixed',
         tag: 'Anything',
@@ -484,7 +484,7 @@ void main() {
       expect(hash, matches(RegExp(r'^[0-9a-f]{64}$')));
       expect(isLegacyIdentityKey(hash), isTrue,
           reason: 'форма хеша обязана опознаваться миграцией');
-      // Тег в хеш не входит: та же нода под другим именем даёт тот же хеш.
+
       final renamed = VlessSpec(
         id: 'fixed2',
         tag: 'Other name',

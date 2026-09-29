@@ -21,17 +21,17 @@ import '../contract/errors.dart';
 import '../transport/request.dart';
 import '../transport/response.dart';
 
-/// `/action/*` — side-effect triggers. Все endpoints требуют POST.
-///
-/// Контракт ответа: если action сматчен и handler дошёл до конца — ответ
-/// всегда `{"ok": true, "action": "<name>", ...extras}`. Любой failure
-/// (missing param, precondition, upstream crash) — соответствующий
-/// [DebugError]. Юзер сверху получает либо 200 + ok=true, либо 4xx/5xx
-/// — никаких `ok: false` в 200 ответах.
-///
-/// Большинство триггеров fire-and-forget: домен работает асинхронно,
-/// статус читается через `/state`. Это матчит UI ("нажал — отпустил")
-/// и даёт консистентные тайминги.
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> actionHandler(
   DebugRequest req,
   DebugContext ctx,
@@ -66,14 +66,14 @@ Future<DebugResponse> actionHandler(
   };
 }
 
-/// POST /action/preview-empty-state?on=true|false
-///
-/// UI-only override: HomeScreen рендерит empty-state как при чистой
-/// инсталляции (`Add a server` CTA вместо узлов и Start), реальные
-/// данные не стираются. Полезно для скриншотов / regression-теста UX
-/// без `pm clear`.
-///
-/// Возвращает: `{"ok": true, "action": "preview-empty-state", "on": <bool>}`.
+
+
+
+
+
+
+
+
 Future<DebugResponse> _previewEmptyState(
   DebugRequest req,
   DebugContext ctx,
@@ -89,13 +89,13 @@ Future<DebugResponse> _previewEmptyState(
   });
 }
 
-/// Force update check (bypass 24h cap + auto_check_updates toggle).
-/// Mirrors UI "Check now" button. Returns the result so the caller can
-/// see what UpdateChecker found, без захода в /logs.
-///
-/// Body: none. Query: none.
-/// Response: {"ok": true, "action": "check-updates", "kind": "newer|upToDate|failed|skipped",
-///            "tag": "v1.5.0", "html_url": "...", "message": "...", "dismissed": false}
+
+
+
+
+
+
+
 Future<DebugResponse> _checkUpdates(DebugRequest req, DebugContext ctx) async {
   final result = await UpdateChecker.I.forceCheck(
     localVersion: VersionInfo.I.version,
@@ -118,13 +118,13 @@ Future<DebugResponse> _checkUpdates(DebugRequest req, DebugContext ctx) async {
   return JsonResponse(body);
 }
 
-/// Эмулирует ошибку для демонстрации humanizeError'а.
-/// POST /action/emulate-error?kind=<socket|timeout|http-401|http-404|
-///   http-410|http-429|http-503|format|fs|plain|all>
-///
-/// Writes humanized samples to AppLog (строка вида
-/// `emulate-error [kind=...]: <humanized>`). Просмотр — через `/logs`.
-/// `kind=all` прогоняет весь набор.
+
+
+
+
+
+
+
 Future<DebugResponse> _emulateError(
   DebugRequest req,
   DebugContext ctx,
@@ -178,7 +178,7 @@ Future<DebugResponse> _emulateError(
   return _ok('emulate-error', {'samples': samples});
 }
 
-/// Единый конструктор успешного ответа.
+
 JsonResponse _ok(String action, [Map<String, Object?> extras = const {}]) {
   return JsonResponse({
     'ok': true,
@@ -187,16 +187,16 @@ JsonResponse _ok(String action, [Map<String, Object?> extras = const {}]) {
   });
 }
 
-/// `/action/urltest` — единый endpoint для запуска URLTest. Scope
-/// определяется query-param'ом (ровно один из):
-///
-/// - `?tag=<node>`  — single-node URLTest через CommandClient `urlTestOutbound`
-/// - `?group=<tag>` — group URLTest через CommandClient (требует tunnel up)
-/// - `?all=true`    — mass URLTest всех нод активной группы (concurrency 10)
+
+
+
+
+
+
 Future<DebugResponse> _urltest(DebugRequest req, DebugContext ctx) async {
   final home = ctx.requireHome();
-  // §163 — `?cancel=1` отменяет in-flight mass-ping (epoch-bump). Раньше из
-  // Debug API можно было только запустить mass-тест (?all), но не остановить.
+
+
   if (req.query['cancel'] != null) {
     home.cancelMassPing();
     return _ok('urltest', {'scope': 'cancel'});
@@ -221,13 +221,13 @@ Future<DebugResponse> _urltest(DebugRequest req, DebugContext ctx) async {
     return _ok('urltest', {'scope': 'node', 'tag': tag});
   }
   if (group != null) {
-    // §290 — group-scope делегируется в shared handler (общая база с Automation
-    // API), а не дублирует precondition'ы/вызов `runGroupUrltest` здесь. Прочие
-    // scope (tag/all/cancel) — Debug-only, остаются ниже.
+
+
+
     await automation.actionUrltestGroup(group, ctx);
     return _ok('urltest', {'scope': 'group', 'group': group});
   }
-  // all=true (or any value — presence-only flag)
+
   unawaited(home.runMassUrltest());
   return _ok('urltest', {'scope': 'mass'});
 }
@@ -254,25 +254,25 @@ Future<DebugResponse> _stopVpn(DebugContext ctx) async {
   return _ok('stop-vpn');
 }
 
-/// `POST /action/start-vpn-headless` — §165. Поднять VPN БЕЗ Activity/consent —
-/// для автономного тестирования/automation. Работает только если VPN-разрешение
-/// уже выдано юзером ранее (тот же путь, что §047 Tasker-старт). Если разрешения
-/// нет — `needs_consent:true`, нужен ручной старт из UI. В отличие от `start-vpn`
-/// (идёт через Activity и может показать consent-диалог), этот стартует прямо
-/// через `BoxVpnService.start()`. Debug API живёт в Flutter-процессе (не привязан
-/// к VPN), поэтому роут доступен при опущенном туннеле.
-///
-/// Фича 478 — `?guard=true` поднимает VPN ЧЕРЕЗ страховку: тот же автомат, что
-/// на кнопке Start (`core_reject_runner.dart`), а не голый native-старт. Это
-/// единственный способ проверить фичу на устройстве, где на экран смотреть
-/// некому: отказ ядра, назвавший узел, выключит его и запустит тихий цикл
-/// `checkConfig`, а фаза и выключенное читаются из `/core_reject`.
-///
-/// Диалога на экране нет. Вопрос предела идёт через `CoreRejectState.askPrompt`
-/// (тот же, что `GET/POST /core_reject/prompt`); `answer=keep` можно поставить
-/// в очередь до старта прогона.
-///
-/// Без флага — прежний путь, байт в байт.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> _startVpnHeadless(
   DebugRequest req,
   DebugContext ctx,
@@ -290,9 +290,9 @@ Future<DebugResponse> _startVpnHeadless(
   }
   final home = ctx.requireHome();
   final sub = ctx.requireSub();
-  // Однопоточный HTTP-сервер не должен висеть на всём прогоне: стартуем
-  // асинхронно, состояние читается через GET /core_reject. Ошибку ловим
-  // здесь — иначе unawaited-future роняет зону.
+
+
+
   unawaited(() async {
     try {
       await runCoreRejectGuard(home: home, sub: sub, headless: true);
@@ -307,20 +307,20 @@ Future<DebugResponse> _startVpnHeadless(
   });
 }
 
-/// `POST /action/check-config` — Фича 478. Прогнать `Libbox.checkConfig` по
-/// ТЕКУЩЕМУ собранному конфигу и отдать вердикт ядра дословно. Это та же
-/// проверка, которой страховка крутит тихий цикл, но одним выстрелом и без
-/// туннеля: видно, примет ядро конфиг или нет, ДО нажатия Start.
-///
-/// `error` — сырой текст ядра, без обёрток приложения: по нему и разбирается
-/// грамматика PARSING_PRINCIPLES §9.
-///
-/// Сервер однопоточный, поэтому ждём вердикт с потолком: `?timeout_ms=`
-/// (по умолчанию 10 с, максимум — таймаут запроса). Не успели — 409, а не
-/// вечный висяк.
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> _checkConfig(DebugRequest req, DebugContext ctx) async {
   final home = ctx.requireHome();
-  // §494 — тело запроса: проверить ЭТОТ JSON; без тела — собранный на диске.
+
   final String config;
   if (req.body.isEmpty) {
     config = home.state.configRaw;
@@ -349,8 +349,8 @@ Future<DebugResponse> _checkConfig(DebugRequest req, DebugContext ctx) async {
     throw Conflict('checkConfig did not answer in ${timeoutMs}ms');
   }
   final ms = DateTime.now().difference(started).inMilliseconds;
-  // Моста нет (старый native, ядро не подгружено) — отвечать нечем, и молчать
-  // об этом нельзя: `ok:false` соврал бы, что конфиг плохой.
+
+
   if (r == null) throw const Conflict('checkConfig bridge unavailable');
   return _ok('check-config', {
     'config_ok': r.ok,
@@ -360,36 +360,36 @@ Future<DebugResponse> _checkConfig(DebugRequest req, DebugContext ctx) async {
   });
 }
 
-/// `POST /action/force-stop-vpn` — §140, debug/diagnostics.
-///
-/// Напрямую дёргает native `forceStopVPN` (минуя transient-таймаут): тот же
-/// путь `doForceStop`, что и при зависшем ядре. Освобождает CommandServer-порт 63130
-/// (teardown ПЕРЕД `stopSelf`, §140), сервис убивается жёстко. В отличие от
-/// `stop-vpn` (кооперативный, ждёт Stopped от ядра) — fire-and-forget.
-///
-/// Назначение: on-device проверка `doForceStop`-пути и того, что повторный старт
-/// после force-stop НЕ падает с `bind: address already in use`.
-/// Возвращает `{"ok": true, "action": "force-stop-vpn", "native_ok": <bool>}`.
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> _forceStopVpn(DebugContext ctx) async {
   final home = ctx.requireHome();
   final ok = await home.debugForceStopVpn();
   return _ok('force-stop-vpn', {'native_ok': ok});
 }
 
-/// `POST /action/reconnect` — §047/§163. Stop→Start одной командой (под общим
-/// busy-wrap). Если туннель не up — делегирует в start(). Базовый automation-
-/// глагол «починить соединение» — раньше требовал двух вызовов (stop-vpn +
-/// start-vpn) с гонкой transient-таймаута.
+
+
+
+
 Future<DebugResponse> _reconnect(DebugContext ctx) async {
   final home = ctx.requireHome();
   await home.reconnect();
   return _ok('reconnect');
 }
 
-/// `POST /action/reload-vpn` — in-place reload sing-box runtime БЕЗ убийства
-/// Android-сервиса (cooldown-gated через canReload). Чистый примитив «применить
-/// изменение конфига/настроек» — туннель дропается на ~3с, сервис жив. Если
-/// reload недоступен (не connected / в cooldown) — возвращает applied:false.
+
+
+
+
 Future<DebugResponse> _reloadVpn(DebugContext ctx) async {
   final home = ctx.requireHome();
   final canReload = home.canReload;
@@ -397,25 +397,25 @@ Future<DebugResponse> _reloadVpn(DebugContext ctx) async {
   return _ok('reload-vpn', {'applied': canReload});
 }
 
-/// `POST /action/clear-error` — сбросить lastError-баннер программно (после того
-/// как automation обработала/спровоцировала ошибку). Раньше баннер сбрасывался
-/// только тапом юзера или успешной операцией.
+
+
+
 Future<DebugResponse> _clearError(DebugContext ctx) async {
   final home = ctx.requireHome();
   home.clearError();
   return _ok('clear-error');
 }
 
-/// `POST /action/set-transient-timeout?connecting=<ms>&stopping=<ms>` — §140.
-///
-/// Переопределяет пороги transient-таймаута (`_armTransientTimeout`) в
-/// миллисекундах. Любой из параметров опционален — не переданный не меняется.
-/// Минимум хотя бы один параметр. Для on-device теста force-stop'а: поставить
-/// `connecting=500`, чтобы `_armTransientTimeout` сработал быстро, не дожидаясь
-/// реального зависона ядра (issue #2).
-///
-/// Возвращает текущие (применённые) значения:
-/// `{"ok": true, "action": "set-transient-timeout", "connecting_ms": N, "stopping_ms": N}`.
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> _setTransientTimeout(
   DebugRequest req,
   DebugContext ctx,
@@ -439,7 +439,7 @@ Future<DebugResponse> _setTransientTimeout(
   });
 }
 
-/// Парсит положительный int (мс) из query. `null` raw → `null` (не менять).
+
 int? _parsePositiveMs(String? raw, String name) {
   if (raw == null) return null;
   final v = int.tryParse(raw);
@@ -449,32 +449,32 @@ int? _parsePositiveMs(String? raw, String name) {
   return v;
 }
 
-/// `POST /action/reset-network` — light recovery без recreate'а box runtime.
-///
-/// Дёргает `commandServer.resetNetwork()` через MethodChannel. Внутри sing-box:
-///   - закрывает все active connections (`connectionManager.CloseAll()`)
-///   - flush'ит DNS cache + reset'ит DoH/DoT/UDP transports
-///   - передёргивает interface bindings у inbound/outbound/endpoint dialer'ов
-/// БЕЗ recreate'а box, БЕЗ recreate'а Service, БЕЗ touch'а TUN fd, БЕЗ
-/// перечитывания config'а. Tunnel остаётся `connected`. См. spec 031.
-///
-/// Требует tunnel up — без него resetNetwork no-op в libbox (нет instance).
-/// Возвращает `{"ok": true, "action": "reset-network"}` независимо — реальный
-/// эффект асинхронен и наблюдается через `/state` (`traffic.active_connections`
-/// упадёт до ~0 моментально, потом начнёт заполняться заново).
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> _resetNetwork(DebugContext ctx) async {
   final ok = await automation.actionResetNetwork(ctx);
   return _ok('reset-network', {'native_ok': ok});
 }
 
-/// `POST /action/quic-knobs?gso=on|off[&ecn=on|off]` — §341: диагностические
-/// env-ручки quic-go (`QUIC_GO_DISABLE_GSO` / `QUIC_GO_DISABLE_ECN`) через
-/// static Libbox-вызов. `off` = выключить offload/маркировку (env=true),
-/// `on` = вернуть авто-детект библиотеки (env снят). Меняет поведение только
-/// НОВЫХ QUIC-сокетов — после переключения передёрни соединения
-/// (`/action/reload-vpn` или `/action/reset-network`), иначе живой клиент
-/// останется на старом сокете. Хотя бы один параметр обязателен.
-/// `native_ok=false` по ручке = AAR без экспорта (ядро старее §341).
+
+
+
+
+
+
+
+
 Future<DebugResponse> _quicKnobs(DebugRequest req) async {
   final applied = <String, Object?>{};
   var any = false;
@@ -497,8 +497,8 @@ Future<DebugResponse> _quicKnobs(DebugRequest req) async {
 }
 
 Future<DebugResponse> _rebuildConfig(DebugContext ctx) async {
-  // §037: явный 409 если lock включён — обрабатывается внутри
-  // automation.actionRebuildConfig (общий путь с Automation API).
+
+
   final bytes = await automation.actionRebuildConfig(ctx);
   return _ok('rebuild-config', {'bytes': bytes});
 }
@@ -521,7 +521,7 @@ Future<DebugResponse> _downloadSrs(DebugRequest req, DebugContext ctx) async {
   }
   if (rule == null) throw NotFound('rule: $id');
   if (rule.srsUrls.isEmpty) throw const Conflict('rule has no srsUrl');
-  // ## 12 — все наборы правила, каждый в свой файл кэша.
+
   final paths = <String>[];
   for (var i = 0; i < rule.srsUrls.length; i++) {
     final path = await RuleSetDownloader.download(
@@ -538,10 +538,10 @@ Future<DebugResponse> _clearSrs(DebugRequest req, DebugContext ctx) async {
   return _ok('clear-srs', {'rule_id': id});
 }
 
-/// Native platform channel для Toast. Расширяет существующий
-/// `com.leadaxe.lxbox/methods` (см. `VpnPlugin.kt`) методом `showToast`.
-/// Сообщение обрезается до 200 символов (Android Toast всё равно больше
-/// не показывает).
+
+
+
+
 const _methodChannel = MethodChannel(PlatformChannels.methods);
 
 Future<DebugResponse> _toast(DebugRequest req, DebugContext ctx) async {

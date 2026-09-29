@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -25,8 +25,8 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// Launcher-обёртка: wizard пушится отдельным route'ом, чтобы его
-/// `Navigator.pop()` после успешного Add было куда возвращаться.
+
+
 class _Launcher extends StatelessWidget {
   const _Launcher(this.controller);
   final SubscriptionController controller;
@@ -51,11 +51,11 @@ class _Launcher extends StatelessWidget {
   }
 }
 
-/// §243 — визард (§074 SOCKS5 / §222 HTTP): поле «Display name» удалено,
-/// заголовок записи = tag узла. Поле Tag опционально: введённое значение →
-/// tag (живёт в rawBody-JSON, переживает рестарт), пусто → дефолтный tag.
-/// `UserServer.name` визард всегда пишет пустым.
-/// Путь рестарта: сервер через запись `sources[]` и обратно (§439).
+
+
+
+
+
 UserServer _storageRoundTrip(UserServer us) =>
     sourceFromRecord(sourceToRecord(us)).value! as UserServer;
 
@@ -75,7 +75,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -95,9 +95,9 @@ void main() {
     return c;
   }
 
-  /// Тап по Add + дожидание file-IO persist'а (`runAsync` — реальный event
-  /// loop, иначе fake-async зона testWidgets не даст dart:io завершиться),
-  /// затем пятисекундный pump — гасит snackbar-таймер («Timer still pending»).
+
+
+
   Future<void> submit(WidgetTester tester, SubscriptionController c) async {
     await tester.tap(find.widgetWithText(FilledButton, 'Add'));
     await tester.runAsync(() async {
@@ -114,15 +114,15 @@ void main() {
     testWidgets('заполненный Tag → tag узла = введённое, name пуст',
         (tester) async {
       final c = await openWizard(tester);
-      // Первое поле SOCKS-формы — Tag. Эмодзи в теге → авто-эмодзи (§090
-      // G2b) не префиксует, tag сохраняется дословно.
+
+
       await tester.enterText(find.byType(TextFormField).first, '🚀 My proxy');
       await submit(tester, c);
 
       expect(c.lastError, isNull);
       final entry = c.entries.single;
       final us = entry.list as UserServer;
-      expect(us.name, ''); // §243 — визард name больше не пишет
+      expect(us.name, '');
       expect(us.nodes.single.tag, '🚀 My proxy');
       expect(entry.displayName, '🚀 My proxy');
     });
@@ -135,7 +135,7 @@ void main() {
       expect(c.lastError, isNull);
       final us = c.entries.single.list as UserServer;
       expect(us.name, '');
-      // Дефолтный host = 127.0.0.1 → авто-эмодзи 🔁 (localhost).
+
       expect(us.nodes.single.tag, '🔁 local-socks5-out');
     });
 
@@ -156,8 +156,8 @@ void main() {
       await submit(tester, c);
 
       final us = c.entries.single.list as UserServer;
-      // Путь рестарта: UserServer персистит только rawBody (JSON outbound),
-      // ноды ре-деривятся parseSingboxEntry'ом — tag обязан выжить.
+
+
       final reloaded = _storageRoundTrip(us);
       expect(reloaded.name, '');
       expect(reloaded.nodes.single.tag, '🚀 Keep me');
@@ -195,7 +195,7 @@ void main() {
   });
 
   group('§435 Tailscale form', () {
-    /// Открыть вкладку Tailscale (последняя — индексы прежних не поехали).
+
     Future<SubscriptionController> openTailscale(WidgetTester tester) async {
       final c = await openWizard(tester);
       await tester.tap(find.text('Tailscale'));
@@ -203,7 +203,7 @@ void main() {
       return c;
     }
 
-    /// Поля формы по порядку: Tag, Auth key, Control URL, Hostname, Exit node.
+
     Finder field(int i) => find.byType(TextFormField).at(i);
 
     testWidgets('Tag + Auth key → TailscaleSpec, JSON-rawBody',
@@ -225,10 +225,10 @@ void main() {
       expect(node.isAddressless, isTrue);
       expect((node as TailscaleSpec).body.containsKey('exit_node'), isFalse);
       expect(node.body['auth_key'], 'tskey-auth-secret');
-      // §449 — Hostname приходит с дефолтом; в тестах модель устройства пуста
-      // (`SubscriptionIdentity.init` не звался), отсюда голый префикс.
+
+
       expect(node.body['hostname'], 'LxBox');
-      // Пустые поля и выключенные тумблеры в тело не пишутся.
+
       expect(node.body.containsKey('control_url'), isFalse);
       expect(node.body.containsKey('ephemeral'), isFalse);
       expect(node.body.containsKey('accept_routes'), isFalse);
@@ -241,7 +241,7 @@ void main() {
     testWidgets('§449 Hostname с дефолтом LxBox, стирание возвращает пустое тело',
         (tester) async {
       final c = await openTailscale(tester);
-      // Поле открывается заполненным — юзер видит имя до создания узла.
+
       expect(find.text('LxBox'), findsOneWidget);
 
       await tester.enterText(field(0), '🪢 Wiped');
@@ -250,7 +250,7 @@ void main() {
       await submit(tester, c);
 
       final node = (c.entries.single.list as UserServer).nodes.single;
-      // Пусто = имя выбирает tsnet, как было до §449.
+
       expect((node as TailscaleSpec).body.containsKey('hostname'), isFalse);
     });
 
@@ -288,7 +288,7 @@ void main() {
       await tester.enterText(field(2), 'https://hs.example.com');
       await tester.enterText(field(3), 'phone');
       await tester.enterText(field(4), 'exit-1');
-      // Тумблеры ниже тестового вьюпорта 800×600 — доскроллить перед тапом.
+
       for (final title in ['Ephemeral', 'Accept routes']) {
         final tile = find.widgetWithText(SwitchListTile, title);
         await tester.ensureVisible(tile);
@@ -315,7 +315,7 @@ void main() {
 
       expect(find.text('Auth key required'), findsOneWidget);
       expect(c.entries, isEmpty);
-      // Мастер остался открыт.
+
       expect(find.text('Tailscale'), findsOneWidget);
     });
 
@@ -332,7 +332,7 @@ void main() {
     testWidgets('поля «Display name» больше нет, Tag optional с helper',
         (tester) async {
       await openWizard(tester);
-      // SOCKS tab (default).
+
       expect(find.text('Display name (optional)'), findsNothing);
       expect(find.text('Tag (optional)'), findsOneWidget);
       expect(

@@ -1,40 +1,40 @@
-/// Фича 478 / PARSING_PRINCIPLES §9.4 — хранимый вердикт «ядро не приняло этот узел».
-///
-/// **Новых сущностей нет**: узел выключается тем же флажком, что и рукой
-/// человека, а причина живёт записью в списке предупреждений узла:
-///
-/// ```json
-/// {"code": "core_rejected", "params": {"reason": "<текст ядра>"}}
-/// ```
-///
-/// «Выключило ПРИЛОЖЕНИЕ» = у выключенного узла есть эта запись; её
-/// отсутствие при выключенности = «выключил человек» (PARSING_PRINCIPLES §9.4).
-/// Отдельного поля причины НЕ вводится (решение владельца 18.09.2026).
-///
-/// Хранится ровно этот код — прочие предупреждения по-прежнему вычисляются
-/// при разборе (`NodeSpec.warnings` не персистится, `parse_all.dart`).
-/// Место хранения — рядом с существующей отметкой о выключении (спека 478
-/// раздел 3b): `sources[].warnings` у подписки, `nodes[].warnings` у члена
-/// папки, `warnings` на источнике у ручного сервера.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import 'node_warning.dart';
 
-/// Код реестра вердикта. Тексты — из `registry/warnings.json`, своих таблиц
-/// приложение не держит (24.1.5).
+
+
 const kCoreRejectedCode = 'core_rejected';
 
-/// Имя подстановки текста реестра.
+
 const kCoreRejectedReasonParam = 'reason';
 
-/// §503 — id источника (`ServerList.id`) в момент выключения страховкой.
+
 const kCoreRejectedSourceParam = 'source_id';
 
-/// §503 — ключ узла внутри источника: идентичность подписки, bare-тег
-/// одиночного сервера / члена папки.
+
+
 const kCoreRejectedNodeKeyParam = 'node_key';
 
-/// Идентичность узла, сохранённая в вердикте страховки (§503).
+
 final class CoreRejectNodeRef {
   const CoreRejectNodeRef({required this.sourceId, required this.nodeKey});
 
@@ -72,23 +72,23 @@ final class CoreRejectNodeRef {
   String toString() => 'CoreRejectNodeRef($sourceId, $nodeKey)';
 }
 
-/// Одна хранимая запись предупреждения. Форма лаунчера: `code` + `params`,
-/// без `path` и без severity (она из реестра).
+
+
 final class StoredWarning {
   const StoredWarning({required this.code, this.params = const {}});
 
   final String code;
   final Map<String, String> params;
 
-  /// Дословный текст ядра у вердикта; у прочих кодов — пусто.
+
   String get reason => params[kCoreRejectedReasonParam] ?? '';
 
   bool get isCoreRejected => code == kCoreRejectedCode;
 
-  /// Вердикт по тексту ядра (без префикса `initialize …[tag]: `).
-  ///
-  /// [ref] — источник и ключ узла в хранилище (§503); без него старые
-  /// вердикты ищутся по тегу среди выключенных узлов.
+
+
+
+
   factory StoredWarning.coreRejected(
     String reason, {
     CoreRejectNodeRef? ref,
@@ -101,10 +101,10 @@ final class StoredWarning {
         },
       );
 
-  /// Идентичность узла из params вердикта; `null` у старых записей.
+
   CoreRejectNodeRef? get coreRejectRef => CoreRejectNodeRef.fromParams(params);
 
-  /// Запись → предупреждение узла. Severity берётся реестром по коду.
+
   RegistryWarning toWarning() =>
       RegistryWarning(code: code, params: params);
 
@@ -113,8 +113,8 @@ final class StoredWarning {
         if (params.isNotEmpty) 'params': {...params},
       };
 
-  /// `null` — запись негодна (не Map, пустой код): молча пропускаем,
-  /// хранение чужой мусор не воспроизводит.
+
+
   static StoredWarning? fromJson(Object? raw) {
     if (raw is! Map) return null;
     final code = raw['code'];
@@ -157,17 +157,17 @@ bool _mapEq(Map<String, String> a, Map<String, String> b) {
   return true;
 }
 
-/// Вердикт по тексту ядра сразу предупреждением узла — для показа там, где
-/// хранимой записи под рукой нет (плашка, шторка прогона).
+
+
 RegistryWarning coreRejectedWarningOf(String reason) =>
     StoredWarning.coreRejected(reason).toWarning();
 
-/// Список записей → JSON; пустой список кодируется как отсутствие ключа
-/// (решает вызывающий кодек).
+
+
 List<Map<String, dynamic>> storedWarningsToJson(List<StoredWarning> ws) =>
     [for (final w in ws) w.toJson()];
 
-/// JSON → список записей. Не-список, негодные элементы — отбрасываются.
+
 List<StoredWarning> storedWarningsFromJson(Object? raw) {
   if (raw is! List) return const [];
   final out = <StoredWarning>[];
@@ -178,7 +178,7 @@ List<StoredWarning> storedWarningsFromJson(Object? raw) {
   return out;
 }
 
-/// Оверлей подписки: тег-идентичность → записи. Симметричен `disabled`.
+
 Map<String, List<StoredWarning>> storedWarningsMapFromJson(Object? raw) {
   if (raw is! Map || raw.isEmpty) return const {};
   final out = <String, List<StoredWarning>>{};
@@ -198,14 +198,14 @@ Map<String, dynamic> storedWarningsMapToJson(
         if (e.value.isNotEmpty) e.key: storedWarningsToJson(e.value),
     };
 
-/// PARSING_PRINCIPLES §9.4 — дубль по коду ЗАМЕЩАЕТСЯ свежим, вердикт идёт ПЕРВЫМ:
-/// это приговор уровня узла, а не деградация отдельного поля.
+
+
 List<StoredWarning> upsertVerdict(
   List<StoredWarning> existing,
   StoredWarning verdict,
 ) =>
     [verdict, ...existing.where((w) => w.code != verdict.code)];
 
-/// Снять вердикт: остальные записи сохраняются.
+
 List<StoredWarning> dropVerdict(List<StoredWarning> existing) =>
     existing.where((w) => !w.isCoreRejected).toList();

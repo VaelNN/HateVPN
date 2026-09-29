@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/l10n/plural_resolver.dart';
 
-/// §285 — CLDR-корректность resolver'ов. Формы возвращаем как маркеры, чтобы
-/// тест читал ВЫБОР формы, а не подставленный текст.
+
+
 void main() {
   const marked = {
     'one': 'ONE',

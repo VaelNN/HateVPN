@@ -13,9 +13,9 @@ import '../../vpn/box_vpn_client.dart';
 import '../../widgets/wifi_permission_dialog.dart';
 import '../../services/l10n/locale_controller.dart';
 
-/// Подтверждение остановки VPN: если активных соединений > 3 — показываем
-/// диалог (их закрытие оборвёт сессии), иначе останавливаем сразу через
-/// [controller].
+
+
+
 void confirmStop(
   BuildContext context,
   HomeController controller,
@@ -51,28 +51,28 @@ void confirmStop(
   }
 }
 
-/// §528 — нужно ли вообще спрашивать про чужой VPN перед нашим стартом.
-///
-/// Вопрос осмыслен ровно тогда, когда наш старт отнимет системный VPN-слот, то
-/// есть когда `VpnService.prepare()` будет вызван. Тот вызов уже гейтится по
-/// `hasTun` (§192, `VpnPlugin.startVpn` и ещё 5 точек входа): в режиме `proxy`
-/// prepare не зовётся, чужой туннель не отзывается — спрашивать нечего.
-///
-/// Предикат отдельный и принимает `hasTun` параметром именно затем, чтобы два
-/// гейта судили по одному признаку: здесь тот же `VpnModeConfig.hasTun`, что
-/// зеркалится в native (`setNativeHasTun`) и читается там как
-/// `BootReceiver.hasTun`. Новых флагов режима не вводим.
+
+
+
+
+
+
+
+
+
+
+
 bool askBeforeOverridingForeignVpn({required bool hasTun}) => hasTun;
 
-/// §528 — гейт ручного старта: спросить про чужой VPN, если наш старт его
-/// перебьёт. Возвращает `true`, когда старт можно продолжать.
-///
-/// Порядок обращений важен: сначала режим (локальное чтение JSON), и лишь при
-/// `hasTun` — native-опрос `isForeignVpnActive`. В proxy-режиме канал не
-/// дёргаем вовсе: это и есть предмет задачи (ср. issue #126 — «asks to turn off
-/// other vpn when it starts in proxy only mode»).
-///
-/// [showDialogFn] подменяем в тестах; по умолчанию — [showForeignVpnDialog].
+
+
+
+
+
+
+
+
+
 Future<bool> confirmForeignVpnOverride({
   required BuildContext context,
   required Future<VpnModeConfig> Function() loadVpnMode,
@@ -87,14 +87,14 @@ Future<bool> confirmForeignVpnOverride({
   return ok == true;
 }
 
-/// Диалог «активен другой VPN» — показывается перед ручным стартом, если на
-/// устройстве уже работает VPN другого приложения. Старт нашего туннеля молча
-/// отзовёт чужой (onRevoke), поэтому спрашиваем подтверждение. Возвращает `true`
-/// при выборе Switch, `null`/`false` при отмене.
-/// §241 — кнопка «VPN settings» открывает системный экран Settings → VPN, где
-/// активный VPN помечен «Connected»: имя перехватчика Android приложению не
-/// отдаёт (ownerUid чужой сети скрыт), а там юзер видит его сам. Старт при
-/// этом не выполняется — юзер ушёл разбираться, чей туннель активен.
+
+
+
+
+
+
+
+
 Future<bool?> showForeignVpnDialog(BuildContext context) {
   return showDialog<bool>(
     context: context,
@@ -122,15 +122,15 @@ Future<bool?> showForeignVpnDialog(BuildContext context) {
   );
 }
 
-/// SnackBar при foreign-revoke — системный VPN-слот перехватило другое активное
-/// VPN-приложение (§012, §224). Частая причина — always-on / kill-switch у
-/// второго VPN, который пере-захватывает единственный слот в окне reconnect.
-/// Текст самодостаточный: юзер не должен думать, что это «своё же прошлое
-/// подключение». Имя перехватчика Android через публичный API не отдаёт.
-/// Action «Start» перезапускает через [controller].
-/// Диалог-объяснение про location/wifi permission (§050): config содержит
-/// `wifi_ssid`/`wifi_bssid` правила → нужен доступ к Wi-Fi state. [permName] —
-/// comma-separated список permission'ов из BoxService alert prefix.
+
+
+
+
+
+
+
+
+
 Future<void> showLocationPermissionDialog(
   BuildContext context,
   String permName,
@@ -140,30 +140,30 @@ Future<void> showLocationPermissionDialog(
   await WifiPermissionDialog.show(context, missing: missing);
 }
 
-/// §036 + §390 — SnackBar «новая версия доступна».
-///
-/// Показывается **только на старте** приложения, из кеша (`hydrate`), не чаще
-/// одного раза за запуск. Сетевой чек снек не поднимает: его результат ляжет в
-/// `last_known_version` и всплывёт на СЛЕДУЮЩЕМ запуске. Так уведомление
-/// никогда не выскакивает поверх работающего приложения.
-///
-/// Три способа увести снек:
-///
-/// | Действие | Персист | Вернётся |
-/// |---|---|---|
-/// | клик по телу | нет | при следующем запуске (+ переход в стор) |
-/// | «Later» | нет | при следующем запуске |
-/// | «Ignore» | `dismissed_update_version` | только для следующей версии |
-///
-/// «Later» персиста не требует: показ и так один за запуск — за это отвечает
-/// `_updateSnackbarShown` в `State`.
-///
-/// Куда ведёт переход, решает канал установки (§390): APK с GitHub не встанет
-/// поверх Play-сборки, подписи разные.
-///
-/// Возвращает рано, если юзер нажал «Ignore» для этой версии. [onShown]
-/// вызывается ровно когда SnackBar реально показывается (State использует это
-/// чтобы выставить `_updateSnackbarShown`).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<void> maybeShowUpdateSnackbar(
   BuildContext context,
   UpdateInfo info, {
@@ -182,9 +182,9 @@ Future<void> maybeShowUpdateSnackbar(
       behavior: SnackBarBehavior.floating,
       content: _UpdateSnackContent(
         info: info,
-        // Тап по телу = «Later» + переход в свой стор. Персиста нет
-        // сознательно: юзер пошёл обновляться, но мог и передумать —
-        // напомним при следующем запуске.
+
+
+
         onTapBody: () {
           messenger.hideCurrentSnackBar();
           unawaited(
@@ -195,9 +195,9 @@ Future<void> maybeShowUpdateSnackbar(
           );
         },
         onLater: () => messenger.hideCurrentSnackBar(),
-        // §090 G1 — «Ignore» persist'ит dismissed-версию → этот релиз больше
-        // не всплывёт (read-guard выше + в UpdateChecker.hydrate/maybeCheck);
-        // следующий (бОльший tag) всё равно покажется через isNewer.
+
+
+
         onIgnore: () {
           messenger.hideCurrentSnackBar();
           unawaited(UpdateChecker.I.dismissCurrent());
@@ -207,11 +207,11 @@ Future<void> maybeShowUpdateSnackbar(
   );
 }
 
-/// Тело update-снека: кликабельный текст + две кнопки.
-///
-/// Раскладка адаптивная — на узких экранах (360dp и меньше) текст и две кнопки
-/// в один ряд не помещаются, кнопки уезжают под текст. Порог 320dp подобран по
-/// ширине пары кнопок с локализованными подписями.
+
+
+
+
+
 class _UpdateSnackContent extends StatelessWidget {
   const _UpdateSnackContent({
     required this.info,
@@ -227,20 +227,20 @@ class _UpdateSnackContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Кнопки идут ПОСЛЕ тела в дереве — тап по ним не утекает в onTapBody.
+
     final buttons = [
       TextButton(onPressed: onLater, child: Text(getLocalText.s("Later"))),
       TextButton(onPressed: onIgnore, child: Text(getLocalText.s("Ignore"))),
     ];
-    // InkWell, а не GestureDetector: SnackBar рендерит content внутри
-    // собственного Material, и жест из GestureDetector проигрывает
-    // конкуренцию его ink-слою (тап уходит в _RenderInkFeatures). InkWell
-    // встраивается в тот же слой + даёт визуальный отклик на тап.
+
+
+
+
     final text = InkWell(
       onTap: onTapBody,
       child: SizedBox(
-        // Явная ширина: Text занимает место по контенту, и без этого
-        // кликабельна была бы только строка глифов, а не вся область.
+
+
         width: double.infinity,
         child: Text(
           getLocalText.s(
@@ -274,10 +274,10 @@ class _UpdateSnackContent extends StatelessWidget {
   }
 }
 
-/// On Android 13+ (API 33+) `POST_NOTIFICATIONS` is a runtime permission.
-/// Without it, the foreground-service notification used by VPN may not
-/// be shown — the user has no visual indicator that VPN is active.
-/// Ask once using only the system permission dialog.
+
+
+
+
 const _notifPromptKey = SettingsStorage.notificationPromptVar;
 
 Future<void> maybeShowNotificationPermissionDialog(BuildContext context) async {
@@ -290,14 +290,14 @@ Future<void> maybeShowNotificationPermissionDialog(BuildContext context) async {
   await ul.UrlLauncher.requestNotificationPermission();
 }
 
-/// Показывает диалог-попап при старте, если приложение не в battery
-/// optimization whitelist'е. Без whitelist'а Android агрессивно throttle'ит
-/// foreground service + tunnel засыпает в Doze → интернет «отваливается»
-/// до следующего открытия приложения.
-///
-/// First-run-only: показываем один раз (persist-флаг). Повторно зайти можно
-/// через кнопку в App Settings. [skipPersist]=true — для прямого вызова из
-/// App Settings, где persist не нужен (всегда показываем по тапу).
+
+
+
+
+
+
+
+
 const _batteryPromptKey = SettingsStorage.batteryPromptVar;
 
 Future<void> maybeShowBatteryOptimizationDialog(
@@ -337,12 +337,12 @@ Future<void> maybeShowBatteryOptimizationDialog(
   );
 }
 
-/// Standard AOSP REQUEST_IGNORE_BATTERY_OPTIMIZATIONS добавляет app в
-/// AOSP whitelist, но на OEM (ColorOS/OxygenOS на OnePlus/OPPO/Realme,
-/// MIUI на Xiaomi, MagicOS на Honor) есть **отдельные** proprietary
-/// toggle'ы поверх AOSP («Background activity», «Stop when idle»),
-/// которые AOSP intent НЕ контролирует. Open App Info чтобы юзер
-/// тапнул их вручную.
+
+
+
+
+
+
 Future<void> showOemBatteryFollowupDialog(
   BuildContext context,
   BoxVpnClient vpn,
@@ -372,11 +372,11 @@ Future<void> showOemBatteryFollowupDialog(
   );
 }
 
-/// First-run промпт «добавить плитку в быстрые настройки». На Android 13+
-/// система сама показывает диалог (`requestAddTileService`). На более старых
-/// версиях системного промпта нет — шаг помечается показанным и пропускается
-/// молча (кнопка «Add tile» в App Settings остаётся для ручного добавления).
-/// Один раз (persist-флаг).
+
+
+
+
+
 const _addTilePromptKey = SettingsStorage.addTilePromptVar;
 
 Future<void> maybeShowAddTilePrompt(
@@ -386,29 +386,29 @@ Future<void> maybeShowAddTilePrompt(
   final asked = await SettingsStorage.getVar(_addTilePromptKey, '0');
   if (asked == '1') return;
   await SettingsStorage.setVar(_addTilePromptKey, '1');
-  // requestAddTile сам зовёт системный промпт (API 33+) или возвращает
-  // 'unsupported' на старых — там тихо выходим, инструкцию не навязываем.
+
+
   await vpn.requestAddTile();
 }
 
-/// §395 — first-run промпт про автопроверку обновлений.
-///
-/// Фоновый поход в `api.github.com` без ведома пользователя рецензент F-Droid
-/// засчитывает как anti-feature `Tracking` (MR!44731). Первым решением был
-/// гейт по `installingPackageName`, но клиентов каталога много — Neo Store,
-/// F-Droid Classic, Aurora и прочие, — и список пришлось бы вечно догонять
-/// (замечание linsui, 14.08). Явный вопрос закрывает это раз и навсегда:
-/// согласие есть — слежки нет, откуда бы приложение ни пришло.
-///
-/// Канал установки остаётся, но только как **подсказка для дефолта**: из
-/// каталога первой стоит «Skip», у sideload — «Enable». Ошибка в определении
-/// канала теперь безобидна, последнее слово за пользователем.
+
+
+
+
+
+
+
+
+
+
+
+
 const _updatePromptKey = SettingsStorage.updateCheckPromptVar;
 
 Future<void> maybeShowUpdateCheckPrompt(BuildContext context) async {
   final asked = await SettingsStorage.getVar(_updatePromptKey, '0');
   if (asked == '1') return;
-  // dev-сборка: чекер и так молчит (`_isDevBuild`), вопрос был бы шумом.
+
   if (VersionInfo.I.version.contains('-dev.')) return;
   await SettingsStorage.setVar(_updatePromptKey, '1');
   if (!context.mounted) return;
@@ -436,11 +436,7 @@ Future<void> maybeShowUpdateCheckPrompt(BuildContext context) async {
       ],
     ),
   );
-  // Закрыли системной «назад» — берём дефолт канала, не навязываем проверку
-  // тем, у кого есть клиент магазина.
+
+
   await SettingsStorage.setAutoCheckUpdates(enable ?? !fromStore);
 }
-
-// §357 — показ support-сообщения переехал в полноэкранный
-// `screens/home/support_message_screen.dart` (SupportMessageScreen);
-// прежний AlertDialog-вариант удалён.

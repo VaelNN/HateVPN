@@ -13,10 +13,10 @@ import 'package:lxbox/services/app_log.dart';
 import 'package:lxbox/services/backup_service.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-// §393 C2 — хранение источников-цепочек (§439: записи `kind: chain` хвостом
-// `sources[]`) и их выживание во ВНУТРЕННЕМ backup/restore: иначе перенос на
-// новое устройство молча терял бы вручную собранные маршруты — ровно та
-// болезнь, которую §219/§221 уже ловили на Направлениях.
+
+
+
+
 
 void main() {
   late Directory tmp;
@@ -42,7 +42,7 @@ void main() {
     try {
       if (tmp.existsSync()) await tmp.delete(recursive: true);
     } on FileSystemException {
-      /* ignore */
+
     }
   });
 
@@ -52,8 +52,8 @@ void main() {
 
   group('CRUD', () {
     test('чистая установка: цепочек нет и никто их не сеет', () async {
-      // Нет записей цепочек = «цепочек нет», состояние, неотличимое от «все
-      // удалены», — поэтому миграции/seed'а здесь нет и быть не должно.
+
+
       expect(await SettingsStorage.getChains(), isEmpty);
     });
 
@@ -76,8 +76,8 @@ void main() {
     });
 
     test('тег, занятый Направлением, отвергается', () async {
-      // Два outbound'а с одним тегом — отказ ядра на ВЕСЬ конфиг, поэтому
-      // коллизия ловится на входе, а не на сборке.
+
+
       await SettingsStorage.setDirections(
           const [Direction(tag: 'vpn-1', label: 'VPN ①')]);
       expect(
@@ -85,8 +85,8 @@ void main() {
         throwsA(isA<StateError>()
             .having((e) => e.message, 'message', contains('duplicate'))),
       );
-      // Тёзка auto-двойника Направления — тоже коллизия: `vpn-1-auto`
-      // эмитится билдером и заняло бы тот же тег.
+
+
       expect(() => SettingsStorage.addChain(tag: 'vpn-1-auto'),
           throwsA(isA<StateError>()));
     });
@@ -119,10 +119,10 @@ void main() {
 
     test('§393 D2 delete вычищает ПОЗИЦИЮ из других цепочек, сами они остаются',
         () async {
-      // Директива оператора 24.08: осознанное удаление источника — это
-      // высказывание про состав, и маршрут переживает его УКОРОЧЕННЫМ.
-      // Каскад рекурсивен только через цепочки-позиции: удаление `inner`
-      // снимает позицию `inner` у `outer`, но `outer` живёт дальше.
+
+
+
+
       await SettingsStorage.setChains(const [
         SourceChain(tag: 'inner', hops: [NodeLink(tag: 'a'), NodeLink(tag: 'b')]),
         SourceChain(tag: 'outer', hops: [NodeLink(tag: 'inner'), NodeLink(tag: 'c'), NodeLink(tag: 'd')]),
@@ -140,8 +140,8 @@ void main() {
 
     test('§393 D2 цепочка, упавшая ниже двух позиций, остаётся в storage',
         () async {
-      // Принято как есть: не эмитится (существующая деградация
-      // `chainEmitError`), но данные пользователя не стираются — чинит руками.
+
+
       await SettingsStorage.setChains(const [
         SourceChain(tag: 'inner', hops: [NodeLink(tag: 'a'), NodeLink(tag: 'b')]),
         SourceChain(tag: 'outer', hops: [NodeLink(tag: 'inner'), NodeLink(tag: 'c')]),
@@ -198,7 +198,7 @@ void main() {
       SettingsStorage.resetCacheForTesting();
       final back = (await SettingsStorage.getChains()).single;
       expect(back, c);
-      // §439 — в файле запись `kind: chain` в `sources[]`, отдельного ключа нет.
+
       final file = await readFile();
       expect(file.containsKey('chains'), isFalse);
       final records = (file['sources'] as List).cast<Map<String, dynamic>>();
@@ -207,8 +207,8 @@ void main() {
     });
   });
 
-  // §439 / §509 — цепочки в `sources[]` среди остальных источников; место —
-  // индекс записи. Миграция со старого `order` по-прежнему кладёт их хвостом.
+
+
   group('место в общем списке источников', () {
     test('порядок записей держит порядок чтения', () async {
       await SettingsStorage.setChains(const [
@@ -336,8 +336,8 @@ void main() {
       );
     });
 
-    // §511 M1 — удаление из середины смешанного списка: соседи того же рода
-    // остаются в своих слотах, а не сдвигаются в освободившийся.
+
+
     UserServer server(String id, int n) => UserServer(
           id: id,
           name: '',
@@ -402,9 +402,9 @@ void main() {
       expect(await keysInFile(), ['u1', 'c2', 'u2', 'c1', 'u3', 'c3']);
     });
 
-    // §511 M2 — запись, которую кодек пропускает, экран не видит: ключей
-    // перестановки на один меньше, чем записей. Перестановка видимых
-    // применяется, нечитаемая остаётся в своём слоте.
+
+
+
     test('нечитаемая запись не блокирует перестановку и остаётся на месте',
         () async {
       await seedMixed(['u1', 'c1', 'u2']);
@@ -439,7 +439,7 @@ void main() {
       expect(await keysInFile(), ['u1', 'c1', 'u2']);
     });
 
-    // §511 m4 — отказ перестановки виден: `false` и строка в AppLog.
+
     test('отказ reorderSources и applyEntryOrder пишется в AppLog', () async {
       await seedMixed(['u1', 'c1', 'u2']);
       int rejects(String what) => AppLog.I.entries
@@ -486,7 +486,7 @@ void main() {
 
       final got = await SettingsStorage.getChains();
       expect(got.map((c) => c.tag), ['first', 'second', 'no-order']);
-      // Маршрут не тронут — мигрируются позиции в списке, а не хопы.
+
       expect(got[1].hops, const [NodeLink(tag: 'first'), NodeLink(tag: 'c')]);
       final records = ((await readFile())['sources'] as List)
           .cast<Map<String, dynamic>>();
@@ -496,8 +496,8 @@ void main() {
   });
 
   group('внутренний backup/restore', () {
-    // §524 — категория цепочки в экспорте: серверы, не Routing (решение
-    // владельца 24.09).
+
+
     test('цепочки переживают export→restore в категории серверов', () async {
       await SettingsStorage.setChains(const [
         SourceChain(tag: 'via-de', label: 'DE', hops: [NodeLink(tag: 'home'), NodeLink(tag: 'de')]),
@@ -513,7 +513,7 @@ void main() {
           ['chain'],
           reason: 'без этого перенос на новое устройство терял бы маршруты');
 
-      // Restore на «чистое» устройство.
+
       SettingsStorage.resetCacheForTesting();
       await File('${tmp.path}/lxbox_settings.json').delete();
       SettingsStorage.resetCacheForTesting();
@@ -537,8 +537,8 @@ void main() {
 
     test('allowlist импорта пропускает sources (иначе default-deny съел бы)',
         () async {
-      // §159 — default-deny: ключ, забытый в allowlist, молча исчезает на
-      // restore. Ровно так уже терялись `masque_account` и `directions`.
+
+
       expect(SettingsStorage.allowedTopLevelKeys.contains('sources'), isTrue);
       final dropped = await SettingsStorage.replaceRaw({
         'storage_version': 1,

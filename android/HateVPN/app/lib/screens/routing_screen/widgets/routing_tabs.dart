@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../services/l10n/locale_controller.dart';
 
-/// Таб "Directions": proxy-groups + default-fallback + Auto tuning. Все тайлы
-/// собираются в экране и приходят сюда готовыми списками — поведение
-/// идентично исходному inline-ListView.
+
+
+
 class RoutingDirectionsTab extends StatelessWidget {
   const RoutingDirectionsTab({
     super.key,
@@ -19,8 +19,8 @@ class RoutingDirectionsTab extends StatelessWidget {
   final List<Widget> groupTiles;
   final int directionCount;
 
-  /// §393 A3 — лимита на количество Направлений больше нет; callback
-  /// остаётся nullable ради общей идиомы «disabled кнопки».
+
+
   final VoidCallback? onAddDirection;
 
   final Widget routeFinalTile;
@@ -57,7 +57,7 @@ class RoutingDirectionsTab extends StatelessWidget {
   }
 }
 
-/// Таб "Presets": каталог готовых правил.
+
 class RoutingPresetsTab extends StatelessWidget {
   const RoutingPresetsTab({
     super.key,
@@ -88,10 +88,10 @@ class RoutingPresetsTab extends StatelessWidget {
   }
 }
 
-/// Таб "Rules": unified custom routing (spec §030).
-///
-/// NB: ListView с горизонтальными paddings'ами 0 — чтобы тайлы растягивались
-/// edge-to-edge. Интро и Add-button сами дают себе 12px через Padding.
+
+
+
+
 class RoutingRulesTab extends StatelessWidget {
   const RoutingRulesTab({
     super.key,
@@ -149,10 +149,10 @@ class RoutingRulesTab extends StatelessWidget {
   }
 }
 
-/// §396 — кнопка ⋮ в AppBar экрана Routing: экспорт/импорт правил файлом.
-/// Экран показывает её только на активном табе Rules (гейт по индексу таба
-/// в `routing_screen.dart`) — на Directions/Presets меню про правила сбивало бы
-/// с толку.
+
+
+
+
 class RulesMenuButton extends StatelessWidget {
   const RulesMenuButton({
     super.key,
@@ -161,8 +161,8 @@ class RulesMenuButton extends StatelessWidget {
     required this.onImport,
   });
 
-  /// false (правил нет) → пункт Export серый (не прячем: discoverability
-  /// дороже).
+
+
   final bool canExport;
   final VoidCallback onExport;
   final VoidCallback onImport;

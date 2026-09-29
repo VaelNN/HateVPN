@@ -7,21 +7,21 @@ import 'node_spec.dart';
 import 'singbox_entry.dart';
 import 'template_vars.dart';
 
-// ════════════════════════════════════════════════════════════════════════════
-// §480 W7 — СБОРКА ССЫЛКИ ОТ ТАБЛИЦЫ
-// ════════════════════════════════════════════════════════════════════════════
 
-/// Собрать ссылку узла ДВИЖКОМ, по той же секции, что ведёт его разбор.
-///
-/// `null` — у типа тела нет секции либо секция не объявила обратного хода
-/// (`emit`), и схема остаётся на рукописном `toUri<Схема>` до своей волны.
-///
-/// Вход движка — КАНОНИЧЕСКОЕ ТЕЛО (`emitRaw`), то самое, что отдаёт разбор.
-/// Модели движок не знает: знал бы — знал бы и имена схем.
-///
-/// `TemplateVars.empty` здесь законен и обязателен: подстановка переменных —
-/// дело СБОРКИ КОНФИГА, а ссылка это форма ХРАНЕНИЯ узла, и подставленное
-/// значение переменной, попав в неё, замёрзло бы навсегда (NODE_SECTIONS §6).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 String? uriViaEngine(NodeSpec s) {
   final section = MapperSections.I.sectionFor('uri', s.protocol);
   if (section == null || !sectionEmits(section)) return null;
@@ -29,13 +29,13 @@ String? uriViaEngine(NodeSpec s) {
   return emitViaSection(section, body, s.label)?.uri;
 }
 
-/// Ссылка узла ДВИЖКОМ у схемы, которая на него переехала.
-///
-/// Отличается от [uriViaEngine] тем, что `null` здесь — не «идём прежним
-/// путём», а ОШИБКА СБОРКИ: рукописного эмита у переехавшей схемы больше нет,
-/// и молчаливый возврат пустой строки стоил бы владельцу узла — ссылка и есть
-/// форма хранения. Тот же принцип, что у разбора (критерий 7 спеки):
-/// отсутствие реестра — ошибка, а не тихий откат.
+
+
+
+
+
+
+
 String uriViaEngineRequired(NodeSpec s) {
   final uri = uriViaEngine(s);
   if (uri != null) return uri;
@@ -46,16 +46,16 @@ String uriViaEngineRequired(NodeSpec s) {
   );
 }
 
-/// Реализация `emit()` и `toUri()` для каждого варианта NodeSpec.
-///
-/// Файл отдельно, чтобы node_spec.dart оставался чистой data-моделью. Вызов
-/// из node_spec.dart делегирует сюда через `ref.emitImpl(vars)`.
-///
-/// Контракт: выход должен совпадать с v1 `_buildOutbound` на том же узле
-/// (гарантируется parity-тестами в `test/parity/`).
 
-/// §219 — общий каркас outbound-map (`type`/`tag`/`server`/`server_port`).
-/// Был продублирован в 9 emit-функциях. Возвращает growable map для дописывания.
+
+
+
+
+
+
+
+
+
 Map<String, dynamic> _baseOutbound(String type, NodeSpec s) => <String, dynamic>{
       'type': type,
       'tag': s.tag,
@@ -63,24 +63,24 @@ Map<String, dynamic> _baseOutbound(String type, NodeSpec s) => <String, dynamic>
       'server_port': s.port,
     };
 
-/// §219 — присвоение `detour` при наличии chained-ноды. Было продублировано
-/// 9 раз (`if (s.chained != null) out['detour'] = s.chained!.tag;`).
-///
-/// §453 — сюда же TCP keep-alive: это тоже dial-поле, общее для всех
-/// outbound'ов, и точка у него ровно одна на все 13 вызовов. У не-носителей
-/// `tcpKeepAlive == null` — не пишется ничего, emit прежний байт-в-байт.
+
+
+
+
+
+
 void _addDialFields(Map<String, dynamic> out, NodeSpec s) {
   if (s.chained != null) out['detour'] = s.chained!.tag;
   tcpKeepAliveToSingbox(out, s.tcpKeepAlive);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Tailscale (§435) — endpoint, тело как есть
-// ════════════════════════════════════════════════════════════════════════════
 
-/// `type`/`tag` первыми (порядок ключей конфига читаемее), дальше тело как
-/// хранится. `state_directory` здесь НЕ подставляется — это делает сборка при
-/// эмиссии (путь этой машины в хранимое тело не пишется, NODE_SECTIONS.md §6).
+
+
+
+
+
+
 Endpoint emitTailscale(TailscaleSpec s, TemplateVars vars) {
   final map = <String, dynamic>{
     'type': 'tailscale',
@@ -91,17 +91,17 @@ Endpoint emitTailscale(TailscaleSpec s, TemplateVars vars) {
   return Endpoint(map);
 }
 
-/// Канонический текст узла Tailscale — компактный JSON endpoint'а (URI-формы
-/// у схемы нет). Без `detour`: цепочка — дело контейнера, а не текста узла.
+
+
 String toUriTailscale(TailscaleSpec s) => jsonEncode(<String, dynamic>{
       'type': 'tailscale',
       'tag': s.tag,
       ...s.body,
     });
 
-// ════════════════════════════════════════════════════════════════════════════
-// VLESS
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
 
 Outbound emitVless(VlessSpec s, TemplateVars vars) {
   final out = _baseOutbound('vless', s)..['uuid'] = s.uuid;
@@ -114,21 +114,21 @@ Outbound emitVless(VlessSpec s, TemplateVars vars) {
     }
   }
 
-  // Ни допустимое значение flow (`vless.flow.values`, `flow_deprecated`), ни
-  // связь flow ↔ transport (`vless.flow.conflicts`, `unless_set:
-  // [encryption]`) здесь не судятся: это правила реестра. Модель к эмиссии
-  // построена по очищенной карте — у ссылки (`mappers/uri_pipeline.dart`) и у
-  // sing-box JSON (§545, `singbox_config.dart`), — а тело перед ядром ещё раз
-  // проходит гард сборки (`applyRegistryGate`).
+
+
+
+
+
+
   if (s.flow.isNotEmpty) out['flow'] = s.flow;
   if (s.packetEncoding.isNotEmpty) out['packet_encoding'] = s.packetEncoding;
 
-  // §335 — постквантовый слой VLESS. Плоское поле верхнего уровня (в Xray-JSON
-  // оно вложено в users[0], у ядра — рядом с uuid). Пустое не пишем.
-  //
-  // §547 A3 — `none` отсекает реестр (`vless.encryption.absent_values:
-  // [none]`) на разборе, а гард сборки — ещё раз перед ядром; рукописное
-  // сравнение с `none` снято. Форму значения судит `pattern` реестра.
+
+
+
+
+
+
   if (s.encryption.isNotEmpty) out['encryption'] = s.encryption;
 
   final tlsMap = s.tls.toSingbox();
@@ -139,9 +139,9 @@ Outbound emitVless(VlessSpec s, TemplateVars vars) {
   return Outbound(out);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// VMess
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
 
 Outbound emitVmess(VmessSpec s, TemplateVars vars) {
   final out = _baseOutbound('vmess', s)
@@ -164,9 +164,9 @@ Outbound emitVmess(VmessSpec s, TemplateVars vars) {
   return Outbound(out);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Trojan
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
 
 Outbound emitTrojan(TrojanSpec s, TemplateVars vars) {
   final out = _baseOutbound('trojan', s)..['password'] = s.password;
@@ -177,22 +177,22 @@ Outbound emitTrojan(TrojanSpec s, TemplateVars vars) {
       if (!s.warnings.contains(w)) s.warnings.add(w);
     }
   }
-  // §103 D-016(в) — TLS выключен = дефолт ядра (option/trojan.go omitempty),
-  // ключ `tls` не эмитим вовсе (было: {enabled:false}, чего Go не пишет).
+
+
   final tlsMap = s.tls.toSingbox();
   if (tlsMap.isNotEmpty) out['tls'] = tlsMap;
   _addDialFields(out, s);
   return Outbound(out);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// AnyTLS (§269)
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
 
 Outbound emitAnyTls(AnyTlsSpec s, TemplateVars vars) {
   final out = _baseOutbound('anytls', s)..['password'] = s.password;
-  // AnyTLS всегда поверх TLS — эмитим tls-блок безусловно (в отличие от trojan,
-  // где может быть {enabled:false}).
+
+
   out['tls'] = s.tls.toSingbox();
   if (s.idleSessionCheckInterval.isNotEmpty) {
     out['idle_session_check_interval'] = s.idleSessionCheckInterval;
@@ -207,41 +207,41 @@ Outbound emitAnyTls(AnyTlsSpec s, TemplateVars vars) {
   return Outbound(out);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Shadowsocks
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
 
 Outbound emitShadowsocks(ShadowsocksSpec s, TemplateVars vars) {
   final out = _baseOutbound('shadowsocks', s)
     ..['method'] = s.method
     ..['password'] = s.password;
   if (s.plugin.isNotEmpty) out['plugin'] = s.plugin;
-  // `plugin_opts` без `plugin` снимает реестр (`plugin_opts.requires: plugin`,
-  // контракт 1.1.56, код `field_requires`) — на разборе и гардом сборки
-  // (§547 фаза B). Эмиттер пишет непустое как есть.
+
+
+
   if (s.pluginOpts.isNotEmpty) out['plugin_opts'] = s.pluginOpts;
   _addDialFields(out, s);
   return Outbound(out);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Hysteria2
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
 
 Outbound emitHysteria2(Hysteria2Spec s, TemplateVars vars) {
   final out = _baseOutbound('hysteria2', s);
   if (s.password.isNotEmpty) out['password'] = s.password;
-  // §103 §9.B2 — multi-port / port hopping (mport=/ports= query, а также
-  // authority host:443,20000-30000) → sing-box server_ports. Аддитивно к
-  // server_port (Go: hysteria2_ports.go, оба поля живут одновременно).
+
+
+
   if (s.serverPorts != null && s.serverPorts!.isNotEmpty) {
     out['server_ports'] = List<String>.from(s.serverPorts!);
   }
-  // §358 — тип obfs (enum `hysteria2.obfs.type`, `obfs_unknown`), пароль
-  // (`obfs_password_missing`) и размеры пакета только у gecko (`requires`
-  // type=gecko) судит реестр на разборе и гард сборки; эмиттер пишет, что
-  // задано. Плоские min/max внутри `obfs` — так их кладёт
-  // badjson.MarshallObjects(_Hysteria2Obfs, Hysteria2ObfsGecko).
+
+
+
+
+
   if (s.obfs.isNotEmpty) {
     out['obfs'] = {
       'type': s.obfs,
@@ -252,25 +252,25 @@ Outbound emitHysteria2(Hysteria2Spec s, TemplateVars vars) {
   }
   if (s.upMbps != null) out['up_mbps'] = s.upMbps;
   if (s.downMbps != null) out['down_mbps'] = s.downMbps;
-  // §282 — блоки utls/reality на QUIC снимает реестр (`tls.json`,
-  // `forbidden_for` → `tls_not_applicable_quic`), не эмиттер.
+
+
   out['tls'] = s.tls.toSingbox();
   _addDialFields(out, s);
   return Outbound(out);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// NaïveProxy
-// ════════════════════════════════════════════════════════════════════════════
-// §084 M7: `isValidNaiveHeaderName` / `naiveHeaderNameRe` переехали в
-// services/parser/uri_utils.dart (единый источник, был дубль с uri_parsers).
+
+
+
+
+
 
 Outbound emitNaive(NaiveSpec s, TemplateVars vars) {
   final out = _baseOutbound('naive', s);
   if (s.username.isNotEmpty) out['username'] = s.username;
   if (s.password.isNotEmpty) out['password'] = s.password;
-  // §103 §9.B1 — naive+quic: транспорт QUIC вместо HTTP/2. Go: bbr —
-  // единственная поддерживаемая congestion control, не читается из URI.
+
+
   if (s.quic) {
     out['quic'] = true;
     out['quic_congestion_control'] = 'bbr';
@@ -288,41 +288,41 @@ Outbound emitNaive(NaiveSpec s, TemplateVars vars) {
   return Outbound(out);
 }
 
-// §480 W7 — `serializeNaiveExtraHeaders` удалён вместе с рукописным эмитом.
-// Склейку заголовков в параметр ссылки делает движок, обращая `extract`
-// записи: разделитель элементов он берёт из `list.sep`, а годность пары
-// судит ТОЙ ЖЕ регуляркой `extract.re`, какой её читает разбор. Прежде
-// правило жило двумя копиями — регуляркой в данных и `isValidNaiveHeaderName`
-// в коде эмита, — и это ровно тот дубль, ради снятия которого затеяна
-// кампания.
 
-// ════════════════════════════════════════════════════════════════════════════
-// TUIC v5
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
+
+
+
+
+
+
+
 
 Outbound emitTuic(TuicSpec s, TemplateVars vars) {
   final out = _baseOutbound('tuic', s)..['uuid'] = s.uuid;
-  // §493 / Q133-67 — пустой пароль принимается с `password_empty`, но поле в
-  // теле не материализуется: ядро omitempty, корпус ждёт отсутствие ключа.
+
+
   if (s.password.isNotEmpty) out['password'] = s.password;
-  // §103 D-016(в) — дефолт не эмитим: null = не было задано явно, ядро
-  // подставит cubic/native само (option/tuic.go omitempty).
+
+
   if (s.congestionControl != null) {
     out['congestion_control'] = s.congestionControl;
   }
   if (s.udpRelayMode != null) out['udp_relay_mode'] = s.udpRelayMode;
   if (s.zeroRtt) out['zero_rtt_handshake'] = true;
   if (s.heartbeat != null) out['heartbeat'] = s.heartbeat;
-  // §282 — блоки utls/reality на QUIC снимает реестр (`tls.json`,
-  // `forbidden_for` → `tls_not_applicable_quic`), не эмиттер.
+
+
   out['tls'] = s.tls.toSingbox();
   _addDialFields(out, s);
   return Outbound(out);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// SSH
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
 
 Outbound emitSsh(SshSpec s, TemplateVars vars) {
   final out = _baseOutbound('ssh', s)..['user'] = s.user;
@@ -339,9 +339,9 @@ Outbound emitSsh(SshSpec s, TemplateVars vars) {
   return Outbound(out);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// SOCKS
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
 
 Outbound emitSocks(SocksSpec s, TemplateVars vars) {
   final out = _baseOutbound('socks', s)..['version'] = s.version;
@@ -351,9 +351,9 @@ Outbound emitSocks(SocksSpec s, TemplateVars vars) {
   return Outbound(out);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// HTTP(S) CONNECT proxy — task 222
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
 
 Outbound emitHttp(HttpSpec s, TemplateVars vars) {
   final out = _baseOutbound('http', s);
@@ -374,9 +374,9 @@ Outbound emitHttp(HttpSpec s, TemplateVars vars) {
   return Outbound(out);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// WireGuard
-// ════════════════════════════════════════════════════════════════════════════
+
+
+
 
 Endpoint emitWireguard(WireguardSpec s, TemplateVars vars) {
   final peers = s.peers
@@ -384,8 +384,8 @@ Endpoint emitWireguard(WireguardSpec s, TemplateVars vars) {
             'address': p.endpointHost,
             'port': p.endpointPort,
             'public_key': p.publicKey,
-            // §025 — WARP client_id → reserved (3 байта). Перед public_ key/
-            // allowed_ips порядок не важен (JSON-объект), но кладём рядом.
+
+
             if (p.reserved != null && p.reserved!.isNotEmpty)
               'reserved': List<int>.from(p.reserved!),
             'allowed_ips': List<String>.from(p.allowedIps),
@@ -403,16 +403,16 @@ Endpoint emitWireguard(WireguardSpec s, TemplateVars vars) {
     'private_key': s.privateKey,
     'peers': peers,
   };
-  // §097 — AmneziaWG2 obfuscation-поля в корень endpoint (числа → JSON number).
+
   s.awg?.writeInto(map);
   return Endpoint(map);
 }
 
-// ─── §130 MASQUE ────────────────────────────────────────────────────────────
 
-/// §130 — MASQUE эмитится как **Outbound** (не Endpoint). Плоская структура
-/// по `option.MASQUEOutboundOptions` ядра: `ip`/`ipv6` берутся из
-/// [MasqueSpec.localAddresses] по признаку `:` (v6). `vhttp` = версия HTTP h3/h2.
+
+
+
+
 Outbound emitMasque(MasqueSpec s, TemplateVars vars) {
   String? ip, ipv6;
   for (final a in s.localAddresses) {
@@ -422,10 +422,10 @@ Outbound emitMasque(MasqueSpec s, TemplateVars vars) {
       ip ??= a;
     }
   }
-  // §393 — схема ядра: версия HTTP под ключом `vhttp`, TLS-опции во вложенном
-  // `tls{}`. Старые имена (`network`/`sni`) НЕ пишем: они ещё принимаются
-  // ядром, но дают deprecation-варнинг на каждый outbound, а одновременная
-  // запись старого и нового имени с разными значениями — fatal.
+
+
+
+
   final tls = <String, dynamic>{
     if (s.sni.isNotEmpty) 'server_name': s.sni,
     if (s.disableSni) 'disable_sni': true,
@@ -438,9 +438,9 @@ Outbound emitMasque(MasqueSpec s, TemplateVars vars) {
     'server': s.server,
     'server_port': s.port,
     'profile': s.profile,
-    // §556 — пустой `vhttp` = ключа нет (ядро = auto), тело не дописывается.
+
     if (s.vhttp.isNotEmpty) 'vhttp': s.vhttp,
-    // §582 — пустой ключ = ключа нет (тело своего сервера без ключей).
+
     if (s.privateKeyDer.isNotEmpty) 'private_key': s.privateKeyDer,
     if (s.publicKeyDer.isNotEmpty) 'public_key': s.publicKeyDer,
     'ip': ?ip,
@@ -452,7 +452,3 @@ Outbound emitMasque(MasqueSpec s, TemplateVars vars) {
   };
   return Outbound(map);
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-// Helpers
-// ════════════════════════════════════════════════════════════════════════════

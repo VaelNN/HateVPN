@@ -1,12 +1,12 @@
-// Страж dart-ссылок реестра контракта (§491).
-//
-// У записей реестра поле `refs.dart` указывает на файлы LxBox, где живёт
-// правило. После снятия рукописных мапперов (фича 480) часть ссылок
-// указывает на удалённые пути. Зеркало `assets/contract` править нельзя —
-// правки идут у лаунчера. Тест не валит протухшие ссылки сразу, а сверяет их
-// с allowlist `registry_dart_refs_known_stale.txt`: новая протухшая ссылка вне
-// списка — красный; запись из списка, ставшая живой или исчезнувшая из
-// реестра — красный (список самоочищается).
+
+
+
+
+
+
+
+
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -17,18 +17,18 @@ const _registryRoot = 'assets/contract/registry';
 const _knownStaleFile =
     'test/contract/registry_dart_refs_known_stale.txt';
 
-/// Одна ссылка `refs.dart` с контекстом в реестре.
+
 typedef RegistryDartRef = ({
   String registryFile,
   String entry,
   String ref,
 });
 
-/// Путь к `.dart`-файлу из строки ссылки реестра.
-///
-/// Ссылки пишутся относительно каталога `app/` (`lib/...`) или корня
-/// репозитория (`app/lib/...`). После `:строка`, `(` или `#` — комментарий
-/// (символ, диапазон строк, пояснение).
+
+
+
+
+
 String? dartFilePathFromRef(String ref) {
   var s = ref.trim();
   if (s.isEmpty) return null;
@@ -37,7 +37,7 @@ String? dartFilePathFromRef(String ref) {
   return match?.group(0);
 }
 
-/// Собирает все `refs.dart` из зеркала реестра.
+
 List<RegistryDartRef> collectRegistryDartRefs(String registryRoot) {
   final root = Directory(registryRoot);
   final out = <RegistryDartRef>[];

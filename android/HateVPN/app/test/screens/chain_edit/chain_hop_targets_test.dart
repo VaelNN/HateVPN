@@ -7,9 +7,9 @@ import 'package:lxbox/models/source_chain.dart';
 import 'package:lxbox/screens/chain_edit/chain_hop_candidate.dart';
 import 'package:lxbox/screens/chain_edit/chain_hop_targets.dart';
 
-// §393 C7 — что можно поставить позицией цепочки. Позиция это ссылка на тег
-// СОБРАННОГО конфига: предлагать имена, которых в конфиге не будет, значило бы
-// вести пользователя к ссылке в никуда, на которой ядро не стартует.
+
+
+
 
 ParsedConfig _config(List<Map<String, dynamic>> outbounds) =>
     ParsedConfig.parse(jsonEncode({'outbounds': outbounds}));
@@ -123,7 +123,7 @@ void main() {
         selfTag: 'chain-1',
       );
       final byTag = chainHopLookup(cands);
-      // Тело узла — для суда реестра (on_hop_required), §57.
+
       expect(byTag['reality-node']!.body?['tls'], isNotNull);
       expect(byTag['relay']!.body?['type'], 'vless');
       expect(byTag['detoured']!.detour, isTrue);
@@ -131,8 +131,8 @@ void main() {
     });
 
     test('уже эмитированная цепочка из конфига дублем не приезжает', () {
-      // Цепочки берутся из списка источников — там известен ещё и порядок
-      // объявления, решающий, на кого можно сослаться.
+
+
       final cands = collectChainHopTargets(
         config: _config([
           {'tag': 'other-chain', 'type': 'chain', 'outbounds': ['a', 'b']},
@@ -162,7 +162,7 @@ void main() {
       final tags = cands.map((c) => c.tag).toList();
       expect(tags.indexOf('vpn-2'), lessThan(tags.indexOf('vpn-1')));
       expect(tags.indexOf('aa'), lessThan(tags.indexOf('zz')));
-      // Направления — раньше узлов: пользователь думает о маршруте в них.
+
       expect(tags.indexOf('vpn-1'), lessThan(tags.indexOf('aa')));
     });
   });

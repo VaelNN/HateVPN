@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/builder/if_engine.dart';
 
-/// §120 — typed template engine + `#if`. Unit-тесты ядра [if_engine].
+
 
 VarResolver _resolver(Map<String, String> vars, Map<String, String> types) {
   final nodes = <String, WizardVar>{
@@ -23,7 +23,7 @@ void main() {
     test('bool: true/false строго', () {
       expect(coerceVarValue('true', 'bool'), true);
       expect(coerceVarValue('false', 'bool'), false);
-      expect(coerceVarValue('yes', 'bool'), false); // прочее → false
+      expect(coerceVarValue('yes', 'bool'), false);
     });
 
     test('int: число → int, не-число → строка', () {
@@ -33,18 +33,18 @@ void main() {
     });
 
     test('int: clamp в uint16 [0, 65535] (§161 backstop)', () {
-      expect(coerceVarValue('65535', 'int'), 65535); // граница
-      expect(coerceVarValue('65536', 'int'), 65535); // выше → clamp
+      expect(coerceVarValue('65535', 'int'), 65535);
+      expect(coerceVarValue('65536', 'int'), 65535);
       expect(coerceVarValue('99999', 'int'), 65535);
-      expect(coerceVarValue('-5', 'int'), 0); // ниже → clamp
-      expect(coerceVarValue('30', 'int'), 30); // в диапазоне — без изменений
+      expect(coerceVarValue('-5', 'int'), 0);
+      expect(coerceVarValue('30', 'int'), 30);
     });
 
     test('secret/text: НЕ коэрсятся даже если выглядят как число/bool', () {
       expect(coerceVarValue('1234', 'secret'), '1234');
       expect(coerceVarValue('1234', 'secret'), isA<String>());
       expect(coerceVarValue('true', 'text'), 'true');
-      expect(coerceVarValue('007', 'text'), '007'); // ноль не теряется
+      expect(coerceVarValue('007', 'text'), '007');
     });
 
     test('enum/outbound/dns_servers/unknown → строка', () {
@@ -68,7 +68,7 @@ void main() {
             {'p': 'int', 'n': 'text', 'b': 'bool'},
           ));
       expect(node['port'], 8080);
-      expect(node['name'], '8080'); // text — строка
+      expect(node['name'], '8080');
       expect(node['on'], true);
     });
 
@@ -172,9 +172,9 @@ void main() {
       expect(list, ['e']);
     });
 
-    // §232 — evalIfScalar: on_change-узел до скаляра (bare-Map в walk уходит
-    // в map-spread и схлопывает скаляр в {} — регрессия, из-за которой
-    // on_change молча не писал целевые var).
+
+
+
     test('evalIfScalar: галка true → value, false → else', () {
       final node = <String, dynamic>{
         '#if': {
@@ -205,7 +205,7 @@ void main() {
           isNull);
     });
 
-    // §232 — TUN address-массив: v6-адрес за галкой ipv6_enabled.
+
     test('TUN address: ipv6_enabled=false → только v4', () {
       final list = <dynamic>[
         '@tun_address',
@@ -388,9 +388,9 @@ void main() {
   });
 
   group('Часть 2 — #if с произвольным суффиксом (SPEC 103)', () {
-    // Эталон — Go singbox-launcher/core/template/substitute.go: isIfKey/
-    // ifKeysSorted. База {"base":1} + три независимых условия на одном
-    // объекте (#if1/#if 2/#if tun-only) — проверяем все 4 комбинации a/b.
+
+
+
     Map<String, dynamic> buildNode() => <String, dynamic>{
           'base': 1,
           '#if1': {
@@ -638,7 +638,7 @@ void main() {
       expect(
           () => validate({
                 '#if': {
-                  'and': ['@m'], // m — enum, не bool
+                  'and': ['@m'],
                   'value': 1,
                 },
               }),
@@ -693,8 +693,8 @@ void main() {
     });
 
     test('реальный bundled wizard_template.json проходит валидацию', () {
-      // Регрессия: все #if-предикаты в шаблоне ссылаются на объявленные ноды
-      // с совместимым типом. Ловит мои правки шаблона, если var не объявлена.
+
+
       final raw =
           File('assets/wizard_template.json').readAsStringSync();
       final json = jsonDecode(raw) as Map<String, dynamic>;
@@ -709,10 +709,10 @@ void main() {
     });
 
     test('urltest_tolerance подставляется числом, а не строкой', () {
-      // Регрессия: ядро sing-box требует URLTest.tolerance как uint16. Если
-      // нода объявлена `text`, в конфиг попадёт "30" → "cannot unmarshal string
-      // into Go struct field URLTestOutboundOptions.tolerance of type uint16".
-      // Нода обязана быть `int`, тогда coerceVarValue вернёт число.
+
+
+
+
       final raw = File('assets/wizard_template.json').readAsStringSync();
       final json = jsonDecode(raw) as Map<String, dynamic>;
       final template = WizardTemplate.fromJson(json);
@@ -730,7 +730,7 @@ void main() {
     test('@runtime.platform в значении даёт Dropped и не попадает в JSON; '
         'необъявленное имя — одна запись с параметром на два вхождения', () {
       final resolve = _resolver({'port': '8080'}, {'port': 'int'});
-      // Через JSON — форма, в которой шаблон приходит в движок.
+
       final template = _json({
         'platform': '@runtime.platform',
         'list': ['a', '@runtime.arch', 'b'],
@@ -750,7 +750,7 @@ void main() {
       expect(out['list'], ['a', 'b']);
       expect(out['port'], 8080);
       expect(out.containsKey('gated'), isFalse);
-      // Неизвестное поле неймспейса — плейсхолдер как есть (§7.2).
+
       expect(out['x'], '@runtime.nope');
       final json = jsonEncode(out);
       expect(json.contains('runtime.platform'), isFalse);

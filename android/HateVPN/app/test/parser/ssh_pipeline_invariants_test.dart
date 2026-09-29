@@ -11,12 +11,12 @@ import 'package:lxbox/services/node_hash.dart';
 import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §472 шаг 6, раздел 3 спеки — инварианты переезда ssh на конвейер.
 
-/// Снимок identity, снятый СТАРЫМ путём ДО правки (18.09.2026).
+
+
 const _identityFixture = 'test/fixtures/ssh/pipeline_identity_before.json';
 
-/// Многострочный PEM — тот случай, ради которого §466 держит ключ в query.
+
 const _pem = '-----BEGIN OPENSSH PRIVATE KEY-----\n'
     'b3BlbnNzaC1rZXktdjEAAAAA\n'
     'AAAAline3+/=\n'
@@ -98,15 +98,15 @@ void main() {
             reason: 'круг изменил identity: $u');
         checked++;
       }
-      // Круг проходят ВСЕ разбираемые кейсы, без исключений.
+
       expect(checked, greaterThan(8));
     }, skip: corpusSkip);
 
     test('§466 — многострочный приватный ключ переживает круг побайтно', () {
-      // Ключ едет в QUERY (форма хранения, §466), и в нём законно встречается
-      // и `\n`, и `+` внутри base64. `Uri.queryParameters` декодирует значение
-      // РОВНО ОДИН РАЗ — этого достаточно и больше делать нельзя: раскрутка до
-      // стабильной точки испортила бы ключ с `%` внутри.
+
+
+
+
       final uri = 'ssh://u@h.example:2222'
           '?private_key=${Uri.encodeComponent(_pem)}'
           '&private_key_passphrase=pp#k';
@@ -168,7 +168,7 @@ void main() {
     });
 
     test('host_key и host_key_algorithms — списки через запятую', () {
-      // Пустые элементы отбрасываются (`uri.query.host_key.impl`).
+
       final spec = parseUri('ssh://u@h.example:22'
           '?host_key=aaa,,bbb&host_key_algorithms=ssh-rsa,,ssh-ed25519#n')!;
       final body = spec.emit(TemplateVars.empty).map;
@@ -188,15 +188,15 @@ void main() {
     });
   });
 
-  // БЕЗ ГЕЙТА: тесты идут через `parseSingboxEntry` напрямую, реестр им не
-  // нужен, а дефект они стерегут на любом прогоне. Гейт здесь оставил бы
-  // регрессию неприкрытой ровно там, где `app/contract` нет, — на CI.
+
+
+
   group('§472 — дефект: host_key_algorithms терялся на входе тела', () {
     test('host_key_algorithms читается из тела обратно в модель', () {
-      // `emitSsh` поле пишет, а `parseSingboxEntry` не читал вовсе: узел,
-      // пересохранённый через JSON или отредактированный во вкладке JSON,
-      // терял список алгоритмов молча. Тот же класс, что `encryption` у vless
-      // (шаг 3), `plugin` у shadowsocks (шаг 4) и `quic` у naive.
+
+
+
+
       final node = parseSingboxEntry({
         'type': 'ssh',
         'tag': 'n',

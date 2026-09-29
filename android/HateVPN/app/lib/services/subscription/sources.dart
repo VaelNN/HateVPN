@@ -13,8 +13,8 @@ import '../parser/parse_all.dart';
 import 'subscription_identity.dart';
 import 'user_agent.dart';
 
-/// Источник подписки/узлов (§3.1 спеки 026). Sealed — топ-функция `fetch`
-/// делает exhaustive switch.
+
+
 sealed class SubscriptionSource {
   const SubscriptionSource();
 }
@@ -22,18 +22,18 @@ sealed class SubscriptionSource {
 final class UrlSource extends SubscriptionSource {
   final String url;
 
-  /// Кастомный UA. `null` (дефолт) → `_fetch` резолвит брендированный
-  /// `LxBox-android/<ver>` (см. [user_agent.dart]).
-  ///
-  /// Некоторые провайдеры выбирают формат тела по UA: неопознанному клиенту
-  /// отдают JSON-конфиг/заглушку, опознанному — base64 URI-list (который ест
-  /// парсер v2). Бренд-токен `LxBox-android` опознаётся панелями
-  /// (Remnawave/Marzban); голого `singbox` в UA нет.
+
+
+
+
+
+
+
   final String? userAgent;
 
-  /// §289 — per-subscription слепок идентичности. `null` → фетч использует
-  /// глобальный `SubscriptionIdentity` (режим Default). Не-null → ТОЛЬКО эти
-  /// значения (режим Custom), глобальные игнорируются.
+
+
+
   final SubscriptionIdentityOverride? identity;
 
   final Duration timeout;
@@ -41,8 +41,8 @@ final class UrlSource extends SubscriptionSource {
     this.url, {
     this.userAgent,
     this.identity,
-    // Короткий таймаут на попытку. Fetch делает 3 попытки с exp backoff
-    // (1s, 3s): 9+1+9+3+9 ≈ 31s worst case (см. `_fetch`).
+
+
     this.timeout = const Duration(seconds: 9),
   });
 }
@@ -81,11 +81,11 @@ class ParseResult {
   final String rawBody;
   final Map<String, String> headers;
 
-  /// §506 — ПРИЧИНЫ отбраковки записей тела (`parseAll(dropped:)`). Раньше
-  /// `parseFromSource` звал `parseAll` без этого аргумента, и на прод-пути
-  /// подписки причины не собирались вовсе: их видел только конформанс-раннер
-  /// корпуса. Из-за этого «0 серверов» приходило к пользователю без слова о
-  /// том, почему, — даже когда причина у разбора была.
+
+
+
+
+
   final List<NodeWarning> dropped;
 
   const ParseResult(this.nodes, this.decoded,
@@ -95,29 +95,29 @@ class ParseResult {
       this.dropped = const []]);
 }
 
-/// Fetch + decode + parse — верхнеуровневый pipeline одного источника (§3.1).
-///
-/// Мержит HTTP-заголовки с inline псевдо-заголовками (`# profile-title: …`
-/// в начале тела) — некоторые провайдеры кладут метаданные в комменты,
-/// а не в HTTP-headers. HTTP первичны, inline как fallback.
+
+
+
+
+
 Future<ParseResult> parseFromSource(SubscriptionSource source,
     {http.Client? client}) async {
-  // §219 — закрываем ТОЛЬКО самосозданный клиент (инжектированный извне
-  // закрывает владелец): иначе `http.Client()` течёт на каждый fetch.
+
+
   final owned = client == null;
   final c = client ?? http.Client();
   try {
     final fetch = await _fetch(source, c);
     final inline = _inlineHeaders(fetch.body);
-    // inline под капотом, HTTP поверх — HTTP первичны.
+
     final merged = <String, String>{...inline, ...fetch.headers};
     final meta = _metaFromHeaders(merged);
     final decoded = decode(fetch.body);
-    // §302 — import-rules здесь НЕ применяются: они работают над готовым
-    // JSON узла (`NodeSpec.emit`), а не над текстом тела, и применяются в
-    // контроллере уже после парсинга. Так одно правило работает для всех
-    // форматов подписки (URI-строки / Xray-JSON / INI).
-    // §506 — причины собираются и на прод-пути: см. [ParseResult.dropped].
+
+
+
+
+
     final dropped = <NodeWarning>[];
     final nodes = parseAll(decoded, dropped: dropped);
     return ParseResult(
@@ -127,14 +127,14 @@ Future<ParseResult> parseFromSource(SubscriptionSource source,
   }
 }
 
-// §219 — паттерны на module-level: раньше `_commentPrefixRe` компилился на
-// КАЖДОЙ итерации цикла разбора комментариев, `_newlineRe` — на каждый вызов.
+
+
 final _newlineRe = RegExp(r'\r?\n');
 final _commentPrefixRe = RegExp(r'^(#+|//|;)\s*');
 
-/// Извлекает `# key: value` из первых строк-комментариев тела подписки.
-/// Поддерживает `#`, `//`, `;` как префиксы, стопается на первой не-comment
-/// не-пустой строке.
+
+
+
 Map<String, String> _inlineHeaders(String body) {
   final out = <String, String>{};
   for (final raw in body.split(_newlineRe)) {
@@ -143,17 +143,17 @@ Map<String, String> _inlineHeaders(String body) {
     final isComment = line.startsWith('#') ||
         line.startsWith('//') ||
         line.startsWith(';');
-    if (!isComment) break; // первая нормальная строка — секция комментов кончилась
-    // Сносим префикс-коммент, оставляем содержимое.
+    if (!isComment) break;
+
     final stripped = line.replaceFirst(_commentPrefixRe, '');
     final colon = stripped.indexOf(':');
     if (colon <= 0) continue;
     final key = stripped.substring(0, colon).trim().toLowerCase();
     final value = stripped.substring(colon + 1).trim();
     if (key.isEmpty || value.isEmpty) continue;
-    // Только «подписочные» ключи — не захватывать произвольные комменты.
-    // content-disposition используется как fallback для имени подписки
-    // (см. _metaFromHeaders).
+
+
+
     if (const {
       'profile-title',
       'profile-update-interval',
@@ -168,22 +168,22 @@ Map<String, String> _inlineHeaders(String body) {
   return out;
 }
 
-/// Backoff'ы между ретраями `_fetch`. Прод-значения; тесты подменяют на
-/// нулевые (`fetchBackoffsForTesting`), иначе каждый ретрай-кейс спал бы
-/// 1s+3s и в параллельном suite (§101) сдвигался к таймауту → flaky.
+
+
+
 const _prodFetchBackoffs = [Duration(seconds: 1), Duration(seconds: 3)];
 List<Duration>? _fetchBackoffsOverride;
 
-/// Только для тестов: подменить backoff'ы ретраев. `null` возвращает
-/// прод-поведение. Вызывать в `setUp`/`tearDown`.
+
+
 set fetchBackoffsForTesting(List<Duration>? value) =>
     _fetchBackoffsOverride = value;
 
-/// Прямой HTTP GET без декода/парса. Для UI «Source» — показать живой
-/// ответ сервера как есть. Не пишет в кэш.
+
+
 Future<FetchResult> fetchRaw(SubscriptionSource source,
     {http.Client? client}) async {
-  // §219 — закрываем только самосозданный клиент (см. parseFromSource).
+
   final owned = client == null;
   final c = client ?? http.Client();
   try {
@@ -201,10 +201,10 @@ Future<FetchResult> _fetch(SubscriptionSource source, http.Client client) async 
         identity: final id,
         timeout: final t
       ):
-      // §289 — режим Default (id == null): UA = per-source > глобальный override
-      // > брендированный; HWID-заголовки из глобального SubscriptionIdentity.
-      // Режим Custom (id != null): UA и HWID-заголовки ТОЛЬКО из слепка;
-      // глобальные игнорируются. Пустой UA в слепке → брендированный дефолт.
+
+
+
+
       final String effectiveUa;
       final Map<String, String> idHeaders;
       if (id != null) {
@@ -228,10 +228,10 @@ Future<FetchResult> _fetch(SubscriptionSource source, http.Client client) async 
         'User-Agent': effectiveUa,
         ...idHeaders,
       };
-      // 3 попытки с exp backoff (1s, 3s) — worst case ~31s (9+1+9+3+9).
-      // Retry нужен для transient'ов мобильной сети (DNS fail, RST сразу
-      // после TCP-open, DDoS-guard challenge, 5xx). 4xx — permanent,
-      // не ретраим (auth fail, removed subscription).
+
+
+
+
       Object? lastErr;
       final backoffs = _fetchBackoffsOverride ?? _prodFetchBackoffs;
       for (var attempt = 0; attempt < 3; attempt++) {
@@ -249,7 +249,7 @@ Future<FetchResult> _fetch(SubscriptionSource source, http.Client client) async 
               Map<String, String>.from(resp.headers));
         } on HttpException catch (e) {
           lastErr = e;
-          // 4xx permanent — не ретраим.
+
           if (e.message.contains(RegExp(r'HTTP 4\d\d'))) rethrow;
           if (attempt < backoffs.length) {
             await Future<void>.delayed(backoffs[attempt]);
@@ -273,8 +273,8 @@ Future<FetchResult> _fetch(SubscriptionSource source, http.Client client) async 
   }
 }
 
-/// Некоторые сервера (Liberty и др.) отдают title как
-/// `base64:TGliZXJ0eSBWUE4g...`. Декодируем если есть префикс.
+
+
 String? _decodeBase64Title(String? raw) {
   if (raw == null) return null;
   const prefix = 'base64:';
@@ -287,16 +287,16 @@ String? _decodeBase64Title(String? raw) {
   }
 }
 
-/// Достаёт имя файла из `Content-Disposition` (RFC 6266). Порядок:
-/// `filename*=UTF-8''<percent-encoded>` (RFC 5987, юникод) → `filename="…"`
-/// → `filename=…`. Используется как fallback для `profile-title`, когда
-/// провайдер не ставит кастомный заголовок, но стандартную админку (Marzban,
-/// 3x-ui, XrayR) — ставит. Расширение `.txt/.yaml/.yml/.json/.conf`
-/// срезаем — это имя подписки, не файла.
+
+
+
+
+
+
 String? _parseContentDispositionFilename(String? header) {
   if (header == null || header.isEmpty) return null;
   String? name;
-  // RFC 5987: filename*=UTF-8''<percent-encoded> — приоритетнее.
+
   final ext = RegExp(
     r"filename\*\s*=\s*(?:UTF-8|utf-8)''([^;]+)",
     caseSensitive: false,
@@ -305,7 +305,7 @@ String? _parseContentDispositionFilename(String? header) {
     try {
       final decoded = Uri.decodeComponent(ext.group(1)!.trim());
       if (decoded.isNotEmpty) name = decoded;
-    } catch (_) {/* fallthrough */}
+    } catch (_) { }
   }
   if (name == null) {
     final m = RegExp(
@@ -319,8 +319,8 @@ String? _parseContentDispositionFilename(String? header) {
   }
   if (name == null) return null;
   var out = name;
-  // Срезаем расширения типичных подписочных файлов. §219 — lowercase один раз
-  // до цикла (было .toLowerCase() на каждой из 5 итераций).
+
+
   final outLower = out.toLowerCase();
   for (final e in const ['.txt', '.yaml', '.yml', '.json', '.conf']) {
     if (outLower.endsWith(e)) {
@@ -333,9 +333,9 @@ String? _parseContentDispositionFilename(String? header) {
 }
 
 SubscriptionMeta? _metaFromHeaders(Map<String, String> h) {
-  // §219 — строим lower-map ОДИН раз: раньше get() линейно сканировал h.keys
-  // с .toLowerCase() на каждом, и звался 6 раз → O(n×6). Ключи выше по стеку
-  // уже уникальны; при коллизии регистра берём первое вхождение.
+
+
+
   final hLower = <String, String>{};
   for (final e in h.entries) {
     hLower.putIfAbsent(e.key.toLowerCase(), () => e.value);
@@ -343,11 +343,11 @@ SubscriptionMeta? _metaFromHeaders(Map<String, String> h) {
   String? get(String key) => hLower[key.toLowerCase()];
 
   final userInfo = get('subscription-userinfo');
-  // Fallback-цепочка для имени: profile-title → content-disposition.
-  // profile-title первичен — провайдер явно обозначил имя подписки.
-  // content-disposition — стандартный HTTP header, который многие админки
-  // (Marzban/3x-ui/XrayR) ставят автоматически, но без кастомного
-  // profile-title.
+
+
+
+
+
   final title = _decodeBase64Title(get('profile-title')) ??
       _parseContentDispositionFilename(get('content-disposition'));
   final webPage = get('profile-web-page-url');
@@ -369,9 +369,9 @@ SubscriptionMeta? _metaFromHeaders(Map<String, String> h) {
       final kv = p.trim().split('=');
       if (kv.length != 2) continue;
       final parsed = int.tryParse(kv[1].trim());
-      // upload/download/total: дефолт 0 (нет трафика). expire: §219 — null при
-      // непарсимом значении, НЕ 0 (0 = реальный timestamp эпохи 1970-01-01,
-      // а не «нет срока»).
+
+
+
       final n = parsed ?? 0;
       switch (kv[0].trim()) {
         case 'upload':

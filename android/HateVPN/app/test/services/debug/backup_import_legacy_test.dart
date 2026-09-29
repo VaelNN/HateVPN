@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -30,13 +30,13 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$root/docs';
 }
 
-/// §439 §3.4 / §3.5 — Debug `/backup/*` и форма хранения 2.23.2:
-/// `POST /backup/import` принимает блок `storage` без `storage_version`,
-/// мигрирует его и называет это в ответе; `GET /backup/export?from=v0_bak`
-/// отдаёт исходник первой миграции.
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tmp;
@@ -54,7 +54,7 @@ void main() {
   Map<String, dynamic> body(DebugResponse r) =>
       (r as JsonResponse).body as Map<String, dynamic>;
 
-  /// Блок `storage`, каким его отдавал `GET /backup/export` версии 2.23.2.
+
   Map<String, dynamic> legacyStorage() => {
         'vars': {'log_level': 'warn'},
         'server_lists': [
@@ -151,7 +151,7 @@ void main() {
     try {
       if (tmp.existsSync()) await tmp.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -176,7 +176,7 @@ void main() {
     expect(applied.containsKey('dropped_keys'), isFalse,
         reason: 'мёртвые ключи снимает миграция, а не allowlist');
 
-    // На диске — форма 1.0 без ключей 2.23.2.
+
     final file = readFile();
     expect(file['storage_version'], 1);
     for (final k in [
@@ -192,7 +192,7 @@ void main() {
     expect((file['sources'] as List).map((s) => (s as Map)['kind']),
         ['subscription', 'server', 'chain']);
 
-    // Модели читают то же, что было в архиве.
+
     final lists = await SettingsStorage.getServerLists();
     expect((lists[0] as SubscriptionServers).tagPrefix, 'PR');
     expect((lists[0] as SubscriptionServers).updateIntervalHours, 12);
@@ -246,7 +246,7 @@ void main() {
     await expectLater(
         export({'from': 'elsewhere'}), throwsA(isA<BadRequest>()));
 
-    // Файл формы 2.23.2 на диске → первое чтение мигрирует и снимает копию.
+
     final legacy = legacyStorage();
     await settingsFile().writeAsString(jsonEncode(legacy));
     SettingsStorage.resetCacheForTesting();

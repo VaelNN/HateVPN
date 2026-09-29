@@ -2,12 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/services/subscription/auto_updater.dart';
 
-/// §338 — галка «автоперезапуск VPN при смене настроек».
-///
-/// Хук живёт в `home_screen._maybeAutoReload` (нужны HomeController + native-
-/// каналы), поэтому решение о reload проверяется на копии логики — тот же
-/// приём, что в §323 `on_update_action_test.dart` и §311
-/// `running_config_epoch_test.dart`.
+
+
+
+
+
+
 SubscriptionServers _sub(SubscriptionOnUpdateAction action) =>
     SubscriptionServers(
       id: 'x',
@@ -19,7 +19,7 @@ SubscriptionServers _sub(SubscriptionOnUpdateAction action) =>
       onUpdateAction: action,
     );
 
-/// Копия гейта из `home_screen._maybeAutoReload` + `_rebuildAndClearDirty`.
+
 bool _shouldAutoReload({
   required bool autoReload,
   required bool tunnelUp,
@@ -31,8 +31,8 @@ bool _shouldAutoReload({
   if (!autoReload) return false;
   if (!tunnelUp) return false;
   if (!needRestart) return false;
-  // cooldown 3с / не-connected: скип с warning-логом, плашка остаётся
-  // честным fallback'ом после окна подавления.
+
+
   if (!canReload) return false;
   return true;
 }

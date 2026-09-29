@@ -1,5 +1,5 @@
-// §279 Phase 6 (спека §6.4) — юнит-тесты чистой функции трёхстороннего
-// reconciliation app_language ↔ LocaleManager. Ветки нумерованы по спеке.
+
+
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/l10n/app_language_reconcile.dart';
@@ -35,7 +35,7 @@ void main() {
     });
 
     test('ветка 1 — системные Settings сбросили на System → stored=system', () {
-      // Мы пушили 'ru', юзер в Settings выбрал «System default» (пустой список).
+
       final d = _run('ru', '', 'ru');
       expect(d, isA<ReconcileSystemWins>());
       expect((d as ReconcileSystemWins).newSetting, 'system');
@@ -48,8 +48,8 @@ void main() {
     });
 
     test('ветка 2 — restore/Debug API поменял сторадж → сторадж побеждает', () {
-      // Зеркало консистентно с системой (мы пушили 'en'), но в сторадже
-      // теперь 'ru' (restore бэкапа при мёртвом приложении).
+
+
       expect(_run('ru', 'en', 'en'), isA<ReconcileStorageWins>());
     });
 
@@ -60,13 +60,13 @@ void main() {
 
     test('первый старт (не пушили) + пустой список → выровнять по стораджу',
         () {
-      // Пуш ставит зеркало last_pushed_locale даже для system/пустого.
+
       expect(_run('system', '', null), isA<ReconcileStorageWins>());
       expect(_run('ru', '', null), isA<ReconcileStorageWins>());
     });
 
     test('первый старт (не пушили) + непустой список → система побеждает', () {
-      // Непустой список до первого пуша мог поставить только юзер в Settings.
+
       final d = _run('system', 'en', null);
       expect(d, isA<ReconcileSystemWins>());
       expect((d as ReconcileSystemWins).newSetting, 'en');

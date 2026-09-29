@@ -92,7 +92,7 @@ void main() {
         cfg,
         const TunAppsConfig(mode: 'allow', packages: ['com.example']),
       );
-      // mixed-inbound НЕ должен получить include_package
+
       final mixed = (cfg['inbounds'] as List).first as Map<String, dynamic>;
       expect(mixed.containsKey('include_package'), false);
       expect(mixed.containsKey('exclude_package'), false);

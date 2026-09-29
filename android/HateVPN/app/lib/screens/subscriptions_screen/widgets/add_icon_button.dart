@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// §074 — custom «+» button с поддержкой onTap + onLongPress (без
-/// встроенного Tooltip widget'а, который перехватывал бы long-press).
-/// Визуально match'ит `IconButton.filled` — primary background, circle,
-/// 40dp tap-target.
+
+
+
+
 class AddIconButton extends StatelessWidget {
   const AddIconButton({
     super.key,

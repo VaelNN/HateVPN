@@ -1,21 +1,21 @@
-/// Свёртка источника в группу на сборке (фича 565, фаза B; контракт 1.1.78
-/// §74 п.1–5, эталон лаунчера `core/config/folder_replaces.go`).
-///
-/// `ServerList.build` у свёрнутого источника не отдаёт узлы в пул
-/// Направлений, а копит их в [ReplacePlan]; `buildConfig` после всех
-/// отбраковок узлов (fail-closed detour, гард реестра) разворачивает план в
-/// группы [materializeReplaceGroups]:
-///
-/// - `manual` → ручной селектор `tag` (`interrupt_exist_connections: true`);
-/// - `auto` → автовыбор `tag` с параметрами `auto`, провайдерские группы
-///   источника в состав не входят;
-/// - `both` → автовыбор `<tag>-auto`, затем селектор `tag` с первой опцией и
-///   умолчанием `<tag>-auto`.
-///
-/// Ноль живых узлов — группа не пишется (пустую ядро не принимает), и
-/// называется кодом `replace_group_empty` в отчёте сборки (контракт 1.1.80).
-/// Тег, занятый другим объявленным именем, — `replace_tag_conflict`: свёртка
-/// не собирается, источник идёт несвёрнутым ([findReplaceTagConflicts]).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../models/direction.dart';
@@ -25,22 +25,22 @@ import '../../models/singbox_entry.dart';
 import '../../models/source_replace.dart';
 import '../contract/group_genus.dart';
 
-/// §77 п.5 (контракт 1.1.80) — свёртка, чей тег (или двойник `<tag>-auto`)
-/// совпал с другим ОБЪЯВЛЕННЫМ именем: Направлением или его двойником
-/// (`direction`), свёрткой источника выше по списку (`replace`; первая по
-/// списку владеет именем) или тегом шаблона (`system`). Узел-тёзка
-/// конфликтом не считается — он получает суффикс.
+
+
+
+
+
 class ReplaceConflict {
   const ReplaceConflict(this.listId, this.warning);
 
-  /// Источник, чья свёртка не собирается.
+
   final String listId;
 
-  /// `replace_tag_conflict {tag, other}`.
+
   final RegistryWarning warning;
 }
 
-/// Конфликты имён свёрток включённых источников [lists] в порядке списка.
+
 List<ReplaceConflict> findReplaceTagConflicts(
   Iterable<ServerList> lists, {
   required Set<String> directionNames,
@@ -83,9 +83,9 @@ List<ReplaceConflict> findReplaceTagConflicts(
   return out;
 }
 
-/// `@имя` в строковом параметре автовыбора свёртки — ссылка на переменную
-/// шаблона, как у Направления: значение берётся из [resolveVar], без
-/// значения — умолчание [fallback] (корпус `fold_auto_inherits_template_vars`).
+
+
+
 DirectionAuto resolveAutoVars(
   DirectionAuto a,
   Object? Function(String name)? resolveVar,
@@ -105,45 +105,45 @@ DirectionAuto resolveAutoVars(
   );
 }
 
-/// Свёрнутый источник до развёртки: члены в порядке модели источника.
+
 class ReplacePlan {
   ReplacePlan({required this.replace, required this.source});
 
   final SourceReplace replace;
 
-  /// Как назвать источник в отчёте сборки.
+
   final String source;
 
-  /// Члены ручного селектора: узлы источника и его провайдерские группы.
+
   final List<SingboxEntry> selectorMembers = [];
 
-  /// Члены автовыбора: только узлы (группа внутри автовыбора мерила бы уже
-  /// выбранный ею узел, §74 п.2 `NoGroupMembers`).
+
+
   final List<SingboxEntry> autoMembers = [];
 }
 
-/// Итог развёртки всех планов сборки.
+
 class ReplaceBuild {
-  /// Группы в порядке эмиссии: внутри источника автовыбор раньше селектора.
+
   final List<Map<String, dynamic>> groups = [];
 
-  /// Кандидаты пула Направлений: по одному на источник — `tag` (у `both`
-  /// двойник вторым кандидатом не идёт, §74 п.5).
+
+
   final List<String> candidates = [];
 
-  /// Все эмитированные имена свёрток (`tag` и двойник): цели правил,
-  /// `route.final` и опций Направлений.
+
+
   final Set<String> emitted = {};
 
-  /// Объявленные, но не эмитированные имена (ноль узлов): ссылки на них
-  /// вычищает сборка.
+
+
   final Set<String> dropped = {};
 }
 
-/// Автовыбор с параметрами [a] — одна форма у двойника Направления и у
-/// свёртки (§74 п.2 `buildTwin`). Ключи и порядок — как у двойника
-/// Направления: `balancer` только у `round_robin`, `passive_check` — только
-/// `true` (omitempty ядра).
+
+
+
+
 Map<String, dynamic> buildAutoGroup({
   required String tag,
   required List<String> outbounds,
@@ -166,7 +166,7 @@ Map<String, dynamic> buildAutoGroup({
     group['balancer'] = <String, dynamic>{
       'pool': a.pool,
       'pool_tolerance': a.poolTolerance,
-      // Пустой набор ядро схлопывает в умолчание; выключение — ["none"].
+
       'sticky_hash': a.stickyHash.isEmpty
           ? const ['none']
           : a.stickyHash.map((k) => k.wire).toList(),
@@ -175,11 +175,11 @@ Map<String, dynamic> buildAutoGroup({
   return group;
 }
 
-/// Развёртка [plans] в группы. [alive] — теги узлов, переживших отбраковки
-/// сборки; выпавший член в состав не идёт. [code] получает
-/// `replace_group_empty` — один на свёртку, у которой не написано ни одной
-/// группы; [warn] — строку на двойник, выпавший при живом селекторе.
-/// [resolveVar] раскрывает `@имя` в параметрах автовыбора ([resolveAutoVars]).
+
+
+
+
+
 ReplaceBuild materializeReplaceGroups(
   List<ReplacePlan> plans, {
   required Set<String> alive,
@@ -216,7 +216,7 @@ ReplaceBuild materializeReplaceGroups(
       }
     }
     if (r.hasSelector) {
-      // `both`: двойник первой опцией и умолчанием, только если он написан.
+
       final options = [
         ?autoTag,
         for (final t in selectorMembers)
@@ -234,16 +234,16 @@ ReplaceBuild materializeReplaceGroups(
       }
     }
     if (!r.names.any(out.emitted.contains)) {
-      // Контракт 1.1.80 — один код на свёртку (у `both` пустеют обе
-      // половины): группа в конфиг не идёт, правила и Направления на неё не
-      // сработают.
+
+
+
       code?.call(RegistryWarning(
         code: 'replace_group_empty',
         params: {'tag': tag, 'mode': r.mode.name},
       ));
     } else if (r.hasAuto && autoTag == null) {
-      // Селектор `both` написан, а двойник — нет: у источника есть только
-      // члены селектора (провайдерские группы), а узлов автовыбора нет.
+
+
       warn?.call(_twinSkippedLine(r.autoTag, p.source));
     }
     if (out.emitted.contains(tag)) out.candidates.add(tag);
@@ -259,14 +259,14 @@ String _twinSkippedLine(String tag, String source) =>
     'enabled nodes for auto selection, and an empty group would stop the VPN '
     'core.';
 
-/// §74 п.4 — правила `route.rules` с целью из [dropped] (имя свёртки, чья
-/// группа не написана): цель → `route.final`, если он в [liveFinals], иначе
-/// правило снимается. Эталон — `cleanDanglingOutboundRefInRule` лаунчера.
-///
-/// Правило внутри логического тела (`type: logical`, вложенные `rules`)
-/// судится так же, рекурсивно: вложенное правило без живой цели снимается,
-/// логическое правило, оставшееся без вложенных, снимается само.
-/// Возвращает строки отчёта сборки, по одной на правило.
+
+
+
+
+
+
+
+
 List<String> retargetRulesOffDroppedReplaces(
   Map<String, dynamic> route,
   Set<String> dropped, {

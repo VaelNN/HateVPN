@@ -22,13 +22,13 @@ void main() {
     });
 
     test('невалидный URL без host → `***`', () {
-      // §129: любая `file:`-строка светится как `file:<local>` (см. ниже),
-      // поэтому URL-без-host проверяем на data:-схеме — не секрет, но и не хост.
+
+
       expect(maskSubscriptionUrl('data:text/plain,x'), '***');
     });
 
     test('§129 файловая подписка `file:<uuid>` → `file:<local>`', () {
-      // Локальный ключ кэша, не секрет и без хоста — светим читаемо, не `***`.
+
       expect(maskSubscriptionUrl('file:abc-123-uuid'), 'file:<local>');
       expect(maskSubscriptionUrl('file:///local/path'), 'file:<local>');
     });
@@ -79,10 +79,10 @@ void main() {
           reason: 'новые поля видны по умолчанию');
     });
 
-    // §439 — источники читаются моделями репозитория из записей `sources[]`,
-    // секрет гасится по пути записи на том же месте: `url` — маской,
-    // `origin.raw` — длиной, `nodes[]` папки — счётчиком. Цепочки идут хвостом,
-    // битая запись в дамп не попадает.
+
+
+
+
     test(
         'sources: URL маскируется, origin.raw → origin.raw_bytes, '
         'nodes → nodes_count, цепочки хвостом, битая запись пропускается', () {
@@ -159,10 +159,10 @@ void main() {
     });
 
     test('§219 — warp_account/masque_account НЕ маскируются (root by design)', () {
-      // Намеренно: Debug API даёт полный root-доступ к секретам за токеном
-      // (те же приватники доступны сырыми через /backup/export). Scrubber тут —
-      // UX-удобство, не security-граница. НЕ добавлять маскировку этих ключей
-      // как «security-фикс» — см. serializers/storage.dart докстринг.
+
+
+
+
       final cache = {
         'warp_account': {'private_key': 'wp-secret'},
         'masque_account': {'priv_key_der': 'mp-secret', 'token': 't'},

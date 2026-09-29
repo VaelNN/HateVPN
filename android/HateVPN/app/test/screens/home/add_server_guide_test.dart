@@ -2,12 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/config_node.dart';
 import 'package:lxbox/screens/home/widgets/node_list.dart';
 
-/// §328 — предикат полноэкранного гайда «Add a server» на Home.
-///
-/// Корень бага: гайд гейтился по `configRaw.isEmpty` («нет файла»), а конфиг
-/// становится непустым при нуле реальных серверов (bootstrap подписки с 0 нод,
-/// Apply в настройках, удаление всех серверов) — после чего подсказка не
-/// показывалась больше никогда.
+
+
+
+
+
+
 void main() {
   group('§328 showAddServerGuide', () {
     test('свежая установка: нет конфига, нет entries → гайд', () {
@@ -23,8 +23,8 @@ void main() {
     });
 
     test('ГЛАВНЫЙ кейс: шаблонный конфиг без серверов → гайд', () {
-      // Конфиг существует (direct/Направления/magic-ноды), payload-нод ноль —
-      // старый предикат (`configRaw.isEmpty`) здесь молчал.
+
+
       expect(
         showAddServerGuide(
           tunnelUp: false,
@@ -49,8 +49,8 @@ void main() {
     });
 
     test('сырой импорт конфига без entries → без гайда', () {
-      // Power-user: PUT /config либо clipboard-импорт — entries пустые,
-      // но payload-ноды в конфиге есть. Гайд не должен спрятать Start.
+
+
       expect(
         showAddServerGuide(
           tunnelUp: false,
@@ -90,8 +90,8 @@ void main() {
     });
 
     test('preview-empty parity: configRaw подменён на пустой → гайд', () {
-      // Debug API preview-empty-state подменяет только configRaw/nodes;
-      // entries остаются реальными — ветка configEmpty обязана перекрывать.
+
+
       expect(
         showAddServerGuide(
           tunnelUp: false,

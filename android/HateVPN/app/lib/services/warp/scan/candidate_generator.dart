@@ -1,6 +1,6 @@
-// §284 — генератор случайных кандидатов (Монте-Карло по {IP × port × protocol
-// × SNI}). Ни один протокол не привилегирован. Фаза 2 — вариации вокруг живого
-// IP (метод [variations]). Кандидаты затем собираются в узлы папки «SCAN WARP».
+
+
+
 
 import 'dart:math';
 
@@ -12,8 +12,8 @@ class CandidateGenerator {
     this._pool, {
     Random? rng,
     double empiricalPortRatio = 0.3,
-    // §305 — v6-endpoint генерим ТОЛЬКО если в системе включён IPv6
-    // (`ipv6_enabled`). Иначе v6-нода мёртва (нет маршрута). Дефолт false.
+
+
     bool allowV6 = false,
   })  : _rng = rng ?? Random.secure(),
         _empiricalRatio = empiricalPortRatio,
@@ -23,10 +23,10 @@ class CandidateGenerator {
   final Random _rng;
   final bool _allowV6;
 
-  /// Доля проб на empirical-порт (§132: достоверны только 2408/500/1701/4500).
+
   final double _empiricalRatio;
 
-  /// n независимых кандидатов для посева.
+
   List<ScanCandidate> seed(int n) => List.generate(n, (_) => _one());
 
   ScanCandidate _one() {
@@ -36,8 +36,8 @@ class CandidateGenerator {
         : _masqueCandidate(proto);
   }
 
-  /// Протоколы приманки AWG (masquerade `ip`). quic — самый частый (мимикрия
-  /// под QUIC/HTTP3), но варьируем — иначе все AWG-узлы одинаковы.
+
+
   static const _awgIpModes = ['quic', 'quic', 'quic', 'dns', 'stun'];
 
   ScanCandidate _wgCandidate(ScanProtocol proto) {
@@ -52,9 +52,9 @@ class CandidateGenerator {
     );
   }
 
-  /// AWG-параметры. Jitter фиксирован дефолтом Amnezia 1.5 (4/40/70 —
-  /// обкатанное значение; варьировать его смысла нет, liveness не меняет).
-  /// Разнообразие даёт только `ip` — протокол приманки (quic/dns/stun).
+
+
+
   AwgParams _randomAwg() => AwgParams(
         ip: _pick(_awgIpModes),
         jc: 4,
@@ -63,10 +63,10 @@ class CandidateGenerator {
       );
 
   ScanCandidate _masqueCandidate(ScanProtocol proto) {
-    // §305/§420 — IP-источник ЗАВИСИТ от транспорта: h3 — только живые
-    // h3-хосты (masqueH3Hosts), h2 — блок минус h3-only адреса. Протокол
-    // попадает сюда только при непустом источнике (_protocols), но на всякий
-    // случай null → пустой IP (кандидат отбракуется пробой, не крашем).
+
+
+
+
     final net = proto == ScanProtocol.masqueH2 ? 'h2' : 'h3';
     return ScanCandidate(
       ip: _pool.randomMasqueIp(net, _rng) ?? '',
@@ -76,9 +76,9 @@ class CandidateGenerator {
     );
   }
 
-  /// §305 — MASQUE-порт из набора своего транспорта (наборы device-verified
-  /// совпадают, но ключи раздельные — см. ScanPool). Фолбэк на
-  /// h3-набор при неизвестном протоколе; на 443, если набор пуст.
+
+
+
   int _pickMasquePort(ScanProtocol proto) {
     final ports = proto == ScanProtocol.masqueH2
         ? _pool.masquePortsH2
@@ -86,21 +86,21 @@ class CandidateGenerator {
     return ports.isEmpty ? 443 : _pick(ports);
   }
 
-  /// Равновероятно среди доступных протоколов. Исключает masque, если нет
-  /// masque-диапазонов, и awg — если нет wg-диапазонов. hasData гарантирует ≥1.
+
+
   ScanProtocol _pickProtocol() {
     final opts = _protocols();
     return opts[_rng.nextInt(opts.length)];
   }
 
   List<ScanProtocol> _protocols() => <ScanProtocol>[
-        // AWG только при наличии И WG-диапазона, И WG-портов — иначе
-        // _pickWgPort() упал бы на пустом списке (masque-only пул валиден).
+
+
         if ((_pool.wgV4Cidr.isNotEmpty || _pool.wgV6Cidr.isNotEmpty) &&
             _pool.wgPorts.isNotEmpty)
           ScanProtocol.awg,
-        // §420 — h3 и h2 гейтятся своими источниками: без h3-хостов h3
-        // не сеем (рандом по блоку = мёртвые ноды), без h2-блока — h2.
+
+
         if (_pool.masqueH3Hosts.isNotEmpty) ScanProtocol.masqueH3,
         if (_pool.masqueV4Cidr.isNotEmpty) ScanProtocol.masqueH2,
       ];
@@ -114,9 +114,9 @@ class CandidateGenerator {
 
   T _pick<T>(List<T> xs) => xs[_rng.nextInt(xs.length)];
 
-  /// Фаза 2 — вариации вокруг одного живого IP: по одной пробе на каждый
-  /// доступный протокол, добор случайными комбинациями (protocol × SNI) до
-  /// [limit]. Повторы допустимы (заодно проверка стабильности).
+
+
+
   List<ScanCandidate> variations(String ip, {int limit = 12}) {
     final protos = _protocols();
     if (protos.isEmpty) return const [];

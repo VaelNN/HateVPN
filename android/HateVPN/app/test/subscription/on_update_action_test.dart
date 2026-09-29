@@ -3,15 +3,15 @@ import 'package:lxbox/models/codec/source_record.dart';
 import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/services/storage_migration/legacy_form_v0.dart';
 
-/// §323 — реакция подписки на авто-обновление: персист поля, агрегация
-/// действий за проход апдейтера и гейт «состав не изменился» в
-/// `saveParsedConfig`.
-///
-/// `AutoUpdater.maybeUpdateAll` и `HomeController.saveParsedConfig` целиком в
-/// юнит-тесте не поднимаются (первый ходит в сеть через
-/// `SubscriptionController`, второй — в native-каналы). Поэтому агрегация и
-/// гейт проверяются на копиях той же логики, как в §311
-/// `running_config_epoch_test.dart`; персист поля — на реальной модели.
+
+
+
+
+
+
+
+
+
 
 SubscriptionServers _sub({
   SubscriptionOnUpdateAction action = SubscriptionOnUpdateAction.rebuild,
@@ -78,13 +78,13 @@ void main() {
   });
 
   group('§323 агрегация действий за проход апдейтера', () {
-    /// Копия решения из `AutoUpdater.maybeUpdateAll`: реакции копятся за весь
-    /// проход и применяются один раз. Иначе три обновившиеся подписки дали бы
-    /// три пересборки (и до трёх разрывов туннеля).
-    // §331 (ревью) — на вход агрегатору попадают ТОЛЬКО подписки, у которых
-    // `refreshEntry` вернул «состав изменился». Успешный фетч с тем же
-    // списком нод в агрегацию не входит вовсе (иначе часовой тик гонял бы
-    // пересборку впустую) — это гейтится ДО switch'а, см. maybeUpdateAll.
+
+
+
+
+
+
+
     ({bool rebuild, bool reload}) aggregate(
         List<SubscriptionOnUpdateAction> refreshedOk) {
       var rebuild = false;
@@ -123,7 +123,7 @@ void main() {
     });
 
     test('reload побеждает: одна просит применить — применяем всем', () {
-      // Подписки едут в ОДИН общий конфиг, порознь их не применить.
+
       expect(
         aggregate(const [
           SubscriptionOnUpdateAction.none,
@@ -145,10 +145,10 @@ void main() {
   });
 
   group('§323 гейт «состав не изменился» в saveParsedConfig', () {
-    /// Копия строки из `config_io.dart`. До §323 было
-    /// `(changed && tunnelUp) || prev` — sticky prev переживал пересборку,
-    /// давшую конфиг, идентичный работающему, и плашка висела без причины
-    /// (типовой случай: подписка раз в час отдаёт тот же список нод).
+
+
+
+
     bool needRestart(
             {required bool changed,
             required bool tunnelUp,
@@ -169,7 +169,7 @@ void main() {
     });
 
     test('§116 сохранён: изменился при VPN down, но флаг уже был → остаётся', () {
-      // Реальное изменение, ещё не применённое рестартом, не теряем.
+
       expect(needRestart(changed: true, tunnelUp: false, prev: true), isTrue);
     });
 
@@ -179,8 +179,8 @@ void main() {
   });
 
   group('§323 решение о reload после пересборки', () {
-    /// Копия гейтов из `_reactToSubscriptionUpdate`: reload'им только когда
-    /// режим просит, туннель поднят и конфиг реально разошёлся с running.
+
+
     bool shouldReload({
       required bool reloadRequested,
       required bool tunnelUp,

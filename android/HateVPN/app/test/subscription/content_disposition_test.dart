@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/subscription/sources.dart';
 
-// content-disposition служит fallback'ом для имени подписки, когда провайдер
-// не ставит кастомный profile-title — многие стандартные админки (Marzban,
-// 3x-ui, XrayR) кладут имя именно туда. Проверяем через inline-whitelist.
+
+
+
 void main() {
   test('content-disposition with quoted filename → profileTitle', () async {
     const body = '''
@@ -26,7 +26,7 @@ vless://u@h:443?type=tcp#A
   });
 
   test('RFC 5987 filename*=UTF-8 percent-encoded → decoded', () async {
-    // filename*=UTF-8''%D0%9C%D0%BE%D0%B8%20VPN  →  "Мои VPN"
+
     const body = '''
 # content-disposition: attachment; filename*=UTF-8''%D0%9C%D0%BE%D0%B8%20VPN
 

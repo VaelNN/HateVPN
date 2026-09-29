@@ -5,10 +5,10 @@ import '../../../widgets/outbound_picker.dart';
 import '../../../widgets/reorder_grab_strip.dart';
 import '../routing_screen_helpers.dart';
 
-/// Один tile custom-rule на табе Rules (spec §030): drag-handle, switch,
-/// имя, ☁-статус (опционально), outbound-picker и subtitle. Вся state-логика
-/// (download/enable/reorder/edit/delete) живёт в экране и приходит сюда
-/// колбэками — поведение идентично исходному `_buildCustomRuleTile`.
+
+
+
+
 class CustomRuleTile extends StatelessWidget {
   const CustomRuleTile({
     super.key,
@@ -33,9 +33,9 @@ class CustomRuleTile extends StatelessWidget {
   final int index;
   final CustomRule rule;
 
-  /// §279 (§3.5.1) — live display-имя (label пресета из локализованного
-  /// шаблона + порядковый суффикс копии; для inline/srs — `rule.name`).
-  /// Резолвится экраном (`ruleDisplayName`), тайл только рендерит.
+
+
+
   final String displayName;
 
   final List<RoutingOutboundOption> options;
@@ -43,35 +43,35 @@ class CustomRuleTile extends StatelessWidget {
   final String pickerValue;
   final bool pickerDisabled;
 
-  /// Рисовать ли outbound-picker. False для DNS-only пресетов (напр. FakeIP),
-  /// которым нечего роутить — picker был бы мёртвым (см.
-  /// [SelectableRule.hasOutboundAffordance]).
+
+
+
   final bool showOutbound;
 
-  /// §231 — правило вносит изменения в DNS (DNS-сервер/правило). Рисует чип
-  /// «DNS» рядом с именем: глядя на список, видно, что правило связано с DNS
-  /// Settings. Пресет → `SelectableRule.touchesDns`; inline/srs →
-  /// `dnsMirrorActive || forceIpv4Active` (§256 — Force IPv4 тоже DNS-аспект).
+
+
+
+
   final bool touchesDns;
 
-  /// §264 — locked-пресет (traffic-processing): свич disabled, контекст-меню
-  /// (delete) недоступно. Продуктовый инвариант — правило нельзя
-  /// выключить/удалить.
+
+
+
   final bool locked;
 
-  /// §370 — можно ли двигать правило drag'ом (`ui.isSortable`). Ортогонально
-  /// [locked]: `locked` про «нельзя выключить/удалить», `sortable` про
-  /// «нельзя двигать». У traffic-processing false оба, но флага два.
+
+
+
   final bool sortable;
 
-  /// ☁-кнопка статуса (SRS либо preset) — null если правилу не нужен SRS.
-  ///
-  /// §366 — время последнего обновления в тайле намеренно НЕ показывается:
-  /// список правил про маршрутизацию, а не про состояние кэша. Дата и кнопка
-  /// обновления живут внутри правила, в редакторе.
+
+
+
+
+
   final Widget? statusButton;
 
-  /// null — у строки нет редактора (tap ничего не делает).
+
   final VoidCallback? onTap;
   final ValueChanged<Offset> onLongPressStart;
   final ValueChanged<bool> onSwitchChanged;
@@ -85,7 +85,7 @@ class CustomRuleTile extends StatelessWidget {
 
     final content = GestureDetector(
       onTap: onTap,
-      // §264 — locked: контекст-меню (delete/reorder) недоступно.
+
       onLongPressStart: locked
           ? null
           : (d) => onLongPressStart(d.globalPosition),
@@ -99,7 +99,7 @@ class CustomRuleTile extends StatelessWidget {
               children: [
                 Switch(
                   value: rule.enabled,
-                  // §264 — locked-пресет нельзя выключить (disabled свич).
+
                   onChanged: locked ? null : onSwitchChanged,
                 ),
                 const SizedBox(width: 8),
@@ -142,8 +142,8 @@ class CustomRuleTile extends StatelessWidget {
                             TextStyle(fontSize: 12, color: subtitleColor),
                         overflow: TextOverflow.ellipsis),
                   ),
-                  // §247 — значок ✳: у правила resolve-опция (action сложнее
-                  // простого outbound). Просто маркер, деталей в списке нет.
+
+
                   if (rule.resolveActive) ...[
                     const SizedBox(width: 6),
                     Text('✳',
@@ -151,7 +151,7 @@ class CustomRuleTile extends StatelessWidget {
                             fontSize: 12,
                             color: active ? cs.primary : cs.onSurfaceVariant)),
                   ],
-                  // §231 — чип «DNS» справа на нижней строке, под outbound-пикером.
+
                   if (touchesDns) ...[
                     const SizedBox(width: 6),
                     _dnsChip(cs, active),
@@ -168,8 +168,8 @@ class CustomRuleTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // §370 — несортируемое правило не двигается: вместо grab-strip
-          // пустой отступ (ширина = 18 + margin 6×2, выравнивание с tile).
+
+
           if (!sortable)
             const SizedBox(width: 30)
           else
@@ -188,8 +188,8 @@ class CustomRuleTile extends StatelessWidget {
     );
   }
 
-  /// §231 — компактный бейдж «DNS»: правило трогает DNS-настройки. Приглушён,
-  /// когда правило выключено.
+
+
   Widget _dnsChip(ColorScheme cs, bool enabled) {
     final c = enabled ? cs.primary : cs.onSurfaceVariant;
     return Container(
@@ -203,7 +203,7 @@ class CustomRuleTile extends StatelessWidget {
         children: [
           Icon(Icons.dns_outlined, size: 12, color: c),
           const SizedBox(width: 3),
-          // l10n-exempt: acronym, same in all locales
+
           Text('DNS',
               style: TextStyle(
                   fontSize: 10, fontWeight: FontWeight.w600, color: c)),

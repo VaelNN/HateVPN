@@ -11,31 +11,31 @@ import '../contract/errors.dart';
 import '../transport/request.dart';
 import '../transport/response.dart';
 
-/// Фича 478 — `/core_reject/*`: страховка «узел, который не приняло ядро,
-/// выключается сам» целиком наблюдаема и управляема снаружи.
-///
-/// Почему это API, а не только экраны: единственный способ проверить фичу —
-/// довести ядро до отказа на живом устройстве, а дальше нужно ВИДЕТЬ фазу
-/// автомата, список выключенного и текст вердикта, и уметь ОТВЕТИТЬ на
-/// диалог предела кругов, не трогая экран. Скриншот этого не показывает:
-/// плашка говорит «выключено N», а код вердикта и подставленную причину
-/// видно только здесь.
-///
-/// Состояние прогона читается из [CoreRejectState] — сам [CoreRejectGuard]
-/// живёт ровно один прогон, снаружи его не удержать.
-///
-/// Routes:
-/// - `GET  /core_reject`                  → фаза автомата + выключенное прогоном
-/// - `GET  /core_reject/nodes`            → ВСЕ стоящие вердикты (хранение)
-/// - `GET  /core_reject/banner`           → состояние плашки «выключено N»
-/// - `POST /core_reject/banner/dismiss`   → закрыть плашку
-/// - `GET  /core_reject/prompt`           → висит ли вопрос про предел кругов
-/// - `POST /core_reject/prompt?answer=stop|keep` → ответить на него
-/// - `POST /core_reject/cancel`          → отменить идущий прогон (кнопка)
-/// - `POST /core_reject/reset`           → сбросить состояние прогона в памяти
-/// - `POST /core_reject/enable?tag=<tag>` → снять вердикт вручную
-/// - `GET  /core_reject/notifications[?tag=<tag>]` → предупреждения узла
-///   с кодами и текстами реестра
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> coreRejectHandler(
   DebugRequest req,
   DebugContext ctx,
@@ -87,8 +87,8 @@ String _severityWire(WarningSeverity s) => switch (s) {
       WarningSeverity.error => 'error',
     };
 
-/// `GET /core_reject` — прогон как он есть сейчас. `disabled` — узлы ЭТОГО
-/// прогона, а не всё стоящее (для всего стоящего есть `/core_reject/nodes`).
+
+
 Future<DebugResponse> _guardState(DebugRequest req, DebugContext ctx) async {
   final s = CoreRejectState.I;
   final outcome = s.lastOutcome;
@@ -102,8 +102,8 @@ Future<DebugResponse> _guardState(DebugRequest req, DebugContext ctx) async {
   });
 }
 
-/// `GET /core_reject/nodes` — вердикты, стоящие в ХРАНЕНИИ: переживают
-/// перезапуск процесса, в отличие от состояния прогона.
+
+
 Future<DebugResponse> _nodes(DebugRequest req, DebugContext ctx) async {
   final sub = ctx.requireSub();
   return JsonResponse([
@@ -125,8 +125,8 @@ Future<DebugResponse> _banner(DebugRequest req, DebugContext ctx) async {
   return JsonResponse(_bannerJson(CoreRejectState.I));
 }
 
-/// Закрытие плашки идемпотентно: закрыть закрытое — не ошибка, а тот же
-/// результат (снаружи гонка «человек успел раньше» неотличима).
+
+
 Future<DebugResponse> _dismissBanner(DebugRequest req, DebugContext ctx) async {
   _requirePost(req);
   final s = CoreRejectState.I;
@@ -143,12 +143,12 @@ Future<DebugResponse> _promptState(DebugRequest req, DebugContext ctx) async {
   });
 }
 
-/// `POST /core_reject/prompt?answer=stop|keep` — ответ за человека. Без
-/// висящего вопроса — 409, а не тихое «ок»: ответ в пустоту значил бы, что
-/// автомат ждёт чего-то другого, и проверяющий этого бы не заметил.
+
+
+
 Future<DebugResponse> _answerPrompt(DebugRequest req, DebugContext ctx) async {
   final s = CoreRejectState.I;
-  // Ответ принимается и запросом, и телом — curl'ом удобнее query.
+
   final body = req.jsonBodyAsMap();
   final raw = (req.q('answer') ?? body['answer']?.toString() ?? '').trim();
   final answer = switch (raw.toLowerCase()) {
@@ -174,11 +174,11 @@ Future<DebugResponse> _answerPrompt(DebugRequest req, DebugContext ctx) async {
   });
 }
 
-/// `POST /core_reject/reset` — сбросить состояние прогона в памяти: phase→idle,
-/// round→0. Вердикты в хранилище и плашка не трогаются.
-///
-/// Идущий прогон — 409: иначе `_cancel` отвяжется, а автомат потом перезапишет
-/// фазу через `finish`.
+
+
+
+
+
 Future<DebugResponse> _reset(DebugRequest req, DebugContext ctx) async {
   _requirePost(req);
   final s = CoreRejectState.I;
@@ -189,12 +189,12 @@ Future<DebugResponse> _reset(DebugRequest req, DebugContext ctx) async {
   return JsonResponse({'ok': true, 'action': 'core-reject-reset'});
 }
 
-/// `POST /core_reject/cancel` — отменить идущий прогон: то же, что нажатие
-/// на кнопку в фазе тихого цикла. Круг доигрывает, следующий не начинается,
-/// исход — `stopped_by_user`.
-///
-/// Без идущего прогона — 409, а не тихое «ок»: отмена в пустоту означала бы,
-/// что проверяющий смотрит не на тот прогон, и он бы этого не заметил.
+
+
+
+
+
+
 Future<DebugResponse> _cancel(DebugRequest req, DebugContext ctx) async {
   _requirePost(req);
   final s = CoreRejectState.I;
@@ -206,10 +206,10 @@ Future<DebugResponse> _cancel(DebugRequest req, DebugContext ctx) async {
   });
 }
 
-/// `POST /core_reject/enable?tag=<tag>` — снять вердикт руками (то же, что
-/// кнопка плашки). 404 — узла по этому тегу нет; `enabled:false` без 404
-/// невозможен, но ключ в ответе оставлен, чтобы форма не зависела от того,
-/// какой отказ вернул контроллер.
+
+
+
+
 Future<DebugResponse> _enable(DebugRequest req, DebugContext ctx) async {
   _requirePost(req);
   final body = req.jsonBodyAsMap();
@@ -223,12 +223,12 @@ Future<DebugResponse> _enable(DebugRequest req, DebugContext ctx) async {
   return JsonResponse({'enabled': enabled, 'tag': tag});
 }
 
-/// `GET /core_reject/notifications[?tag=<tag>]` — что нарисуют строка и
-/// карточка узла: код, severity, подстановки и оба текста реестра. Экран для
-/// этого не нужен — и не должен быть нужен: тексты приходят ДАННЫМИ
-/// контракта, и проверять надо именно резолв кода, а не вёрстку.
-///
-/// Без `tag` — карта по всем узлам, у которых хранимые записи есть.
+
+
+
+
+
+
 Future<DebugResponse> _notifications(DebugRequest req, DebugContext ctx) async {
   final sub = ctx.requireSub();
   final wanted = req.q('tag')?.trim();
@@ -290,8 +290,8 @@ List<StoredWarning>? _warningsForCoreTag(
   return null;
 }
 
-/// Английский пиненный — machine-поверхность: ответ не должен зависеть от
-/// того, какая локаль стоит на устройстве.
+
+
 List<Map<String, Object?>> _renderWarnings(List<StoredWarning> ws) => [
       for (final w in ws)
         {

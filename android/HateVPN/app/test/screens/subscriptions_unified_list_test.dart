@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 @Timeout(Duration(seconds: 60))
 library;
 
@@ -24,17 +24,17 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §524 — экран Servers рисует ОДИН список источников: подписки, серверы, папки
-// и цепочки в порядке `sources[]`, строками одного рода.
-//
-// До §524 экран сшивал три источника истины (`entries` контроллера, буфер
-// цепочек, `List<String>` ключей) в `_rows()` на каждый кадр, а один drag писал
-// на диск ДВАЖДЫ (`reorderSources` + `applyEntryOrder`), каждая запись падала
-// независимо. Здесь проверяется, что строк ровно столько, сколько записей, что
-// порядок берётся с диска, и что жест даёт ОДНУ запись.
-//
-// `pumpAndSettle` не используется (§504): таймеры экрана фейковые, кадры
-// прокручиваются `pump(Duration)`.
+
+
+
+
+
+
+
+
+
+
+
 
 class _FakePathProvider extends PathProviderPlatform
     with MockPlatformInterfaceMixin {
@@ -46,17 +46,17 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// Контроллер без сборки конфига и без диска.
-///
-/// `applySourceOrder` перехвачен и НЕ идёт в хранилище: настоящий файловый I/O
-/// в fake-async зоне `testWidgets` не завершается никогда (та же грабля, что в
-/// `subscriptions_new_entry_highlight_test.dart`). Тест смотрит на ЧИСЛО
-/// вызовов и на переданные ключи — ровно то, что §524 менял: одна запись на
-/// жест вместо двух.
+
+
+
+
+
+
+
 class _CountingSubController extends SubscriptionController {
   final orderCalls = <List<String>>[];
 
-  /// Список, который отдаётся экрану вместо чтения с диска.
+
   List<SourceEntry> scene = const [];
 
   @override
@@ -68,7 +68,7 @@ class _CountingSubController extends SubscriptionController {
   @override
   Future<bool> applySourceOrder(List<String> keys) async {
     orderCalls.add(keys);
-    // Применяем в памяти, как это сделала бы запись на диск.
+
     final rank = {for (var i = 0; i < keys.length; i++) keys[i]: i};
     scene = [...scene]
       ..sort((a, b) => (rank[a.sourceKey] ?? rank.length)
@@ -148,9 +148,9 @@ void main() {
       });
     }
     controller = _CountingSubController();
-    // Настоящая зона: прогрев хранилища и состав записей в памяти. Смешанный
-    // список — сервер, ЦЕПОЧКА, сервер: цепочка стоит МЕЖДУ контейнерами,
-    // а не хвостом (§509).
+
+
+
     await controller.init();
     await SettingsStorage.getAutoUpdateSubs();
     final first = _entry('u1', _uri(1, 'First'), 'First');
@@ -171,7 +171,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -181,13 +181,13 @@ void main() {
     addTearDown(home.dispose);
     await _pumpServersScreen(tester, controller: controller, home: home);
 
-    // Контроллер держит только контейнеры; экран рисует ВСЕ записи.
+
     expect(controller.entries.map((e) => e.id), ['u1', 'u2']);
     expect(find.text('First'), findsOneWidget);
     expect(find.text('Via'), findsOneWidget);
     expect(find.text('Second'), findsOneWidget);
 
-    // Порядок на экране — порядок `sources[]`, а не «сначала контейнеры».
+
     final yFirst = tester.getCenter(find.text('First')).dy;
     final yVia = tester.getCenter(find.text('Via')).dy;
     final ySecond = tester.getCenter(find.text('Second')).dy;
@@ -203,14 +203,14 @@ void main() {
     expect(controller.orderCalls, isEmpty);
     final state = tester.state<State<SubscriptionsScreen>>(
         find.byType(SubscriptionsScreen));
-    // Жест: первая строка (сервер u1) уезжает в конец списка.
+
     await (state as dynamic).debugReorderRows(0, 2);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(controller.orderCalls, hasLength(1),
         reason: 'до §524 жест писал дважды, каждая запись падала независимо');
-    // Ключи ОБОИХ родов в одном списке — цепочка адресуется наравне.
+
     expect(controller.orderCalls.single, ['chain:c1', 'id:u2', 'id:u1']);
     expect(controller.scene.map((e) => e.sourceKey),
         ['chain:c1', 'id:u2', 'id:u1']);
@@ -221,8 +221,8 @@ void main() {
     addTearDown(home.dispose);
     await _pumpServersScreen(tester, controller: controller, home: home);
 
-    // §511 M1 — цепочка ушла из СЕРЕДИНЫ списка: серверы остаются на местах,
-    // в освободившееся место никто не съезжает.
+
+
     controller.scene = [
       for (final e in controller.scene)
         if (e.sourceKey != 'chain:c1') e,

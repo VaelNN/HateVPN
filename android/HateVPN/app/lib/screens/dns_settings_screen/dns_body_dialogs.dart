@@ -4,17 +4,17 @@ import 'package:flutter/material.dart';
 
 import '../../services/l10n/locale_controller.dart';
 
-/// Read-only dialog с полным JSON body правила. Юзер видит что внутри
-/// без необходимости лезть в исходник (особенно для kind=template/rule
-/// где body proxy'ится из шаблона/пресета).
-///
-/// §253: body — Map (одно правило) или List<Map> (пресет с несколькими
-/// DNS-правилами); одноэлементный список разворачивается до Map (прежний вид).
+
+
+
+
+
+
 void showRuleBodyDialog(
     BuildContext context, String title, String kind, Object? body) {
   final unwrapped = switch (body) {
-    List(isEmpty: true) => null, // все правила выпали на expansion'е
-    [final only] => only, // одно правило — прежний вид (без [ ] обёртки)
+    List(isEmpty: true) => null,
+    [final only] => only,
     _ => body,
   };
   final pretty = unwrapped == null
@@ -25,7 +25,7 @@ void showRuleBodyDialog(
     'preset' => getLocalText.s("preset"),
     'srs' => getLocalText.s("srs"),
     'rule' => getLocalText.s("routing rule"),
-    // §435 — DNS-правило из секций узла (read-only).
+
     'node' => getLocalText.s("node"),
     _ => getLocalText.s("user rule"),
   };

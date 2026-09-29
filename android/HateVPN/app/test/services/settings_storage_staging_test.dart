@@ -7,14 +7,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §107 — staging: `setX(..., flush: false)` обновляет только in-memory
-/// `_cache`; диск догоняет одним атомарным `flushToDisk()`. Главный
-/// регрессионный сценарий: читатель (generateConfig на возврате к home)
-/// видит staged-данные ДО дисковой записи — гонка «rebuild читает
-/// несфлашенный storage» закрыта классом.
-///
-/// Pattern: ротация `getApplicationDocumentsPath()` через mocked
-/// MethodChannel + `resetCacheForTesting()` (как в settings_storage_test).
+
+
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -41,7 +41,7 @@ void main() {
     try {
       if (tmp.existsSync()) await tmp.delete(recursive: true);
     } on FileSystemException {
-      /* ignore — AppLog может дописывать async */
+
     }
   });
 
@@ -84,8 +84,8 @@ void main() {
 
   group('§107 — регрессия (rebuild читал несфлашенный storage)', () {
     test('staged custom rules видны читателю ДО дисковой записи', () async {
-      // Имитация бага: правка правил staged (markDirty экрана), rebuild на
-      // didPop читает storage — dispose-flush ещё не случился.
+
+
       final rule = CustomRuleInline(
         name: 'r1',
         domainSuffixes: ['example.com'],
@@ -117,11 +117,11 @@ void main() {
   group('§159 — DENY-очистка в _save() удалена', () {
     test('stale vars.auto_rebuild НЕ чистится на save (только на импорте)',
         () async {
-      // §159 — хардкод-очистка «мёртвых» ключей в _save() удалена. Уже лежащий
-      // на диске мусор безвреден (никем не читается) и переживает обычный save;
-      // чистится только allowlist'ом на ВХОДЕ (replaceRaw), см. backup-тесты.
-      // Файл текущей формы: мёртвые ключи файла 2.23.2 удаляет миграция
-      // хранения §439 при чтении, это другой путь.
+
+
+
+
+
       await File(mainPath()).writeAsString(jsonEncode({
         'storage_version': 1,
         'vars': {'auto_rebuild': 'false', 'alpha': '1'},

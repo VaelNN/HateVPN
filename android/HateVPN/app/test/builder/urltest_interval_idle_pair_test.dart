@@ -13,13 +13,13 @@ import 'package:lxbox/services/parser/parse_all.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §442 — пара `interval`/`idle_timeout` у urltest (эталон — SPEC 128
-/// лаунчера). Ядро достраивает пропуски до 3m/30m и падает на
-/// `interval > idle_timeout` в конструкторе группы; санитайзер поднимает
-/// `idle_timeout` до `interval` и никогда не трогает сам `interval`.
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('parseCoreDurationNanos — правила ядра', () {
@@ -44,14 +44,14 @@ void main() {
     test('то, что ядро отвергает', () {
       for (final bad in [
         '',
-        ' 1h', // пробелы ядро не срезает
-        '30', // число без единицы
-        '1ds', // «d» только как единица
+        ' 1h',
+        '30',
+        '1ds',
         '1w',
         'fast',
         '.s',
         '-',
-        '99999999999999999999h', // переполнение
+        '99999999999999999999h',
       ]) {
         expect(parseCoreDurationNanos(bad), isNull, reason: bad);
       }
@@ -68,7 +68,7 @@ void main() {
     Map<String, dynamic> g(Map<String, dynamic> c) =>
         (c['outbounds'] as List)[1] as Map<String, dynamic>;
 
-    /// Санитайзер не нашёл чего чинить: ни warning'а, ни байта разницы.
+
     void untouched(Map<String, dynamic> group) {
       final c = config(group);
       final before = jsonEncode(c);
@@ -239,7 +239,7 @@ void main() {
         }
       ])));
       final auto = nodes.whereType<AutoSelectSpec>().single;
-      // Вход действительно расходится: парсер оставляет умолчание 30m.
+
       expect(auto.params.interval, '3h');
       expect(auto.params.idleTimeout, '30m');
 

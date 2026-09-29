@@ -6,10 +6,10 @@ import 'package:lxbox/models/home_state.dart';
 import 'package:lxbox/screens/home/node_list_presenter.dart';
 import 'package:lxbox/vpn/cc_channel.dart';
 
-/// §322 — ядру и auto-двойник Направления, и узел автовыбора приходят одинаковым
-/// `urltest`. Спец-обращение (подмена имени на «✨ Auto», пин в верхнюю
-/// секцию) положено ТОЛЬКО двойнику; различитель — его тег (`vpn-N-auto`,
-/// генерит билдер Направления), а не тип.
+
+
+
+
 void main() {
   CcGroup ccGroup(String tag, String type, {String selected = ''}) => CcGroup(
         tag: tag,
@@ -20,7 +20,7 @@ void main() {
         items: const [],
       );
 
-  /// Узлы + их типы: всё, что похоже на группу, объявляем `urltest`.
+
   HomeState stateWith({
     required List<String> nodes,
     required Set<String> autoTags,
@@ -31,7 +31,7 @@ void main() {
         nodes: nodes,
         directionAutoTags: directionAutoTags,
         pinAuto: pinAuto,
-        // Пин смотрит ТИП из конфига (§311 activeModel), не из ccGroups.
+
         configRaw: jsonEncode({
           'outbounds': [
             for (final n in nodes)
@@ -56,14 +56,14 @@ void main() {
     });
 
     test('узел автовыбора §322 НЕ пинится', () {
-      // Тип тот же `urltest`, но тега нет среди Направлений.
+
       final s = stateWith(
         nodes: ['DE-1', 'L: 🇪🇺 Авто'],
         autoTags: {'L: 🇪🇺 Авто'},
         directionAutoTags: {'vpn-1-auto'},
       );
       expect(s.pinnedNodeCount, 0);
-      // Остаётся на своём месте, а не уезжает наверх.
+
       expect(s.sortedNodes, ['DE-1', 'L: 🇪🇺 Авто']);
     });
 
@@ -125,7 +125,7 @@ void main() {
     });
 
     test('пул больше состава показываем как есть', () {
-      // Ядро схлопнет до доступных; врать «7 из 3» не наше дело.
+
       expect(autoGroupLabel(ut(3, pool: 7)), '🔀 [3/7]');
     });
 
@@ -176,7 +176,7 @@ void main() {
     });
 
     test('произвольный regexp пользователя', () {
-      // Не только флаги: например, код страны в скобках.
+
       expect(
         poolBadges(const ['Node (DE)', 'Node (NL)', 'Node (DE)'],
             r'\(([A-Z]{2})\)'),
@@ -194,7 +194,7 @@ void main() {
   });
 
   test('balancer в конфиге — гейт «View pool» для группы §322', () {
-    // round_robin эмитит `balancer{}`; least_test — нет (ядро SPEC 019).
+
     final pc = ParsedConfig.parse(jsonEncode({
       'outbounds': [
         {

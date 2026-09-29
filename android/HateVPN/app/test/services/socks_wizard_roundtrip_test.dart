@@ -7,26 +7,26 @@ import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/models/template_vars.dart';
 import 'package:lxbox/services/parser/uri_utils.dart' show newUuidV4;
 
-/// §074 — verify SocksSpec → JSON outbound → UserServer round-trip
-/// preserves user-chosen tag verbatim.
-///
-/// Регрессия: до правки wizard persist'ил rawBody через `spec.toUri()` —
-/// URI format `socks5://...#fragment`, parser восстанавливал tag из
-/// fragment'а. `tag = "my-socks-out"`, `label = "My Local SOCKS"` → после
-/// restart'а tag становился `"My Local SOCKS"`, routing rules ломались.
-///
-/// Fix: persist через `emit().map` (sing-box outbound JSON). JSON parser
-/// читает entry['tag'] напрямую — exact round-trip.
+
+
+
+
+
+
+
+
+
+
 void main() {
   test('SocksSpec → JSON outbound → UserServer.fromJson preserves tag', () {
-    // Модельный round-trip: пользовательский tag + name. С §243 визард
-    // name больше не пишет (заголовок = tag), но поле в модели живо
-    // (подписки/папки) — persist-контракт UserServer.name проверяем тут.
+
+
+
     const userTag = 'my-socks-out';
     final spec = SocksSpec(
       id: newUuidV4(),
       tag: userTag,
-      label: userTag, // §074: label = tag для lossless round-trip
+      label: userTag,
       server: '127.0.0.1',
       port: 1080,
       rawSource: '',
@@ -36,7 +36,7 @@ void main() {
     final outboundMap = spec.emit(TemplateVars.empty).map;
     final us = UserServer(
       id: newUuidV4(),
-      name: 'My Local SOCKS', // display name — UserServer.name, persisted натив'но
+      name: 'My Local SOCKS',
       enabled: true,
       tagPrefix: '',
       detourPolicy: DetourPolicy.defaults,
@@ -45,11 +45,11 @@ void main() {
       nodes: [spec],
     );
 
-    // Persist round-trip (§439: запись `sources[]`).
+
     final restored =
         sourceFromRecord(sourceToRecord(us)).value! as UserServer;
 
-    // Имя одиночного сервера (с §243 пустое) записью не хранится.
+
     expect(restored, us);
     expect(restored.name, '');
     expect(restored.nodes.length, 1);

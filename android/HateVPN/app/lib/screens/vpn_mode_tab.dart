@@ -1,19 +1,19 @@
-// §119 — VPN mode tab. Выбор как ядро ловит трафик (inbound-трактовка):
-//   • VPN       — только tun-inbound (текущее поведение, default).
-//   • Proxy     — только локальный mixed-inbound (HTTP+SOCKS), без TUN.
-//   • VPN+Proxy — tun + mixed одновременно.
-//
-// UI для `vpn_mode` storage shape. Builder applyVpnMode() трансформирует это
-// в config.inbounds. Смена режима меняет inbounds → требует FULL VPN restart
-// (наследуется от config-dirty машинерии: home banner Apply/Restart).
-//
-// Data-driven рендер: presentational metadata (title/tooltip/options/type)
-// читается из семи `wizard_ui: hidden` нод секции "VPN Mode" в
-// wizard_template.json (vpn_mode/proxy_type/proxy_listen/proxy_port/
-// proxy_user/proxy_pass/proxy_auth). ЗНАЧЕНИЯ при этом маппятся в
-// типизированный VpnModeConfig (copyWith), НЕ в varsValues — ноды дают только
-// метаданные. Ноды резолвятся по имени из `template.vars` (не `varsFor('core')`
-// — тот фильтрует hidden).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import 'dart:async';
 
@@ -41,8 +41,8 @@ class VpnModeTab extends StatefulWidget {
   final HomeController homeController;
   final SubscriptionController subController;
 
-  /// Загруженный wizard-template. Семь `vpn_mode`/`proxy_*` нод (все
-  /// `wizard_ui: hidden`) поставляют title/tooltip/options/type для рендера.
+
+
   final WizardTemplate template;
 
   @override
@@ -55,10 +55,10 @@ class _VpnModeTabState extends State<VpnModeTab>
   bool _loading = true;
   bool _showPassword = false;
 
-  // §188 — TUN-зависимые native-тумблеры (keep-alive / allow-bypass) переехали
-  // сюда из App Settings: осмысленны только при наличии TUN (`hasTun`). Хранятся
-  // в native SharedPrefs (BoxVpnClient get/set), НЕ в vpn_mode storage.
-  bool _keepOnExit = true; // §188 — дефолт ON
+
+
+
+  bool _keepOnExit = true;
   bool _allowBypass = false;
   bool _tunTogglesLoaded = false;
 
@@ -69,9 +69,9 @@ class _VpnModeTabState extends State<VpnModeTab>
   String _portError = '';
   String _listenError = '';
 
-  // ─── Ноды-метаданные (резолв по имени из полного template.vars) ───
-  // `varsFor('core')` НЕ годится: он отфильтровывает wizard_ui == 'hidden',
-  // а все семь нод именно hidden. Поэтому читаем из template.vars напрямую.
+
+
+
   late final WizardVar _vpnModeNode = _node('vpn_mode');
   late final WizardVar _proxyTypeNode = _node('proxy_type');
   late final WizardVar _listenNode = _node('proxy_listen');
@@ -80,8 +80,8 @@ class _VpnModeTabState extends State<VpnModeTab>
   late final WizardVar _passNode = _node('proxy_pass');
   late final WizardVar _authNode = _node('proxy_auth');
 
-  /// firstWhere без orElse — отсутствующая нода = баг bundled-темплейта
-  /// (fail-fast, как TemplateLoader.validateIfConstructs).
+
+
   WizardVar _node(String name) =>
       widget.template.vars.firstWhere((v) => v.name == name);
 
@@ -109,8 +109,8 @@ class _VpnModeTabState extends State<VpnModeTab>
 
   Future<void> _load() async {
     final cfg = await SettingsStorage.getVpnMode();
-    // §188/§189 — native-тумблеры (keep-alive / allow-bypass) читаем из
-    // JSON-зеркала native_prefs (источник истины), не method-channel.
+
+
     final keep =
         await SettingsStorage.getNativeBool(NativePrefsKeys.keepOnExit);
     final bypass =
@@ -129,8 +129,8 @@ class _VpnModeTabState extends State<VpnModeTab>
     });
   }
 
-  // §188/§189 — keep-alive: пишем через NativePrefs (JSON-истина + зеркало в
-  // native) + restart-banner. НЕ напрямую в native (иначе sync откатил бы).
+
+
   void _toggleKeepOnExit(bool val) {
     setState(() => _keepOnExit = val);
     unawaited(
@@ -138,7 +138,7 @@ class _VpnModeTabState extends State<VpnModeTab>
     widget.homeController.markConfigChangedNeedRestart();
   }
 
-  // §188/§189 — allow-bypass: через NativePrefs + restart-banner.
+
   void _toggleAllowBypass(bool val) {
     setState(() => _allowBypass = val);
     unawaited(
@@ -151,8 +151,8 @@ class _VpnModeTabState extends State<VpnModeTab>
     await SettingsStorage.setVpnMode(_cfg, flush: false);
   }
 
-  /// Любая мутация: staging + sync configDirty (mixin) + restart-banner если
-  /// туннель поднят (смена inbounds → full restart).
+
+
   void _commit() {
     markDirty();
     widget.homeController.markConfigChangedNeedRestart();
@@ -160,16 +160,16 @@ class _VpnModeTabState extends State<VpnModeTab>
 
   void _setMode(String mode) {
     var next = _cfg.copyWith(mode: mode);
-    // При переходе на режим с прокси + включённый auth + пустой пароль —
-    // генерим (по образцу §118 HWID lazy-gen).
+
+
     if (next.hasMixed && next.effectiveAuth && next.proxyPassword.isEmpty) {
       final pass = generateProxyPassword();
       next = next.copyWith(proxyPassword: pass);
       _passCtl.text = pass;
     }
     setState(() => _cfg = next);
-    // §192 — зеркалим has_tun в native: гейтит VpnService.prepare() (proxy →
-    // не звать prepare → чужой VPN не отзывается). Производное от mode.
+
+
     unawaited(SettingsStorage.setNativeHasTun(next.hasTun));
     _commit();
   }
@@ -180,9 +180,9 @@ class _VpnModeTabState extends State<VpnModeTab>
     _commit();
   }
 
-  /// Применить введённый/выбранный listen-адрес. Невалидный IPv4 → errorText,
-  /// не сохраняем. Не-loopback форсит auth on → генерим пароль если пуст.
-  /// Свободно введённый IPv4 (например 127.10.20.5) идёт ПО ЭТОМУ ЖЕ пути.
+
+
+
   void _applyListen(String raw) {
     final addr = raw.trim();
     if (!VpnModeConfig.isValidListenAddr(addr)) {
@@ -194,7 +194,7 @@ class _VpnModeTabState extends State<VpnModeTab>
       return;
     }
     var next = _cfg.copyWith(proxyListen: addr);
-    // Не-loopback форсит auth on → пустой пароль надо сгенерить.
+
     if (next.effectiveAuth && next.proxyPassword.isEmpty) {
       final pass = generateProxyPassword();
       next = next.copyWith(proxyPassword: pass);
@@ -257,9 +257,9 @@ class _VpnModeTabState extends State<VpnModeTab>
     _commit();
   }
 
-  // ─────────────────────────── render helpers ───────────────────────────
 
-  /// Заголовок-строка `title` + info-иконка с tooltip ноды.
+
+
   Widget _labelRow(WizardVar node, TextStyle? style, {double iconSize = 18}) {
     final cs = Theme.of(context).colorScheme;
     return Row(
@@ -278,15 +278,15 @@ class _VpnModeTabState extends State<VpnModeTab>
     );
   }
 
-  /// Короткий лейбл для SegmentedButton: ведущий токен до ` — ` («VPN —
-  /// system-wide tunnel» → «VPN»), чтобы сегменты не переполнялись.
+
+
   String _shortLabel(String title) {
     final i = title.indexOf(' — ');
     return i >= 0 ? title.substring(0, i) : title;
   }
 
-  /// MODE (vpn_mode): SegmentedButton — явное исключение из «enum→dropdown»
-  /// (решение юзера). Сегменты из node.options, короткие лейблы.
+
+
   Widget _buildModeSegments() {
     return SegmentedButton<String>(
       segments: _vpnModeNode.options
@@ -300,7 +300,7 @@ class _VpnModeTabState extends State<VpnModeTab>
     );
   }
 
-  /// PROTOCOL (proxy_type, enum+options): non-editable DropdownMenu.
+
   Widget _buildEnumDropdown(
     WizardVar node, {
     required String current,
@@ -319,11 +319,11 @@ class _VpnModeTabState extends State<VpnModeTab>
     );
   }
 
-  /// LISTEN (proxy_listen, text+options): EDITABLE combobox. requestFocusOnTap
-  /// делает поле редактируемым → можно ввести произвольный IPv4 (не из
-  /// options). onSelected ловит тап по подсказке; свободный ввод коммитится
-  /// при потере фокуса (Focus.onFocusChange) через _applyListen — тот же
-  /// валидирующий путь.
+
+
+
+
+
   Widget _buildListenCombobox() {
     return Focus(
       onFocusChange: (has) {
@@ -362,7 +362,7 @@ class _VpnModeTabState extends State<VpnModeTab>
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
       children: [
-        // ─── MODE (vpn_mode → SegmentedButton) ───
+
         _labelRow(_vpnModeNode, tt.titleMedium),
         const SizedBox(height: 8),
         _buildModeSegments(),
@@ -372,9 +372,9 @@ class _VpnModeTabState extends State<VpnModeTab>
           style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
         ),
 
-        // ─── TUNNEL OPTIONS (§188): keep-alive + allow-bypass ───
-        // Видны только при наличии TUN (vpn / vpn_proxy). В proxy-режиме оба
-        // бессмысленны (нет VpnService.establish / Builder) → скрыты.
+
+
+
         if (_cfg.hasTun) ...[
           const SizedBox(height: 16),
           const Divider(height: 1),
@@ -410,7 +410,7 @@ class _VpnModeTabState extends State<VpnModeTab>
           Text(getLocalText.s("Local proxy"), style: tt.titleMedium),
           const SizedBox(height: 12),
 
-          // ─── PROTOCOL (proxy_type → dropdown) ───
+
           _labelRow(_proxyTypeNode, tt.bodyMedium, iconSize: 16),
           const SizedBox(height: 6),
           _buildEnumDropdown(
@@ -420,7 +420,7 @@ class _VpnModeTabState extends State<VpnModeTab>
           ),
           const SizedBox(height: 16),
 
-          // ─── LISTEN (proxy_listen → editable combobox) ───
+
           _labelRow(_listenNode, tt.bodyMedium, iconSize: 16),
           const SizedBox(height: 6),
           _buildListenCombobox(),
@@ -433,7 +433,7 @@ class _VpnModeTabState extends State<VpnModeTab>
           ),
           const SizedBox(height: 16),
 
-          // ─── PORT (proxy_port → numeric field) ───
+
           TextField(
             controller: _portCtl,
             keyboardType: TextInputType.number,
@@ -449,7 +449,7 @@ class _VpnModeTabState extends State<VpnModeTab>
           ),
           const SizedBox(height: 16),
 
-          // ─── AUTH (proxy_auth → switch; forced-on for non-loopback) ───
+
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(_authNode.title),
@@ -459,13 +459,13 @@ class _VpnModeTabState extends State<VpnModeTab>
                   : getLocalText.s("Recommended. Protects the local proxy port."),
             ),
             value: _cfg.effectiveAuth,
-            // 0.0.0.0 → залочен on (onChanged null = disabled).
+
             onChanged: _cfg.isPublicListen ? null : _toggleAuth,
           ),
 
           if (_cfg.effectiveAuth) ...[
             const SizedBox(height: 8),
-            // ─── USER (proxy_user → text field) ───
+
             TextField(
               controller: _userCtl,
               decoration: InputDecoration(
@@ -476,7 +476,7 @@ class _VpnModeTabState extends State<VpnModeTab>
               onChanged: _applyUsername,
             ),
             const SizedBox(height: 12),
-            // ─── PASS (proxy_pass → masked + show/hide + regenerate) ───
+
             TextField(
               controller: _passCtl,
               obscureText: !_showPassword,

@@ -8,10 +8,10 @@ import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/transport.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §320 — вторая форма WebSocket early data: плоские `ed`/`eh` в query, а не
-/// хвостом пути (§303). Потеря `eh` ломает коннект: при пустом
-/// `early_data_header_name` ядро дописывает base64 В ПУТЬ (conn.go:172), а
-/// сервер с `eh=Sec-WebSocket-Protocol` ждёт данные в заголовке → 404.
+
+
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -62,7 +62,7 @@ void main() {
       final m = wsMap(t);
       expect(m['path'], '/x');
       expect(m['max_early_data'], 1024);
-      // eh парой с ed из пути всё равно применяется — режим задаёт провайдер.
+
       expect(m['early_data_header_name'], 'Sec-WebSocket-Protocol');
     });
 
@@ -140,15 +140,15 @@ void main() {
       return (specs.first as VlessSpec).transport;
     }
 
-    // §533 / контракт 1.1.53 (§49 п.5 TASKS_LXBOX) — ПЛОСКИЕ `ed`/`eh` у
-    // `wsSettings` НЕ ЧИТАЮТСЯ. Прежде их читал оверлей
-    // `contract_draft/uri/transports.json` (`blocks.xray.ws`), и ревизия
-    // зеркала назвала это расхождением с корпусом: кейсы
-    // `body/xray/ws_ed_flat_only` и `ws_eh_without_ed` ждут кода
-    // `json_field_unknown`, то есть Xray таких полей у `wsSettings` не
-    // объявляет вовсе — раннее чтение сочиняло early data узлу, у которого
-    // её нет. Конвенцию даёт ТОЛЬКО хвост пути (`path: "/x?ed=N"`, тест
-    // ниже) и query ссылки (группа выше).
+
+
+
+
+
+
+
+
+
     test('ed/eh полями объекта НЕ читаются (json_field_unknown)', () {
       final m = wsMap(fromXray({
         'path': '/x',
@@ -179,19 +179,19 @@ void main() {
   });
 
   group('round-trip', () {
-    // §480 W7 — ВИД ССЫЛКИ ИЗМЕНИЛСЯ, тело — нет.
-    //
-    // Было: `path=/x` + `ed=2560` + `eh=Sec-WebSocket-Protocol` — три
-    // параметра. Стало: один хвост `path=/x?ed=2560`, а имя заголовка
-    // восстанавливается `implies` той же записи, которая хвост и читает.
-    //
-    // Почему так вышло и почему это не потеря: «заголовок задан явно» против
-    // «подразумевается формой» — различие, которого В ТЕЛЕ НЕТ. Оно жило
-    // флагом модели (`earlyDataHeaderImplicit`), а эмиттер движка получает
-    // каноническое тело и ничего кроме. При совпадении значения с
-    // подразумеваемым обе формы дают ОДНО тело, что здесь и проверяется;
-    // значение, от подразумеваемого отличное, уезжает отдельной записью `eh`
-    // как и прежде (кейс ниже).
+
+
+
+
+
+
+
+
+
+
+
+
+
     test('хвост пути несёт ed, имя заголовка восстанавливается implies', () {
       final src = 'trojan://pw@example.com:443?type=ws&path=%2Fx'
           '&ed=2560&eh=Sec-WebSocket-Protocol&security=tls&sni=example.com#n';
@@ -200,7 +200,7 @@ void main() {
       final q = Uri.parse(uri).queryParameters;
       expect(q['path'], '/x?ed=2560');
 
-      // Круг не теряет ни размер, ни режим: тело байт в байт.
+
       expect(
         parseUri(uri)!.emitRaw(const TemplateVars()).map,
         a.emitRaw(const TemplateVars()).map,

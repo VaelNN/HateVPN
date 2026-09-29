@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-/// §098 — единый «grab strip» для drag-reorder списков (routing rules / DNS
-/// rules / subscriptions). Вертикальная тонированная полоса слева с иконкой
-/// `drag_indicator`. Оборачивается в [ReorderableDragStartListener], поэтому
-/// работает с `ReorderableListView(buildDefaultDragHandles: false)`.
-///
-/// Ставить первым ребёнком `Row(crossAxisAlignment: stretch)` внутри
-/// `IntrinsicHeight` — полоса растягивается на высоту строки.
+
+
+
+
+
+
+
 class ReorderGrabStrip extends StatelessWidget {
   const ReorderGrabStrip({super.key, required this.index});
 
-  /// Индекс элемента в `ReorderableListView` (для drag-старта).
+
   final int index;
 
   @override

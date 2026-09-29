@@ -7,17 +7,17 @@ import 'profiler_filter.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// §044/new-profiler — фильтр-окно профайлера. Bottom-sheet, паттерн
-/// `home/widgets/filter_panel.dart`: TabBar с amber-точкой на табе с активным
-/// фильтром + контент таба.
-///
-/// Две вкладки (порядок по решению юзера):
-/// 1. **Protocol** — чипы DNS / TCP / UDP (по семейству §177).
-/// 2. **App** — галочки замеченных в трафике пакетов ([seenApps]) + «потеряшки»
-///    (unattributed) + кнопка пикера (добавить app, которого ещё не было).
-///
-/// [showAppTab] — в App-вкладке (`per_app_trace`) target зафиксирован сессией,
-/// App-таб скрыт. [seenApps] — пакеты, реально засветившиеся в текущих событиях.
+
+
+
+
+
+
+
+
+
+
+
 Future<void> showProfilerFilterSheet(
   BuildContext context, {
   required ProfilerFilter filter,
@@ -66,12 +66,12 @@ class _ProfilerFilterSheet extends StatefulWidget {
 class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
     with TickerProviderStateMixin {
   late final TabController _tab;
-  // §230 — поле поиска (domain/ip/process, substring, не regex). Засеяно из
-  // f.search (клик по домену в детали ставит его туда), редактируется/чистится
-  // юзером прямо здесь. Живёт над вкладками — видно на любой оси.
+
+
+
   late final TextEditingController _searchCtrl;
 
-  // Protocol-чипы: (label, представитель-семейство §177).
+
   static const _protocols = <(String, TrafficEventKind)>[
     ('DNS', TrafficEventKind.dnsResolve),
     ('TCP', TrafficEventKind.tcpOpen),
@@ -80,12 +80,12 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
 
   ProfilerFilter get f => widget.filter;
 
-  // Пакеты, добавленные через пикер (которых не было в seenApps) — показываем
-  // их в App-табе тоже, чтобы галочка была видна.
+
+
   final Set<String> _extraApps = {};
 
-  // §230 — какие табы показываем. Protocol всегда; App по флагу; Rule/Outbound
-  // — если есть что показать (значения в трафике ИЛИ уже выбранные в фильтре).
+
+
   bool get _showRuleTab => widget.seenRules.isNotEmpty || f.rules.isNotEmpty;
   bool get _showOutboundTab =>
       widget.seenOutbounds.isNotEmpty || f.outbounds.isNotEmpty;
@@ -93,14 +93,14 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
   @override
   void initState() {
     super.initState();
-    var len = 1; // Protocol
+    var len = 1;
     if (widget.showAppTab) len++;
     if (_showRuleTab) len++;
     if (_showOutboundTab) len++;
     _tab = TabController(length: len, vsync: this);
     _searchCtrl = TextEditingController(text: f.search);
-    // app'ы из фильтра, которых нет в seen, — изначально extra (например из
-    // прошлого пикера).
+
+
     _extraApps.addAll(f.apps.where((p) => !widget.seenApps.contains(p)));
     f.addListener(_onChanged);
   }
@@ -114,7 +114,7 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
   }
 
   void _onChanged() {
-    // Внешние изменения фильтра (напр. «Reset all») отражаем в поле.
+
     if (_searchCtrl.text != f.search) _searchCtrl.text = f.search;
     if (mounted) setState(() {});
   }
@@ -147,7 +147,7 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
     ),
   );
 
-  // ── Protocol-таб ──
+
   Widget _protocolTab() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -166,9 +166,9 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
     );
   }
 
-  // ── App-таб ──
+
   Widget _appTab() {
-    // Замеченные + extra (из пикера), отсортированы: выбранные наверх.
+
     final all = <String>{...widget.seenApps, ..._extraApps}.toList();
     all.sort((a, b) {
       final sa = f.hasApp(a) ? 0 : 1;
@@ -180,8 +180,8 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Кнопка пикера — В НАЧАЛЕ (просьба юзера): добавить app, которого ещё
-        // не было в трафике, без скролла до конца списка.
+
+
         Padding(
           padding: const EdgeInsets.only(bottom: 4),
           child: OutlinedButton.icon(
@@ -190,7 +190,7 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
             onPressed: _openPicker,
           ),
         ),
-        // «Потеряшки» — события без owner'а.
+
         if (widget.hasUnattributed || f.includeUnattributed)
           CheckboxListTile(
             value: f.includeUnattributed,
@@ -239,10 +239,10 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
     );
   }
 
-  // ── Rule-таб (§230) — по сматчившему route-правилу; '' = «final» ──
+
   Widget _ruleTab() {
-    // seenRules + уже выбранные (могли осесть в фильтре из прошлой сессии).
-    // '' нормализуем в псевдо-пункт «final».
+
+
     final all = <String>{...widget.seenRules, ...f.rules}.toList()
       ..sort((a, b) {
         final sa = f.hasRule(a) ? 0 : 1;
@@ -278,7 +278,7 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
     );
   }
 
-  // ── Outbound-таб (§230) — любое звено outboundChain ∪ detourChain ──
+
   Widget _outboundTab() {
     final all = <String>{...widget.seenOutbounds, ...f.outbounds}.toList()
       ..sort((a, b) {
@@ -357,16 +357,16 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
       builder: (_) => _PickerSheet(
         filter: f,
         onPicked: (pkg) {
-          // добавленный пакет показываем в App-табе даже если его не было в seen.
+
           setState(() => _extraApps.add(pkg));
         },
       ),
     );
   }
 
-  // §230 — определения табов (label, есть-ли-активный-фильтр, builder). Порядок
-  // и состав ДОЛЖНЫ совпадать с длиной _tab (initState): Protocol [· App]
-  // [· Rule] [· Outbound]. Условия те же, что в _show*Tab / showAppTab.
+
+
+
   List<(String, bool, Widget Function())> get _tabDefs => [
     ('Protocol', f.kinds.isNotEmpty, _protocolTab),
     if (widget.showAppTab) ('App', f.appAxisActive, _appTab),
@@ -403,8 +403,8 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
                   ),
               ],
             ),
-            // §230 — поиск по domain/ip/process (substring). Клик по домену в
-            // детали соединения кладёт значение сюда; юзер видит/правит/чистит.
+
+
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: TextField(
@@ -458,9 +458,9 @@ class _ProfilerFilterSheetState extends State<_ProfilerFilterSheet>
   }
 }
 
-/// Полный пикер приложений (за кнопкой «Add app»). Мульти-select поверх
-/// [AppMultiPicker]; выбор сразу пишется в [filter.apps] + дёргается [onPicked]
-/// чтобы родитель показал пакет в App-табе.
+
+
+
 class _PickerSheet extends StatefulWidget {
   const _PickerSheet({required this.filter, required this.onPicked});
   final ProfilerFilter filter;

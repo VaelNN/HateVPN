@@ -3,9 +3,9 @@ import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/rule_name_resolver.dart';
 
-/// §279 Phase 2 (§3.5.4) — RuleNameResolver.relocalize: пере-дерайв
-/// preset-label-частей зеркал из custom_rules + свежелокализованного шаблона
-/// и сброс мемоизации, БЕЗ касания конфига (условия правил не меняются).
+
+
+
 void main() {
   WizardTemplate template(String label) => WizardTemplate.fromJson({
         'selectable_rules': [
@@ -42,7 +42,7 @@ void main() {
       [CustomRulePreset(name: 'Block Ads', presetId: 'block-ads')],
       template: template('Block Ads'),
     );
-    // Прогреваем мемо-кэш старым значением.
+
     expect(RuleNameResolver.I.resolve(kernelRule), 'Block Ads');
 
     RuleNameResolver.I.relocalize(template('Блок рекламы'));

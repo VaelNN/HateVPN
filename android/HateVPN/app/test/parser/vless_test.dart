@@ -9,20 +9,20 @@ import 'package:lxbox/services/parser/uri_utils.dart';
 import 'parse_link_as.dart';
 import 'package:lxbox/models/node_spec.dart';
 
-// §169 — валидный X25519 public key (43-симв base64url = 32 байта) для тестов.
-// Раньше тут стоял `pbk=PK` (2 символа) — с §169-валидацией это уже не REALITY.
+
+
 const _validPbk = 'AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw';
 
 void main() {
-  // §480 W2 — vless переехала на ДВИЖОК СЕКЦИЙ, и рукописного запасного пути
-  // у неё не осталось: без реестра (секция `vless`, общие блоки `tls#uri`,
-  // `tls#uri_reality`, `transports#uri`) ссылка не разбирается вовсе. Гейта
-  // здесь нет намеренно — зеркало `assets/contract` лежит в репозитории и
-  // едет в APK, его отсутствие это поломка сборки, а не повод пропустить тест.
+
+
+
+
+
   setUpAll(loadEngineSections);
 
-  // §115 — эталонная матрица брифа: эмитим flow ТОЛЬКО если (а) явно есть во
-  // входе И (б) нет транспорта. Проверяем именно сгенерированный outbound.
+
+
   group('§115 flow-эмиссия (эталонная матрица)', () {
     String? emittedFlow(String uri) {
       final spec = parseLinkAs<VlessSpec>(uri)!;
@@ -66,8 +66,8 @@ void main() {
 
   group('VLESS Reality + flow', () {
     test('§115: REALITY+bare TCP без flow → flow ПУСТОЙ (honor ссылку)', () {
-      // Раньше навязывали xtls-rprx-vision → ломались валидные none-сетапы
-      // (x3-ui flow: none). Теперь flow берём из ссылки как есть.
+
+
       final spec = parseLinkAs<VlessSpec>(
         'vless://u@h:443?type=tcp&security=reality&pbk=$_validPbk&sid=ABCD&sni=w.example.com&fp=chrome#L',
       );
@@ -86,13 +86,13 @@ void main() {
       expect(spec.transport, isNull);
     });
 
-    // §474 — гашение vision при транспорте исполняет РЕЕСТР
-    // (`vless.flow.conflicts` → `transport`, код `vision_with_transport`), а
-    // не рукописное правило маппера. Поэтому обе проверки грузят реестр: без
-    // него санитайзер не работает вовсе и `flow` доезжает до модели как есть.
-    //
-    // Эмиттер своей копии правила не держит (§545): `flow` в теле ровно тот,
-    // что оставил реестр в модели, — на этом стоит и «эталонная матрица» выше.
+
+
+
+
+
+
+
     test('§115/§474: vision + транспорт (ws) → flow погашен реестром',
         () async {
       await ContractRegistry.I.loadFromDirectory('assets/contract');
@@ -105,7 +105,7 @@ void main() {
           .whereType<RegistryWarning>()
           .where((w) => w.code == 'vision_with_transport');
       expect(w, isNotEmpty, reason: 'код ставит санитайзер по реестру');
-      // Код приезжает с адресом и именем соседа — рукописный их не нёс.
+
       expect(w.first.path, 'flow');
       expect(w.first.params['with'], 'transport');
     });
@@ -131,9 +131,9 @@ void main() {
       expect(spec.packetEncoding, 'xudp');
     });
 
-    // §459 (контракт §24.2 п. 7.4) — суффикс `-udp443` нормализует flow и
-    // packet_encoding, но порт узла не трогает: порт — свойство узла, узел
-    // `…:8443` от перезаписи на 443 становился недозваниваемым.
+
+
+
     test('§459 flow=-udp443 не переписывает порт узла', () {
       final spec =
           parseLinkAs<VlessSpec>('vless://u@h:8443?type=tcp&flow=xtls-rprx-vision-udp443')!;
@@ -186,8 +186,8 @@ void main() {
   });
 
   group('VLESS packet_encoding allow-list', () {
-    // Sing-box `vless.NewOutbound` принимает только {"", xudp, packetaddr};
-    // другое значение → panic в libbox. См. normalizePacketEncoding.
+
+
 
     test('xudp passes through', () {
       final spec = parseLinkAs<VlessSpec>('vless://u@h:443?type=tcp&packetEncoding=xudp');
@@ -208,8 +208,8 @@ void main() {
     });
 
     test('xray-style none silently dropped', () {
-      // Реальный триггер краша libbox.so: panic в format.ToString при
-      // unknown packet encoding. Должно стать omitted.
+
+
       final spec = parseLinkAs<VlessSpec>('vless://u@h:443?type=tcp&packetEncoding=none');
       expect(spec!.packetEncoding, '');
       expect(
@@ -240,8 +240,8 @@ void main() {
     });
 
     test('vision-udp443 quirk wins over query value', () {
-      // flow=xtls-rprx-vision-udp443 принудительно ставит xudp; неверный
-      // packetEncoding=none из URI игнорируется (короткое замыкание).
+
+
       final spec = parseLinkAs<VlessSpec>(
         'vless://u@h:443?type=tcp&flow=xtls-rprx-vision-udp443&packetEncoding=none',
       );
@@ -273,7 +273,7 @@ void main() {
     });
   });
 
-  // §169 — битый pbk не отравляет конфиг: REALITY только при валидном X25519.
+
   group('§169 REALITY pbk validation (битая подписка не роняет конфиг)', () {
     test('isValidRealityPublicKey: валидный 32-байтный → true', () {
       expect(isValidRealityPublicKey(_validPbk), isTrue);
@@ -286,9 +286,9 @@ void main() {
     });
 
     test('БОЕВОЙ КЕЙС: security=tls + pbk=enabled → plain TLS, без reality', () {
-      // Битая подписка («BLACK LISTS») вешает pbk=enabled на обычную TLS-ноду.
-      // Раньше: REALITY с мусорным ключом → sing-box отвергает весь config.
-      // Теперь: нода остаётся рабочей plain TLS, reality не создаётся.
+
+
+
       final spec = parseLinkAs<VlessSpec>(
         'vless://u@h:443?type=tcp&security=tls&pbk=enabled&sni=w.example.com#L',
       );
@@ -318,13 +318,13 @@ void main() {
     });
   });
 
-  // §335 — постквантовый слой VLESS (ядро: SPEC 032). Поле теряется на входе →
-  // узлы с ним не подключаются. Переносим как есть, без нормализации.
+
+
   group('§335 encryption (VLESS post-quantum)', () {
-    // Синтетический ключ длины реального (~1600 символов base64url). Важен
-    // не состав, а то, что значение проходит парсер и round-trip посимвольно:
-    // алфавит base64url включает `-` и `_`, которые query-кодировщик обязан
-    // оставить нетронутыми.
+
+
+
+
     final longKey = 'AbCd-EfGh_IjKl0123456789MnOpQrStUvWxYz'
         '${'Ab3-Zx_9' * 195}';
     late final String encValue = 'mlkem768x25519plus.native.0rtt.$longKey';

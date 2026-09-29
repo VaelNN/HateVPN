@@ -6,9 +6,9 @@ import '../../services/community_servers_loader.dart';
 import '../../services/url_launcher.dart';
 import '../../services/l10n/locale_controller.dart';
 
-/// Загрузка community-манифеста + dialog выбора public test-server list.
-/// Поведение 1:1 с прежним `_pickPublicTestServer`: при ошибке/пустом
-/// списке — snackbar; при выборе записи — `onSelectSource(list.source)`.
+
+
+
 Future<void> pickPublicTestServer(
   BuildContext context, {
   required void Function(String source) onSelectSource,

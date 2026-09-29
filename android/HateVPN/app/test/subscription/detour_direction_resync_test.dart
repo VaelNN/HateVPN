@@ -14,13 +14,13 @@ import 'package:lxbox/services/direction_mutations.dart';
 import 'package:lxbox/services/record_vars.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §248 — зеркальный ресинк in-memory `_entries` контроллера после
-/// storage-heal detour-ссылок (`syncDetourDirectionRefsCleared`): без него
-/// следующий `_persist()` (rename/toggle/refresh) воскресил бы вылеченную
-/// ссылку на диске. Harness path_provider-мока — как в
-/// detour_direction_heal_test.dart. Плюс unit-тесты общего pure-ядра
-/// [clearDetourDirectionRefs] (им обязаны сбрасывать одинаково storage-heal
-/// и ресинк контроллера).
+
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -63,7 +63,7 @@ void main() {
       );
 
   group('§248 — syncDetourDirectionRefsCleared (контроллер)', () {
-    /// Storage: detour-Направление vpn-2 + одиночка с overrideDetour на него.
+
     Future<void> seed() async {
       final data = {
         'directions_migrated': true,
@@ -85,22 +85,22 @@ void main() {
       await c.init();
       expect(c.entries.single.list.detourPolicy.overrideDetour, const NodeLink(tag: 'vpn-2'));
 
-      // Storage-heal (то, что делают UI/Debug API перед ресинком).
+
       final vpn2 = (await SettingsStorage.getDirections())
           .firstWhere((ch) => ch.tag == 'vpn-2');
       final res =
           await SettingsStorage.updateDirection(vpn2.copyWith(isDetour: false));
       expect(res.detours, 1);
 
-      // (а) in-memory entries вылечены зеркально.
+
       c.syncDetourDirectionRefsCleared('vpn-2');
       expect(c.entries.single.list.detourPolicy.overrideDetour, NodeLink.none);
 
-      // (б) контроллерная мутация с _persist (выключение; имя одиночного
-      // сервера записью §439 не хранится) НЕ воскрешает 'vpn-2' на диске —
-      // иначе heal был бы показан юзеру, но отменён.
+
+
+
       await c.toggleAt(0);
-      SettingsStorage.resetCacheForTesting(); // читаем реально с диска
+      SettingsStorage.resetCacheForTesting();
       final saved = (await SettingsStorage.getServerLists()).single;
       expect(saved.enabled, isFalse);
       expect(saved.detourPolicy.overrideDetour, NodeLink.none,
@@ -140,9 +140,9 @@ void main() {
     });
 
     test('омоним-пропуск: пара на члена-тёзку — не Направление', () {
-      // policy и member.detour указывают на члена с сырым тегом 'vpn-2' ТОЙ ЖЕ
-      // папки — пара {f1, vpn-2} (D-112); корневое имя Направления с ней не
-      // совпадает, и Направление ни при чём.
+
+
+
       const member = NodeLink(folderId: 'f1', tag: 'vpn-2');
       final folder = FolderServers(
         id: 'f1',
@@ -182,10 +182,10 @@ void main() {
     });
   });
 
-  // §441 (SPEC 129 §6, D-114) — detour DNS-сервера — одиночная цель по имени:
-  // при удалении и выключении Направления `body.detour` корневого
-  // user-сервера переводится на vpn-1, как цель правила. §575 — секций узлов
-  // больше нет, лечится только корневой список.
+
+
+
+
   group('§441 — detour DNS-серверов на Направление', () {
     DnsServerInline dns(String tag, String detour) => DnsServerInline(
           enabled: true,

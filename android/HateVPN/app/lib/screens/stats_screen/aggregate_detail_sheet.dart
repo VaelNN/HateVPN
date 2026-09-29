@@ -12,16 +12,16 @@ import 'traffic_event_detail_sheet.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// §160 — детальный bottom-sheet по одному агрегату (домен или IP).
-///
-/// Развязан от `Session`: принимает напрямую [events] (таймлайн —
-/// session.events ИЛИ globalRollingBuffer) + посчитанные агрегаты
-/// [byDomain]/[byIp]. Так sheet работает и в per-app trace, и в Stats→Live.
-///
-/// Свод (из [DomainStats]/[IpStats]) + список **всех соединений** по этому
-/// ключу (drill-down): тап по conn-строке открывает [showTrafficEventDetailSheet]
-/// поверх. Поля domain/IP кликабельны → [onSearchKey] (значение в общий
-/// поиск, sheet закрывается). Footer — Copy JSON свода.
+
+
+
+
+
+
+
+
+
+
 Future<void> showAggregateDetailSheet(
   BuildContext context, {
   required List<TrafficEvent> events,
@@ -62,7 +62,7 @@ class _AggregateDetailSheet extends StatelessWidget {
   final String aggKey;
   final void Function(String key) onSearchKey;
 
-  /// Все conn-события (tcp/udp open/close) по этому ключу, newest-first.
+
   List<TrafficEvent> _connEvents() {
     bool matches(TrafficEvent e) =>
         axis == AggAxis.domain ? e.domain == aggKey : e.ip == aggKey;
@@ -89,7 +89,7 @@ class _AggregateDetailSheet extends StatelessWidget {
       expand: false,
       builder: (ctx, scrollController) => Column(
         children: [
-          // Grabber
+
           Container(
             width: 36,
             height: 4,
@@ -99,7 +99,7 @@ class _AggregateDetailSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          // Header
+
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
@@ -211,7 +211,7 @@ class _AggregateDetailSheet extends StatelessWidget {
     );
   }
 
-  /// Компактная conn-строка → drill-down в детали события.
+
   Widget _connTile(BuildContext context, TrafficEvent e) {
     final cs = Theme.of(context).colorScheme;
     final closed = e.kind == TrafficEventKind.tcpClose;
@@ -305,7 +305,7 @@ class _AggregateDetailSheet extends StatelessWidget {
     );
   }
 
-  /// IP-вариант строки: chips, тап по IP → общий поиск + закрыть sheet.
+
   Widget _ipsRow(BuildContext context, String label, Iterable<String> ips) {
     final cs = Theme.of(context).colorScheme;
     return Padding(

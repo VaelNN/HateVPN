@@ -17,31 +17,31 @@ import 'package:lxbox/services/parser/uri_utils.dart';
 
 import 'vm_profile.dart';
 
-/// §550 — ЗАМЕР разбора ссылок: из чего складывается `parseUri`.
-///
-/// Только замер, ассертов на время нет. «Лучший из N», как в
-/// `test/parser/engine_perf_test.dart` и §548.
-///
-/// Этапы воронки меряются по отдельности, вызовом тех же публичных функций,
-/// что зовёт `parseUri` → `parseUriViaPipeline` → `_runPipeline`:
-///   маршрут  — схема и `registrySchemeType()` (диспетчер реестра, §562);
-///   маппер   — `mapViaEngine`;
-///   санитайзер — `RegistrySanitizer.sanitize` на телах маппера;
-///   модель   — `tagFromLabel` + `parseSingboxEntry`;
-///   баннер   — `_providerBannerWarning` (копия: `isBannerTarget`).
-/// Вход каждого этапа готовится вне замера. Identity (`nodeIdentityKey`) в
-/// `parseUri` не входит — меряется для справки (её зовёт разбор подписки).
-///
-/// `LX_PERF=1` — таблица; без переменной тест молчит. `LX_PERF_RUNS` —
-/// число прогонов (по умолчанию 3). `LX_PERF_PROFILE=1` — профиль VM:
-/// `parseUri` по смешанному корпусу, `LX_PERF_PROFILE_SHAPE=<тип>` — один
-/// тип, `LX_PERF_PROFILE_SCENARIO=json` — вход sing-box JSON.
-/// `LX_PERF_QUICK=1` — только (a) и (b), без разбивки по типам.
-///
-/// Запуск (из `app/`):
-///   LX_PERF=1 flutter test test/perf/parse_perf_test.dart
-///   LX_PERF=1 LX_PERF_PROFILE=1 flutter test --coverage \
-///     --coverage-path=/tmp/lcov.info test/perf/parse_perf_test.dart
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void main() {
   final on = Platform.environment['LX_PERF'] == '1';
   final profile = Platform.environment['LX_PERF_PROFILE'] == '1';
@@ -59,7 +59,7 @@ void main() {
     final out = StringBuffer()
       ..writeln('§550 перф разбора (лучший из $_runs, мкс/ссылка, $_n ссылок)');
 
-    // (a) parseUri целиком и sing-box JSON на тех же узлах.
+
     out.writeln('\n(a) целиком');
     out.writeln(_row(['корпус', 'parseUri', 'sing-box JSON', 'узлов JSON']));
     for (final c in _corpora.entries) {
@@ -75,7 +75,7 @@ void main() {
       out.writeln(_row([c.key, _us(uri), _us(json), '$count']));
     }
 
-    // (b) этапы воронки на смешанном корпусе.
+
     out.writeln('\n(b) этапы parseUri, смешанный корпус');
     out.writeln(_row(['этап', 'мкс/ссылка']));
     final stages = _stages(mixed);
@@ -83,8 +83,8 @@ void main() {
       out.writeln(_row([e.key, _us(e.value)]));
     }
 
-    // (c) по типам ссылки; `LX_PERF_QUICK=1` — пропустить (A/B гипотез
-    // сверяли по (a)/(b), (c) идёт ещё ~2 минуты).
+
+
     if (!quick) {
       out.writeln('\n(c) по типам ссылки');
       out.writeln(
@@ -119,7 +119,7 @@ void main() {
       }
     }
 
-    // ignore: avoid_print
+
     print(out);
 
     if (profile) {
@@ -127,7 +127,7 @@ void main() {
       final links = shape == null ? mixed : _links([_shapes[shape]!]);
       final json = Platform.environment['LX_PERF_PROFILE_SCENARIO'] == 'json';
       final cfg = _singboxConfig(links);
-      // ignore: avoid_print
+
       print(
         await vmProfile(
           json
@@ -151,7 +151,7 @@ const _n = 2000;
 
 final _runs = int.tryParse(Platform.environment['LX_PERF_RUNS'] ?? '') ?? 3;
 
-/// Точки гипотез H1–H6 (§550).
+
 const _probes = [
   'RegExp',
   'Uri.',
@@ -184,8 +184,8 @@ const _uuid = '8f2e1c44-0000-4000-8000-0000000000';
 String _vmess(int i) =>
     'vmess://${base64.encode(utf8.encode(jsonEncode({'v': '2', 'ps': 'm$i', 'add': 'h$i.example.com', 'port': '443', 'id': '${_uuid}09', 'aid': '0', 'scy': 'auto', 'net': 'ws', 'host': 'h$i.example.com', 'path': '/v', 'tls': 'tls', 'sni': 'h$i.example.com'})))}';
 
-/// Шаблоны ссылок; `@I@` — номер (уникальные хост и имя, как в подписке).
-/// Trojan — пять форм §480 (`engine_perf_test`).
+
+
 final Map<String, List<String Function(int)>> _shapes = {
   'vless vision': [
     _t(
@@ -272,8 +272,8 @@ final _corpora = {
   'trojan §480': [_shapes['trojan 5 форм']!],
 };
 
-/// [groups] — формы по типам; ссылки идут по кругу типов, внутри типа — по
-/// кругу форм.
+
+
 List<String> _links(List<List<String Function(int)>> groups) => [
   for (var i = 0; i < _n; i++)
     () {
@@ -282,7 +282,7 @@ List<String> _links(List<List<String Function(int)>> groups) => [
     }(),
 ];
 
-/// Те же узлы sing-box-конфигом: тела `getEntries(null)` разобранных ссылок.
+
 Map<String, dynamic> _singboxConfig(List<String> links) {
   final outbounds = <Object?>[];
   final endpoints = <Object?>[];
@@ -409,8 +409,8 @@ Duration _best(void Function() f) {
   return best;
 }
 
-/// Вход готовится заново на каждый прогон и вне замера: санитайзер и модель
-/// пишут в тело.
+
+
 Duration _bestPrepared<T>(T Function() prepare, void Function(T) f) {
   f(prepare());
   var best = const Duration(days: 1);

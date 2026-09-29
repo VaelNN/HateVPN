@@ -3,32 +3,32 @@ import 'package:flutter/material.dart';
 import '../../models/direction.dart';
 import '../../services/l10n/locale_controller.dart';
 
-/// §393 A3 — диалог создания Направления: тег + имя.
-///
-/// Тег — системный id и цель правил; после создания он immutable, поэтому
-/// спросить его можно ровно здесь. Поле преднаполнено первым свободным
-/// `vpn-N` ([nextDirectionTag]) — пользователь, которому имя тега безразлично,
-/// жмёт Create и получает ровно прежнее поведение.
-///
-/// Валидация — [directionTagConflict] (единственный источник правды, тот же
-/// зовёт storage): пустой / служебный / дубль / тёзка чьего-то `<tag>-auto`.
-/// Проверяем на КАЖДЫЙ ввод, а не на Create: тег нельзя переименовать, и
-/// узнать об ошибке после создания было бы поздно.
+
+
+
+
+
+
+
+
+
+
+
 class NewDirectionRequest {
   const NewDirectionRequest({required this.tag, required this.label});
 
-  /// Системный id нового Направления (уже trimmed и проверенный формой).
+
   final String tag;
 
-  /// Отображаемое имя. Пустое — call-site отдаёт null, и storage подставит
-  /// дефолт по тегу ([defaultLabelForTag]).
+
+
   final String label;
 }
 
-/// Открывает диалог создания. null — пользователь отменил.
-///
-/// [existingTags] — теги уже существующих Направлений (для проверки дублей
-/// и коллизий с auto-двойниками).
+
+
+
+
 Future<NewDirectionRequest?> showNewDirectionDialog(
   BuildContext context, {
   required List<String> existingTags,
@@ -69,7 +69,7 @@ class _NewDirectionDialogState extends State<_NewDirectionDialog> {
 
   void _onChange() => setState(() {});
 
-  /// EN-текст причины отказа по машинному коду [directionTagConflict].
+
   String? _tagError() {
     final code = directionTagConflict(_tagCtrl.text, widget.existingTags);
     return switch (code) {

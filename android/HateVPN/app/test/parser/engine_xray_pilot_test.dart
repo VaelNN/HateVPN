@@ -12,44 +12,44 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/parse_all.dart';
 
-/// §480 W5 — ВХОД-ДОКУМЕНТ Xray-JSON на движке секций.
-///
-/// Снимок `pipeline_identity_before.json` снят СТАРЫМ путём — рукописным
-/// `xray_mapper.dart`, которого после этой волны нет; пополняется он тем же
-/// способом, временным worktree на коммите до удаления. Сверка идёт
-/// ПОСЛЕ САНИТАЙЗЕРА: снимок снят с готовых узлов, и движок без судьи их не
-/// воспроизводит по построению (значения судит реестр, а не маппер).
-///
-/// Гейт — ЗЕРКАЛО реестра `assets/contract`, а не вендоренная копия
-/// `app/contract`: последней на CI нет вовсе, и тест под её гейтом молча
-/// пропускался бы именно там, где нужен.
+
+
+
+
+
+
+
+
+
+
+
 const _registryRoot = 'assets/contract';
 const _draftRoot = 'assets/contract_draft';
 const _identityFixture = 'test/fixtures/xray/pipeline_identity_before.json';
 
-/// Два расхождения со снимком, объявленные ШАГОМ 8 фичи 472 (не этой волной):
-/// снимок снят ДО того, как Xray-вход получил судью, и оба кейса — работа
-/// санитайзера, которой на этом входе прежде не было вовсе.
-/// §561 — отбраковка элемента при разборе больше не вешается предупреждением
-/// на соседний узел, а идёт записью в `dropped[]` (решение владельца
-/// 26.09.2026, корпус `body/xray/{malformed_stream,unsupported_protocol}`
-/// зелёный). Снимок снят ДО этого: узлы, теги и тела прежние, меняется только
-/// число отбраковок входа. `hysteria_v1_skipped` — тот же механизм для
-/// протокола вне реестра mobile (`extension: desktop`).
+
+
+
+
+
+
+
+
+
 const Map<String, int> _droppedCountChanges = {
   'hysteria_v1_skipped': 1,
   'malformed_stream': 1,
   'unsupported_protocol': 1,
 };
 
-/// §565 — тело узла-группы по контракту (PARSING_PRINCIPLES §5, корпус
-/// `body/xray/balancer_group`): состав назван сразу при разборе, параметры
-/// замера — только объявленные источником (полные дописывает сборка,
-/// `AutoSelectSpec.coreEntry`). Отпечаток тела группы сдвигается вместе с
-/// телом; тег и имя — прежние (идентичность узла — тег). Было:
-/// `{"tag":"bal","type":"urltest","outbounds":[],"url":"http://example.com",`
-/// `"interval":"30s","tolerance":50,"idle_timeout":"30m",`
-/// `"interrupt_exist_connections":false}`.
+
+
+
+
+
+
+
+
 const Map<String, String> _genusBodyDeltas = {
   'balancer_group[1]':
       '{"tag":"bal","type":"urltest","outbounds":["bal proxy"],'
@@ -59,22 +59,22 @@ const Map<String, String> _genusBodyDeltas = {
 const Map<String, String> _expectedChanges = {
   'vless_ws_path_junk': 'битый путь снят с тела (format url_path), узел жив',
   'vless_encryption_junk': 'узел отбракован при разборе (drop_node §477)',
-  // §480 — арбитром выступили исходники XTLS/Xray-core (решение владельца
-  // 19.09.2026). Дефолта порта у Xray нет ни у одного outbound-протокола:
-  // trojan и shadowsocks отбраковывают элемент явно («Invalid Trojan port.»,
-  // infra/conf/trojan.go:67-69), vless/vmess/socks/http порт не проверяют
-  // вовсе и собирают узел с нулём, падающий при дозвоне. Рабочего узла из
-  // элемента без порта не выходит НИ В ОДНОЙ ветке Xray — значит, наш
-  // дефолт 443 был единственным поведением, придумывавшим узел, которого
-  // провайдер не присылал. Оверлей снят, работает `required: true` записи
-  // `port` реестра: было — узел на 443, стало — ноль узлов и одна
-  // отбраковка, как у лаунчера и с тем же текстом причины.
+
+
+
+
+
+
+
+
+
+
   'vless_default_port': 'delta480: дефолт 443 снят по арбитру Xray — было: '
       'узел на 443; стало: ноль узлов и одна отбраковка '
       '(server port is missing or out of range)',
-  // §533 / контракт 1.1.53 (§49 п.5, 6 TASKS_LXBOX) — ТРИ ИСПРАВЛЕНИЯ, где
-  // корпус объявил наше прежнее поведение ошибочным, а снимок снят ДО них.
-  // Каждое подтверждено кейсом корпуса тел, который теперь зелёный.
+
+
+
   'vless_ws_ed_fields': 'delta533: плоские wsSettings.ed/eh больше НЕ читаются '
       '(кейс body/xray/vless_ws_ed_fields — прав корпус, реестр даёт '
       'json_field_unknown) — было: transport.max_early_data + '
@@ -89,10 +89,10 @@ const Map<String, String> _expectedChanges = {
       'delta533: пара idle: 30 + interval: -5 даёт tcp_keep_alive: 30s БЕЗ '
       'флага disable_tcp_keep_alive — наш флаг на этой паре был ошибкой '
       '(кейс body/xray/sockopt_keepalive_negative_interval)',
-  // §560 — тело Xray-узла приведено к норме реестра; снимок снят до неё.
-  // Тег у всех пяти прежний; хеш тела сдвигается вместе с телом. Норма —
-  // ожидания корпуса тел (зелёные), зеркально delta560 в
-  // xray_pipeline_invariants_test.
+
+
+
+
   'dialer_chain_vless_relay': 'delta560: tls.server_name не дописывается '
       'адресом — запись sni блока tls#xray (registry/tls.json) не объявляет '
       'default_from; корпус body/xray/dialer_chain_vless_relay ждёт '
@@ -105,16 +105,16 @@ const Map<String, String> _expectedChanges = {
   'vmess_security_junk': 'delta560: то же (body/xray/vmess_security_junk)',
 };
 
-/// §480 — ДВУСТОРОННЯЯ ПОМЕТКА: кейсы, добавленные ЭТОЙ правкой, и чем их
-/// «до» отличается от «стало».
-///
-/// Все четыре про одно: прежний рукописный путь терял вложенный `xmux` из
-/// `extra`, потому что разворачивал его только в одной из двух форм записи.
-/// Снимок «до» этих кейсов не содержал вовсе — фикстура из 45 входов
-/// расширенных полей XHTTP не несла, и расхождение прошло мимо сверки
-/// байт в байт. Значения в фикстуре — НОВЫЕ (то есть верные); строка ниже
-/// называет, что стояло там у старого кода, чтобы дельта была видна обеим
-/// сторонам и не воспринималась как молчаливая переподгонка эталона.
+
+
+
+
+
+
+
+
+
+
 const Map<String, String> _newCaseDeltas = {
   'b480_xhttp_full_field_set':
       'старый код терял transport.xmux целиком (5 полей из extra)',
@@ -145,8 +145,8 @@ void main() {
   });
 
   test('секции вида источника xray исполняемы и загружены', () {
-    // Без секции движок не работает вовсе: запасного рукописного пути у
-    // переехавшего входа не осталось.
+
+
     expect(MapperSections.I.typesFor('xray'), isNotEmpty);
     for (final type in MapperSections.I.typesFor('xray')) {
       expect(MapperSections.I.has('xray', type), isTrue,
@@ -167,8 +167,8 @@ void main() {
           if (o is! Map) continue;
           final obj = o.cast<String, dynamic>();
           final protocol = obj['protocol']?.toString() ?? '';
-          // Служебный outbound узлом не становится — опознавать его секции
-          // протокола не обязаны (это знание сборки документа).
+
+
           if (const {'freedom', 'blackhole', 'dns', 'loopback'}
               .contains(protocol)) {
             continue;
@@ -187,17 +187,17 @@ void main() {
 
   test('входы снимка: identity, тег, имя, rawSource и тело байт в байт', () {
     final before = _fixture();
-    // Порог, а не точное число: снимок ПОПОЛНЯЕТСЯ, и каждое пополнение
-    // снято старым кодом во временном worktree (§480, случай XHTTP: 45
-    // входов сошлись байт в байт, а 25 полей терялись — фикстура их просто
-    // не несла). Точное равенство делало бы красным само пополнение, то
-    // есть ровно то, чем дыра и закрывается; порог ловит противоположное —
-    // молча срезанный набор.
+
+
+
+
+
+
     expect(before, hasLength(greaterThanOrEqualTo(45)));
 
-    // Кейсы с объявленной дельтой обязаны быть В СНИМКЕ и нести то, ради
-    // чего заведены: без этой проверки пометка разъехалась бы с фикстурой
-    // молча — а именно молчание и есть то, что чинит эта правка.
+
+
+
     for (final e in _newCaseDeltas.entries) {
       final c = before[e.key];
       expect(c, isNotNull, reason: 'кейс ${e.key} пропал из снимка: ${e.value}');

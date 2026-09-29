@@ -7,13 +7,13 @@ import 'package:lxbox/services/config_dirty_check.dart';
 import 'package:lxbox/services/platform_channels.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §113 — config-dirty флаг владеется `SettingsStorage`, поднимается
-/// config-значимыми сейверами; `_save` при снятом флаге выравнивает mtime
-/// конфига (`touchConfig`), чтобы bootstrap mtime-compare не дал ложного
-/// «config changed» после kill приложения.
-///
-/// Pattern: ротация `getApplicationDocumentsPath()` через mocked
-/// MethodChannel + `resetCacheForTesting()` (как в settings_storage_staging).
+
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -41,14 +41,14 @@ void main() {
     try {
       if (tmp.existsSync()) await tmp.delete(recursive: true);
     } on FileSystemException {
-      /* ignore */
+
     }
   });
 
   group('§414 — конфиг живёт в native filesDir, не в Documents', () {
-    // На устройстве `ConfigManager.kt` пишет `singbox_config.json` в
-    // `Context.filesDir` (`files/`), а Documents у Flutter — `app_flutter/`.
-    // Здесь filesDir эмулируется отдельной папкой через мок канала ядра.
+
+
+
     late Directory filesDir;
     const vpnChannel = MethodChannel(PlatformChannels.methods);
 
@@ -69,7 +69,7 @@ void main() {
       try {
         if (filesDir.existsSync()) await filesDir.delete(recursive: true);
       } on FileSystemException {
-        /* ignore */
+
       }
     });
 
@@ -98,7 +98,7 @@ void main() {
       await cfg.writeAsString('{}');
       await cfg.setLastModified(DateTime(2020));
 
-      // Не-config запись → _save → touch конфига (уже по native-пути).
+
       await SettingsStorage.setNodeSort('latency', const []);
 
       expect(SettingsStorage.configDirty, isFalse);
@@ -147,14 +147,14 @@ void main() {
     });
 
     test('setVar: config-var → dirty, прочий var → нет', () async {
-      await SettingsStorage.setVar('log_level', 'debug'); // config-var
+      await SettingsStorage.setVar('log_level', 'debug');
       expect(SettingsStorage.configDirty, isTrue);
 
       SettingsStorage.configDirty = false;
-      await SettingsStorage.setVar('sort_mode', 'latency'); // не config-var
+      await SettingsStorage.setVar('sort_mode', 'latency');
       expect(SettingsStorage.configDirty, isFalse);
 
-      // машинно-генерируемые clash_* — вне allowlist (выходы сборки).
+
       await SettingsStorage.setVar('clash_secret', 'abc');
       expect(SettingsStorage.configDirty, isFalse);
     });
@@ -162,13 +162,13 @@ void main() {
 
   group('§113 — touch конфига при записи настроек', () {
     test('!dirty при _save → config-файл выровнен (isDirty=false)', () async {
-      // Симулируем «конфиг записан раньше настроек» (инверсия §107):
-      // config-файл с прошлым mtime, затем не-config запись настроек.
+
+
       final cfg = File(configPath());
       await cfg.writeAsString('{}');
       await cfg.setLastModified(DateTime(2020));
 
-      // Не-config запись (флаг не поднимается) → _save → touch конфига.
+
       await SettingsStorage.setNodeSort('latency', const []);
 
       expect(SettingsStorage.configDirty, isFalse);
@@ -182,8 +182,8 @@ void main() {
       await cfg.setLastModified(DateTime(2020));
       final before = cfg.lastModifiedSync();
 
-      // config-значимая запись (свёрнут посреди правки — пересборки не было):
-      // флаг поднят → touch НЕ зовётся → конфиг остаётся старым → isDirty=true.
+
+
       await SettingsStorage.saveRouteFinal('vpn-1');
 
       expect(SettingsStorage.configDirty, isTrue);
@@ -199,22 +199,22 @@ void main() {
       await cfg.writeAsString('{}');
       await cfg.setLastModified(DateTime(2020));
 
-      // 1. Правка config-настройки (staged) — флаг поднят.
+
       await SettingsStorage.setTunApps(
         const TunAppsConfig(mode: 'allow', packages: ['com.x']),
         flush: false,
       );
       expect(SettingsStorage.configDirty, isTrue);
 
-      // 2. Пересборка на возврате к home: пишет конфиг (свежий mtime) и
-      //    снимает флаг.
+
+
       await cfg.writeAsString('{"rebuilt":true}');
       SettingsStorage.configDirty = false;
 
-      // 3. dispose-flush настроек на диск: !dirty → touch конфига.
+
       await SettingsStorage.flushToDisk();
 
-      // 4. Эмуляция холодного старта после kill: bootstrap mtime-compare.
+
       expect(await ConfigDirtyCheck.isDirty(), isFalse,
           reason: 'после чистой правки kill не должен дать ложный баннер');
     });

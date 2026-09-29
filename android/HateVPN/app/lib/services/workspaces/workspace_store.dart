@@ -9,27 +9,27 @@ import '../app_log.dart';
 import '../settings_storage_keys.dart' show kStorageVersionKey;
 import '../tailscale_state/state_store.dart';
 
-/// §417 — Workspaces: именованные копии состояния приложения.
-///
-/// Модель — слоты сохранения. **Сцена** — рабочие пути (те же, что и без
-/// фичи, ничего не переезжает). **Слот** — папка `workspaces/<имя>/` с
-/// копией состояния. `current` в справочнике — имя слота, который сейчас
-/// на сцене; до первого использования фичи это «Default» без папки.
-///
-/// Состав слота перечислен в ОДНОМ месте — [kSlotEntries]. Новый файл
-/// состояния приложения обязан либо попасть сюда, либо быть явно отнесён
-/// к «свойствам устройства» (спека §417 п. 2.1).
-///
-/// Операции:
-///   - [saveAs] — копия сцены в слот, `current` = слот.
-///   - [load] — сохранить сцену в слот `current`, скопировать целевой слот на
-///     сцену, `current` = цель. Терять нечего, подтверждений не нужно.
-///     Стоп VPN, flush стораджа и перечитывание состояния — на вызывающей
-///     стороне (`HomeScreen`), здесь только файлы.
-///   - [recover] — на старте приложения: доводит загрузку, убитую посреди
-///     копирования (журнал `pending`, шаги идемпотентны).
-///
-/// Все операции сериализованы одной очередью ([_locked]).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class WorkspaceStore {
   WorkspaceStore._();
 
@@ -41,27 +41,27 @@ class WorkspaceStore {
   static const manifestVersion = 1;
   static const nameMaxLength = 64;
 
-  /// Состав слота. Порядок = порядок копирования.
-  ///
-  /// Корни: `documents` = `getApplicationDocumentsDirectory()` (`app_flutter/`
-  /// на Android), `support` = `getApplicationSupportDirectory()` (`files/`,
-  /// тот же каталог, куда пишет ядро). Пути совпадают с владельцами файлов:
-  /// `settings_storage/io.dart`, `rule_set_downloader.dart`,
-  /// `subscription/http_cache.dart`.
-  ///
-  /// НЕ в слоте (спека §417 п. 2.1): `singbox_config.json` (пересобирается
-  /// после загрузки всегда), `cache.db` ядра (открыт под живым VPN, копия
-  /// может быть битой), `.bak`/`.v0.bak`/`.tmp` io-слоя, `support_state.json`,
-  /// логи, crash/oom-репорты, тема. §445: каталоги состояния Tailscale
-  /// (`tailscale/`, `tailscale_state.json`) тоже не копируются — у слота свой
-  /// набор записей индекса, его ведут [saveAs]/[rename]/[delete].
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   static const List<SlotEntry> kSlotEntries = [
     SlotEntry(SlotRoot.documents, 'lxbox_settings.json', isDir: false),
     SlotEntry(SlotRoot.documents, 'rule_sets', isDir: true),
     SlotEntry(SlotRoot.support, 'sub_cache', isDir: true),
   ];
 
-  /// Имя файла настроек — для touch после загрузки и удаления `.bak`.
+
   static const _settingsFileName = 'lxbox_settings.json';
   static const _settingsBakName = 'lxbox_settings.json.bak';
   static const _v0BakSuffix = '.v0.bak';
@@ -70,12 +70,12 @@ class WorkspaceStore {
   Future<void> _lock = Future<void>.value();
   int _tmpSeq = 0;
 
-  // ---------------------------------------------------------------------------
-  // Имена
-  // ---------------------------------------------------------------------------
 
-  /// Имя слота = имя папки. `null` — валидно. Проверять ДО [saveAs]/[rename];
-  /// сами операции бросают [WorkspaceError] с `invalidName`.
+
+
+
+
+
   static WorkspaceNameError? validateName(String raw) {
     final name = raw.trim();
     if (name.isEmpty) return WorkspaceNameError.empty;
@@ -84,7 +84,7 @@ class WorkspaceStore {
       return WorkspaceNameError.leadingDot;
     }
     for (final cu in name.codeUnits) {
-      if (cu < 0x20 || cu == 0x2F /* / */ || cu == 0x5C /* \ */ || cu == 0x7F) {
+      if (cu < 0x20 || cu == 0x2F   || cu == 0x5C   || cu == 0x7F) {
         return WorkspaceNameError.forbiddenChars;
       }
     }
@@ -99,12 +99,12 @@ class WorkspaceStore {
     return raw.trim();
   }
 
-  // ---------------------------------------------------------------------------
-  // Справочник
-  // ---------------------------------------------------------------------------
 
-  /// Текущий справочник. Без файла — дефолт: `current` = «Default», слотов
-  /// нет. Ничего на диск не пишет.
+
+
+
+
+
   Future<WorkspaceManifest> readManifest() async {
     final f = await _manifestFile();
     if (!await f.exists()) return WorkspaceManifest.initial();
@@ -130,20 +130,20 @@ class WorkspaceStore {
         f, const JsonEncoder.withIndent('  ').convert(m.toJson()));
   }
 
-  // ---------------------------------------------------------------------------
-  // Операции
-  // ---------------------------------------------------------------------------
 
-  /// Скопировать сцену в слот [rawName] и сделать его `current`.
-  /// Существующий слот перезаписывается — подтверждение спрашивает UI.
+
+
+
+
+
   Future<void> saveAs(String rawName) => _locked(() async {
         final name = _requireValid(rawName);
         var m = await readManifest();
         await _copySceneToSlot(name);
         final next =
             m.withSlotSaved(name, DateTime.now()).copyWith(current: name);
-        // §445 — личности Tailscale сцены остаются за ней: записи `current`
-        // копируются в набор [name] до записи справочника.
+
+
         await _tailscale('save as', (root) => TailscaleStateStore.I.forkSlot(
             root: root, from: m.current, to: name, slotNames: next.names));
         m = next;
@@ -151,14 +151,14 @@ class WorkspaceStore {
         AppLog.I.info('workspaces: saved scene as "$name"');
       });
 
-  /// Загрузить слот [rawName]. Сначала сцена уходит в слот `current`
-  /// (папка создаётся, если её ещё нет — так появляется «Default»).
-  ///
-  /// Возвращает `false`, если [rawName] уже `current` (no-op). Бросает
-  /// [WorkspaceError.notFound], если слота нет.
-  ///
-  /// Вызывающая сторона обязана ДО вызова опустить VPN и сбросить сторадж на
-  /// диск, а ПОСЛЕ — перечитать состояние (спека §417 п. 2.3/2.6).
+
+
+
+
+
+
+
+
   Future<bool> load(String rawName) => _locked(() async {
         final name = rawName.trim();
         var m = await readManifest();
@@ -166,16 +166,16 @@ class WorkspaceStore {
         if (!await _slotExists(name)) {
           throw WorkspaceError(WorkspaceErrorKind.notFound, name);
         }
-        // Журнал: с этого момента убийство процесса доводится в [recover].
+
         m = m.copyWith(pending: WorkspacePending.load(name));
         await _writeManifest(m);
         await _performLoad(m);
         return true;
       });
 
-  /// Доводка загрузки, убитой посреди копирования. Зовётся на старте ДО
-  /// первого чтения `SettingsStorage`. Без справочника — один `exists()`.
-  /// Возвращает `true`, если что-то доводили.
+
+
+
   Future<bool> recover() => _locked(() async {
         final f = await _manifestFile();
         if (!await f.exists()) return false;
@@ -188,17 +188,17 @@ class WorkspaceStore {
           await _performLoad(m);
           return true;
         }
-        // Неизвестная операция или цель исчезла — журнал снимаем, сцена
-        // остаётся как есть (последнее известное состояние `current`).
+
+
         AppLog.I.warning(
             'workspaces: dropping stale pending ${p.op} → "${p.target}"');
         await _writeManifest(m.copyWith(clearPending: true));
         return false;
       });
 
-  /// Шаги 5–7 спеки: сцена → слот `current`, слот цели → сцена,
-  /// `current` = цель, журнал снят. Идемпотентны: [recover] повторяет их
-  /// целиком.
+
+
+
   Future<void> _performLoad(WorkspaceManifest m) async {
     final target = m.pending!.target;
     final now = DateTime.now();
@@ -212,7 +212,7 @@ class WorkspaceStore {
     AppLog.I.info('workspaces: loaded "$target" (previous "${m.current}" saved)');
   }
 
-  /// Переименовать слот. `current` переименовывается вместе с папкой.
+
   Future<void> rename(String rawOld, String rawNew) => _locked(() async {
         final oldName = rawOld.trim();
         final newName = _requireValid(rawNew);
@@ -235,7 +235,7 @@ class WorkspaceStore {
         await _writeManifest(m);
       });
 
-  /// Удалить слот. `current` удалить нельзя — это адрес автосохранения.
+
   Future<void> delete(String rawName) => _locked(() async {
         final name = rawName.trim();
         final m = await readManifest();
@@ -249,13 +249,13 @@ class WorkspaceStore {
         if (await dir.exists()) await dir.delete(recursive: true);
         final next = m.withSlotRemoved(name);
         await _writeManifest(next);
-        // §445 — личности слота: каталоги без ссылок других слотов.
+
         await _tailscale('delete', (root) => TailscaleStateStore.I
             .dropSlot(root: root, name: name, slotNames: next.names));
       });
 
-  /// §445 — операция индекса Tailscale для слотов. Best-effort: сбой не
-  /// останавливает операцию Workspaces (сироты доберёт сборка).
+
+
   Future<void> _tailscale(
       String what, Future<void> Function(String root) op) async {
     try {
@@ -265,7 +265,7 @@ class WorkspaceStore {
     }
   }
 
-  /// Размер слота на диске в байтах (для экрана управления). 0 — папки нет.
+
   Future<int> slotSizeBytes(String name) async {
     final dir = await _slotDir(name.trim());
     if (!await dir.exists()) return 0;
@@ -276,12 +276,12 @@ class WorkspaceStore {
     return total;
   }
 
-  // ---------------------------------------------------------------------------
-  // Копирование
-  // ---------------------------------------------------------------------------
 
-  /// Сцена → слот. Слот после копии равен сцене: позиции, которых на сцене
-  /// нет, из слота удаляются.
+
+
+
+
+
   Future<void> _copySceneToSlot(String name) async {
     final slot = await _slotDir(name);
     await slot.create(recursive: true);
@@ -296,9 +296,9 @@ class WorkspaceStore {
     }
   }
 
-  /// Слот → сцена. Сцена после копии равна слоту. `.bak` настроек удаляется:
-  /// это снимок ПРЕЖНЕГО слота, и восстановление из него при битом main
-  /// молча подменило бы состояние.
+
+
+
   Future<void> _copySlotToScene(String name) async {
     final slot = await _slotDir(name);
     for (final e in kSlotEntries) {
@@ -314,14 +314,14 @@ class WorkspaceStore {
     if (await bak.exists()) await bak.delete();
   }
 
-  /// §439 §3.3 — копия исходника у слота. Файл настроек слота [name] без
-  /// `storage_version` (форма 2.23.2) копируется в
-  /// `workspaces/<имя>/lxbox_settings.json.v0.bak`, если копии там ещё нет.
-  /// Сама миграция — при чтении сцены (`_load()`), а `.v0.bak` рядом с рабочим
-  /// файлом уже может держать исходник первой миграции и копию слота не
-  /// запишет. В [kSlotEntries] копия не входит — на сцену она не едет.
-  ///
-  /// Best-effort: сбой копии загрузку не останавливает.
+
+
+
+
+
+
+
+
   Future<void> _keepLegacySettingsCopy(String name) async {
     try {
       final slot = await _slotDir(name);
@@ -340,16 +340,16 @@ class WorkspaceStore {
     }
   }
 
-  /// Настройки заведомо новее `singbox_config.json` → bootstrap-проверка
-  /// §076 скажет «грязно» и новый `HomeScreen` пересоберёт конфиг штатной
-  /// воронкой (спека §417 п. 2.3 шаг 8).
+
+
+
   Future<void> _touchSettings() async {
     final f = File('${(await _docs()).path}/$_settingsFileName');
     if (await f.exists()) await f.setLastModified(DateTime.now());
   }
 
-  /// Файл: tmp рядом с целью + rename — на сцене никогда нет полуфайла.
-  /// Нет источника → цели тоже не должно быть.
+
+
   Future<void> _replaceFile(File src, File dst) async {
     if (!await src.exists()) {
       if (await dst.exists()) await dst.delete();
@@ -361,9 +361,9 @@ class WorkspaceStore {
     await tmp.rename(dst.path);
   }
 
-  /// Папка: целевая сносится целиком и копируется заново — в источнике
-  /// может быть меньше файлов. `.tmp` атомарных писателей (`http_cache`,
-  /// `rule_set_downloader`) не копируются: это сироты, не состояние.
+
+
+
   Future<void> _replaceDir(Directory src, Directory dst) async {
     if (await dst.exists()) await dst.delete(recursive: true);
     if (!await src.exists()) return;
@@ -388,9 +388,9 @@ class WorkspaceStore {
     await tmp.rename(f.path);
   }
 
-  // ---------------------------------------------------------------------------
-  // Пути
-  // ---------------------------------------------------------------------------
+
+
+
 
   Future<Directory> _docs() => getApplicationDocumentsDirectory();
   Future<Directory> _support() => getApplicationSupportDirectory();
@@ -411,7 +411,7 @@ class WorkspaceStore {
     return '${root.path}/${e.name}';
   }
 
-  /// Путь папки слота — для тестов и экрана управления.
+
   @visibleForTesting
   Future<Directory> slotDirForTesting(String name) => _slotDir(name);
 
@@ -465,7 +465,7 @@ class WorkspaceSlot {
   }
 }
 
-/// Журнал незавершённой операции. v1 — только `load`.
+
 class WorkspacePending {
   const WorkspacePending(this.op, this.target);
   const WorkspacePending.load(String target) : this(opLoad, target);
@@ -507,7 +507,7 @@ class WorkspaceManifest {
 
   bool hasSlot(String name) => slots.any((s) => s.name == name);
 
-  /// Имена справочника: слоты и `current` (у «Default» папки может не быть).
+
   Set<String> get names => {current, for (final s in slots) s.name};
 
   Map<String, dynamic> toJson() => {

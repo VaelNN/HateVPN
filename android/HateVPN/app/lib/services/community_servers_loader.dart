@@ -2,39 +2,39 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-/// Один список тестовых серверов из комьюнити-манифеста.
+
 class CommunityServerList {
   const CommunityServerList({required this.source});
   final String source;
 }
 
-/// Блок атрибуции (автор подборки + ссылка). Опциональный.
+
 class CommunityAttribution {
   const CommunityAttribution({required this.text, required this.link});
   final String text;
   final String link;
 }
 
-/// Распарсенный манифест. Может быть пустым (`lists.isEmpty`) — UI в этом
-/// случае должен показать disabled-state / тост.
+
+
 class CommunityManifest {
   const CommunityManifest({this.attribution, required this.lists});
   final CommunityAttribution? attribution;
   final List<CommunityServerList> lists;
 }
 
-/// Загружает remote-манифест комьюнити-курируемых подборок серверов для
-/// тестирования поведения клиента в различных сетевых условиях. Манифест
-/// живёт в репозитории проекта — удаление файла = instant kill-switch.
-///
-/// Ничего не кэшируется на диск: если манифест удалён, клиент сразу теряет
-/// доступ к подборкам, а не обращается к устаревшему кэшу.
+
+
+
+
+
+
 class CommunityServersLoader {
   CommunityServersLoader._();
 
-  /// §587 — экран публичных подборок выключен: пункт меню и кнопка на пустом
-  /// экране Servers не показываются, манифест не запрашивается. Для включения
-  /// вернуть `public-servers-manifest.json` в `main`.
+
+
+
   static const enabled = false;
 
   static const manifestUrl =
@@ -43,11 +43,11 @@ class CommunityServersLoader {
 
   static CommunityManifest? _cached;
 
-  /// Грузит манифест. 404 / timeout / parse-error → пробрасывается наверх,
-  /// UI решает как сообщить пользователю.
+
+
   static Future<CommunityManifest> load({http.Client? client}) async {
     if (_cached != null) return _cached!;
-    // §219 — закрываем только самосозданный клиент (инжектированный — владелец).
+
     final owned = client == null;
     final c = client ?? http.Client();
     final http.Response resp;
@@ -63,8 +63,8 @@ class CommunityServersLoader {
     final attrJson = json['attribution'] as Map<String, dynamic>?;
     final attrText = (attrJson?['text'] as String? ?? '').trim();
     final attrLink = (attrJson?['link'] as String? ?? '').trim();
-    // §219 — атрибуция только когда есть что показать: пустые text И link
-    // рендерили иконку без текста/ссылки (визуальный мусор).
+
+
     final attribution = (attrText.isNotEmpty || attrLink.isNotEmpty)
         ? CommunityAttribution(text: attrText, link: attrLink)
         : null;

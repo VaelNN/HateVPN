@@ -4,18 +4,18 @@ import 'package:flutter/services.dart';
 import '../normalizers.dart' as norm;
 import '../../../services/l10n/locale_controller.dart';
 
-/// §053 Stage 2 — multiline TextField + count badge + Paste/Clear actions.
-///
-/// `controller` — owned by parent (нужен для save flow). Виджет
-/// подписывается через `addListener` для self-rebuild на каждом change
-/// (показывать live count). На dispose снимает listener.
-///
-/// `validator` + `normalize` — для подсветки invalid count. Pure functions
-/// из `validators.dart` / `normalizers.dart`.
-///
-/// `presets` (опц.) — список быстрых вставок («Presets ▾» action). Тап по
-/// пункту дописывает [FieldPreset.value] в поле (append с новой строки, как
-/// Paste). Используется CIDR-полями (§030 new_fields).
+
+
+
+
+
+
+
+
+
+
+
+
 class ItemsField extends StatefulWidget {
   const ItemsField({
     super.key,
@@ -37,22 +37,22 @@ class ItemsField extends StatefulWidget {
   final int maxLines;
   final String? hint;
 
-  /// Опциональные quick-вставки. Пусто → кнопка «Presets» не рисуется.
+
   final List<FieldPreset> presets;
 
   @override
   State<ItemsField> createState() => _ItemsFieldState();
 }
 
-/// §030 new_fields — один пункт меню «Presets ▾» в [ItemsField].
-/// `value` может быть многострочным (напр. «все приватные сети» = 3 строки).
+
+
 class FieldPreset {
   const FieldPreset({required this.label, required this.value});
 
-  /// Человекочитаемое имя в меню (напр. «Localhost»).
+
   final String label;
 
-  /// Что дописывается в поле (CIDR'ы, `\n`-разделённые для нескольких).
+
   final String value;
 }
 
@@ -108,7 +108,7 @@ class _ItemsFieldState extends State<ItemsField> {
         existing.isEmpty ? text : '$existing\n$text';
   }
 
-  /// §030 new_fields — append preset value (append с новой строки, как Paste).
+
   void _appendPreset(String value) {
     final existing = widget.controller.text.trim();
     widget.controller.text =
@@ -120,7 +120,7 @@ class _ItemsFieldState extends State<ItemsField> {
     final overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (box == null || overlay == null) return;
-    // Меню у нижнего-левого угла поля (под action-row).
+
     final origin = box.localToGlobal(box.size.bottomLeft(Offset.zero),
         ancestor: overlay);
     final selected = await showMenu<FieldPreset>(

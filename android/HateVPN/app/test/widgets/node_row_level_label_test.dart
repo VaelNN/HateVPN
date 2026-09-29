@@ -8,9 +8,9 @@ import 'package:lxbox/widgets/node_view_item.dart';
 
 import '../contract_paths.dart';
 
-/// §556 (§56/§60, контракт 1.1.60) — подпись уровня протокола в строке узла
-/// берётся из реестра (`levels`/`level`/`level_mark`/`range_form.level`) и
-/// стоит рядом с именем протокола; у схем без `levels` её нет.
+
+
+
 void main() {
   setUpAll(loadTestRegistry);
 
@@ -25,8 +25,8 @@ void main() {
         ],
       }));
 
-  // Та же сборка подписи, что у списка узлов на главной: протокол ·
-  // транспорт · security-слот.
+
+
   Widget host(ConfigNode n, String proto) => MaterialApp(
         home: Scaffold(
           body: NodeRow(

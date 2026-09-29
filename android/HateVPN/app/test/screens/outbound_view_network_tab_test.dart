@@ -10,8 +10,8 @@ import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/screens/outbound_view_screen.dart';
 import 'package:lxbox/widgets/tailscale_network_tab.dart';
 
-/// Задача 581 — вкладка Network на экране просмотра узла: видимость,
-/// начальная вкладка, Save choice только у записи своего сервера/папки.
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -76,8 +76,8 @@ void main() {
     await tester.pump();
   }
 
-  /// Без моста `getVpnStatus` вкладки Network ждёт ответа 3 с: снять экран
-  /// и дать фейковому времени дойти до конца таймера.
+
+
   Future<void> dispose(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 5));

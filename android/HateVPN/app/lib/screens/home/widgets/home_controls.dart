@@ -17,12 +17,12 @@ import 'app_banner.dart';
 import '../../../services/l10n/locale_controller.dart';
 import '../../../services/networks_direction.dart';
 
-/// Controls-блок главного экрана.
-///
-/// Поведение байт-в-байт идентично. Все state-mutating flows (rebuild /
-/// reconnect / start) приходят callback'ами из `_HomeScreenState`, чтобы
-/// владение side-effect'ами (`setState`, `configDirty=false`, SnackBars)
-/// оставалось в State — этот widget только рисует + диспатчит.
+
+
+
+
+
+
 class HomeControls extends StatelessWidget {
   const HomeControls({
     super.key,
@@ -47,7 +47,7 @@ class HomeControls extends StatelessWidget {
   final SubscriptionController subController;
   final NodeListPresenter presenter;
 
-  /// Готовый StatusChip (создаётся в State с доступом к `_connectingAnim`).
+
   final Widget connectingAnimChild;
   final HomeState state;
   final bool startActive;
@@ -55,12 +55,12 @@ class HomeControls extends StatelessWidget {
   final bool stopEnabled;
   final bool needsRestart;
 
-  /// §338 — авто-применение в полёте (воронка пересборки при включённой
-  /// галке): розовая плашка подавляется на окно rebuild+reload.
+
+
   final bool autoApplying;
 
-  /// Cancel + clear lastError (раньше inline в `_buildControls`: отменял
-  /// `_errorTimer` и звал `clearError`). Side-effect живёт в State.
+
+
   final VoidCallback errorTimerOnDismiss;
 
   final void Function() onStartWithAutoRefresh;
@@ -68,10 +68,10 @@ class HomeControls extends StatelessWidget {
   final Future<void> Function() onRebuildAndReconnect;
   final Future<void> Function() onRebuildAndStart;
 
-  /// §316 — отдать краш-репорт и погасить плашку. Штамп пишем в любом
-  /// случае: пользователь плашку уже увидел, повторять на каждом запуске —
-  /// навязчиво, даже если share сорвался (файл никуда не делся, он есть
-  /// в Diagnostics → Crash reports).
+
+
+
+
   Future<void> _shareCrash() async {
     final report = CrashBannerState.I.pending;
     if (report == null) return;
@@ -85,7 +85,7 @@ class HomeControls extends StatelessWidget {
     final isStopping = state.tunnel == TunnelStatus.stopping;
     final canToggle = !state.busy && !isConnecting && !isStopping;
     final toggleEnabled = canToggle && (state.tunnelUp || state.configRaw.isNotEmpty);
-    // Задача 579 — пункт NETWORKS в перечне направлений.
+
     final hasNetworks = state.tunnelUp && state.networksNodes.isNotEmpty;
 
     return Padding(
@@ -95,24 +95,24 @@ class HomeControls extends StatelessWidget {
         children: [
           Row(
             children: [
-              // Фича 478 — подпись кнопки зависит от фазы страховки, и
-              // HomeState о ней не знает: подписка отдельная, как у плашки.
+
+
               AnimatedBuilder(
                 animation: CoreRejectState.I,
                 builder: (context, _) {
-                  // Фича 478 — во время тихого цикла кнопка остаётся тем же
-                  // местом и становится отменой: иконка остановки, нажатие =
-                  // `cancel()` автомата (итог как у Stop в диалоге предела —
-                  // VPN не поднят, выключенные остаются выключенными). Своих
-                  // строк отмена не заводит: подпись та же, что у фазы.
+
+
+
+
+
                   final checking = CoreRejectState.I.checking;
                   final guardActive = CoreRejectState.I.guardActive;
                   final pressable =
                       checking || (!guardActive && toggleEnabled);
                   return FilledButton.icon(
-                // §372 — D-pad: на Android TV фокус при открытии экрана должен
-                // стоять на главном действии, иначе первое нажатие пульта
-                // уходит в никуда и выглядит как «кнопки не работают».
+
+
+
                 autofocus: true,
                 onPressed: pressable
                     ? () {
@@ -134,8 +134,8 @@ class HomeControls extends StatelessWidget {
                 ),
                 label: Text(state.tunnelUp
                     ? getLocalText.s("Stop")
-                    // Фича 478 — во время тихого цикла кнопка говорит, чем
-                    // занята и сколько уже выключено; отмена доступна всегда.
+
+
                     : checking
                         ? getLocalText.plural(
                             "Checking servers… (%d disabled)",
@@ -145,23 +145,23 @@ class HomeControls extends StatelessWidget {
                 },
               ),
               const SizedBox(width: 8),
-              // Статус-чип отдаёт ширину первым: Start/Stop и reload имеют
-              // натуральный размер, а длинный статус сжимается с эллипсисом.
+
+
               Flexible(child: connectingAnimChild),
               const SizedBox(width: 8),
               _buildReloadButton(context),
             ],
           ),
-          // §116 — единый banner-механизм: проекция состояния → BannerStack.
-          // Три исторических плашки (settings_changed / restart / last_error)
-          // + config_load_error деривятся в activeBanners.
-          // §316 — плашка «ядро падало» приходит не из HomeState, а из
-          // CrashBannerState (файловая система + storage-отметка), поэтому
-          // подписка отдельная.
+
+
+
+
+
+
           AnimatedBuilder(
-            // Фича 478 — плашка «выключено N серверов» приходит из
-            // CoreRejectState, как краш-плашка из CrashBannerState: это
-            // итог прогона страховки, а не поле HomeState.
+
+
+
             animation: Listenable.merge(
                 [CrashBannerState.I, CoreRejectState.I]),
             builder: (context, _) => BannerStack(
@@ -173,11 +173,11 @@ class HomeControls extends StatelessWidget {
                 coreRejected: CoreRejectState.I.bannerVisible
                     ? CoreRejectState.I.bannerNodes
                     : const [],
-                autoApplying: autoApplying, // §338
+                autoApplying: autoApplying,
                 actions: BannerActions(
                   onRebuild: () => unawaited(onRebuildAndClearDirty()),
-                  // Не гасим restart на тап — если юзер отменит Stop-диалог,
-                  // banner остаётся; гаснет реальным tunnel up↔down.
+
+
                   onConfirmStop: () =>
                       confirmStop(context, controller, controller.state),
                   onClearError: errorTimerOnDismiss,
@@ -210,17 +210,17 @@ class HomeControls extends StatelessWidget {
                     child: DropdownButton<String>(
                       isExpanded: true,
                       isDense: true,
-                      // Задача 579 — NETWORKS: значение-заглушка, не тег,
-                      // поэтому настоящее направление с тегом `NETWORKS` с
-                      // ним не совпадает.
+
+
+
                       value: state.showingNetworks
                           ? kNetworksDirectionValue
                           : state.groups.contains(state.selectedGroup)
                               ? state.selectedGroup
                               : null,
-                      // Поле высотой 40: перенос строки обрезал подсказку
-                      // пополам (ru «Выберите Направление»). Одна строка с
-                      // многоточием и у подсказки, и у длинного имени.
+
+
+
                       hint: Text(getLocalText.s("Select direction"),
                           maxLines: 1, overflow: TextOverflow.ellipsis),
                       items: state.groups
@@ -230,7 +230,7 @@ class HomeControls extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis)))
                           .followedBy([
-                        // Задача 579 — псевдо-направление последним.
+
                         if (hasNetworks)
                           const DropdownMenuItem(
                               value: kNetworksDirectionValue,
@@ -254,13 +254,13 @@ class HomeControls extends StatelessWidget {
                   ),
                 ),
               ),
-              // §372 — InkWell, не GestureDetector: у последнего нет фокусного
-              // узла, и на Android TV кнопка была недостижима с пульта
-              // (D-pad её просто пропускал). InkWell фокусируется и
-              // подсвечивается, поведение тапа/long-press то же.
+
+
+
+
               InkWell(
                 borderRadius: BorderRadius.circular(20),
-                // Задача 579 — в NETWORKS замера задержки нет.
+
                 onTap: (!state.tunnelUp ||
                         state.busy ||
                         state.nodes.isEmpty ||
@@ -270,11 +270,11 @@ class HomeControls extends StatelessWidget {
                         if (controller.massPingRunning) {
                           controller.cancelMassPing();
                         } else {
-                          // §078 — пингуем в порядке отображения. Фильтр и
-                          // sort учитываются: ping всё что **видно**, в том
-                          // порядке как видно. Control-outbounds тоже в
-                          // списке (clash.delay для них вернёт error или
-                          // реальный latency для direct-out).
+
+
+
+
+
                           unawaited(controller.runMassUrltest(
                               order: presenter.computeDisplayList(state)));
                         }
@@ -300,19 +300,19 @@ class HomeControls extends StatelessWidget {
     );
   }
 
-  /// Кнопка справа от status chip. Short tap = умный default (reconnect /
-  /// rebuild+start / rebuild+reconnect в зависимости от состояния), long
-  /// press = меню с 3 явными действиями. Иконка refresh читается как
-  /// «переподключиться», что и является default-поведением.
+
+
+
+
   Widget _buildReloadButton(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final dirty = subController.configDirty || needsRestart;
     final enabled = !state.busy && !subController.busy;
     final fg = dirty ? cs.onPrimaryContainer : null;
     final bg = dirty ? cs.primaryContainer : Colors.transparent;
-    // Без Tooltip: на mobile он сам хватает long-press (его default trigger)
-    // и наш `onLongPress` на InkWell никогда не срабатывает. Label доступен
-    // через Semantics для accessibility.
+
+
+
     return Semantics(
       button: true,
       label: _defaultReloadLabel(state, dirty),
@@ -320,8 +320,8 @@ class HomeControls extends StatelessWidget {
         color: bg,
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
-        // Builder нужен чтобы `findRenderObject` в _showReloadMenu нашёл саму
-        // кнопку, а не родительский Row/Column (иначе меню всплывёт с краю).
+
+
         child: Builder(builder: (inkCtx) => InkWell(
           onTap: enabled ? () => _runDefaultReload(state) : null,
           onLongPress: enabled ? () => _showReloadMenu(inkCtx, state) : null,
@@ -336,8 +336,8 @@ class HomeControls extends StatelessWidget {
 
   String _defaultReloadLabel(HomeState state, bool dirty) {
     if (!state.tunnelUp) return 'Rebuild config + connect';
-    // §030: default tap теперь делает in-place reload (легче чем reconnect).
-    // Long-press menu всё ещё даёт явный 'Reconnect' для full restart.
+
+
     return dirty ? 'Rebuild config + reconnect' : 'Reload';
   }
 
@@ -351,11 +351,11 @@ class HomeControls extends StatelessWidget {
     if (dirty) {
       unawaited(onRebuildAndReconnect());
     } else {
-      // §030 — in-place reload через `commandServer.startOrReloadService`.
-      // Раньше тут был `reconnect()` (full stop+start с recreate Android Service);
-      // новый путь не убивает Service, tunnel дропается на ~3s вместо 5-10s.
-      // Long-press menu даёт fallback на full reconnect для случаев когда
-      // in-place reload не помог.
+
+
+
+
+
       unawaited(controller.reloadVpn());
     }
   }
@@ -379,8 +379,8 @@ class HomeControls extends StatelessWidget {
       context: anchorCtx,
       position: rect,
       items: [
-        // Reload первый — самый light recovery (in-place через CommandServer.
-        // startOrReloadService). Tap по кнопке выполняет это же действие.
+
+
         if (state.tunnelUp)
           PopupMenuItem(
             value: 'reload',

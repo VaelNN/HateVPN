@@ -7,16 +7,16 @@ import '../edit_controller.dart';
 import '../sections/server_form_section.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §117 задача 4 — Params tab редактора DNS-сервера. Состав по `kind`:
-///
-/// - общее: Description + Enabled (при locked — disabled, показан ON,
-///   пометка «used by <пресет/правило>»);
-/// - `template` → [TemplateVarListView] (vars: outbound/enum/dns_servers/…) —
-///   перенос инлайн-тюнера с тайла, логика `varValues` без изменений;
-/// - `inline` → Tag (locked при edit existing) + Outbound (detour)
-///   [OutboundPicker] → пишет/стирает `body['detour']` (inline-detour,
-///   locked decision №10);
-/// - `preset` → read-only пометка (параметры живут в редакторе пресета).
+
+
+
+
+
+
+
+
+
+
 class DnsServerParamsTab extends StatelessWidget {
   const DnsServerParamsTab({super.key, required this.onSave});
 
@@ -42,8 +42,8 @@ class DnsServerParamsTab extends StatelessWidget {
               prefixIcon: const Icon(Icons.tag, size: 18),
               helperText: c.isNew
                   ? getLocalText.s("Unique id — referenced by DNS rules / resolvers")
-                  // §117 задача 4b: rename каскадно обновляет все ссылки
-                  // (DNS-правила, resolvers, domain_resolver'ы).
+
+
                   : getLocalText.s("Renaming updates all references automatically"),
             ),
           ),
@@ -62,8 +62,8 @@ class DnsServerParamsTab extends StatelessWidget {
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(getLocalText.s("Enabled")),
-          // §117 lifecycle (locked №7): реферимый сервер force-include'ится
-          // build'ом — показываем ON, тоггл заблокирован.
+
+
           subtitle: c.locked
               ? Row(
                   mainAxisSize: MainAxisSize.min,
@@ -91,19 +91,19 @@ class DnsServerParamsTab extends StatelessWidget {
               dnsServerTags: c.dnsServerTags,
               onChanged: c.setVarValue,
             ),
-          // §117 задача 4b: структурная форма (UDP/DoT/DoH + адрес/порт/
-          // path/SNI/domain_resolver) + detour-пикер.
+
+
           ServerKind.inline => Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ServerFormSection(c: c),
-                // §319 — у ГРУППЫ нет своего транспорта: запросы несут её
-                // участники, каждый со своим detour. Ядро принимает у
-                // `type: group` только {servers, mode, error_ttl, win_ttl}
-                // (kernel SPEC 033) и падает на лишнем ключе — поэтому
-                // пикер для группы не рисуем вовсе.
-                // §435 — у `tailscale` транспорт задаёт `endpoint` (узел
-                // tailnet), поля `detour` у типа нет — пикер тоже прячем.
+
+
+
+
+
+
+
                 if (!c.isGroup && !c.isTailscale)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),

@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -29,12 +29,12 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §238 — `/folders/*` handler поверх реального SubscriptionController
-/// (temp-dir через fake path provider, как в folder_test.dart). Probe не
-/// покрыт — требует native CcChannel (device-verify).
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
@@ -98,7 +98,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -106,7 +106,7 @@ void main() {
     final id = await createFolder('Proton');
     expect(id, isNotEmpty);
 
-    // Одиночный сервер в общем списке /folders не отображается.
+
     await controller.addFromInput(uriA);
 
     final r = await foldersHandler(req('GET', '/folders'), ctx());
@@ -184,21 +184,21 @@ void main() {
           ctx(),
         ))['member'] as Map)['detour'];
 
-    // Пара на соседа — как пришла.
+
     expect(await patch({'folder_id': id, 'tag': 'Alpha'}),
         {'folder_id': id, 'tag': 'Alpha'});
     FolderServers folder() => controller.entries.single.list as FolderServers;
     expect(folder().members[1].detour, NodeLink(folderId: id, tag: 'Alpha'));
 
-    // Строка — сырой тег соседа: S1 поднимает до пары.
+
     await patch(null);
     expect(await patch('Alpha'), {'folder_id': id, 'tag': 'Alpha'});
 
-    // Строка вне папки — корневая ссылка; объект без folder_id — тоже.
+
     expect(await patch('jump-de'), {'tag': 'jump-de'});
     expect(await patch({'tag': 'vpn-1'}), {'tag': 'vpn-1'});
 
-    // null и пустой тег — ссылки нет, в ответе null.
+
     expect(await patch(null), isNull);
     expect(folder().members[1].detour, NodeLink.none);
     expect(await patch({'tag': 'x'}), {'tag': 'x'});
@@ -224,7 +224,7 @@ void main() {
       req('PATCH', '/folders/$id/members/1', body: {'detour': 'jump-de'}),
       ctx(),
     );
-    // §439 — строка в запросе читается корневой ссылкой, ответ — ссылкой.
+
     expect((asMap(r2)['member'] as Map)['detour'], {'tag': 'jump-de'});
 
     await expectLater(
@@ -234,12 +234,12 @@ void main() {
       ),
       throwsA(isA<BadRequest>()),
     );
-    // Пустое body — тоже 400.
+
     await expectLater(
       foldersHandler(req('PATCH', '/folders/$id/members/0'), ctx()),
       throwsA(isA<BadRequest>()),
     );
-    // Индекс вне диапазона → 404.
+
     await expectLater(
       foldersHandler(
         req('PATCH', '/folders/$id/members/5', body: {'enabled': true}),
@@ -331,13 +331,13 @@ void main() {
     );
     final folder = asMap(r)['folder'] as Map;
     expect((folder['members'] as List), hasLength(1));
-    // addFromInput декорирует tag эмодзи протокола — сверяем по вхождению.
+
     expect(((folder['members'] as List).single as Map)['tag'],
         contains('Alpha'));
     expect(controller.entries.any((e) => e.id == serverId), isFalse);
 
-    // Папку в папку двигать нельзя → 409 (после пред-проверок контроллер
-    // отвечает "Only single servers can be moved").
+
+
     final other = await createFolder('G');
     await expectLater(
       foldersHandler(
@@ -363,7 +363,7 @@ void main() {
     expect(controller.entries, hasLength(2));
     expect(controller.entries.every((e) => e.list is UserServer), isTrue);
 
-    // Без keep_servers — совсем.
+
     final id2 = await createFolder('G');
     await foldersHandler(
       req('POST', '/folders/$id2/members', body: {'input': uriA}),
@@ -371,6 +371,6 @@ void main() {
     );
     await foldersHandler(req('DELETE', '/folders/$id2'), ctx());
     expect(controller.entries.any((e) => e.id == id2), isFalse);
-    expect(controller.entries, hasLength(2)); // прежние два одиночных
+    expect(controller.entries, hasLength(2));
   });
 }

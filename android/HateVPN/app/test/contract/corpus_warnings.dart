@@ -6,55 +6,55 @@ import 'dart:io';
 import 'package:lxbox/models/node_warning.dart';
 import 'package:lxbox/services/contract/warning_codes.dart';
 
-// §470 — общая часть двух конформанс-раннеров корпуса: URI
-// (`contract_test.dart`) и тел подписки (`body_contract_test.dart`).
-//
-// Раньше правила записи `warnings[]` (PARSING_PRINCIPLES §6) и нормализация сравнения
-// (PARSING_PRINCIPLES §7, зеркало Go `normalizeWarningsForCompare`) жили только в
-// URI-раннере, а body-раннер предупреждения не сверял вовсе. Кейсы, чей смысл
-// именно в кодах (`*_quic_tls_pair.body`, `outbound_array_tls_fields.body`),
-// были зелёными независимо от поведения — §469 наткнулся на это случайно:
-// гейт `forbidden_for` не ставил `value`, и не покраснел ни один тест.
-//
-// Копировать правила во второй раннер нельзя: они нормативны, и две копии
-// разъехались бы на первом же бампе контракта. Поэтому — один файл на обоих.
 
-/// Путь поля для рукописных классов — ТОЛЬКО там, где поле класса и есть
-/// путь (PARSING_PRINCIPLES §6: `path` обязателен у кодов уровня поля).
-///
-/// §472 шаг 1 — таблица переехала в lib
-/// ([handwrittenWarningPath], `services/contract/warning_codes.dart`): у неё
-/// появился второй потребитель, дедуп предупреждений при разборе. Здесь
-/// остался только вызов — две копии разошлись бы на первом же новом классе,
-/// ровно как это было бы с `kWarningCodes`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 String? _legacyWarningPath(NodeWarning w) => handwrittenWarningPath(w);
 
-/// Значение, вызвавшее код, — по той же логике, что и [_legacyWarningPath].
-///
-/// `MissingObfsPasswordWarning` сюда НЕ попадает: его поле — тип обфускации,
-/// а код про пароль, и значением он не является (ожидание корпуса `value`
-/// у него не называет).
-///
-/// §472 шаг 9 — `AnyTlsMinIdleInvalidWarning`, `TuicCongestionInvalidWarning`
-/// и `MasqueVhttpInvalidWarning` отсюда ушли вместе с классами: эти коды
-/// теперь ставит санитайзер реестра (`RegistryWarning`), а он несёт значение
-/// сам, веткой выше.
+
+
+
+
+
+
+
+
+
+
 String? _legacyWarningValue(NodeWarning w) => switch (w) {
       PacketEncodingUnknownWarning(:final value) => value,
       UnknownFingerprintWarning(:final value) => value,
       RealityFingerprintWarning(:final value) => value,
       UnknownObfsWarning(:final value) => value,
-      // §467 — у `placementRequiresPacketUp` значение пустое (код про
-      // сочетание, не про значение), и пустое в результат разбора не пишется.
+
+
       XhttpParamResetWarning(:final value) => value,
       _ => null,
     };
 
-/// Запись `warnings[]` результата разбора: `{code, path?, value?, params?}` (PARSING_PRINCIPLES §6).
-///
-/// Пустые поля не пишутся — их отсутствие нормативно, а `null` в результате разбора
-/// схема не допускает. Класса без кода в реестре в результате разбора нет вовсе:
-/// код — единственное, что контракт от записи требует безусловно.
+
+
+
+
+
 Map<String, dynamic>? warningRecordOf(NodeWarning w) {
   final code = warningCodeOf(w);
   if (code == null) return null;
@@ -63,8 +63,8 @@ Map<String, dynamic>? warningRecordOf(NodeWarning w) {
   final String? value;
   final Map<String, String> params;
   if (w is RegistryWarning) {
-    // Санитайзер реестра уже знает и путь, и значение (у `secret`-полей —
-    // `***`, 24.1.4), выдумывать здесь нечего.
+
+
     path = w.path;
     value = w.value;
     params = w.params;
@@ -79,23 +79,23 @@ Map<String, dynamic>? warningRecordOf(NodeWarning w) {
     if (path != null && path.isNotEmpty) 'path': path,
     if (value != null && value.isNotEmpty) 'value': value,
     if (params.isNotEmpty) 'params': params,
-    // §577 — контракт 1.1.87: пишется только `false`.
+
     if (!w.applied) 'applied': false,
   };
 }
 
-/// §464 — ранг пути в `body.order` схемы протокола: по нему сортируется
-/// `warnings[]` результата разбора (§24.7 п. 6).
-///
-/// Порядок читается ИЗ РЕЕСТРА, а не из таблицы в тесте: он нормативен для
-/// обеих сторон, и своя копия разошлась бы с ним на первом же бампе
-/// контракта. Файлы те же, что грузит `ContractRegistry`, но читаются здесь
-/// напрямую — раннеру нужен один список ключей, а не биндинг Flutter.
-///
-/// Ключ сортировки — ПЕРВЫЙ сегмент пути (`tls.reality.short_id` → `tls`):
-/// он и решает место кода в теле, а внутри одной ветки порядок разбора у
-/// обеих сторон и так совпадает. Код без пути и путь вне схемы уходят в
-/// конец — детерминированно и без выдумывания рангов.
+
+
+
+
+
+
+
+
+
+
+
+
 final _bodyOrderCache = <String, List<String>>{};
 
 List<String> _bodyOrderFor(String scheme) => _bodyOrderCache.putIfAbsent(
@@ -110,17 +110,17 @@ List<String> _bodyOrderFor(String scheme) => _bodyOrderCache.putIfAbsent(
       },
     );
 
-/// Имена записей с `maps_to: null` — те, чей `path` заведомо НЕ путь тела.
-///
-/// Контракт 1.1.34 §31.2: у такой записи пути в теле нет по построению, и
-/// `path` кода несёт ИМЯ ЗАПИСИ (`dns` у `wgconf_dns_ignored`). Отличить его
-/// от пути вне схемы нечем, кроме самого реестра, — а разница в месте: потеря
-/// на разборе случилась ДО того, как тело вообще собралось, и в списке она
-/// стоит впереди кодов санитайзера, а не в хвосте вместе с необъявленным.
-///
-/// Без этого `amnezia_vpn_awg` расходился с лаунчером ПОРЯДКОМ: у него
-/// `wgconf_dns_ignored` первый, у нас — последний, потому что `dns` в
-/// `body.order` не значится и получал ранг хвоста.
+
+
+
+
+
+
+
+
+
+
+
 final _mapperOnlyPathsCache = <String, Set<String>>{};
 
 Set<String> _mapperOnlyPathsFor(String scheme) =>
@@ -138,16 +138,16 @@ Set<String> _mapperOnlyPathsFor(String scheme) =>
         for (final e in params.entries) {
           final p = e.value;
           if (p is! Map) continue;
-          // `maps_to` ОБЪЯВЛЕН и равен null — «знаем, читать нечего».
-          // Запись без ключа вовсе сюда не идёт: у неё путь просто не назван.
+
+
           if (p.containsKey('maps_to') && p['maps_to'] == null) {
             out.add('${e.key}');
           }
         }
       }
-      // §556 (контракт 1.1.6x) — записи общих блоков (`tls.json`
-      // `blocks.uri.ech`), которые секция схемы включает: потеря на разборе
-      // та же, где бы запись ни жила.
+
+
+
       for (final shared in const ['tls', 'transports', 'dialer', 'multiplex']) {
         final sf = File('$kContractRoot/registry/$shared.json');
         if (!sf.existsSync()) continue;
@@ -193,23 +193,23 @@ void sortWarningsByBodyOrder(
   int rank(Map<String, dynamic> w) {
     final path = w['path'];
     if (path is! String || path.isEmpty) return 1 << 20;
-    // Потеря на разборе — впереди всего тела: её место в списке определяет
-    // стадия, а не ветка схемы, которой у неё нет.
+
+
     if (mapperOnly.contains(path)) return -1;
-    // §560 — индекс элемента (`server_ports[0]`, `tls.alpn[0]`) ветку поля не
-    // меняет: ранг ищется по имени поля без него.
+
+
     final head = path.split('.').first.split('[').first;
     final i = order.indexOf(head);
     if (i >= 0) return i;
-    // Код `unknown_key` СЕКЦИИ-маппера (`json_field_unknown` у
-    // `streamSettings.network`) адресует ключ ИСТОЧНИКА, а не тела: по
-    // PARSING_PRINCIPLES §6 коды маппера впереди кодов тела. Какие коды это, говорит
-    // реестр (`mappers.*.unknown_key.code`), а не тест.
+
+
+
+
     if (_mapperUnknownCodesFor(scheme).contains(w['code'])) return -1;
     return 1 << 20;
   }
 
-  // Устойчивая сортировка: коды одной ветки остаются в порядке разбора.
+
   final indexed = [
     for (var i = 0; i < warnings.length; i++) (i, warnings[i]),
   ]..sort((a, b) {
@@ -221,21 +221,21 @@ void sortWarningsByBodyOrder(
     ..addAll(indexed.map((e) => e.$2));
 }
 
-/// `warnings[]` узла из его классов: дедуп по `(code, path)` и порядок
-/// `body.order` реестра (PARSING_PRINCIPLES §6).
-///
-/// Конверт несёт объекты `{code, path?, value?}`, и каждая пара
-/// `(code, path)` в списке ровно один раз: зеркало Go `ParsedNode.AddWarning`
-/// (`configtypes/types.go`), который отбрасывает повтор. Dart-предупреждения
-/// при этом остаются пофакторными (два битых AWG-заголовка = два разных
-/// сообщения пользователю), но запись результата разбора у них одна на путь.
-///
-/// §464 (контракт W2d, §24.7 п. 6) — ПОРЯДОК списка = `body.order` реестра,
-/// а не порядок разбора: только так коды сравнимы поэлементно, а не как
-/// множество. У лаунчера он такой потому, что правила теперь ставит
-/// санитайзер, идущий по схеме; у нас коды по-прежнему ставят парсеры (§460
-/// W1 — реестр второй эшелон), и порядок восстанавливается здесь, по тому же
-/// самому `order`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 List<Map<String, dynamic>> warningListOf(
     Iterable<NodeWarning> source, String scheme) {
   final warnings = <Map<String, dynamic>>[];
@@ -250,19 +250,19 @@ List<Map<String, dynamic>> warningListOf(
   return warnings;
 }
 
-/// Приведение `warnings[]` обеих сторон к сравнимому виду (PARSING_PRINCIPLES §6, контракт
-/// 1.1.0) — зеркало Go-раннера `normalizeWarningsForCompare`
-/// (`core/config/contract_test.go`).
-///
-/// Нормативен ровно тот объём, который объявило ОЖИДАНИЕ:
-///
-///   - ожидание строкой  → сверяется только код (корпус до 1.1.0 и
-///     by-design override'ы, написанные строками, продолжают работать);
-///   - ожидание объектом → сверяются `code` и `path`/`value`, но каждое —
-///     только если ожидание его назвало.
-///
-/// Иначе сторона, у которой путь ещё не проложен через санитайзер реестра
-/// (§460 W2), падала бы на «лишнем» поле вместо настоящего расхождения кода.
+
+
+
+
+
+
+
+
+
+
+
+
+
 void normalizeWarnings(Map<String, dynamic> got, Map<String, dynamic> want) {
   final gotNodes = nodeList(got, 'nodes');
   final wantNodes = nodeList(want, 'nodes');
@@ -270,8 +270,8 @@ void normalizeWarnings(Map<String, dynamic> got, Map<String, dynamic> want) {
     normalizeNodeWarnings(
         gotNodes[i], i < wantNodes.length ? wantNodes[i] : null);
   }
-  // Ожидание тоже приводится к объектам — иначе строка `"tls_insecure"` и
-  // объект `{code: tls_insecure}` разошлись бы формой записи.
+
+
   for (final wn in wantNodes) {
     normalizeNodeWarnings(wn, null);
   }
@@ -284,16 +284,16 @@ void normalizeNodeWarnings(
 
   if (wantList != null) {
     for (var i = 0; i < gotList.length && i < wantList.length; i++) {
-      // Лишняя запись у результата (i >= wantList.length) не срезается: это
-      // расхождение, и прятать его нормализацией нельзя — пусть падает с
-      // полным объектом.
+
+
+
       if (!wantList[i].containsKey('path')) gotList[i].remove('path');
       if (!wantList[i].containsKey('value')) gotList[i].remove('value');
       if (!wantList[i].containsKey('params')) gotList[i].remove('params');
     }
   }
 
-  // Хопы цепочки несут свои warnings — тот же разбор, та же сверка.
+
   final gotHops = nodeList(node, 'chain');
   final wantHops =
       want == null ? const <Map<String, dynamic>>[] : nodeList(want, 'chain');
@@ -302,8 +302,8 @@ void normalizeNodeWarnings(
   }
 }
 
-/// `warnings[]` узла как изменяемые карты, ПЕРЕПИСЫВАЯ строки-коды объектами
-/// прямо в результате разбора: дальше сравниваются уже однородные значения.
+
+
 List<Map<String, dynamic>> warningObjects(Map<String, dynamic> node) {
   final list = node['warnings'];
   if (list is! List) return const [];
@@ -321,15 +321,15 @@ List<Map<String, dynamic>> warningObjects(Map<String, dynamic> node) {
   return out;
 }
 
-/// D-088 — из `dropped[]` обеих сторон вычёркивается `reason`: это текст
-/// СТОРОНЫ (у лаунчера формат ошибки Go, у нас свой), и побайтовая сверка
-/// заставила бы копировать чужие строки. Нормативны `ref` и `code`; `code`
-/// сверяется только там, где ожидание его объявило.
-///
-/// Зеркало Go `normalizeDropsForCompare` (`core/config/contract_test.go`).
-/// Body-раннер это правило соблюдал с самого начала, URI-раннер — нет, и
-/// `naive/empty_host_rejected` падал на одном лишь слове `parse_error`
-/// против `emit_error`.
+
+
+
+
+
+
+
+
+
 void normalizeDrops(Map<String, dynamic> got, Map<String, dynamic> want) {
   final gotDrops = nodeList(got, 'dropped');
   final wantDrops = nodeList(want, 'dropped');
@@ -344,15 +344,15 @@ void normalizeDrops(Map<String, dynamic> got, Map<String, dynamic> want) {
   }
 }
 
-/// Список объектов по ключу карты (`nodes`, `chain`, `dropped`).
+
 List<Map<String, dynamic>> nodeList(Map<String, dynamic> m, String key) {
   final list = m[key];
   if (list is! List) return const [];
   return [for (final e in list) if (e is Map<String, dynamic>) e];
 }
 
-/// Копия результата разбора под нормализацию: срезать поля в оригинале нельзя — тот же
-/// результат разбора печатается в диагностике падения целиком.
+
+
 Object? deepCopyEnvelope(Object? v) {
   if (v is Map) {
     return <String, dynamic>{
@@ -363,10 +363,10 @@ Object? deepCopyEnvelope(Object? v) {
   return v;
 }
 
-/// Сериализация по правилам PARSING_PRINCIPLES §2.3/2.6: ключи map отсортированы рекурсивно
-/// (byte-order), компактный JSON. Escaping здесь не проблема — Dart's
-/// `JsonEncoder` не HTML-экранирует `<`/`>`/`&` (в отличие от Go-энкодера по
-/// умолчанию), так что PARSING_PRINCIPLES §2.7 (D-007) выполняется без дополнительных мер.
+
+
+
+
 String canonEncode(Object? v) => json.encode(sortKeys(v));
 
 Object? sortKeys(Object? v) {
@@ -384,8 +384,8 @@ Object? sortKeys(Object? v) {
   return v;
 }
 
-/// Pretty-print для диагностики и для файла ожидания (читаемость); сравнение
-/// всё равно идёт по значению после канонизации, не по байтам (PARSING_PRINCIPLES §7).
+
+
 String prettyPrintEnvelope(Map<String, dynamic> envelope) {
   final canon = sortKeys(envelope);
   const encoder = JsonEncoder.withIndent('  ');

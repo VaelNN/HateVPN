@@ -7,8 +7,8 @@ import 'package:lxbox/services/parser/parse_all.dart';
 import 'engine_test_setup.dart';
 
 void main() {
-  // §480 — разбор `.conf` идёт ДВИЖКОМ по секции реестра; без него у схемы
-  // запасного рукописного пути не осталось (критерий 7).
+
+
   setUpAll(loadEngineSections);
 
   group('decode', () {
@@ -54,7 +54,7 @@ void main() {
       expect(decode('# nothing\n// zilch'), isA<DecodeFailure>());
     });
 
-    // Edge cases (night T5-2)
+
 
     test('CRLF line endings работают как LF', () {
       const body = 'vless://u1@h1:443#a\r\ntrojan://p@h2:443#b\r\n';
@@ -64,8 +64,8 @@ void main() {
     });
 
     test('URL-safe base64 (- и _) распознаётся', () {
-      // standard base64 of 'vless://u@h:443#x\ntrojan://p@h:443#y\n', then
-      // swap + -> - and / -> _ — URL-safe variant.
+
+
       const std = 'dmxlc3M6Ly91QGg6NDQzI3gKdHJvamFuOi8vcEBoOjQ0MyN5Cg';
       final urlSafe = std.replaceAll('+', '-').replaceAll('/', '_');
       final r = decode(urlSafe);
@@ -77,15 +77,15 @@ void main() {
       expect(decode('   \n\t\n  '), isA<DecodeFailure>());
     });
 
-    // §480 — норма ИЗМЕНИЛАСЬ, и тест переписан под неё, а не подогнан.
-    //
-    // Реестр видов источника (`contract_draft/source_kinds.json`, вид
-    // `wireguard_conf`) опознаёт `.conf` по ПЕРВОЙ не-комментарной секции
-    // `[Interface]`, и требования `[Peer]` там НЕТ — сверено с лаунчером
-    // (TASKS_LXBOX §24.27 п.3, правда наша): заготовка без пира это законный
-    // `.conf`, и прежнее требование роняло её в ссылочную ветку, где она
-    // становилась мусорной строкой. Узлов такой файл не даёт — пира, то есть
-    // адреса, в нём нет, — но и исключения не бросает.
+
+
+
+
+
+
+
+
+
     test('INI без [Peer] — законный .conf: ноль узлов, без исключения', () {
       const body = '[Interface]\nPrivateKey = xxx\nAddress = 10.0.0.2/24';
       final r = decode(body);
@@ -99,9 +99,9 @@ void main() {
       expect(decode(body), isA<IniConfig>());
     });
 
-    // §483 — у Clash своей ветки в реестре нет (её убрал GRAMMAR_SYNC):
-    // документ опознаётся веткой «всё остальное», а вид ему даёт запасной
-    // классификатор. Узлов такой вид не даёт — маппера у него нет.
+
+
+
     test('JSON object с proxies → вид clash_yaml, узлов нет', () {
       const body = '{"proxies": [{"type": "vmess", "server": "h"}]}';
       final r = decode(body);
@@ -112,9 +112,9 @@ void main() {
     });
 
     test('слишком короткая base64 (<16) не декодируется — падает в plain path', () {
-      // Guard: короткие base64 не trigger'ят decode, иначе любая короткая
-      // строка матчилась бы как base64-payload.
-      const shortB64 = 'aGVsbG8x'; // 8 chars — "hello1"
+
+
+      const shortB64 = 'aGVsbG8x';
       final r = decode(shortB64);
       expect(r, isA<UriLines>(), reason: 'plain path вернёт raw as UriLines');
       expect((r as UriLines).lines, ['aGVsbG8x']);

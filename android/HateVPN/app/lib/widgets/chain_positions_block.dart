@@ -1,13 +1,13 @@
-// §394 — блок «Chain positions» во вкладке Diagnostics узла типа `chain`.
-//
-// Паритет с окном Info лаунчера (`ui/servers_node_info_chain.go`): строка на
-// позицию, справа НАКОПИТЕЛЬНАЯ задержка и цена хопа «(+X)», под списком —
-// текст ошибки ядра, ниже кнопка повторного прогона.
-//
-// Почему накопительная И дельта, а не что-то одно: накопительная отвечает
-// «сколько всего стоит путь досюда», дельта — «кто именно это добавил». По
-// одной первой не видно виновника, по одной второй — не видно, во что
-// обошёлся маршрут целиком.
+
+
+
+
+
+
+
+
+
+
 
 import 'dart:async';
 
@@ -16,8 +16,8 @@ import 'package:flutter/material.dart';
 import '../services/l10n/locale_controller.dart';
 import '../services/probe/chain_layer_probe.dart';
 
-/// Состояние блока — отдельно от вёрстки, чтобы логика («что показать при
-/// таком отчёте») проверялась тестом без построения дерева виджетов.
+
+
 class ChainPositionsBlock extends StatefulWidget {
   const ChainPositionsBlock({
     super.key,
@@ -28,10 +28,10 @@ class ChainPositionsBlock extends StatefulWidget {
 
   final String chainTag;
 
-  /// Позиции В ПОРЯДКЕ ПАКЕТА из собранного конфига.
+
   final List<String> hops;
 
-  /// Подмена прогона в тестах. В проде — `ChainLayerProbe.new`.
+
   final ChainLayerProbe Function()? probeFactory;
 
   @override
@@ -43,15 +43,15 @@ class _ChainPositionsBlockState extends State<ChainPositionsBlock> {
   bool _running = false;
   ChainProbeReport? _report;
 
-  /// Причина, по которой прогон не состоялся (туннель выключен, узел не
-  /// цепочка). Отличается от слоя с ошибкой — тот лежит в [_report] и
-  /// сбоем прогона не является.
+
+
+
   String _error = '';
 
   @override
   void dispose() {
-    // §286 — уход с экрана во время прогона: результат уже не нужен, а
-    // последовательный обход слоёв не должен продолжаться в пустоту.
+
+
     _probe?.cancel();
     super.dispose();
   }
@@ -93,9 +93,9 @@ class _ChainPositionsBlockState extends State<ChainPositionsBlock> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final report = _report;
-    // Текст ошибки ядра — под списком и с переносом: сообщение длинное и в
-    // колонку задержки не помещается. Показываем ПЕРВУЮ: следующие слои
-    // помечены «not reached», своей ошибки у них нет.
+
+
+
     final layerError = report?.layers
         .where((l) => l.error.isNotEmpty)
         .map((l) => l.error)
@@ -169,7 +169,7 @@ class _ChainPositionsBlockState extends State<ChainPositionsBlock> {
         children: [
           SizedBox(
             width: 24,
-            // l10n-exempt: position number
+
             child: Text('${i + 1}.',
                 style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
           ),
@@ -197,18 +197,18 @@ class _ChainPositionsBlockState extends State<ChainPositionsBlock> {
     );
   }
 
-  /// Правая колонка строки: «— » до прогона, «123 ms  (+45)» при успехе,
-  /// «error» / «not reached» иначе.
-  ///
-  /// Ошибка помечается СЛОВОМ, а не цифрой: ноль миллисекунд читался бы как
-  /// «бесплатный хоп», хотя он попросту не ответил.
+
+
+
+
+
   String _measureText(int i, ChainLayerResult? layer, ChainProbeReport? report) {
-    // l10n-exempt: em dash placeholder
+
     if (layer == null) return '—';
     if (layer.notReached) return getLocalText.s("not reached");
     if (layer.error.isNotEmpty) return getLocalText.s("error");
     final delta = report?.deltaAt(i);
-    // l10n-exempt: milliseconds + signed delta, no words
+
     return delta == null
         ? '${layer.cumulativeMs} ms'
         : '${layer.cumulativeMs} ms  (+$delta)';

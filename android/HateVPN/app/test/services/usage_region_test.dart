@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/usage_region.dart';
 
-/// §425 — регион использования: настройка + автодетект.
+
 void main() {
   const channel = MethodChannel('plugins.flutter.io/path_provider');
   late Directory tmp;
@@ -61,7 +61,7 @@ void main() {
   test('detected: мусор от нативки → локаль/пусто, кэш на процесс', () async {
     UsageRegion.detectorOverride = () async => 'xyz';
     final d = await UsageRegion.detected();
-    // Фолбэк на Platform.localeName: либо 2-буквенный код, либо пусто.
+
     expect(d.isEmpty || RegExp(r'^[a-z]{2}$').hasMatch(d), isTrue);
     UsageRegion.detectorOverride = () async => 'ru';
     expect(await UsageRegion.detected(), d, reason: 'кэш не сброшен');

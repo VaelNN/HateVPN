@@ -8,21 +8,21 @@ import '../../services/support/support_message.dart';
 import '../../services/support/support_nav.dart';
 import '../../services/url_launcher.dart' as ul;
 
-/// §356/§357 — полноэкранный показ сообщения support-ленты (fullscreen-маршрут
-/// вместо прежнего AlertDialog: «поверх и мало места» — решение юзера).
-///
-/// Локаль резолвится ЗДЕСЬ, в момент показа (`effectiveTag` → `i18n`, фолбэк
-/// en — кэш один на все языки). Кнопки:
-/// - https-ссылки — открывают браузер, экран НЕ закрывают (юзер может
-///   пройтись по нескольким);
-/// - `lxbox://<action>:<payload>` (§357) — резолвятся через [buildScreen];
-///   нерезолвящиеся (незнакомое действие/экран у старой версии) скрываются;
-///   тап = пометить прочитанным (если `mark_read` не false) + pushReplacement
-///   целевого экрана;
-/// - AppBar X — закрыть без пометок (сообщение придёт при следующем открытии);
-/// - «Later» — снуз всей ленты на `snooze_active_hours` наработки;
-/// - «Got it» — прочитано; первые `read_delay_seconds` кнопка неактивна и
-///   тикает обратный отсчёт (защита от смахивания не глядя).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class SupportMessageScreen extends StatefulWidget {
   const SupportMessageScreen({
     super.key,
@@ -35,12 +35,12 @@ class SupportMessageScreen extends StatefulWidget {
   final SupportFeed feed;
   final SupportMessage message;
 
-  /// Резолв lxbox-действия в экран (контроллеры живут у home_screen).
-  /// null → кнопка скрывается (forward-compat).
+
+
   final Widget? Function(SupportLinkAction action) buildScreen;
 
-  /// §357 Debug API `/support/preview?dry=true` — кнопки работают визуально
-  /// и навигационно, но `markRead`/`snooze` НЕ пишутся в state.
+
+
   final bool dryRun;
 
   @override
@@ -82,7 +82,7 @@ class _SupportMessageScreenState extends State<SupportMessageScreen> {
     }
   }
 
-  /// lxbox-кнопка: пометить (по флагу) и ЗАМЕНИТЬ этот экран целевым.
+
   void _openInternal(SupportLinkSpec spec, Widget target) {
     if (spec.markRead && !widget.dryRun) {
       unawaited(SupportMessageService.I.markRead(widget.message));
@@ -94,12 +94,12 @@ class _SupportMessageScreenState extends State<SupportMessageScreen> {
   @override
   Widget build(BuildContext context) {
     final raw = widget.message.contentFor(LocaleController.I.effectiveTag);
-    // §362 — `@плейсхолдеры` резолвятся В МОМЕНТ показа: `@guideLink` зависит
-    // от текущей локали, `@appVersion` — от версии APK.
+
+
     final c = raw.expandLinks();
     final theme = Theme.of(context);
 
-    // Кнопки: внешние — как есть; lxbox — только резолвящиеся (§357).
+
     final buttons = <Widget>[];
     for (final spec in c.links) {
       final action = SupportLinkAction.parse(spec.url);
@@ -111,7 +111,7 @@ class _SupportMessageScreenState extends State<SupportMessageScreen> {
         continue;
       }
       if (!isResolvableSupportAction(action)) continue;
-      // `share:` — системный share-лист, экран НЕ закрываем (как https).
+
       if (isInPlaceSupportAction(action)) {
         buttons.add(FilledButton.tonal(
           onPressed: () => unawaited(
@@ -130,8 +130,8 @@ class _SupportMessageScreenState extends State<SupportMessageScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        // X = закрыть без пометок: не «Later» (без снуза) и не «Got it» —
-        // сообщение просто придёт при следующем открытии HOME.
+
+
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
@@ -139,7 +139,7 @@ class _SupportMessageScreenState extends State<SupportMessageScreen> {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24), // bottom-inset: handled — SafeArea выше
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           children: [
             Text(c.title, style: theme.textTheme.headlineSmall),
             const SizedBox(height: 16),

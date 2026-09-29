@@ -5,14 +5,14 @@ import '../../../services/builder/validator.dart' show kMaxDetourCulprits;
 import '../../../services/l10n/locale_controller.dart';
 import '../../../widgets/app_bottom_sheet.dart';
 
-/// §254/§255 — bottom sheet «Routing loop — VPN not started».
-///
-/// Показывается при попытке старта, когда пересборка конфига упала на fatal
-/// [DetourCycle]: список нод-виновников (минимальный набор — алгоритм окраски
-/// в validator.dart, НЕ все члены кольца) + раскрытие полного цикла. Конфиг
-/// не правится и не собирается — устранение за пользователем (spec 254).
-/// §255 — тап по виновнику ведёт к владельцу в списке серверов
-/// ([onCulpritTap]). Паттерн — grabber/header/divider/ListView.
+
+
+
+
+
+
+
+
 Future<void> showDetourCycleSheet(
   BuildContext context,
   List<DetourCycle> issues, {
@@ -35,8 +35,8 @@ class _DetourCycleSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final culpritCount = issues.fold<int>(0, (n, i) => n + i.culprits.length);
-    // §254 — детектор обрывает окраску на kMaxDetourCulprits: если набралось
-    // ровно столько, могут быть ещё циклы за кадром — честно предупреждаем.
+
+
     final maybeMore = culpritCount >= kMaxDetourCulprits;
     return DraggableScrollableSheet(
       initialChildSize: 0.5,
@@ -45,7 +45,7 @@ class _DetourCycleSheet extends StatelessWidget {
       expand: false,
       builder: (ctx, scrollController) => Column(
         children: [
-          // Grabber
+
           Container(
             width: 36,
             height: 4,
@@ -55,7 +55,7 @@ class _DetourCycleSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          // Header
+
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
@@ -78,8 +78,8 @@ class _DetourCycleSheet extends StatelessWidget {
               controller: scrollController,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               children: [
-                // Короткая ошибка + требование (решение владельца: списком,
-                // без авто-действий). Tap → к владельцу.
+
+
                 Text(
                   _leadText(context, culpritCount),
                   style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
@@ -87,8 +87,8 @@ class _DetourCycleSheet extends StatelessWidget {
                 const SizedBox(height: 12),
                 for (final issue in issues) ...[
                   if (issue.culprits.isEmpty)
-                    // Кольцо из одних групп (только ручная правка JSON) —
-                    // culprit-нод нет, показываем message как есть.
+
+
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Text(issue.message(),
@@ -101,7 +101,7 @@ class _DetourCycleSheet extends StatelessWidget {
                         detour: c.detour,
                         onTap: () => onCulpritTap(c.tag),
                       ),
-                  // Полный цикл — при раскрытии (решение владельца).
+
                   ExpansionTile(
                     tilePadding: EdgeInsets.zero,
                     childrenPadding: const EdgeInsets.only(bottom: 12),
@@ -141,8 +141,8 @@ class _DetourCycleSheet extends StatelessWidget {
 
   String _leadText(BuildContext context, int culpritCount) {
     if (culpritCount == 0) {
-      // Кольцо только из групп (selector/urltest ссылаются друг на друга) —
-      // виновных нод нет, править состав групп.
+
+
       return getLocalText.s("A routing loop was found between groups. Review the loop below and break it, then start again.");
     }
     if (culpritCount == 1) return getLocalText.s("One node routes traffic back into its own chain. Tap it to open its source, change or remove its detour, then start again.");

@@ -1,24 +1,24 @@
 part of '../post_steps.dart';
 
-/// Post-step: §247 — деградация битых `server`-ссылок у resolve-правил.
-///
-/// ПРОБЛЕМА: route-правило `{action: resolve, server: <tag>}` ссылается на
-/// DNS-сервер, которого в собранном `dns.servers` нет. Источники: пресет
-/// ru-direct (`server: @dns_server` эмитится route-аспектом, а сам сервер —
-/// DNS-аспектом; выключенная DNS-галка → тег повисает), юзер-правило §247
-/// (выбранный сервер позже выключили/удалили в DNS Settings), raw-JSON.
-/// Ядро НЕ валидирует это на старте — падает лениво на каждом сматчившемся
-/// соединении: `DNS server not found: <tag>` → fatal per-connection → весь
-/// трафик матча мёртв (route/route.go actionResolve). Наш validator проверяет
-/// только `dns.final` / `route.default_domain_resolver` — эту ссылку не видит.
-///
-/// РЕШЕНИЕ (как §172 с detour): битая ссылка ДЕГРАДИРУЕТ, не убивает трафик.
-/// `server` снимается — резолв уходит в обычный DNS-роутинг (dns.rules /
-/// `route.default_domain_resolver`), правило продолжает работать. Зовётся
-/// ПЕРЕД `validateConfig`.
-///
-/// Возвращает список снятых ссылок (`ruleIndex → отсутствующий-tag`) для
-/// emitWarnings. Пустой = всё чисто.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 List<({int ruleIndex, String target})> healDanglingResolveServers(
     Map<String, dynamic> config) {
   final dns = config['dns'];

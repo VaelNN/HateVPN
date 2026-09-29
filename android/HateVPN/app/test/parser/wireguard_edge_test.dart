@@ -8,19 +8,19 @@ import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/uri_utils.dart';
 import 'parse_link_as.dart';
 
-// SPEC 103 D-023/D-030 — валидные 32-байтные base64-ключи для фикстур (эталон
-// Go wgTestPub, node_parser_wireguard_test.go). normalizeWGKey (wireguard_
-// parser.dart) с этой правки требует РОВНО 32 байта, короткие плейсхолдеры
-// вроде "PK="/"PUB=" больше не парсятся (null-skip, D-023) — фикстуры ниже
-// используют реальные 32-байтные ключи.
+
+
+
+
+
 const _testPub = 'QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVowMTIzNDU=';
-// 32 байта, содержащие сырой '/' в base64-представлении (для §106-теста).
+
 const _testPrivSlash = 'Bw4VHCMqMTg/Rk1UW2JpcHd+hYyTmqGor7a9xMvS2eA=';
 
-/// §106 — WG/AWG edge cases: raw-`/` в ключе + bare IP без CIDR.
+
 void main() {
-  // §480 — разбор ведёт СЕКЦИЯ РЕЕСТРА, наш черновик стал тонким оверлеем:
-  // без загруженного реестра накладывать его не на что и секции нет вовсе.
+
+
   setUpAll(() async {
     await ContractRegistry.I.loadFromDirectory('assets/contract');
     await MapperSections.I
@@ -55,7 +55,7 @@ void main() {
     test('ensureCidr helper', () {
       expect(ensureCidr('172.16.0.2'), '172.16.0.2/32');
       expect(ensureCidr('::1'), '::1/128');
-      expect(ensureCidr('10.0.0.2/32'), '10.0.0.2/32'); // уже CIDR
+      expect(ensureCidr('10.0.0.2/32'), '10.0.0.2/32');
       expect(ensureCidr('fd00::1/64'), 'fd00::1/64');
       expect(ensureCidr(''), '');
     });

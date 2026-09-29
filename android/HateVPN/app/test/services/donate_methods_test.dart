@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/donate_methods.dart';
 
-/// §362 — разбор способов поддержки (`app/assets/donate.json`).
+
 void main() {
   group('DonateMethod.fromJson', () {
     test('crypto: адрес обязателен, note опционален', () {
@@ -30,7 +30,7 @@ void main() {
     });
 
     test('битые записи отбрасываются', () {
-      // crypto без адреса — показывать нечего.
+
       expect(
           DonateMethod.fromJson({
             'id': 'x',
@@ -39,7 +39,7 @@ void main() {
             'url': 'https://x',
           }),
           isNull);
-      // нет обязательных полей.
+
       expect(DonateMethod.fromJson({'id': 'x', 'title': 'X'}), isNull);
       expect(DonateMethod.fromJson({'kind': 'link', 'url': 'https://x'}), isNull);
       expect(DonateMethod.fromJson('garbage'), isNull);

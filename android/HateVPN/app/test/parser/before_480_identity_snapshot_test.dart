@@ -10,31 +10,31 @@ import 'package:lxbox/services/parser/ini_parser.dart';
 import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §480 — снимок «до переезда»: маппер ссылок станет движком от реестра, и
-/// этот тест держит границу, по которой потом отличают «починили» от
-/// «сломали».
-///
-/// Кейсы лежат в тех же файлах `test/fixtures/<схема>/
-/// pipeline_identity_before.json`, что и снимки §472, под ключами с префиксом
-/// `b480:` (у wireguard INI-кейсы — `ini:b480_*`). Разбирать их здесь, а не в
-/// `<схема>_pipeline_invariants_test.dart`, приходится по ОДНОЙ причине:
-/// те тесты гейтятся на вендоренную копию `app/contract/`, которой на CI нет
-/// вовсе (она в `.gitignore`, `tool/sync_contract.sh` её кладёт только
-/// локально) — под тем гейтом снимок молча пропускался бы именно там, где он
-/// нужнее всего. Здесь гейт — ЗЕРКАЛО реестра `assets/contract`: оно лежит в
-/// git, едет в APK, и снимок снят именно с него.
-///
-/// Значения сняты прогоном ТЕКУЩЕГО кода и записаны как есть, включая
-/// заведомо плохие: сырой `+` в query приезжает пробелом, имена параметров в
-/// другом регистре не читаются, часть узлов отбраковывается целиком. Снимок
-/// описывает сегодняшнее поведение, а не желаемое, и «починка» такого кейса
-/// обязана быть отдельным осознанным шагом фичи 480 с правкой этого файла.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const _registryRoot = 'assets/contract';
 
-/// Схема → сколько кейсов `b480:` обязано быть в её файле. Страж от «снимок
-/// тихо похудел»: без него выпавший кейс выглядел бы как зелёный тест.
+
+
 const Map<String, int> _expected = {
-  'trojan': 35, // весь файл; префикса у него нет — он заведён этой же задачей
+  'trojan': 35,
   'shadowsocks': 7,
   'vless': 10,
   'hysteria2': 5,
@@ -46,10 +46,10 @@ const Map<String, int> _expected = {
   'naive': 1,
   'http': 2,
   'masque': 2,
-  'wireguard': 9, // 8 wireguard + 1 awg; INI считается отдельно
+  'wireguard': 9,
 };
 
-/// Сколько INI-кейсов `ini:b480_*` у wireguard.
+
 const int _expectedIni = 5;
 
 Map<String, Map<String, dynamic>> _cases(String scheme) {
@@ -60,9 +60,9 @@ Map<String, Map<String, dynamic>> _cases(String scheme) {
   );
 }
 
-/// Кейсы снимка §480 у схемы. У trojan файл заведён целиком этой задачей, и
-/// префикса на кейсах нет; у остальных снимок дописан в чужой файл и потому
-/// помечен.
+
+
+
 Map<String, Map<String, dynamic>> _before480(String scheme) {
   final all = _cases(scheme);
   if (scheme == 'trojan') return all;
@@ -79,8 +79,8 @@ void main() {
   setUpAll(() async {
     if (!mirrored) return;
     await ContractRegistry.I.loadFromDirectory(_registryRoot);
-    // §480 W1 — схемы, переехавшие на движок, без секций не разбираются
-    // вовсе: запасного рукописного пути у них не осталось.
+
+
     await MapperSections.I
         .loadDrafts(dir: 'assets/contract_draft', files: kDraftFiles);
   });
@@ -101,8 +101,8 @@ void main() {
           final spec = parseUri(uri);
 
           if (want == null) {
-            // Отбраковка — тоже свойство: узел, которого сегодня нет,
-            // появившись, влез бы в подписку новым.
+
+
             expect(e.value['dropped'], isTrue,
                 reason: 'кейс ${e.key}: identity=null обязан нести dropped');
             expect(spec, isNull,
@@ -136,8 +136,8 @@ void main() {
           reason: 'снимок INI изменился в размере');
 
       for (final e in ini.entries) {
-        // Снимок снят с этим же hint: у кейсов нет суффикса `/nohint`,
-        // которым остальные INI-кейсы файла просят разбор без подсказки.
+
+
         final spec = parseWireguardIni(e.value['ini'] as String,
             nameHint: 'file-hint');
         final want = e.value['identity'] as String?;

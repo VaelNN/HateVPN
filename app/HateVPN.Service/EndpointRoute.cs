@@ -5,7 +5,7 @@ using System.Text;
 
 namespace HateVPN.Service;
 
-// Keep the server itself reachable through the physical network when the VPN installs a default route.
+
 internal sealed class EndpointRoute : IDisposable
 {
     private readonly string _address;
@@ -70,7 +70,7 @@ internal sealed class EndpointRoute : IDisposable
                 Remove-NetRoute -DestinationPrefix '{{_address}}/32' -InterfaceIndex {{_interfaceIndex}} -NextHop '{{_gateway}}' -Confirm:$false -ErrorAction SilentlyContinue
                 """, "Не удалось удалить маршрут к VPN-серверу.");
         }
-        catch { /* The route belongs to the active store and is cleared on restart. */ }
+        catch {   }
     }
 
     internal static string Run(string script, string errorMessage)

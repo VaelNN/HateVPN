@@ -1,27 +1,27 @@
 part of '../post_steps.dart';
 
-/// Post-step: §343 — страховка от битого REALITY-блока в собранном конфиге.
-///
-/// ПРОБЛЕМА: ядро декодирует `tls.reality.short_id` как hex в `[8]byte` —
-/// нечётная длина / non-hex / >16 символов = fatal ВСЕГО конфига на старте
-/// (`initialize outbound[N]: decode short_id: ...`). Аналогично
-/// `public_key`, не декодирующийся в 32 байта X25519 = `invalid public_key`.
-/// Парсер уже гейтит оба (§169 pbk, §343 normalizeRealityShortId), этот шаг
-/// — страховка для путей мимо парсера: raw sing-box JSON узлы, §302 import
-/// rules (Replace патчит emit-JSON), vars-подстановки, Debug API.
-///
-/// РЕШЕНИЕ (принцип §169: битое значение отбрасывается, не подгоняется):
-/// - невалидный `short_id` → `''` (пустой sid легален: клиент шлёт нулевой
-///   `[8]byte`, сервер без shortIds принимает) + запись для emitWarnings;
-/// - невалидный `public_key` → снимаем весь `reality`-блок, нода
-///   деградирует до plain TLS (зеркало §169 на последнем рубеже) + запись.
-///
-/// Возвращает список исправлений (`owner → field → исходное значение`).
-/// Пустой = всё чисто.
-///
-/// §577 — правка идёт через точку правки ([editBodyPath]) с кодом реестра
-/// (`reality_pbk_invalid`, `reality_short_id_invalid`): у авторского тела
-/// ([authored]) применяется только правило с `core_rejects`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 List<({String owner, String field, String original})> healInvalidReality(
   Map<String, dynamic> config, {
   Set<Map<String, dynamic>> authored = const {},
@@ -34,7 +34,7 @@ List<({String owner, String field, String original})> healInvalidReality(
     if (tls is! Map<String, dynamic>) continue;
     final reality = tls['reality'];
     if (reality is! Map<String, dynamic>) continue;
-    // Выключенный блок ядро не декодирует — не fatal, не трогаем (как §281).
+
     if (reality['enabled'] != true) continue;
     final tag = o['tag'] as String? ?? '';
     final own = authored.contains(o);
@@ -53,8 +53,8 @@ List<({String owner, String field, String original})> healInvalidReality(
 
     final sid = reality['short_id'];
     if (sid != null && sid is! String) {
-      // Не-строковый short_id (число из raw-JSON узла / §302-патча) ядро
-      // тоже не декодирует — тот же fatal. Отброс, не подгон (§169).
+
+
       if (_clearShortId(o, own)) {
         healed.add((owner: tag, field: 'short_id', original: '$sid'));
       }
@@ -73,8 +73,8 @@ bool _clearShortId(Map<String, dynamic> o, bool authored) => editBodyPath(o,
     path: 'tls.reality.short_id',
     value: '');
 
-/// Строгая проверка формы short_id (без нормализации — на этом рубеже
-/// значение обязано быть уже каноничным): hex 0-9a-fA-F, чётная длина, ≤16.
+
+
 bool _isValidRealityShortId(String s) {
   if (s.length > 16 || s.length.isOdd) return false;
   for (final r in s.runes) {

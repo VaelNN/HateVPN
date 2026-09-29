@@ -14,17 +14,17 @@ import 'package:lxbox/services/node_hash.dart';
 import 'package:lxbox/services/parser/singbox_config.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §472 шаг 5, раздел 3 спеки — инварианты переезда hysteria2 на конвейер.
-///
-/// Инварианты 1 и 2 (корпус и golden) держат свои тесты: корпус URI —
-/// `test/contract/`, эталоны конфигов — `test/builder/` и
-/// `test/storage_migration/`. Здесь то, что специфично для переезда
-/// протокола: identity, round-trip, цена и коды из реестра.
-/// §480 W4 — РЕЕСТР из ЗЕРКАЛА (`assets/contract`): вендоренной копии на CI
-/// нет вовсе, и под её гейтом файл молча пропускался бы целиком. КОРПУС
-/// остаётся за копией — в зеркале его нет.
 
-/// Снимок identity, снятый СТАРЫМ путём ДО правки (18.09.2026).
+
+
+
+
+
+
+
+
+
+
 const _identityFixture = 'test/fixtures/hysteria2/pipeline_identity_before.json';
 
 Map<String, Map<String, dynamic>> _identityBefore() {
@@ -34,7 +34,7 @@ Map<String, Map<String, dynamic>> _identityBefore() {
   );
 }
 
-/// Все hysteria2-ссылки корпуса, в порядке файлов.
+
 List<String> _corpusUris() {
   final out = <String>[];
   final files = Directory('$kVendorRoot/corpus/uri/hysteria2')
@@ -56,9 +56,9 @@ List<String> _corpusUris() {
 List<RegistryWarning> _registry(NodeSpec n) =>
     n.warnings.whereType<RegistryWarning>().toList();
 
-/// Узел, пришедший sing-box JSON полным путём входа: `parseSingboxConfigs`
-/// строит модель по карте санитайзера реестра (§545). Блоки utls/reality на
-/// QUIC снимает он, а не эмиттер (§546).
+
+
+
 NodeSpec _viaSingboxJson(Map<String, dynamic> entry) => parseSingboxConfigs([
       {
         'outbounds': [entry],
@@ -98,10 +98,10 @@ void main() {
     });
 
     test('узел без пароля обфускации ЖИВЁТ — снят только блок obfs', () {
-      // Граница вложенного `required` (§472 шаг 5). Реестр пишет её прямо у
-      // `obfs.password`: «отсутствие пароля снимает блок obfs целиком (узел
-      // живёт без обфускации)». До этого шага правило читалось корневым, и
-      // такой узел исчезал бы целиком — с ним и живой сервер.
+
+
+
+
       final spec = parseUri(
           'hysteria2://pass123@example-2.com:443?obfs=gecko&sni=example-2.com'
           '#hy2-nopass');
@@ -116,18 +116,18 @@ void main() {
   });
 
   group('§472 инвариант 3 — parseUri(toUri()) ≈ spec', () {
-    // §480 W7 — ИСКЛЮЧЕНИЙ БОЛЬШЕ НЕТ.
-    //
-    // Их было два, и оба были свойством РУКОПИСНОГО эмита: `toUriHysteria2`
-    // не писал обратно `server_ports` (ключа `mport=` в нём не было вовсе, и
-    // ссылка собиралась на одном порту) и не писал `pinSHA256=`, хотя на
-    // входе читал его. Тело оба значения несло — терялись они именно на
-    // обратной записи ссылки.
-    //
-    // Собирает ссылку теперь ДВИЖОК по той же таблице, что её читает, и
-    // записи `mport`/`pinSHA256` в таблице объявлены — значит обратный ход у
-    // них есть по построению. Корпус проходит круг ЦЕЛИКОМ, отбор по
-    // свойству тела снят.
+
+
+
+
+
+
+
+
+
+
+
+
     test('весь корпус hysteria2 переживает круг', () {
       var checked = 0;
       for (final u in _corpusUris()) {
@@ -144,8 +144,8 @@ void main() {
             reason: 'круг изменил identity: $u');
         checked++;
       }
-      // Прежде из 23 кейсов круг проходили 16, семь исключались по свойству
-      // тела. Теперь проходят все.
+
+
       expect(checked, greaterThan(20));
     }, skip: corpusSkip);
 
@@ -183,7 +183,7 @@ void main() {
               '&alpn=h3&insecure=1#node$i',
       ];
 
-      // Прогрев кэша схем и JIT.
+
       for (var i = 0; i < 200; i++) {
         parseUri(uris[i]);
       }
@@ -213,11 +213,11 @@ void main() {
   group('§472 — коды hysteria2 приходят из реестра, с путём и значением', () {
     test('запрещённые на QUIC блоки судит САНИТАЙЗЕР, по одному коду на блок',
         () {
-      // Главное отличие шага 5. Прежде блоки срезал ЭМИТТЕР
-      // (`toSingboxForQuic`, снят §546), то есть раньше судьи, и код ставил рукописный
-      // проход `forbiddenTlsBlockWarnings` (§469). На конвейере блоки
-      // доезжают до санитайзера в сырой карте, и правило
-      // `forbidden_for`/`forbidden_codes` реестра снимает их само.
+
+
+
+
+
       final spec = parseUri(
           'hysteria2://pass123@example-1.com:443?sni=x.example.com&fp=chrome'
           '&pbk=AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw&sid=ab'
@@ -234,7 +234,7 @@ void main() {
         ],
         reason: 'по одному коду на блок, значение по PARSING_PRINCIPLES §6',
       );
-      // Тело от переезда не изменилось: блоков в нём не было и раньше.
+
       final tls = spec.emit(TemplateVars.empty).map['tls'] as Map;
       expect(tls.containsKey('utls'), isFalse);
       expect(tls.containsKey('reality'), isFalse);
@@ -242,9 +242,9 @@ void main() {
     });
 
     test('ссылка и тело дают РАВНЫЕ коды (парный кейс корпуса)', () {
-      // §469 требовал равенства пары uri↔body, и раньше его держали ДВА
-      // рукописных производителя (в URI-парсере и в ветке json_parsers).
-      // Теперь код у обоих входов один и тот же — санитайзер по сырой карте.
+
+
+
       final fromUri = parseUri(
           'hysteria2://pass123@example-1.com:443?sni=x.example.com&fp=chrome'
           '#n')!;
@@ -277,7 +277,7 @@ void main() {
       expect(w.path, 'obfs.type');
       expect(w.value, 'xyz', reason: 'значение как написал автор');
 
-      // `requires` с `equals: gecko` — размеры осмыслены только у gecko.
+
       final salamander = parseUri(
           'hysteria2://p@h:443?obfs=salamander&obfs-password=op'
           '&obfs-min-packet-size=100&sni=h#H')!;
@@ -291,11 +291,11 @@ void main() {
     });
 
     test('§453 dial-полей у QUIC-схемы нет — и это не потеря', () {
-      // У trojan/vless/ss маппер отдаёт keep-alive в тело (`extensionFields`),
-      // здесь — нет. TCP keep-alive поверх QUIC смысла не имеет: транспорт
-      // UDP, `Hysteria2Spec` такого поля не знает, и прежний парсер его не
-      // читал. Проверяем, что мы не завели его молча: параметр остаётся
-      // параметром ссылки и в тело не течёт.
+
+
+
+
+
       final spec = parseUri('hysteria2://p@h:443?sni=h&tcp_keep_alive=30s#H')!;
       expect(spec.tcpKeepAlive, isNull);
       final body = spec.emit(TemplateVars.empty).map;
@@ -311,8 +311,8 @@ void main() {
     });
 
     test('эвристика SNI сохранена байт в байт', () {
-      // `sni_heuristic_falls_back_to_server` — у hysteria2 она ЕСТЬ на обоих
-      // проектах, в отличие от trojan и vless.
+
+
       for (final bad in ['localhost', '🔒', '']) {
         final q = bad.isEmpty ? '' : '&sni=${Uri.encodeComponent(bad)}';
         final spec = parseUri('hysteria2://p@h.example:443?alpn=h3$q#H')!;
@@ -320,7 +320,7 @@ void main() {
         expect(tls['server_name'], 'h.example',
             reason: 'sni=$bad должен уступать адресу сервера');
       }
-      // Имя с точкой эвристику переживает.
+
       final ok = parseUri('hysteria2://p@h.example:443?sni=a.b#H')!;
       expect((ok.emit(TemplateVars.empty).map['tls'] as Map)['server_name'],
           'a.b');

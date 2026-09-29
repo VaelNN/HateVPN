@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 @Timeout(Duration(seconds: 60))
 library;
 
@@ -22,14 +22,14 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §504 — подсветка и прокрутка к новой записи на экране Servers.
-//
-// Весь путь тапа по «+» идёт на фейковых часах `testWidgets`: настоящий
-// файловый I/O в fake-async зоне не завершается никогда, поэтому состав
-// записей подменяется в памяти, а `generateConfig` отдаёт готовый JSON.
-// Хранилище прогревается в `setUp` (зона там настоящая), `saveConfig`
-// закрыт моком канала. `pumpAndSettle` не нужен: таймеры 7 с и 400 мс
-// прокручиваются `pump(Duration)`.
+
+
+
+
+
+
+
+
 
 class _FakePathProvider extends PathProviderPlatform
     with MockPlatformInterfaceMixin {
@@ -41,7 +41,7 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// Контроллер без хранения и сборки: добавление — запись в памяти.
+
 class _FakeSubController extends SubscriptionController {
   var _seq = 0;
 
@@ -55,7 +55,7 @@ class _FakeSubController extends SubscriptionController {
     notifyListeners();
   }
 
-  /// Удаление записи в памяти — как `removeAt`, без `_persist`.
+
   void dropEntry(String id) {
     debugSetEntries([
       for (final e in entries)
@@ -107,12 +107,12 @@ Future<void> _pumpServersScreen(
   await tester.pump(const Duration(milliseconds: 200));
 }
 
-/// Ввод + «+»: add → пересборка → прокрутка (~320 мс) → SnackBar.
+
 Future<void> _submitNewEntry(WidgetTester tester) async {
   await tester.enterText(find.byType(TextField), _newUri);
   await tester.tap(find.byType(AddIconButton));
-  // Кадры для jumpTo/endOfFrame и ensureVisible; SnackBar выходит после
-  // прокрутки. Шаги фиксированные — таймеры фейковые.
+
+
   for (var i = 0; i < 20 && find.byType(SnackBar).evaluate().isEmpty; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
@@ -156,8 +156,8 @@ void main() {
       });
     }
     controller = _FakeSubController();
-    // Настоящая зона: хранилище загружается в кэш, дальше экран читает его
-    // без диска.
+
+
     await controller.init();
     await SettingsStorage.getSourceKeys();
     await SettingsStorage.getChains();
@@ -172,7 +172,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -188,8 +188,8 @@ void main() {
       controller.debugSetEntries(seed);
       home = HomeController();
       addTearDown(home.dispose);
-      // Экран закрывается до конца теста: dispose снимает таймеры 7 с и
-      // 400 мс, иначе «A Timer is still pending».
+
+
       addTearDown(() async {
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpWidget(const SizedBox());
@@ -248,8 +248,8 @@ void main() {
       expect(find.text('New', skipOffstage: false), findsNothing);
     });
 
-    // §511 m1 — подсвеченная запись ушла: подсветка снимается сразу, ключ
-    // строки не копится до закрытия экрана.
+
+
     testWidgets('удаление подсвеченной записи снимает подсветку и её ключ',
         (tester) async {
       await openScreen(tester, [_entry('seed', _seedUri)]);

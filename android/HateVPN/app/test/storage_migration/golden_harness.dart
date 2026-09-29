@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -18,59 +18,59 @@ import 'package:lxbox/services/warp/warp_backup.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-// §439 волна 0 — общая обвязка golden-тестов хранения.
-//
-// Фикстура `test/fixtures/storage/<name>.json` — `lxbox_settings.json` формы
-// 2.23.2. Рядом:
-//   • `sub_cache/<name>/sub_<N>.txt` — тело подписки с URL
-//     `https://example.com/sub/<N>` (узлы подписок в хранении не живут, их
-//     поднимает регидрация из кэша тел, как на старте приложения);
-//   • `rule_sets/<name>/<id>.srs` — «скачанные» наборы правил: сборка
-//     эмитит `rule_set` только для набора с файлом в кэше.
-//
-// Фикстуры:
-//   • `rich_v0` — синтетика: все виды источников, цепочек, правил, DNS-записей
-//     и Направлений, поля L из §1.2 спеки 439, мёртвые ключи. После сборки
-//     хранение не меняется, кроме намеренной сироты — DNS-правила
-//     `kind: template` с именем, которого нет в шаблоне (резолвер её снимает);
-//   • `avd_v0` — снимок AVD `LxBox_test` на 2.23.2 (`GET
-//     /backup/export?include=storage`, 14.09.2026). Секреты заменены
-//     синтетикой той же формы: ключи WG/AWG/Amnezia и MASQUE, UUID узлов,
-//     пароли, идентификаторы и токены WARP, IPv6 WARP, домашние IP,
-//     `debug_token`, пароль прокси, Wi-Fi; URL подписок —
-//     `https://example.com/sub/<N>`. Разбор узлов до и после замены сверен:
-//     те же узлы, теги, типы и набор полей эмиссии.
-//
-// Эталоны — `test/fixtures/storage/golden/`. `UPDATE_GOLDEN=1` пишет их
-// вместо сверки.
-//
-// Сборка и бэкап повторяют боевой путь без виджетов: состав `BuildSettings`
-// — `SubscriptionController._generate`, экспорт LX Backup —
-// `BackupScreen._onLxExport`, импорт — сервис `LxBackupImportService` (его же
-// зовёт экран). Правка экспорта в `lib/` обязана отразиться здесь.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const kStorageFixturesDir = 'test/fixtures/storage';
 const kStorageGoldenDir = 'test/fixtures/storage/golden';
 
-/// Фикстуры волны 0.
+
 const kStorageFixtures = ['rich_v0', 'avd_v0'];
 
-/// Версия ядра в сборке: фиксирована, чтобы бамп пина не переписывал
-/// эталоны. lx.39 знает и цепочки, и Tailscale.
+
+
 const kGoldenCoreVersion = '1.14.0-lx.39';
 
-/// Корень `state_directory` узлов Tailscale (native `filesDir` на устройстве).
+
 const kGoldenTailscaleStateRoot = '/data/user/0/com.leadaxe.lxbox/files';
 
-/// Подстановка вместо временного каталога песочницы (пути кэша `.srs`).
+
 const kSandboxPlaceholder = '<sandbox>';
 
-/// Нормализованные поля конверта LX Backup.
+
 const kGoldenExportedAt = '2026-01-01T00:00:00.000Z';
 const kGoldenExportedVersion = '0.0.0+0';
 
-/// Сборка и импорт на богатой фикстуре идут секунды; под нагрузкой CI —
-/// дольше дефолтных 30 с.
+
+
 const kGoldenTimeout = Timeout(Duration(minutes: 5));
 
 bool get updateGolden => Platform.environment['UPDATE_GOLDEN'] == '1';
@@ -83,7 +83,7 @@ File fixtureFile(String name) => File('$kStorageFixturesDir/$name.json');
 
 File goldenFile(String fileName) => File('$kStorageGoldenDir/$fileName');
 
-/// Сверка с эталоном или его запись при `UPDATE_GOLDEN=1`.
+
 void expectGolden(String fileName, String actual) {
   final f = goldenFile(fileName);
   if (updateGolden) {
@@ -109,7 +109,7 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getTemporaryPath() async => '$root/tmp';
 }
 
-/// Изолированный каталог приложения: пустое хранение, свои кэши.
+
 class StorageSandbox {
   StorageSandbox._(this.root);
 
@@ -126,7 +126,7 @@ class StorageSandbox {
       await Directory('${dir.path}/$sub').create();
     }
     PathProviderPlatform.instance = _FakePathProvider(dir.path);
-    // Метки пресетов и Направлений берутся из шаблона под активной локалью.
+
     LocaleController.I.setting = 'en';
     resetStorageCaches();
     return StorageSandbox._(dir);
@@ -137,13 +137,13 @@ class StorageSandbox {
     try {
       if (root.existsSync()) await root.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   }
 
-  /// Кладёт хранение фикстуры (если [storage]), тела подписок и наборы
-  /// правил. Без [storage] — пустое хранение с теми же кэшами: так выглядит
-  /// новая установка, которой бэкап приносит источники, а сеть — их тела.
+
+
+
   Future<void> seed(String name, {bool storage = true}) async {
     if (storage) {
       await settingsFile.writeAsBytes(await fixtureFile(name).readAsBytes());
@@ -172,7 +172,7 @@ class StorageSandbox {
     resetStorageCaches();
   }
 
-  /// Временный каталог в тексте → [kSandboxPlaceholder].
+
   String normalize(String text) =>
       text.replaceAll(root.path, kSandboxPlaceholder);
 }
@@ -182,26 +182,26 @@ void resetStorageCaches() {
   RuleSetDownloader.resetCacheForTesting();
 }
 
-/// Итог сборки для эталонов.
+
 class GoldenBuild {
   GoldenBuild(this.configJson, this.warnings);
 
-  /// `config.json` с отступами, пути песочницы нормализованы.
+
   final String configJson;
 
-  /// `emitWarnings` сборки, в порядке появления.
+
   final List<String> warnings;
 
   Map<String, dynamic> get config =>
       jsonDecode(configJson) as Map<String, dynamic>;
 }
 
-/// Сборка конфига из текущего хранения песочницы тем же составом, что
-/// `SubscriptionController._generate`: источники из хранения + регидрация
-/// подписок из кэша тел, настройки из `SettingsStorage`, фиксированные
-/// [kGoldenCoreVersion] и [kGoldenTailscaleStateRoot]. Сгенерированные сборкой
-/// vars пишутся обратно, как у контроллера. Кэш хранения сбрасывается до
-/// чтения — сборка видит диск, как после перезапуска.
+
+
+
+
+
+
 Future<GoldenBuild> buildGoldenConfig(StorageSandbox box) async {
   resetStorageCaches();
   final controller = SubscriptionController();
@@ -240,8 +240,8 @@ Future<GoldenBuild> buildGoldenConfig(StorageSandbox box) async {
   );
 }
 
-/// Экспорт LX Backup из хранения песочницы — `BackupScreen._onLxExport`.
-/// `exported_at` и `exported_by.version` нормализованы.
+
+
 Future<({String json, List<LxBackupWarning> warnings})> exportGoldenLxBackup()
     async {
   final lists = await SettingsStorage.getServerLists();
@@ -293,16 +293,16 @@ Future<({String json, List<LxBackupWarning> warnings})> exportGoldenLxBackup()
   return (json: prettyJson(doc), warnings: exportWarnings);
 }
 
-/// Импорт LX Backup в хранение песочницы — тот же сервис, что у экрана
-/// (`LxBackupImportService`: план превью, затем запись после подтверждения).
-/// Возвращает разобранный файл (его `warnings` — то, что не применилось).
+
+
+
 Future<LxBackupFile> importGoldenLxBackup(String raw) async {
   const importer = LxBackupImportService();
   final applied = await importer.apply(await importer.prepare(raw));
   return applied.file;
 }
 
-/// Warning бэкапа строкой для эталона.
+
 String warningLine(LxBackupWarning w) => [
       w.code,
       if (w.kind.isNotEmpty) 'kind=${w.kind}',
@@ -310,12 +310,12 @@ String warningLine(LxBackupWarning w) => [
       w.detail,
     ].join(' | ');
 
-/// Разница двух JSON-деревьев строками `путь: было → стало`.
-///
-/// Списки объектов с уникальным строковым `tag` сопоставляются по тегу;
-/// прочие списки — по наибольшей общей подпоследовательности: вставка или
-/// удаление элемента не сдвигает весь хвост. Удаление, за которым сразу идёт
-/// вставка, считается правкой элемента `[было→стало]` и раскрывается дальше.
+
+
+
+
+
+
 List<String> jsonDiff(Object? a, Object? b, [String path = r'$']) {
   final out = <String>[];
   if (a is Map && b is Map) {
@@ -428,7 +428,7 @@ Map<String, Object?>? _tagIndex(List<Object?> list) {
   return out;
 }
 
-/// Для сверки порядка ключей: JSON с отсортированными ключами.
+
 Object? sortedKeys(Object? v) {
   if (v is Map) {
     final keys = v.keys.map((k) => '$k').toList()..sort();

@@ -62,7 +62,7 @@ void main() {
     });
 
     test('неудачная последняя попытка не мешает: решает возраст успеха', () {
-      // lastError стоит, но lastUpdated свежий — старый файл ещё актуален.
+
       final meta = RuleSetMeta(
         lastUpdated: now.subtract(const Duration(hours: 2)),
         lastAttempt: now,
@@ -90,7 +90,7 @@ void main() {
     });
 
     test('единицы меньше часа округляются вверх, а не в 0', () {
-      // Иначе "30m" молча означало бы «никогда».
+
       expect(parseUpdateIntervalHours('30m'), 1);
       expect(parseUpdateIntervalHours('90m'), 2);
       expect(parseUpdateIntervalHours('10s'), 1);

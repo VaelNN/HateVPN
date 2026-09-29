@@ -16,7 +16,6 @@
     "local-lan-domains": {"in": "desktop", "label": "Local/LAN domains", "note": ".local/.lan → direct"},
     "ru-blocked": {"in": "desktop", "label": "Russian blocked resources", "note": "geoip-ru-blocked + community → proxy; несёт outbounds add/update (!RU-фильтры)"},
     "israel-sites": {"in": "desktop", "label": "Israel-specific sites", "note": "geoip-il → proxy"},
-    "ai-services": {"in": "desktop", "label": "AI services (Claude, ChatGPT, Perplexity, Gemini)", "note": "domain_suffix-список AI-сервисов → выбранный outbound"},
     "messengers": {"in": "desktop", "label": "Messengers", "note": "домены+process_name мессенджеров; per-platform ветки через @runtime.platform (desktop-расширение); platforms-фильтр windows/darwin/linux"},
     "games": {"in": "desktop", "label": "Games", "note": "geosite-category-games → direct"},
     "gaming-ports": {"in": "desktop", "label": "Gaming ports", "note": "игровые порты + Steam-диапазон → direct"},

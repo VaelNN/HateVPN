@@ -4,11 +4,11 @@ import 'package:lxbox/models/dns_ref.dart';
 import 'package:lxbox/screens/dns_server_edit/edit_controller.dart';
 import 'package:lxbox/services/dns/tailscale_endpoint_options.dart';
 
-/// §435 — `DnsServerEditController` в режиме `tailscale` (спека §9.4,
-/// NODE_SECTIONS.md §6): тело `{type: tailscale, endpoint, accept_default_
-/// resolvers?}` без `server`/`detour`; переходы udp↔tailscale↔group чистят
-/// чужие поля; JSON-вкладка отражается в геттерах формы.
-/// Тело inline-сервера снимка контроллера (модель, не форма хранения).
+
+
+
+
+
 Map<String, dynamic> bodyOf(DnsServerEditController c) =>
     (c.snapshot() as DnsServerInline).body;
 
@@ -47,7 +47,7 @@ void main() {
     expect(c.portCtrl.text, '');
     expect(c.tailscaleEndpoint, '');
     expect(c.acceptDefaultResolvers, isFalse);
-    // JSON-вкладка синхронизирована.
+
     expect(c.bodyCtrl.text, contains('"type": "tailscale"'));
     expect(c.bodyCtrl.text, isNot(contains('detour')));
     c.dispose();
@@ -69,7 +69,7 @@ void main() {
     });
     expect(c.bodyCtrl.text, contains('"accept_default_resolvers": true'));
 
-    // false → ключ уходит (дефолт ядра), пустой endpoint → ключ уходит.
+
     c.setAcceptDefaultResolvers(false);
     c.setTailscaleEndpoint('  ');
     expect(bodyOf(c), {'type': 'tailscale'});
@@ -122,7 +122,7 @@ void main() {
     expect(c.tailscaleEndpoint, 'P off-ts');
     expect(c.acceptDefaultResolvers, isTrue);
     expect(c.tagCtrl.text, 'ts_dns');
-    // Транспортные контроллеры пусты — форма tailscale их не показывает.
+
     expect(c.addressCtrl.text, '');
     expect(bodyOf(c), {
       'type': 'tailscale',
@@ -148,7 +148,7 @@ void main() {
     expect(c.tailscaleEndpoint, 'home-ts');
     expect(c.isDirty(), isFalse);
     expect(c.tailscaleEndpoints.single.tag, 'home-ts');
-    // Смена endpoint — dirty; snapshot без server/detour.
+
     c.setTailscaleEndpoint('other-ts');
     expect(c.isDirty(), isTrue);
     final body = bodyOf(c);
@@ -158,8 +158,8 @@ void main() {
   });
 
   test('в режиме tailscale detour отсутствует (пикер формой не рисуется)', () {
-    // Контракт формы: пикер detour у tailscale скрыт (params_tab); вход в
-    // режим снял `detour` из body, геттер отдаёт дефолт direct-out.
+
+
     final c = makeUdp();
     c.setServerMode('tailscale');
     c.setTailscaleEndpoint('home-ts');

@@ -3,13 +3,13 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/home_state.dart';
 
-/// §070 + §071 + §125 — sort options + manual mode + pin-by-type.
-/// Covers: pin direct/auto toggles (по ТИПУ из конфига — §125, не по тегу),
-/// manual order application, new nodes to end, cycle exit-from-manual semantics.
+
+
+
 void main() {
-  // §125 — пин direct/auto определяется по outbound-type из конфига. Хелпер
-  // строит configRaw, где перечисленные теги получают заданный type (прочие —
-  // дефолтный 'vless', т.е. обычные прокси-ноды).
+
+
+
   String cfg(List<String> tags, {Map<String, String> types = const {}}) {
     return jsonEncode({
       'outbounds': [
@@ -18,11 +18,11 @@ void main() {
     });
   }
 
-  // §322 — auto-теги НАПРАВЛЕНИЙ: только им положен пин в верхнюю секцию
-  // (у узла автовыбора подписки/папки тип тоже urltest, но он обычная нода).
+
+
   const chAuto = {'✨auto', 'vpn-1-auto', 'vpn-2-auto'};
 
-  // Часто используемая раскладка: direct-out=direct, *-auto=urltest.
+
   String cfgDA(List<String> tags) => cfg(tags, types: {
         'direct-out': 'direct',
         '✨auto': 'urltest',
@@ -71,18 +71,18 @@ void main() {
         sortMode: NodeSortMode.latencyAsc,
         pinDirect: false,
       );
-      // direct-out с delay=10 — самый быстрый, но не pinned.
+
       expect(s.sortedNodes, ['direct-out', 'y', 'x']);
     });
 
     test('§125 — auto-двойник vpn-1-auto пинится по типу urltest', () {
-      // Имя НЕ '✨auto', но type==urltest → должен попасть в pinned (вверх).
+
       final s = HomeState(
         directionAutoTags: chAuto,
         configRaw: cfgDA(['z', 'vpn-1-auto', 'a']),
         nodes: ['z', 'vpn-1-auto', 'a'],
         sortMode: NodeSortMode.nameAsc,
-        // pinAuto = true default
+
       );
       expect(s.sortedNodes.first, 'vpn-1-auto');
     });
@@ -95,7 +95,7 @@ void main() {
         sortMode: NodeSortMode.nameAsc,
         pinAuto: false,
       );
-      // 'a' < 'vpn-1-auto' < 'z' lowercase → auto НЕ первый (pinAuto OFF).
+
       expect(s.sortedNodes, ['a', 'vpn-1-auto', 'z']);
       expect(s.sortedNodes.first, isNot('vpn-1-auto'));
     });
@@ -107,7 +107,7 @@ void main() {
         nodes: ['x', 'direct-out', 'y', 'vpn-1-auto'],
         sortMode: NodeSortMode.defaultOrder,
       );
-      // direct первым, затем urltest-двойник, x/y в pristine config order.
+
       expect(s.sortedNodes, ['direct-out', 'vpn-1-auto', 'x', 'y']);
     });
 
@@ -130,7 +130,7 @@ void main() {
         nodes: ['x', 'vpn-2-auto', 'direct-out', 'vpn-1-auto', 'y'],
         sortMode: NodeSortMode.defaultOrder,
       );
-      // direct сверху, затем оба urltest в config-порядке, потом x/y.
+
       expect(s.sortedNodes,
           ['direct-out', 'vpn-2-auto', 'vpn-1-auto', 'x', 'y']);
     });
@@ -143,13 +143,13 @@ void main() {
         configRaw: cfgDA(['x', 'direct-out', 'y', 'vpn-1-auto', 'z']),
         nodes: ['x', 'direct-out', 'y', 'vpn-1-auto', 'z'],
         delayByDirection: const {
-          'ch': {'x': 10, 'y': 20, 'z': 30} // z самый медленный
+          'ch': {'x': 10, 'y': 20, 'z': 30}
         },
         selectedGroup: 'ch',
         activeInGroup: 'z',
         sortMode: NodeSortMode.latencyAsc,
       );
-      // direct → auto → активная (z), затем rest по latency (x<y).
+
       expect(s.sortedNodes, ['direct-out', 'vpn-1-auto', 'z', 'x', 'y']);
     });
 
@@ -158,10 +158,10 @@ void main() {
         directionAutoTags: chAuto,
         configRaw: cfgDA(['a', 'direct-out', 'b', 'z']),
         nodes: ['a', 'direct-out', 'b', 'z'],
-        activeInGroup: 'z', // лексикографически последняя
+        activeInGroup: 'z',
         sortMode: NodeSortMode.nameAsc,
       );
-      // direct → активная(z) → rest по имени (a, b).
+
       expect(s.sortedNodes, ['direct-out', 'z', 'a', 'b']);
     });
 
@@ -173,7 +173,7 @@ void main() {
         activeInGroup: 'y',
         sortMode: NodeSortMode.defaultOrder,
       );
-      expect(s.sortedNodes, ['y', 'x', 'z']); // y вверх, x/z pristine
+      expect(s.sortedNodes, ['y', 'x', 'z']);
     });
 
     test('активная нода = direct/auto → НЕ дублируется', () {
@@ -181,10 +181,10 @@ void main() {
         directionAutoTags: chAuto,
         configRaw: cfgDA(['x', 'direct-out', 'vpn-1-auto']),
         nodes: ['x', 'direct-out', 'vpn-1-auto'],
-        activeInGroup: 'vpn-1-auto', // уже в pinned (urltest)
+        activeInGroup: 'vpn-1-auto',
         sortMode: NodeSortMode.latencyAsc,
       );
-      // vpn-1-auto не должен повториться.
+
       expect(s.sortedNodes, ['direct-out', 'vpn-1-auto', 'x']);
       expect(s.sortedNodes.where((n) => n == 'vpn-1-auto').length, 1);
     });
@@ -209,7 +209,7 @@ void main() {
         activeInGroup: 'x',
         sortMode: NodeSortMode.latencyAsc,
       );
-      expect(s.pinnedNodeCount, 3); // direct + auto + x
+      expect(s.pinnedNodeCount, 3);
       expect(s.sortedNodes.take(3), ['direct-out', 'vpn-1-auto', 'x']);
     });
 
@@ -218,7 +218,7 @@ void main() {
         directionAutoTags: chAuto,
         configRaw: cfgDA(['x', 'y']),
         nodes: ['x', 'y'],
-        activeInGroup: 'ghost', // нет в nodes
+        activeInGroup: 'ghost',
         sortMode: NodeSortMode.nameAsc,
       );
       expect(s.sortedNodes, ['x', 'y']);
@@ -234,7 +234,7 @@ void main() {
         nodes: ['x', 'direct-out', 'block', 'vpn-1-auto', 'y'],
         sortMode: NodeSortMode.defaultOrder,
       );
-      // direct → urltest → block → rest (pristine x/y).
+
       expect(s.sortedNodes, ['direct-out', 'vpn-1-auto', 'block', 'x', 'y']);
     });
 
@@ -245,7 +245,7 @@ void main() {
         nodes: ['z', 'block', 'a'],
         sortMode: NodeSortMode.nameAsc,
       );
-      // block сверху, rest по имени (a, z).
+
       expect(s.sortedNodes, ['block', 'a', 'z']);
     });
   });
@@ -292,7 +292,7 @@ void main() {
         sortMode: NodeSortMode.manual,
         manualOrder: const [],
       );
-      // нет direct/urltest → no pinned.
+
       expect(s.sortedNodes, ['a', 'b', 'c']);
     });
 

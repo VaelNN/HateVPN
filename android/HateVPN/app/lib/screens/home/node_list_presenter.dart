@@ -13,10 +13,10 @@ import 'node_filter.dart';
 import 'node_filter_view_model.dart';
 import 'source_lookup.dart';
 
-/// Короткий label протокола для строки ноды. TLS опускаем — у большинства
-/// протоколов (VLESS/Trojan/Hy2/TUIC) он дефолт, метить каждую — шум.
+
+
 String protoLabel(String type) => type == GroupGenus.manual
-    // §565 — группа ручного рода (selector). l10n-exempt, как 'Auto' ниже.
+
     ? 'Manual'
     : switch (type) {
       'vless' => 'VLESS',
@@ -26,49 +26,49 @@ String protoLabel(String type) => type == GroupGenus.manual
       'hysteria2' => 'Hy2',
       'tuic' => 'TUIC',
       'wireguard' => 'WG',
-      'masque' => 'MASQUE', // §130 — WARP-транспорт
-      'anytls' => 'AnyTLS', // §269
+      'masque' => 'MASQUE',
+      'anytls' => 'AnyTLS',
       'ssh' => 'SSH',
       'socks' => 'SOCKS',
       'http' => 'HTTP',
-      'tailscale' => 'Tailscale', // §435 — l10n-exempt: protocol name
-      // §359 — узел автовыбора подписки (§322) как протокол в чипах фильтра.
-      // l10n-exempt: протокольный термин, латиница во всех локалях (как VLESS/Hy2).
+      'tailscale' => 'Tailscale',
+
+
       'urltest' => 'Auto',
       _ => type.toUpperCase(),
     };
 
-/// §359 — метка режима автовыбора для transport-чипа фильтра.
-/// l10n-exempt: протокольные термины, латиница во всех локалях.
+
+
 String autoModeLabel(String mode) => switch (mode) {
       'least_test' => 'Fastest',
       'round_robin' => 'Pool',
       _ => mode,
     };
 
-/// §322 — метка узла автовыбора для подзаголовка (перед «→ выбранный»).
-///
-/// У группы своего протокола нет — её члены разнородны, а протокол ВЫБРАННОГО
-/// узла меняется под пользователем при каждом переключении. Вместо него —
-/// режим и состав:
-///
-/// - `🎯 [3]` — least_test: выбирает одного быстрейшего из 3;
-/// - `🔀 [15/7]` — round_robin: всего 15 узлов, в работе пул из 7.
-///
-/// `null` — не urltest-группа либо outbound не найден.
-/// §322 — значки живого пула: `🇩🇪, 🇳🇱[2], 🇫🇮` из имён его членов.
-///
-/// [badge] — regexp пользователя (дефолт `kDefaultPoolBadge` = первый
-/// флаг-эмодзи). Ничего не нашлось — узел просто не даёт значка; совсем
-/// пустой результат = пустая строка (не показываем).
-///
-/// Повторы схлопываются с числом: два финских узла → `🇫🇮[2]`. Порядок —
-/// как в пуле (слоты ядра, отсортированы им же).
-/// §446 — кэш скомпилированных regexp значков. `poolBadges` зовётся из
-/// `itemBuilder` на каждую строку автовыбора каждый кадр, а компиляция
-/// unicode-regexp дорогая. Паттернов единицы (дефолт плюс правки
-/// пользователя), так что кэш не растёт; `null` для битого паттерна
-/// кэшируется тоже — иначе опечатка компилировалась бы заново каждый раз.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 final Map<String, RegExp?> _badgeRegexCache = {};
 
 RegExp? _cachedBadgeRegex(String badge) => _badgeRegexCache.putIfAbsent(
@@ -78,7 +78,7 @@ RegExp? _cachedBadgeRegex(String badge) => _badgeRegexCache.putIfAbsent(
 
 String poolBadges(List<String> memberLabels, String badge) {
   if (badge.isEmpty || memberLabels.isEmpty) return '';
-  // Битый regexp — молча без значков (инвариант §125: не роняем UI).
+
   final re = _cachedBadgeRegex(badge);
   if (re == null) return '';
   final counts = <String, int>{};
@@ -97,28 +97,28 @@ String poolBadges(List<String> memberLabels, String badge) {
 String? autoGroupLabel(Map<String, dynamic>? raw) {
   if (raw == null || raw['type'] != 'urltest') return null;
   final members = (raw['outbounds'] as List?)?.length ?? 0;
-  // `balancer{}` эмитится только под round_robin (§208 / §4.1 спеки 322).
+
   final balancer = raw['balancer'];
   if (balancer is! Map) return '🎯 [$members]';
-  // Пул больше состава — ядро схлопывает до доступных; показываем как есть.
+
   final pool = (balancer['pool'] as num?)?.toInt() ?? members;
   return '🔀 [$members/$pool]';
 }
 
-/// Prep-logic для node-list главного экрана.
-///
-/// Владеет:
-/// - §070 frozen-sort UI-cache ([_cachedSorted]/[_cachedSortKey]) — должен
-///   жить через rebuild'ы (создаётся один раз в `initState`, hold как
-///   `late final`), семантика cache-key + invalidation идентична оригиналу;
-/// - §085 R3 сборка `NodeFilter` из `NodeFilterViewModel` + state-зависимых
-///   lookup'ов (`protocolOf`/`subscriptionsOf`/`isControlTag`);
-/// - §048 split pool → matching/non-matching (control-узлы §078 короткозамкнуты);
-/// - §078 displayList computation для ping-button order.
-///
-/// Читает `controller.state` / `subController.entries` свежими на каждый вызов
-/// (как и раньше в `_HomeScreenState`), поэтому stateless относительно
-/// контроллеров — mutable-состояние = sort cache и кэш уведомлений (§511 M3).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class NodeListPresenter {
   NodeListPresenter({
     required this.controller,
@@ -130,30 +130,30 @@ class NodeListPresenter {
   final SubscriptionController subController;
   final NodeFilterViewModel filter;
 
-  // §070 — UI-cache для frozen sort при `state.resortOnManualPing == false`.
-  // См. spec'у — manual single ping не двигает порядок, batch / group switch /
-  // config rebuild сбрасывает через `state.pingBatchGen` bump.
+
+
+
   List<String>? _cachedSorted;
   ({NodeSortMode mode, int gen, int nodesLen, bool pinD, bool pinA})?
       _cachedSortKey;
 
-  /// §359 — узел автовыбора подписки/папки (§322): тип `urltest`, но НЕ шасси
-  /// приложения. У него свой протокол (`urltest`) и свой транспорт (режим),
-  /// поэтому он фильтруется чипами как обычная нода.
+
+
+
   bool _isUserAutoGroup(String tag, HomeState state) =>
       !state.isSystemControlTag(tag) &&
       (state.groupOf(tag)?.type == 'urltest' ||
           state.activeModel[tag]?.type == 'urltest');
 
-  /// Lookup protocol for tag — учитывает urltest group fallback (см. §048
-  /// «Protocol detection»). Возвращает null если cache miss и urltest нет.
-  ///
-  /// §359 — у узла автовыбора подписки протокол СВОЙ (`urltest`), а не
-  /// унаследованный от выбранного члена: иначе он менялся бы под юзером при
-  /// каждом переключении и список «прыгал» бы сам по себе. Fallback на протокол
-  /// члена остаётся для селекторов Направлений.
+
+
+
+
+
+
+
   String? protocolOfTag(String tag, HomeState state) {
-    // §311 — activeModel: теги строк приходят из ядра (ccGroups).
+
     final model = state.activeModel;
     if (_isUserAutoGroup(tag, state)) return 'urltest';
     final urltestNow = state.urltestNowOf(tag);
@@ -161,30 +161,30 @@ class NodeListPresenter {
         (urltestNow != null ? model.protocolOf(urltestNow) : null);
   }
 
-  /// §359/§208 — режим узла автовыбора как transport-слот фильтра. `balancer{}`
-  /// эмитится в конфиг только под round_robin (ядро SPEC 019, тот же критерий,
-  /// что у [autoGroupLabel]), поэтому его наличие и есть признак режима.
+
+
+
   String autoModeOf(String tag, HomeState state) {
     final raw = state.activeModel[tag]?.raw;
     return (raw?['balancer'] is Map) ? 'round_robin' : 'least_test';
   }
 
-  /// §103 — transport/security теги ноды для variant-фильтра. Тот же
-  /// urltest-fallback что у [protocolOfTag] (payload-узел, давший протокол,
-  /// даёт и теги). Пустой Set = unknown.
-  Set<String> variantsOfTag(String tag, HomeState state) {
-    final model = state.activeModel; // §311
 
-    // §359 — у узла автовыбора подписки transport-слот = его режим
-    // (least_test / round_robin), а не транспорт выбранного члена.
+
+
+  Set<String> variantsOfTag(String tag, HomeState state) {
+    final model = state.activeModel;
+
+
+
     if (_isUserAutoGroup(tag, state)) return {autoModeOf(tag, state)};
 
     var n = model[tag];
     if (n == null || n.isControl || n.type.isEmpty) {
       final urltestNow = state.urltestNowOf(tag);
       n = urltestNow != null ? model[urltestNow] : null;
-      // Паритет с protocolOfTag: fallback-цель тоже должна быть payload-узлом
-      // (control с tls/transport-полями дал бы лейблы при protocol == null).
+
+
       if (n != null && (n.isControl || n.type.isEmpty)) n = null;
     }
     if (n == null) return const <String>{};
@@ -194,31 +194,31 @@ class NodeListPresenter {
     };
   }
 
-  /// §103 — канонический порядок variant-чипов: транспорты, затем security;
-  /// незнакомые теги — в конец по алфавиту (forward-compat).
+
+
   static const _variantOrder = <String>[
     'tcp', 'ws', 'grpc', 'h2', 'h3', 'httpupgrade', 'quic', 'xhttp',
     'TLS', 'TLS+Vision', 'Reality', 'Reality+Vision',
     'awg', 'awg1.5', 'awg2', 'awg3', 'awg3.1',
-    // §359 — режимы узла автовыбора (§322): свой transport-слот, в конец ряда.
+
     'least_test', 'round_robin',
   ];
 
   static int _variantRank(String v) {
-    // §148 — masquerade-суффикс `+` (awg1.5+/awg2+) ранжируется по базе,
-    // чтобы `awgN` и `awgN+` стояли рядом; trailing `+` отбрасываем.
+
+
     final base = v.endsWith('+') ? v.substring(0, v.length - 1) : v;
     final i = _variantOrder.indexOf(base);
     return i >= 0 ? i : _variantOrder.length;
   }
 
-  /// §091/§235 — какие источники (подписки + папки) владеют тегом
-  /// (prefix-based). Тонкая обёртка над pure helper'ом `sourcesOfTag`
-  /// (см. `home/source_lookup.dart`).
-  /// §446 — фильтр по источникам зовёт это на КАЖДЫЙ тег, а `sourcesOfTag`
-  /// каждый раз заново перебирает подписки и проверяет их пригодность
-  /// (тип, enabled, непустой префикс). Пригодные пары `(префикс, id)` от тега
-  /// не зависят — считаем их один раз на проход фильтрации.
+
+
+
+
+
+
+
   List<(String, String)>? _prefixIndex;
 
   Set<String> _sourcesOfTag(String tag) {
@@ -230,8 +230,8 @@ class NodeListPresenter {
     return result;
   }
 
-  /// §085 R3 — единый `NodeFilter` из view-model + state-зависимых lookup'ов.
-  /// Используется и `computeDisplayList`, и node-list (был дубль §078).
+
+
   NodeFilter buildNodeFilter(HomeState state) => NodeFilter(
         regex: filter.activeRegex,
         regexInvert: filter.regexInvert,
@@ -245,37 +245,37 @@ class NodeListPresenter {
         protocolOf: (t) => protocolOfTag(t, state),
         variantsOf: (t) => variantsOfTag(t, state),
         subscriptionsOf: _sourcesOfTag,
-        // §325 — фильтр по пингу видит то же число, что показано в строке
-        // (свой замер Направления либо фоллбэк из другого).
+
+
         pingOf: state.delayOf,
       );
 
-  /// §446 — phase 1 фильтра (§048): отсев detour. Был выписан дважды —
-  /// в `computeListData` и в `splitNodes`, слово в слово.
+
+
   List<String> poolOf(List<String> sortedNodes, HomeState state) => sortedNodes
       .where((t) =>
-          state.isSystemControlTag(t) || // §359
-          filter.detourPoolPasses(state.activeModel[t]?.isDetour ?? false)) // §311
+          state.isSystemControlTag(t) ||
+          filter.detourPoolPasses(state.activeModel[t]?.isDetour ?? false))
       .toList();
 
-  /// §085 R3 — pool (detour-фильтр) → split на matching/non-matching.
-  /// §090 G2 — detour определяется по `ConfigNode.isDetour` (структурно: на ноду
-  /// ссылаются как на hop), не по ⚙-метке. §096 — detour бинарный: скрыть
-  /// detour (дефолт) / только detour ([detourPoolPasses]). Control-узлы
-  /// (selector/urltest/direct/…) НИКОГДА не отсеиваются pool'ом (§078 — всегда
-  /// видны, даже если случайно isDetour) и короткозамкнуты в matching.
-  /// Возвращает `(matching, nonMatching)`.
+
+
+
+
+
+
+
   (List<String>, List<String>) splitNodes(
       List<String> sortedNodes, HomeState state,
       {List<String>? pool}) {
-    // §446 — [pool] передаёт уже посчитанный pool: `computeListData` строил
-    // его сам, а затем этот же проход повторялся здесь один в один.
+
+
     pool ??= poolOf(sortedNodes, state);
     final f = buildNodeFilter(state);
     final matching = <String>[];
     final nonMatching = <String>[];
     for (final tag in pool) {
-      if (state.isSystemControlTag(tag) || f.passes(tag)) { // §359
+      if (state.isSystemControlTag(tag) || f.passes(tag)) {
         matching.add(tag);
       } else {
         nonMatching.add(tag);
@@ -284,20 +284,20 @@ class NodeListPresenter {
     return (matching, nonMatching);
   }
 
-  /// §078 — текущий displayList снаружи node-list (для ping button →
-  /// `runMassUrltest(order:)` в порядке отображения).
+
+
   List<String> computeDisplayList(HomeState state) {
-    _prefixIndex = null; // §446 — см. `computeListData`
+    _prefixIndex = null;
     final (matching, nonMatching) = splitNodes(viewSortedNodes(state), state);
     return filter.showNonMatching
         ? [...matching, ...nonMatching]
         : matching;
   }
 
-  /// §070 — frozen sort при `resortOnManualPing == false`. Cache hit ↔
-  /// (sortMode, pingBatchGen, nodes.length, pinDirect, pinAuto) совпадают
-  /// с предыдущим вызовом + все cached tags ещё в pool. Manual single ping
-  /// → новый state, та же key → cache hit → строка не прыгает.
+
+
+
+
   List<String> viewSortedNodes(HomeState s) {
     if (s.resortOnManualPing) {
       _cachedSortKey = null;
@@ -312,10 +312,10 @@ class NodeListPresenter {
       pinA: s.pinAuto,
     );
     if (key == _cachedSortKey && _cachedSorted != null) {
-      // sanity: все cached tags ещё в pool (защита от ноды удалённой из
-      // подписки между bump'ами).
-      // §446 — через `s.nodeSet`: у `s.nodes` (List) `contains` линейный, и
-      // проверка кэша обходилась дороже сортировки, которую она экономит.
+
+
+
+
       if (_cachedSorted!.every(s.nodeSet.contains)) return _cachedSorted!;
     }
     _cachedSortKey = key;
@@ -323,17 +323,17 @@ class NodeListPresenter {
     return _cachedSorted!;
   }
 
-  // §511 M3 — кэш уведомлений по тегу. Тик статистики (раз в секунду при
-  // поднятом VPN) даёт новый HomeState и rebuild экрана, а уровни от трафика
-  // не зависят: пересчёт O(теги × узлы) нужен только при смене состава
-  // (записи и их `list`), карты последней сборки или списка узлов.
+
+
+
+
   List<ServerList>? _warningsLists;
   Map<String, NodeSpec>? _warningsTagMap;
   Map<String, List<NodeWarning>>? _warningsBuild;
   List<String>? _warningsNodes;
   Map<String, List<NodeWarning>>? _warningsByTag;
 
-  /// Сколько раз уведомления узлов пересчитывались целиком (для тестов).
+
   @visibleForTesting
   int debugWarningsPasses = 0;
 
@@ -376,43 +376,43 @@ class NodeListPresenter {
     };
   }
 
-  /// Aggregated данные для render node-list.
-  /// Собирает sorted/pool/split/displayList + chip-options одним проходом.
+
+
   NodeListData computeListData(HomeState state) {
-    // §446 — индекс префиксов живёт ровно один проход: состав подписок мог
-    // смениться между build'ами, а `computeListData` — единственный вход в
-    // фильтрацию списка.
+
+
+
     _prefixIndex = null;
-    // §048 — двухфазная модель (см. spec):
-    // Phase 1 — pool filter: detour (§096 бинарный). §090 G2 — «detour»
-    // СТРУКТУРНО: на ноду ссылаются как на detour-таргет (`ConfigNode.isDetour`,
-    // detourRefCount>0), а не по ⚙-метке. §096 — скрыть detour (дефолт) /
-    // только detour (см. [NodeFilterViewModel.detourPoolPasses]); control-узлы
-    // никогда не отсеиваются. Pool здесь только для chip-опций
-    // (availableProtocols); splitNodes re-derive'ит идентичный pool из allTags.
-    // §070: используем viewSortedNodes — frozen sort при resortOnManualPing=false
-    // (manual single ping не дёргает порядок).
+
+
+
+
+
+
+
+
+
     final allTags = viewSortedNodes(state);
     final pool = poolOf(allTags, state);
 
-    // activeModel (§311): configModel/runningModel парсятся один раз при
-    // смене raw (см. HomeState), выбор среза — по tunnelUp,
-    // здесь просто читаем. Раньше jsonDecode шёл на каждый rebuild
-    // ListView — с 50+ нодами и сортировкой это был hot-path выжиматель.
+
+
+
+
     final cache = state.activeModel;
 
-    // §048 Phase 2 — match filter: split pool на matching + nonMatching
-    // (control-узлы короткозамкнуты в matching, §078). См. `splitNodes`.
+
+
     final (matching, nonMatching) = splitNodes(allTags, state, pool: pool);
     final matchingSet = matching.toSet();
 
-    // Render list = matching + (showNonMatching ? nonMatching : []).
+
     final displayList = filter.showNonMatching
         ? <String>[...matching, ...nonMatching]
         : matching;
 
-    // Available для chips — из всего pool (не от current filter state).
-    // Emoji — из allTags (locked decision #3, включая detour).
+
+
     final emojis = NodeFilter.extractEmojis(allTags);
     final availableProtocols = <String>{};
     final availableVariants = <String>{};
@@ -424,10 +424,10 @@ class NodeListPresenter {
     final sourceOptions = <(String, String)>[];
     for (final e in subController.entries) {
       final list = e.list;
-      // §091/§235 — chip показываем для enabled-ИСТОЧНИКА (подписка или
-      // папка §234) с непустым префиксом И ≥1 нодой. Фильтрация чисто
-      // prefix-based (sourcesOfTag), поэтому без префикса chip бесполезен —
-      // его ноды попадают в «Custom». Disabled / пустые → шум.
+
+
+
+
       if ((list is SubscriptionServers || list is FolderServers) &&
           e.enabled &&
           list.tagPrefix.isNotEmpty &&
@@ -435,12 +435,12 @@ class NodeListPresenter {
         sourceOptions.add((e.id, e.displayName));
       }
     }
-    // §095 — синтетический «Custom»-чип убран (юзер): ноды вне источников
-    // (UserServer / без префикса / импорт) фильтруются прочими средствами,
-    // отдельный chip только путал.
 
-    // §502/§505 — уведомления по config-тегу: хранилище + сборка; карта
-    // lastEmittedTagMap — только fallback для custom JSON без владельца.
+
+
+
+
+
     final warningsByTag = _warningsByTagFor(allTags, state);
 
     return NodeListData(
@@ -460,7 +460,7 @@ class NodeListPresenter {
   }
 }
 
-/// §089 — immutable bundle вычисленных данных для node-list render.
+
 class NodeListData {
   const NodeListData({
     required this.cache,
@@ -479,17 +479,17 @@ class NodeListData {
   final List<String> emojis;
   final List<String> availableProtocols;
 
-  /// §103 — transport/security теги, присутствующие в pool'е (канонический
-  /// порядок: транспорты → security).
+
+
   final List<String> availableVariants;
 
-  /// §235 — (id, имя) источников для чипов фильтра: подписки + папки.
+
   final List<(String, String)> sourceOptions;
 
-  /// §502 — уведомления узла по эмитированному тегу (разбор + вердикт).
+
   final Map<String, List<NodeWarning>> warningsByTag;
 
-  /// Старший уровень уведомлений узла; `null` — уведомлений нет.
+
   WarningSeverity? topWarningSeverityOf(String tag) =>
       topWarningSeverity(warningsByTag[tag] ?? const []);
 }

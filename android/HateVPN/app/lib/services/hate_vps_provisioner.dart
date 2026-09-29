@@ -190,18 +190,18 @@ class HateVpsProvisioner {
               .runWithResult('rm -f $remotePath')
               .timeout(const Duration(seconds: 5));
         } catch (_) {
-          /* Temporary script only. */
+
         }
       }
       try {
         await sftp?.close();
       } catch (_) {
-        /* Connection is closing. */
+
       }
       try {
         await client?.close();
       } catch (_) {
-        /* Connection is closing. */
+
       }
     }
   }

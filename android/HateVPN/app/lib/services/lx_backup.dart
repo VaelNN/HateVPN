@@ -1,5 +1,5 @@
-/// LX Backup v1 — переносимый формат обмена настройками с десктопным
-/// лаунчером (SPEC 103, фаза 4). Подробности — в docstring ниже.
+
+
 library;
 
 import 'dart:convert';
@@ -36,192 +36,192 @@ import 'record_vars.dart';
 import 'storage_migration/legacy_autogroup.dart';
 import 'tag_resolver.dart';
 
-/// LX Backup — переносимый формат обмена настройками с десктопным лаунчером
-/// (SPEC 103; контракт 1.0, §438).
-///
-/// Схема — `contract/schema/backup.schema.json`, семантика —
-/// `contract/docs/BACKUP.md`, принципы — `contract/docs/BACKUP_PRINCIPLES.md`
-/// (П1–П7, нормативны). Это НЕ замена [BackupService]: тот делает полный
-/// снимок настроек для той же самой установки, а этот переносит общую часть
-/// между приложениями.
-///
-/// **Файл — сериализация состояния** (П1). Ничего сверх состояния в нём нет:
-/// ни блобов «на провоз», ни теневых карманов. Следствия, которыми меряется
-/// реализация:
-///
-///  1. экспорт — чистая функция состояния: два неотличимых состояния дают
-///     неотличимые файлы;
-///  2. состояние после импорта неотличимо от настроенного руками;
-///  3. `import(export(x))` в том же приложении = `x`.
-///
-/// Механизм `extensions` УПРАЗДНЁН целиком (П3). Провоз непонятого создавал
-/// ровно то, что запрещает П1: состояние-призрак, которое протухает, когда
-/// каноническую часть правят в другом приложении. Непонятое теперь
-/// отбрасывается и предъявляется пользователю warning'ом.
-///
-/// §438 — пишется формат 1.0 ([buildLxBackup]). Читаются оба: `lx_backup: 1`
-/// (семейство 0.x, legacy-вход) и `lx_backup: 2`. Каждый разбирается своим
-/// декодером в одни и те же промежуточные записи ([LxBackupFile]), дальше
-/// работает ОДИН код слияния ([mergeBackupSubscriptions],
-/// [mergeBackupServers], [resolveBackupChainHops], [renumberBackupAxis],
-/// `applyDnsBackup`). Файл 0.10.x разбирается декодером 0.x общим правилом.
-///
-/// Нет молчаливых потерь (П6): всё неприменённое названо кодом warning'а —
-/// и на импорте, и на экспорте.
 
-/// Маркер семейства 0.x в ключе `lx_backup` (только чтение).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const int kLxBackupFormat0x = 1;
 
-/// Маркер контракта 1.0 в ключе `lx_backup` (BACKUP.md §8).
+
 const int kLxBackupFormat10 = 2;
 
-/// §438 — формат, который эта сторона пишет, и старший, который читает. Файл
-/// с `lx_backup` выше отвергается целиком, а не разбирается частично
-/// (BACKUP.md §8); младший `1` читается legacy-входом.
+
+
+
 const int kLxBackupVersion = kLxBackupFormat10;
 
-/// Значения `exported_by.app`. §401 — только они: ключами карманов
-/// `extensions.<приложение>` эти имена больше не служат, механизм упразднён.
+
+
 const String kLxAppLxBox = 'lxbox';
 const String kLxAppLauncher = 'launcher';
 
-/// Коды предупреждений (общие с Go-стороной, реестр —
-/// `contract/registry/backup_warnings.json`).
+
+
 const String kWarnUnknownOutbound = 'backup_unknown_outbound';
 const String kWarnFinalDropped = 'backup_final_dropped';
 const String kWarnUnknownPreset = 'backup_unknown_preset';
 const String kWarnVarSkipped = 'backup_var_skipped';
 
-/// §441 (SPEC 129 §5.6) — причины [kWarnVarSkipped] ([LxBackupWarning.reason]).
-///
-/// [kVarSkippedNotPortable] — корневая переменная вне реестра переносимых;
-/// [kVarSkippedUndeclared] — имя в `vars` записи (`dns:<tag>` |
-/// `preset:<ref>`), которого шаблон приёмника у носителя не объявил (Н2);
-/// [kVarSkippedSuperseded] — корневое `dns_<tag>_<var>` при записи сервера со
-/// своими `vars` (Н8); [kVarSkippedNoRecord] — корневое `dns_<tag>_<var>`,
-/// а записи сервера с этим тегом в файле нет (Н8).
+
+
+
+
+
+
+
+
 const String kVarSkippedNotPortable = 'not_portable';
 const String kVarSkippedUndeclared = 'undeclared';
 const String kVarSkippedSuperseded = 'superseded';
 const String kVarSkippedNoRecord = 'no_record';
 
-/// Ключ вне схемы: в состояние не попадает (П3). Detail называет ПОЛНЫЙ путь
-/// (`subscriptions[https://…].outbounds[vpn-1].key`), иначе предупреждение не
-/// с чем сопоставить. Эталон — `core/backup/file.go:scanUnknown`.
+
+
+
 const String kWarnUnknownField = 'backup_unknown_field';
 
-/// §401 — файл несёт упразднённый механизм `extensions` (схема 0.10.x).
-///
-/// ОДИН warning на файл с перечнем затронутых записей, а не по ключу на
-/// каждую находку: пока `extensions` существовал, он был не «лишним ключом»,
-/// а карманом с произвольным содержимым, и перечислять его внутренности по
-/// одной значило бы утопить пользователя в списке вместо объяснения.
+
+
+
+
+
+
 const String kWarnExtensionsDropped = 'backup_extensions_dropped';
 
-/// §401 — ключ модели пришёл ЧУЖОГО ТИПА: поле отбрасывается, разбор файла
-/// продолжается.
-///
-/// Отдельный код, а не [kWarnUnknownField]: ключ-то знакомый, разошёлся его
-/// тип (`subscriptions[].skip` — boolean у LxBox 0.10.x, список фильтров
-/// отсева у лаунчера), и пользователю важно различать «такого поля тут нет»
-/// и «поле есть, но значение записано по-другому». Уронить файл целиком
-/// из-за одного поля значило бы потерять всё прочее молча, вопреки П6.
+
+
+
+
+
+
+
+
 const String kWarnFieldTypeMismatch = 'backup_field_type_mismatch';
 
-/// §401 — `exclude_from_global` / `expose_group_tags_to_global` приехали из
-/// старого файла: класс флагов упразднён (SPEC 118 лаунчера), узлы источника
-/// остаются в общем пуле кандидатов.
-///
-/// Поля ОБЪЯВЛЕНЫ в таблице контракта, поэтому общий обход неизвестных
-/// ключей их не ловит — без этого кода они пропадали бы совсем молча.
+
+
+
+
+
+
 const String kWarnSourceFlagDropped = 'backup_source_flag_dropped';
 
-/// §401 (D-082) — `label` одиночного сервера разошёлся с тегом и применён не
-/// будет: у канона имени, кроме тега, нет (SPEC 112 контракта, «идентичность
-/// узла = тег»). §405 — цепочки этот код больше не касается: их `label`
-/// применяет LxBox, оно читается и пишется.
-///
-/// У сервера БЕЗ `node_tag` подпись ещё может стать именем записи — тогда
-/// потери нет и предупреждения тоже.
+
+
+
+
+
+
+
 const String kWarnLabelDropped = 'backup_label_dropped';
 
-/// §401 (D-083) — ключи объекта `subscriptions[].identity`, которые эта
-/// сторона применить не умеет (`hash_device_model` и любое незнакомое).
-///
-/// Detail — `<label подписки>: key1, key2`. Общий обход неизвестных ключей
-/// внутрь `identity` НЕ спускается: иначе одна потеря давала бы два
-/// предупреждения — своё и [kWarnUnknownField].
+
+
+
+
+
+
 const String kWarnSourceIdentityDropped = 'backup_source_identity_dropped';
 
-/// §401 — настройка есть только у ЭТОЙ стороны, дома в общей схеме ей нет:
-/// в файл она не едет.
-///
-/// Ставится на ЭКСПОРТЕ — там, где ещё видно, какие именно поля были заданы.
-/// Detail — `<имя сущности>: field1, field2`, ОДИН warning на сущность:
-/// перечислять каждое поле отдельной строкой значило бы утопить пользователя
-/// в списке. Код общий для обеих сторон и обоих направлений.
+
+
+
+
+
+
+
 const String kWarnLocalOnlyDropped = 'backup_local_only_dropped';
 
-/// §393 B1 — тег приехавшего Направления уже занят на этой стороне.
-///
-/// Приехавшее НЕ применяется: под этим именем у пользователя уже своё
-/// Направление со своими настройками, и перезапись стёрла бы их
-/// (BACKUP.md §3). Правило при этом цель находит — тег совпадает: он есть у
-/// приёмника и входит в список известных целей ([lxImportKnownTargets]).
+
+
+
+
+
+
 const String kWarnDirectionExists = 'backup_direction_exists';
 
-/// §393 C9 — тег приехавшей цепочки уже занят на этой стороне (SPEC 110,
-/// схема v1.2).
-///
-/// Тот же принцип, что у [kWarnDirectionExists], и та же причина предъявлять
-/// его ВСЕГДА: у цепочки нет стабильного id, идентичность несёт только тег.
-/// Молчаливое «своя победила» скрыло бы случай СЛУЧАЙНЫХ ТЁЗОК — двух
-/// несвязанных маршрутов, одинаково названных на разных устройствах
-/// (BACKUP.md §2). Приехавшая запись не применяется, своя остаётся; правило,
-/// метящее в цепочку, цель находит — тег есть у приёмника, — она просто
-/// чужая.
+
+
+
+
+
+
+
+
+
+
 const String kWarnChainExists = 'backup_chain_exists';
 
-/// §393 B9 — DNS-запись приехала в виде, которому на этой стороне нет места
-/// (`kind`, которого мобила не знает; тело без опоры на шаблон).
-///
-/// §401 — запись НЕ хранится сырой до следующего экспорта: карман провоза
-/// упразднён (П3). Она отбрасывается, и молчать об этом нельзя.
+
+
+
+
+
 const String kWarnDnsEntrySkipped = 'backup_dns_entry_skipped';
 
-/// §393 B8 — запись `warp[]` не разобралась (нет дискриминатора `type`,
-/// нет ключа регистрации). Аккаунт без приватного ключа не собирает узел,
-/// поэтому применять нечего.
+
+
+
 const String kWarnWarpSkipped = 'backup_warp_skipped';
 
-/// §438/§575 — поле `sections` записи файла снято целиком: секции узла
-/// упразднены (контракт 1.1.85). [LxBackupWarning.kind] — вид записи,
-/// [LxBackupWarning.reason] — всегда [kSectionDropReasonNotAllowed].
+
+
+
 const String kWarnSectionRecordDropped = 'backup_section_record_dropped';
 
-/// §575 — единственная причина [kWarnSectionRecordDropped] (контракт 1.1.85:
-/// прежние `kind` / `rule_set` / `unknown_key` отменены вместе с секциями).
+
+
 const String kSectionDropReasonNotAllowed = 'not_allowed';
 
-/// §438 — запись `sources[]` вида, которому на этой стороне нет места:
-/// корневые `auto`/`unsupported` (union 1.0 их не выражает, BACKUP.md §2),
-/// незнакомый `kind`, а у LxBox ещё члены папки `chain` — цепочка здесь
-/// только корневой источник. Член папки `auto` — узел автовыбора (§439 N2).
-/// [LxBackupWarning.kind] — вид записи. Запись не применяется.
+
+
+
+
+
 const String kWarnSourceKindUnsupported = 'backup_source_kind_unsupported';
 
-/// Контракт 1.0.1 — провайдерская группа (`kind: auto`) приехала в форме,
-/// которую сторона не выражает, и ввезена упрощённой. Detail — тег группы,
-/// [LxBackupWarning.reason] — что не выразилось. §565 — `selector` LxBox
-/// исполняет, упрощения рода больше нет; код остаётся за членами старых
-/// autogroup-текстов, которые не нашлись.
+
+
+
+
+
 const String kWarnGroupDegraded = 'backup_group_degraded';
 
-/// Переносимые имена переменных — зеркало `registry/vars.json` (portable=true).
-///
-/// Сверяется с реестром тестом: разъехавшийся список означает, что бэкап либо
-/// теряет настройку, либо тащит на чужую машину значение, которое там значит
-/// другое (пути, интерфейсы, платформенные флаги).
+
+
+
+
+
 const Set<String> kLxPortableVars = {
   'auto_detect_interface',
   'dns_cache_capacity',
@@ -237,8 +237,8 @@ const Set<String> kLxPortableVars = {
   'tls_fragment_fallback_delay',
   'tls_mixed_case_sni',
   'tls_record_fragment',
-  // SPEC 109 (N7): tun_address стал однострочником на обеих сторонах и
-  // переносим наравне с tun_address6 — адрес TUN не привязан к машине.
+
+
   'tun_address',
   'tun_address6',
   'tun_mtu',
@@ -248,10 +248,10 @@ const Set<String> kLxPortableVars = {
   'urltest_url',
 };
 
-/// Зарезервированные литералы (BACKUP.md §3): существуют всегда, объявлять не
-/// нужно. Служебные теги шаблона (`direct-out`, тег блокировки, outbound'ы и
-/// endpoint'ы `config`) сюда не входят: их называет шаблон приёмника
-/// ([lxImportKnownTargets], `systemTags`).
+
+
+
+
 const Set<String> _reservedOutbounds = {
   'direct',
   'block',
@@ -260,42 +260,42 @@ const Set<String> _reservedOutbounds = {
   'dns-out',
 };
 
-/// D-117 — служебные теги приёмника, когда шаблона нет (корпус, разбор без
-/// состояния): прямой канал и тег блокировки LxBox. У приёмника с шаблоном их
-/// называет сам шаблон.
+
+
+
 const Set<String> kLxImportDefaultSystemTags = {
   kDirectOutboundTag,
   kBlockOutboundTag,
 };
 
-/// Предупреждение импорта: код + что затронуто.
+
 class LxBackupWarning {
   const LxBackupWarning(this.code, this.detail, {this.kind = '', this.reason = ''});
 
   final String code;
   final String detail;
 
-  /// §438 — вид записи там, где реестр объявляет его параметром
-  /// (`backup_section_record_dropped`, `backup_source_kind_unsupported`).
+
+
   final String kind;
 
-  /// §438 — причина из закрытого перечня реестра
-  /// (`backup_section_record_dropped`: `kind` | `rule_set` | `not_allowed`).
+
+
   final String reason;
 
   @override
   String toString() => '$code: $detail';
 }
 
-/// §393 B10 — подписка в переносимой форме.
-///
-/// Разбирается ПОЛЯМИ, а не сырым Map: до B10 импорт складывал запись целиком
-/// и не применял ничего — «показали в диалоге и выбросили» (§3 BACKUP.md
-/// нарушено ровно тем, что потеря была молчаливой).
-///
-/// §401 — карманов провоза (`ownExtensions`/`foreignExtensions`/
-/// `unknownFields`) больше нет: непонятое отброшено и названо warning'ом
-/// (П3), а не спрятано в состоянии до следующего экспорта (П1).
+
+
+
+
+
+
+
+
+
 class LxSubscription {
   const LxSubscription({
     required this.url,
@@ -317,37 +317,37 @@ class LxSubscription {
     this.replace,
   });
 
-  /// Фича 565 фаза B (§74) — свёртка подписки в группу. Поле контракта: у
-  /// файла 1.0 ([fullSettings]) отсутствие объекта значит «не свёрнута»; у
-  /// 0.x `null` — свою настройку совпавшая подписка держит.
+
+
+
   final SourceReplace? replace;
 
-  /// §439 — общий `detour` подписки файла 1.0 (BACKUP.md §9 п. 1): ссылка как
-  /// есть, тег конфига из неё получает слияние узлов ([mergeBackupServers]).
-  /// У 0.x `null` и [fullSettings] ложно: своя ссылка остаётся.
+
+
+
   final NodeLink? detour;
 
-  /// §439 Л2 — настройки LxBox записи 1.0, которые контракт объявил
-  /// (`declared` в `lx_backup_slice.dart`) и которые в записи есть. `null` —
-  /// поля в файле нет (сторона его не носит или контракт не объявил): у
-  /// совпавшей подписки остаётся своё, у новой — умолчание.
-  /// [detourPolicy] — флаги без ссылки: ссылка едет [detour].
+
+
+
+
+
   final DetourPolicy? detourPolicy;
   final List<ImportRule>? importRules;
   final bool? importRulesEnabled;
   final SubscriptionOnUpdateAction? onUpdateAction;
 
-  /// §438 — место записи в `sources[]` файла 1.0: новые источники встают в
-  /// конец В ПОРЯДКЕ ФАЙЛА (BACKUP.md §9 п. 8), все виды вместе. У 0.x — 0.
+
+
   final int position;
 
-  /// §438 — `id` записи в файле. Новая подписка берёт его, если он свободен
-  /// (BACKUP.md §9 п. 8); совпавшая держит локальный.
+
+
   final String id;
 
-  /// §438 — формат несёт настройки подписки целиком (1.0): у совпавшей
-  /// записи отсутствие поля в файле значит умолчание, а не «оставь своё».
-  /// Вход 0.x — `false`: там отсутствие значит «файл про это не знает».
+
+
+
   final bool fullSettings;
 
   final String url;
@@ -356,28 +356,28 @@ class LxSubscription {
   final String tagPrefix;
   final int? updateIntervalHours;
 
-  /// §5 BACKUP.md — идентичность узла (тег в рамках источника, SPEC 112) →
-  /// unix seconds последней встречи. Ключ для формата обмена НЕПРОЗРАЧЕН и
-  /// копируется как есть: legacy-форма 64 hex переживает перенос и мигрирует
-  /// на приёмнике первым разбором источника (§400).
+
+
+
+
   final Map<String, int> disabled;
 
-  /// Фича 478 / PARSING_PRINCIPLES §9.4 — вердикт ядра оверлеем тем же ключом, что и
-  /// [disabled]: без него узел приехал бы выключенным без объяснения.
-  /// Форма — `{identity: [{code, params}]}`, как в записи хранения.
+
+
+
   final Map<String, List<StoredWarning>> nodeWarnings;
 
-  /// §401 (D-083) — per-source identity: чем подписка представляется
-  /// провайдеру. `null` = в файле объекта не было.
+
+
   final SubscriptionIdentityOverride? identity;
 }
 
-/// §393 B10 — одиночный сервер: ровно одно из [uri] / [configJson].
-///
-/// §438 — та же запись для узла формата 1.0: `origin.raw` вида `uri`/`wg_ini`
-/// едет в [uri] (текст как есть), вида `json` и тело без исходника — в
-/// [configJson] с тегом записи. Член папки 1.0 ссылается на свою папку
-/// [folderRef], а не именем.
+
+
+
+
+
+
 class LxServer {
   const LxServer({
     this.uri = '',
@@ -396,66 +396,66 @@ class LxServer {
     this.tagPrefix,
   });
 
-  /// §439 N2 — член папки 1.0 `kind: auto`: узел автовыбора со ссылками файла
-  /// как есть (член `{tag}` уже поднят до пары с [folderRef]). Адрес здесь
-  /// составу даёт слияние ([mergeBackupServers]). Текста у такого члена нет.
+
+
+
   final AutoSelectSpec? autoGroup;
 
-  /// §439 Л2 — объявленные контрактом настройки LxBox корневого узла 1.0
-  /// (флаги `detour_policy`, префикс `tag_policy`); `null` — поля в файле нет,
-  /// см. [LxSubscription.detourPolicy]. У членов папки их нет.
+
+
+
   final DetourPolicy? detourPolicy;
   final String? tagPrefix;
 
-  /// §438 — место корневой записи в `sources[]` файла 1.0 (см.
-  /// [LxSubscription.position]); член папки идёт местом своей папки.
+
+
   final int position;
 
-  /// §438 — личный detour узла 1.0 (`detour{folder_id?, tag}`): у LxBox это
-  /// `overrideDetour` одиночного сервера и `detour` члена папки. Тег конфига
-  /// из ссылки получает слияние ([mergeBackupServers]).
+
+
+
   final NodeLink? detour;
 
-  /// URI-строка или текст WG-INI.
+
   final String uri;
   final Map<String, dynamic>? configJson;
 
-  /// §438 — ключ папки файла 1.0 ([LxFolder.key]), членом которой узел
-  /// является. Пусто — корневой узел или вход 0.x (там папка — [folder]).
+
+
   final String folderRef;
 
-  /// §438 — `id` корневой записи 1.0; у членов папки и у 0.x пусто.
+
   final String id;
 
-  /// §578 — поле записи `skip_presets` (пишется только `true`). Совпавший по
-  /// телу узел получает `true` из файла; отсутствие поля своё не сбрасывает.
+
+
   final bool skipPresets;
 
-  /// Имя записи: `node_tag` схемы, а не подпись. У канона имени, кроме тега,
-  /// нет (SPEC 112), и `label` старого файла становится им только когда
-  /// `node_tag` отсутствует (§401, D-082).
+
+
+
   final String name;
 
   final bool enabled;
 
-  /// Фича 478 / PARSING_PRINCIPLES §9.4 — вердикт ядра рядом с [enabled]: ручной сервер и
-  /// член папки несут его списком записей `{code, params}`.
+
+
   final List<StoredWarning> warnings;
 
-  /// §401 (D-08x) — имя папки, в которую входит эта запись. Пусто = запись
-  /// сама себе источник. Схема контейнеров не знает: члены папки едут
-  /// ОТДЕЛЬНЫМИ записями `servers[]`, а собирает их обратно импорт по
-  /// совпадению этого имени.
+
+
+
+
   final String folder;
 }
 
-/// §438 — запись папки формата 1.0 (`sources[]` вида `folder`): её
-/// идентичность и собственные настройки. Состав едет записями [LxServer] с
-/// [LxServer.folderRef] == [key].
-///
-/// Применяются настройки, у которых в модели LxBox есть дом: `enabled`,
-/// префикс `tag_policy`, общий `detour` и свёртка `replace` (фича 565 фаза B).
-/// `postfix` — поле лаунчера (колонка «Поддержка» BACKUP.md §2).
+
+
+
+
+
+
+
 class LxFolder {
   const LxFolder({
     required this.key,
@@ -471,36 +471,36 @@ class LxFolder {
     this.replace,
   });
 
-  /// Фича 565 фаза B (§74) — свёртка папки в группу; `null` — не свёрнута
-  /// (поле контракта: запись 1.0 несёт папку целиком).
+
+
   final SourceReplace? replace;
 
-  /// §439 — общий `detour` папки (BACKUP.md §9 п. 3): ссылка файла как есть.
+
   final NodeLink? detour;
 
-  /// §439 Л2 — объявленные контрактом настройки LxBox папки 1.0 (флаги
-  /// `detour_policy`, `ping_url`, `ping_timeout_ms`); `null` — поля в файле
-  /// нет, см. [LxSubscription.detourPolicy].
+
+
+
   final DetourPolicy? detourPolicy;
   final String? pingUrl;
   final int? pingTimeoutMs;
 
-  /// §438 — место записи в `sources[]` файла (см. [LxSubscription.position]).
+
   final int position;
 
-  /// Ключ папки внутри файла: её `id`, а у записи без `id` — синтетический
-  /// номер. Им члены ссылаются на свою папку, даже когда файл несёт тёзок.
+
+
   final String key;
 
-  /// `id` папки в файле; пусто — не было.
+
   final String id;
   final String name;
   final bool enabled;
   final String tagPrefix;
 }
 
-/// §393 B9 — секция `dns` файла моделями DNS: записи 1.0 читает кодек
-/// (`codec/dns_record.dart`), записи 0.12 — декодер 0.x.
+
+
 class LxDns {
   const LxDns({
     this.servers = const [],
@@ -510,18 +510,18 @@ class LxDns {
     this.defaultDomainResolver = '',
   });
 
-  /// §438 — `dns.default_domain_resolver` (1.0; мобильная var
-  /// `dns_default_domain_resolver`). Третий скаляр секции живёт по тому же
-  /// правилу, что [finalServer] и [strategy] (BACKUP.md §9 п. 5).
+
+
+
   final String defaultDomainResolver;
 
   final List<DnsServerRef> servers;
   final List<DnsRuleRef> rules;
 
-  /// `dns.final` — тег DNS-сервера по умолчанию (мобильная var `dns_final`).
+
   final String finalServer;
 
-  /// `dns.strategy` — мобильная var `dns_strategy`.
+
   final String strategy;
 
   bool get isEmpty =>
@@ -532,25 +532,25 @@ class LxDns {
       defaultDomainResolver.isEmpty;
 }
 
-/// §409 — per-Направление бюджет теста узла (`ping_options.groups[tag]`,
-/// §040) в переносимой форме: `directions[].ping_url` /
-/// `directions[].ping_timeout_ms`.
-///
-/// Это НЕ `auto.url` / `auto.idle_timeout`: те настраивают urltest-двойника
-/// `<tag>-auto` внутри ядра, а эти — ручной и массовый тест узлов в
-/// приложении. Поля разные по адресату, и слить их значило бы менять
-/// поведение ядра правкой кнопки «Ping».
-///
-/// Поля объявлены в схеме, применяет их только LxBox (колонка «Поддержка»
-/// `docs/BACKUP.md` §2); лаунчер игнорирует молча.
-///
-/// `null` у поля = override этой половины нет.
-///
-/// Нормализация — В КОНСТРУКТОРЕ, а не у каждого вызывающего: схема требует
-/// `ping_url.minLength: 1` и `ping_timeout_ms.minimum: 1` (контракт 0.12.6,
-/// D-096), и пустая строка с нулём — не «строгий бюджет», а мёртвая кнопка
-/// «Ping». Держать проверку в одном месте дешевле, чем ловить её пропуск на
-/// новом пути записи: сюда сходятся и storage, и разбор файла.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class LxDirectionPing {
   LxDirectionPing({String? url, int? timeoutMs})
     : url = (url != null && url.trim().isNotEmpty) ? url.trim() : null,
@@ -561,26 +561,26 @@ class LxDirectionPing {
 
   bool get isEmpty => url == null && timeoutMs == null;
 
-  /// Форма хранения (`ping_options.groups[tag]`): те же ключи, что пишет
-  /// `SettingsStorage.setGroupPing`.
+
+
   Map<String, dynamic> toStorage() => <String, dynamic>{
     if (url != null) 'url': url,
     if (timeoutMs != null) 'timeout_ms': timeoutMs,
   };
 }
 
-/// §409 — `ping_options` из storage → карта «тег Направления → бюджет теста»
-/// для [buildLxBackup].
-///
-/// Читается ТОЛЬКО подкарта `groups` (per-Направление override'ы): глобальные
-/// `url`/`timeout_ms` — настройка приложения, а не Направления, и её место в
-/// `vars`, а не в записи `directions[]`.
-///
-/// Фильтр здесь тот же, что и на импорте: пустой URL и неположительный
-/// таймаут в файл не едут — в состоянии они означают «override нет», и
-/// выписать их значило бы отправить на ту сторону мёртвую кнопку «Ping».
-/// Порядок карты — порядок `groups` в storage, но на файл он не влияет:
-/// поля пишутся внутрь записи своего Направления.
+
+
+
+
+
+
+
+
+
+
+
+
 Map<String, LxDirectionPing> lxDirectionPingFromStorage(
   Map<String, dynamic> pingOptions,
 ) {
@@ -593,8 +593,8 @@ Map<String, LxDirectionPing> lxDirectionPingFromStorage(
     if (tag is! String || tag.isEmpty || value is! Map) continue;
     final rawUrl = value['url'];
     final rawTimeout = value['timeout_ms'];
-    // Отсев пустого делает конструктор: пустой URL и неположительный таймаут
-    // в storage значат ровно «override нет».
+
+
     final ping = LxDirectionPing(
       url: rawUrl is String ? rawUrl : null,
       timeoutMs: rawTimeout is num ? rawTimeout.toInt() : null,
@@ -605,7 +605,7 @@ Map<String, LxDirectionPing> lxDirectionPingFromStorage(
   return out;
 }
 
-/// Результат разбора файла.
+
 class LxBackupFile {
   const LxBackupFile({
     required this.version,
@@ -633,81 +633,81 @@ class LxBackupFile {
   final String exportedByVersion;
   final String exportedAt;
 
-  /// §393 B1 — Направления, ПРИМЕНИМЫЕ на этой стороне: приехавшие в файле
-  /// теги, которых у нас ещё нет. Занятый тег сюда не попадает (он остался
-  /// у пользователя своим) — только в warning `backup_direction_exists`.
-  ///
-  /// Порядок файла нормативен: `include[]` разрешает ссылаться только на
-  /// Направления ВЫШЕ по списку, и перестановка ломала бы состав.
+
+
+
+
+
+
   final List<Direction> directions;
 
-  /// §409 — бюджеты теста узла, приехавшие вместе с Направлениями: тег →
-  /// override. Ключи — ТОЛЬКО теги из [directions]: у Направления с занятым
-  /// тегом приехавшее не применяется целиком (§9 BACKUP.md,
-  /// [kWarnDirectionExists]), и бюджет вместе с ним — иначе файл менял бы
-  /// настройку чужому Направлению, которого сам не создавал.
-  ///
-  /// Отдельной картой, а не полем [Direction]: у мобилы бюджет живёт не в
-  /// Направлении, а в `ping_options.groups[tag]` (§040), и заводить ему
-  /// зеркало в модели значило бы получить второй источник правды.
+
+
+
+
+
+
+
+
+
   final Map<String, LxDirectionPing> directionPing;
 
-  /// Правила в порядке файла (ось `num` учтена при разборе).
+
   final List<CustomRule> rules;
 
-  /// §393 C9 — цепочки хопов, ПРИМЕНИМЫЕ на этой стороне (SPEC 110, схема
-  /// v1.2): приехавшие теги, которых у нас ещё нет. Занятый тег сюда не
-  /// попадает — только в warning [kWarnChainExists].
-  ///
-  /// ПОРЯДОК ФАЙЛА НОРМАТИВЕН и не сортируется: вложенная цепочка вправе
-  /// стоять позицией только у объявленной НИЖЕ по списку, и перестановка
-  /// замкнула бы цикл, которого канон запрещает
-  /// (`schema/source_chain.schema.json`).
+
+
+
+
+
+
+
+
   final List<SourceChain> chains;
 
-  /// §393 B10 — подписки, разобранные полями. Применяются поверх существующих
-  /// списков по URL (он и есть identity подписки на обеих сторонах).
+
+
   final List<LxSubscription> subscriptions;
 
-  /// §393 B10 — одиночные серверы (`uri` / `config_json`).
-  ///
-  /// §438 — у файла 1.0 здесь и корневые узлы, и члены папок (с
-  /// [LxServer.folderRef]) в порядке файла.
+
+
+
+
   final List<LxServer> servers;
 
-  /// §438 — папки формата 1.0 со своими `id` и настройками. У 0.x пусто:
-  /// там папка — имя в [LxServer.folder].
+
+
   final List<LxFolder> folders;
 
-  /// §438 — позиции цепочек формата 1.0 ссылками (тег цепочки → хопы).
-  /// В [chains] хопы до слияния лежат сырыми тегами; в теги конфига их
-  /// переводит [resolveBackupChainHops], когда известна карта папок. У 0.x
-  /// пусто: там позиции уже строки.
+
+
+
+
   final Map<String, List<NodeLink>> chainHops;
 
-  /// §511 m2 — место цепочки в `sources[]` файла 1.0 (тег → индекс записи),
-  /// та же шкала, что [LxSubscription.position]: импорт по ней ставит
-  /// цепочки между источниками, как в файле. У 0.x пусто.
+
+
+
   final Map<String, int> chainPositions;
 
-  /// §393 B9 — секция DNS; `null` = в файле её не было.
+
   final LxDns? dns;
 
-  /// §393 B8 — записи `warp[]` в канонической форме схемы (дискриминатор
-  /// `type: wg|masque`). Разбор в нативные модели — на стороне применения:
-  /// парсер не должен знать про storage.
+
+
+
   final List<Map<String, dynamic>> warp;
 
   final Map<String, String> vars;
 
-  /// `route.final` файла. У [decodeLxBackup] — как в файле; после
-  /// [gateLxBackupTargets] — только известная цель, иначе `null`.
+
+
   final String? routeFinal;
 
   final List<LxBackupWarning> warnings;
 
-  /// §441 — тот же файл с другими правилами и/или отчётом (план импорта
-  /// дописывает предупреждения слияния DNS и нормализации пресетов).
+
+
   LxBackupFile copyWith({
     List<CustomRule>? rules,
     List<LxBackupWarning>? warnings,
@@ -734,11 +734,11 @@ class LxBackupFile {
       );
 }
 
-/// Результат экспорта: сам файл + что в него НЕ поехало.
-///
-/// §401 — предупреждения на экспорте не выдумка, а требование П6: настройка,
-/// у которой в общей схеме нет дома, теряется при переносе, и промолчать о
-/// ней значило бы отдать пользователю файл, тихо беднее его состояния.
+
+
+
+
+
 class LxBackupExport {
   const LxBackupExport(this.json, this.warnings);
 
@@ -746,34 +746,34 @@ class LxBackupExport {
   final List<LxBackupWarning> warnings;
 }
 
-/// Собирает LX Backup формата 1.0 (`lx_backup: 2`) из настроек LxBox.
-///
-/// §439 — файл = срез хранения плюс тонкий слой (BACKUP.md §1). Записи
-/// `sources[]` (подписки, одиночные узлы, папки и цепочки в порядке списка
-/// источников) и `rules[]` пишет кодек хранения (`models/codec/`); поля LxBox
-/// срезает таблица `lx_backup_slice.dart`. Тонкий слой — `directions[]`,
-/// переносимые `vars`, `route.final`, `warp[]` — той же формы, что в 0.12.
-///
-/// [directions] — Направления в порядке списка (§393 B2): они цели правил, и
-/// без них правило приезжало бы на чужую машину выключенным.
-///
-/// [directionPing] — §409, бюджеты теста узла по тегу Направления
-/// (`ping_options.groups`, §040). Пишутся только заданные половины.
-///
-/// [dns] — секция `dns` в форме файла (`dnsToBackup`); [warp] — записи
-/// регистраций WG/MASQUE (§393 B8) уже в каноне схемы.
-///
-/// Ссылки на узлы (`hops[]` цепочки, `detour` источника и узла) едут так, как
-/// лежат в записи хранения. Пока модели держат финальный тег строкой, это
-/// корневая ссылка `{tag}`; ссылку без `folder_id` на член папки лаунчер
-/// нормализует на импорте (BACKUP.md §6, ответ Л1).
-///
-/// Предупреждения: срезанные настройки LxBox — [kWarnLocalOnlyDropped], одно
-/// на сущность (П6).
-///
-/// [recordVars] — §441, объявления шаблона этой стороны: `vars`
-/// правил-пресетов нормализуются молча (SPEC 129 Н2–Н4). Секцию [dns]
-/// нормализует `dnsToBackup` тем же набором.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<LxBackupExport> buildLxBackup({
   required List<ServerList> lists,
   required List<CustomRule> rules,
@@ -781,8 +781,8 @@ Future<LxBackupExport> buildLxBackup({
   List<Direction> directions = const [],
   Map<String, LxDirectionPing> directionPing = const {},
   List<SourceChain> chains = const [],
-  /// Порядок `sources[]` файла: ключи `id:<uuid>` и `chain:<tag>`.
-  /// Нет — [lists], затем [chains].
+
+
   List<String>? sourceKeys,
   String? routeFinal,
   Map<String, dynamic>? dns,
@@ -794,7 +794,7 @@ Future<LxBackupExport> buildLxBackup({
     final info = await PackageInfo.fromPlatform();
     appVersion = '${info.version}+${info.buildNumber}';
   } catch (_) {
-    // В тестовом окружении PackageInfo недоступен — версия не критична.
+
   }
 
   final warnings = <LxBackupWarning>[];
@@ -813,8 +813,8 @@ Future<LxBackupExport> buildLxBackup({
   final ruleRecords = <Map<String, dynamic>>[];
   for (final r in normalizePresetRulesVars(rules, recordVars)) {
     final stored = ruleToRecord(r);
-    // Правило вида json, чей текст объектом не разбирается: тела у записи
-    // нет, и в 1.0 ей дома нет (массивы хранение уже разложило, §439 В2).
+
+
     if (r is CustomRuleJson && stored['body'] == null) {
       _noteLocalOnly(warnings, r.name, const ['json']);
       continue;
@@ -824,8 +824,8 @@ Future<LxBackupExport> buildLxBackup({
     if (record != null) ruleRecords.add(record);
   }
 
-  // Порядок ключей корня — перечень BACKUP.md §2: файл читают и правят руками,
-  // и перестановка ключей между версиями была бы шумом в diff'ах.
+
+
   final out = <String, dynamic>{
     'lx_backup': kLxBackupVersion,
     'exported_by': {
@@ -835,8 +835,8 @@ Future<LxBackupExport> buildLxBackup({
     },
     'exported_at': DateTime.now().toUtc().toIso8601String(),
     if (sources.isNotEmpty) 'sources': sources,
-    // §393 B2 — цели едут ПЕРЕД правилами и в порядке списка: `include[]`
-    // ссылается только вверх, перестановка сломала бы состав.
+
+
     if (directions.isNotEmpty)
       'directions': [
         for (final d in directions) _directionToJson(d, directionPing[d.tag]),
@@ -846,8 +846,8 @@ Future<LxBackupExport> buildLxBackup({
     if (portableVars.isNotEmpty) 'vars': portableVars,
     if (routeFinal != null && routeFinal.isNotEmpty)
       'route': {'final': routeFinal},
-    // §393 B8 — регистрации WARP: без них «Add WARP» на новой машине заводит
-    // лишнюю device-запись в Cloudflare вместо переноса существующей.
+
+
     if (warp.isNotEmpty) 'warp': warp,
   };
 
@@ -857,9 +857,9 @@ Future<LxBackupExport> buildLxBackup({
   );
 }
 
-/// §439 — запись хранения → запись файла по таблице среза; срезанные
-/// настройки, отличные от умолчания, называются одним
-/// [kWarnLocalOnlyDropped] на [entity]. `null` — вид записи в 1.0 не пишется.
+
+
+
 Map<String, dynamic>? exportBackupRecord(
   BackupRecord kind,
   Map<String, dynamic> stored,
@@ -871,8 +871,8 @@ Map<String, dynamic>? exportBackupRecord(
   return slice.record;
 }
 
-/// Источник → запись `sources[]` файла: запись хранения, срез и `body`
-/// узлов с JSON-исходником.
+
+
 List<Map<String, dynamic>> _exportSources({
   required List<ServerList> lists,
   required List<SourceChain> chains,
@@ -953,9 +953,9 @@ Map<String, dynamic>? _exportSource(
           e.key: e.key == 'nodes' && e.value is List
               ? [
                   for (final n in e.value as List)
-                    // Член без текста — пустая строка папки: переносить
-                    // нечего (хранение держит его `unsupported` без исходника).
-                    // Член-группа текста не имеет и едет записью (§439 N2).
+
+
+
                     if (n is Map &&
                         (n['kind'] == kNodeKindAuto || _hasSourceText(n)))
                       _withJsonBody(n.cast<String, dynamic>()),
@@ -971,11 +971,11 @@ bool _hasSourceText(Map<dynamic, dynamic> node) {
   return origin is Map && _str(origin['raw']).trim().isNotEmpty;
 }
 
-/// §439 §4.1 — узел с JSON-исходником из одного outbound несёт и `body`:
-/// объект sing-box без `tag` и `detour` (BACKUP.md §2), сразу за `origin`.
-/// Материализованное тело URI/WG-INI не пишется: принимающая сторона берёт
-/// исходник (BACKUP.md §9 п. 2), а второй эмиттер тел разошёлся бы со
-/// сборкой. Истина узла — текст (В1).
+
+
+
+
+
 Map<String, dynamic> _withJsonBody(Map<String, dynamic> node) {
   final origin = node['origin'];
   if (origin is! Map || origin['kind'] != 'json') return node;
@@ -998,9 +998,9 @@ Map<String, dynamic> _withJsonBody(Map<String, dynamic> node) {
   };
 }
 
-/// §401 — ОДИН warning на сущность с перечнем полей, у которых нет дома в
-/// общей схеме. Пустой перечень предупреждения не даёт: шуметь на каждой
-/// записи подряд значило бы обесценить сам сигнал.
+
+
+
 void _noteLocalOnly(
   List<LxBackupWarning> warnings,
   String entity,
@@ -1012,7 +1012,7 @@ void _noteLocalOnly(
   );
 }
 
-/// Строка → JSON-объект, если это он. Массив/скаляр/мусор → null.
+
 Map<String, dynamic>? _tryDecodeObject(String body) {
   if (!body.startsWith('{')) return null;
   try {
@@ -1023,26 +1023,26 @@ Map<String, dynamic>? _tryDecodeObject(String body) {
   }
 }
 
-/// Разбирает LX Backup и сверяет цели правил и `route.final` без состояния
-/// приёмника: известные цели — [knownOutbounds] плюс то, что приехало файлом
-/// ([lxImportKnownTargets]). Импорт в приложение идёт не сюда, а через план
-/// `planLxBackupImport` (`lx_backup_import.dart`): там список считается после
-/// слияния, с узлами и шаблоном приёмника (D-117).
-///
-/// [knownOutbounds] — имена, которые приёмник знает сам (они же заняты для
-/// Направлений файла); пустой набор при файле без целей означает «проверять
-/// нечем» — тогда ссылки не режутся.
-///
-/// [knownChains] — теги ЦЕПОЧЕК, уже заведённых на этой стороне (§393 C9).
-/// Отдельно от [knownOutbounds] намеренно: merge цепочек идёт по СВОЕМУ
-/// пространству имён — приехавшая цепочка `relay` при существующем
-/// Направлении `relay` это не «своя цепочка сильнее», а коллизия тегов, и
-/// разгребает её гейт применения ([directionTagConflict]), а не warning
-/// `backup_chain_exists`, который отвечает на другой вопрос.
-///
-/// §438 — формат опознаётся ключом `lx_backup` одним сравнением ещё до
-/// разбора тела (BACKUP.md §8): `1` — декодер 0.x, `2` — декодер 1.0.
-/// Больше [kLxBackupVersion] — отказ целиком; вне `{1, 2}` — не наш файл.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 LxBackupFile parseLxBackup(
   String raw, {
   Set<String> knownOutbounds = const {},
@@ -1067,19 +1067,19 @@ LxBackupFile parseLxBackup(
   );
 }
 
-/// Декодер LX Backup без проверки целей: записи файла в промежуточную форму,
-/// пресет вне шаблона — выключен. Цели правил и `route.final` сверяет
-/// [gateLxBackupTargets] одним списком после слияния (BACKUP.md §3, D-117):
-/// до слияния декодер не знает ни узлов результата, ни шаблона приёмника.
-///
-/// [takenTags] — теги, занятые у приёмника: Направление файла под таким тегом
-/// не применяется (`backup_direction_exists`).
-///
-/// [recordVars] — §441, объявления переменных записей шаблона приёмника:
-/// корневые `dns_<tag>_<var>` переносятся в записи серверов файла (Н8),
-/// template-сервер DNS с тегом, которого шаблон не объявил, не ввозится
-/// ([kWarnDnsEntrySkipped]). [RecordVarDecls.none] — шаблона нет: корневые
-/// имена идут общим правилом `vars`, теги серверов не сверяются.
+
+
+
+
+
+
+
+
+
+
+
+
+
 LxBackupFile decodeLxBackup(
   String raw, {
   Set<String> takenTags = const {},
@@ -1122,7 +1122,7 @@ LxBackupFile decodeLxBackup(
   );
 }
 
-/// Декодер семейства 0.x (`lx_backup: 1`).
+
 LxBackupFile _parse0x(
   Map<String, dynamic> decoded,
   int version, {
@@ -1131,23 +1131,23 @@ LxBackupFile _parse0x(
   required Set<String> knownChains,
   required RecordVarDecls recordVars,
 }) {
-  // §401 — default-deny на ВСЮ глубину файла, а не только на корень:
-  // вложенный уровень — самое удобное место спрятать чужое поле. Упразднённый
-  // `extensions` при этом отделён от прочего незнакомого: он не «лишний
-  // ключ», а карман с произвольным содержимым (эталон —
-  // `core/backup/file.go:scanUnknown`).
+
+
+
+
+
   final warnings = _scanUnknown(decoded);
 
   final directions = _parseDirections(decoded, takenTags, warnings);
 
-  // §393 C9 — цепочки (SPEC 110, схема v1.2): ПОСЛЕ Направлений (позиция
-  // может ссылаться на Направление). Порядок записей файла сохраняется как
-  // есть.
-  //
-  // Занятый тег — тот же код-путь, что и дубль ВНУТРИ файла: набор
-  // `takenChainTags` общий, поэтому first-wins по порядку файла, а вторая
-  // запись с тем же тегом получает `backup_chain_exists` наравне с тёзкой
-  // локальной цепочки.
+
+
+
+
+
+
+
+
   final chains = <SourceChain>[];
   final takenChainTags = <String>{
     for (final t in knownChains) t.trim(),
@@ -1156,9 +1156,9 @@ LxBackupFile _parse0x(
     if (item is! Map) continue;
     final j = item.cast<String, dynamic>();
     final tag = (j['tag'] as String?)?.trim() ?? '';
-    // Без тега цепочка не адресуема, без канона — не маршрут: битую запись
-    // пропускаем молча, как безымянное Направление (защита от правленого
-    // файла, а не потеря данных).
+
+
+
     if (tag.isEmpty || j['chain'] is! Map) continue;
     if (!takenChainTags.add(tag)) {
       warnings.add(LxBackupWarning(kWarnChainExists, tag));
@@ -1177,13 +1177,13 @@ LxBackupFile _parse0x(
         ),
   ];
 
-  // Порядок разбора секций = порядок предупреждений в превью: переменные,
-  // `warp[]`, затем записи источников и DNS; цели правил и `route.final`
-  // дописывает в конец [gateLxBackupTargets].
-  //
-  // §441 — DNS читается раньше переменных (Н8 переносит корневые
-  // `dns_<tag>_<var>` в записи серверов файла), но его предупреждения встают
-  // на прежнее место — после записей источников.
+
+
+
+
+
+
+
   final dnsWarnings = <LxBackupWarning>[];
   final dnsRaw = _dnsFromJson(
     (decoded['dns'] as Map?)?.cast<String, dynamic>(),
@@ -1224,32 +1224,32 @@ LxBackupFile _parse0x(
   );
 }
 
-/// Направления файла и то, что они дают остальному разбору.
+
 typedef _ParsedDirections = ({
   List<Direction> directions,
   Map<String, LxDirectionPing> ping,
 });
 
-/// §393 B1 — Направления файла. Форма `directions[]` у 0.x и 1.0 одна (тонкий
-/// слой, BACKUP.md §1), поэтому и разбор один. Их теги — известные цели
-/// правил (BACKUP.md §3): список считает [lxImportKnownTargets] после слияния.
-///
-/// Занятый тег — не ошибка файла: у пользователя под этим именем своё
-/// Направление со своими настройками. Приехавшее не применяется (warning),
-/// но цель под этим тегом у приёмника есть — правило её находит.
+
+
+
+
+
+
+
 _ParsedDirections _parseDirections(
   Map<String, dynamic> decoded,
   Set<String> takenTags,
   List<LxBackupWarning> warnings,
 ) {
   final directions = <Direction>[];
-  // §409 — бюджеты теста узла применённых Направлений (`ping_options.groups`).
+
   final directionPing = <String, LxDirectionPing>{};
-  // §406 (D-095) — занятость тега определяется ТОЧНЫМ совпадением, как при
-  // создании Направления руками (`directionTagConflict`). `VPN-DE` при живом
-  // `vpn-de` — не тёзка, а второе Направление: для ядра это два разных
-  // outbound'а, и объявлять одно из них «уже существующим» значило бы молча
-  // потерять приехавшую запись.
+
+
+
+
+
   final taken = <String>{
     for (final t in takenTags) t.trim(),
   };
@@ -1259,16 +1259,16 @@ _ParsedDirections _parseDirections(
     final j = item.cast<String, dynamic>();
     final rawTag = j['tag'];
     final tag = rawTag is String ? rawTag.trim() : '';
-    if (tag.isEmpty) continue; // без тега Направление не адресуемо
+    if (tag.isEmpty) continue;
     if (!taken.add(tag)) {
       warnings.add(LxBackupWarning(kWarnDirectionExists, tag));
       continue;
     }
     directions.add(_directionFromCanon(j, tag));
-    // §409 — бюджет теста узла разбирается ТОЛЬКО у применённого
-    // Направления: занятый тег уводит запись в `continue` выше, и бюджет
-    // уходит вместе с ней. Иначе файл менял бы настройку Направлению,
-    // которого сам не создавал (§9 BACKUP.md — своё остаётся своим).
+
+
+
+
     final ping = _directionPingFromCanon(j, tag, warnings);
     if (!ping.isEmpty) directionPing[tag] = ping;
   }
@@ -1278,23 +1278,23 @@ _ParsedDirections _parseDirections(
   );
 }
 
-/// `vars` — только переносимые имена (обе формы одинаковы).
-///
-/// §441 (SPEC 129 Н8) — корневое имя вне реестра разрешается против
-/// объявлений шаблона приёмника ([rootDnsVarTarget]: объявленные пары
-/// `(tag, var)`, выигрывает самый длинный тег) и переносится в запись
-/// template-сервера ФАЙЛА до слияния:
-///
-///  * кандидата нет — [kVarSkippedNotPortable], как раньше;
-///  * у записи в файле свои непустые `vars` — побеждает запись,
-///    [kVarSkippedSuperseded];
-///  * запись есть, `vars` пуст — значение уходит в `vars` записи (Н2–Н4 —
-///    на слиянии, против шаблона приёмника);
-///  * записи с этим тегом в файле нет — [kVarSkippedNoRecord].
-///
-/// Правило одно на файлы 1.0 и 0.x. «Пуст» — `vars` записи, как прочитан
-/// файл: два корневых имени одного сервера переносятся оба. Пустое значение
-/// переносить нечего (Н3).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ({Map<String, String> vars, LxDns? dns}) _parseVars(
   Map<String, dynamic> decoded,
   List<LxBackupWarning> warnings, {
@@ -1305,7 +1305,7 @@ _ParsedDirections _parseDirections(
   final raw = decoded['vars'];
   final rawVars = raw is Map ? raw.cast<String, dynamic>() : const {};
   final servers = dns?.servers.toList();
-  // Теги template-записей файла со своими `vars` — как прочитан файл.
+
   final ownVars = <String>{
     for (final s in servers ?? const <DnsServerRef>[])
       if (s is DnsServerTemplate && s.varValues.isNotEmpty) s.tag,
@@ -1358,8 +1358,8 @@ _ParsedDirections _parseDirections(
   );
 }
 
-/// `route.final` файла как есть. Применяется только при известной цели
-/// (BACKUP.md §3) — сверяет [gateLxBackupTargets] после слияния.
+
+
 String? _parseRouteFinal(Map<String, dynamic> decoded) {
   final route = decoded['route'];
   final finalTag = route is Map ? route['final'] : null;
@@ -1367,8 +1367,8 @@ String? _parseRouteFinal(Map<String, dynamic> decoded) {
   return finalTag;
 }
 
-/// §393 B8 — записи warp[]: разбираются позже, при применении (парсер не
-/// знает про storage). Здесь только отсев мусора и дискриминатор.
+
+
 List<Map<String, dynamic>> _parseWarp(
   Map<String, dynamic> decoded,
   List<LxBackupWarning> warnings,
@@ -1394,9 +1394,9 @@ List<Map<String, dynamic>> _parseWarp(
   return warp;
 }
 
-/// §438 — правила по оси `num`, стабильно; неразмеченные — в хвост, в
-/// порядке файла (у них нет места на оси, и перебивать размеченных им не за
-/// что). Порядок, который разбор отдаёт превью и слиянию.
+
+
+
 List<CustomRule> sortRulesByAxis(List<CustomRule> rules) {
   final indexed = [
     for (var i = 0; i < rules.length; i++) (i, rules[i]),
@@ -1412,16 +1412,16 @@ List<CustomRule> sortRulesByAxis(List<CustomRule> rules) {
   return [for (final e in indexed) e.$2];
 }
 
-// ---------------------------------------------------------------------------
-// §401 — обход неизвестных ключей (default-deny на всю глубину файла).
-//
-// Списки ключей ведутся ЗДЕСЬ, а не выводятся из моделей: это ровно таблица
-// полей BACKUP.md §2, то есть контракт. Выводить их из формы наших классов
-// значило бы объявить «схемой» текущий код, и любое внутреннее переименование
-// молча меняло бы контракт.
-// ---------------------------------------------------------------------------
 
-/// Ключ упразднённого механизма провоза (BACKUP_PRINCIPLES.md П3).
+
+
+
+
+
+
+
+
+
 const String _extensionsKey = 'extensions';
 
 const Set<String> _rootKeys = {
@@ -1442,9 +1442,9 @@ const Set<String> _rootKeys = {
 const Set<String> _exportedByKeys = {'app', 'version', 'platform'};
 const Set<String> _routeKeys = {'final'};
 
-/// Ссылка detour на узел — общая обвязка источников (BACKUP.md §6). У нас её
-/// применить нечем, но ключи ОБЪЯВЛЕНЫ контрактом: ложный
-/// `backup_unknown_field` на каждый файл лаунчера был бы шумом.
+
+
+
 const Set<String> _sourceRefKeys = {
   'detour_tag',
   'detour_node_source_id',
@@ -1465,7 +1465,7 @@ const Set<String> _subscriptionKeys = {
   'warnings',
   'skip',
   'outbounds',
-  // `fold` 0.x не читается (контракт 1.1.79 §76): чужой ключ с предупреждением.
+
   'identity',
   'exclude_from_global',
   'expose_group_tags_to_global',
@@ -1481,11 +1481,11 @@ const Set<String> _serverKeys = {
   'enabled',
   'folder',
   'exclude_from_global',
-  // §435 / контракт ## 13 — `sections` объявлено схемой (BACKUP.md §2,
-  // сторона launcher): до контракта 1.0 ни одна сторона его не пишет, а
-  // 0.12-форму записей (`match`/`value`) LxBox не разбирает — второй парсер.
-  // Чужое объявленное игнорируется МОЛЧА (BACKUP.md §1): в allowlist ради
-  // тишины, без ветки в `_serverFromJson`.
+
+
+
+
+
   'sections',
 };
 
@@ -1493,12 +1493,12 @@ const Set<String> _chainKeys = {
   ..._sourceRefKeys,
   'id',
   'tag',
-  // §405 — `label` цепочки объявлен в схеме, и применяет его ТОЛЬКО LxBox
-  // (колонка «Поддержка» `docs/BACKUP.md` §2, D-094): у нас цепочка носит
-  // собственное имя рядом с тегом-ссылкой, лаунчер не применяет и провозит
-  // молча.
-  // Отсюда: читаем в модель, [kWarnLabelDropped] на нём НЕ поднимаем — терять
-  // нечего, поле наше.
+
+
+
+
+
+
   'label',
   'enabled',
   'chain',
@@ -1507,9 +1507,9 @@ const Set<String> _chainKeys = {
 
 const Set<String> _directionKeys = {
   'tag',
-  // §405 — `label` Направления объявлен в схеме, и применяет его только
-  // LxBox (колонка «Поддержка» `docs/BACKUP.md` §2, D-094): читается в модель
-  // и пишется обратно; лаунчер не применяет и провозит молча.
+
+
+
   'label',
   'enabled',
   'filter',
@@ -1519,11 +1519,11 @@ const Set<String> _directionKeys = {
   'include_block',
   'include',
   'interrupt_exist_connections',
-  // §409 — бюджет теста узла у Направления (`ping_options.groups[tag]`,
-  // §040). Поля объявлены в схеме, применяет их только LxBox (колонка
-  // «Поддержка» `docs/BACKUP.md` §2); лаунчер не применяет и провозит молча.
-  // Без них файл LxBox ловил бы `backup_unknown_field` на собственном
-  // экспорте.
+
+
+
+
+
   'ping_url',
   'ping_timeout_ms',
   'auto',
@@ -1548,16 +1548,16 @@ const Set<String> _ruleKeys = {
   'num',
   'outbound',
   'ref',
-  'refs', // ## 12 (D-100)
+  'refs',
   'vars',
   'match',
   'dns',
   'resolve',
 };
 
-/// Канон цепочки (`source_chain.schema.json`). Внутрь хопов сканер не
-/// спускается намеренно: хоп ссылается на узел выражениями, чей набор ключей
-/// ведёт схема цепочки, а не таблица бэкапа.
+
+
+
 const Set<String> _chainBodyKeys = {
   'hops',
   'idle_timeout',
@@ -1566,9 +1566,9 @@ const Set<String> _chainBodyKeys = {
   'strip_evasion',
 };
 
-/// Union обоих типов регистрации: запись объявляет свой `type`, и разбирать её
-/// по типу значило бы завести две почти одинаковые таблицы ради ключей,
-/// которых у чужого типа всё равно не бывает.
+
+
+
 const Set<String> _warpKeys = {
   'type',
   'private_key',
@@ -1586,10 +1586,10 @@ const Set<String> _warpKeys = {
   'server_pub_der',
   'server',
   'port',
-  // §401, контракт 0.12.2 — плоские поля записи вместо упразднённого кармана
-  // `extensions.lxbox`. `sni`/`idle_timeout` схема объявляет поимённо
-  // (`extension: mobile`); `awg`/`endpoint`/`keep_alive` — «snake_case поля
-  // самой регистрации» из открытой части секции (`additionalProperties`).
+
+
+
+
   'sni',
   'idle_timeout',
   'keep_alive',
@@ -1609,8 +1609,8 @@ const Set<String> _dnsRefKeys = {
   'value',
 };
 
-/// Чем запись секции называется пользователю: код обязан показать «в подписке
-/// https://…», а не «в записи №3», иначе предупреждение не с чем сопоставить.
+
+
 const Map<String, String> _arrayLabelKeys = {
   'subscriptions': 'url',
   'servers': 'node_tag',
@@ -1621,19 +1621,19 @@ const Map<String, String> _arrayLabelKeys = {
   'warp': 'type',
 };
 
-/// §401 — обходит файл и перечисляет всё, чего нет в таблице контракта.
-///
-/// Два разных класса потерь — два разных сообщения (П6):
-///
-///  - `extensions` любой глубины: ОДИН warning на файл с перечнем затронутых
-///    записей. Это не «лишний ключ», а упразднённый карман с произвольным
-///    содержимым, и перечислять его внутренности по одной значило бы утопить
-///    пользователя в списке вместо объяснения;
-///  - всё прочее: warning с ПОЛНЫМ путём ключа.
-///
-/// Внутрь `identity` обход не спускается: неприменённые ключи объекта считает
-/// сам разбор подписки и выдаёт один [kWarnSourceIdentityDropped] с перечнем.
-/// Спустись сканер сюда — одна потеря давала бы два предупреждения.
+
+
+
+
+
+
+
+
+
+
+
+
+
 List<LxBackupWarning> _scanUnknown(Map<String, dynamic> root) {
   final sc = _UnknownScan();
 
@@ -1652,8 +1652,8 @@ List<LxBackupWarning> _scanUnknown(Map<String, dynamic> root) {
     where,
     item,
   ) {
-    // Локальные Направления источника — та же каноническая форма, что и
-    // directions[] на корне: две таблицы для одной сущности разъехались бы.
+
+
     sc.array(
       item,
       '$where.outbounds',
@@ -1681,8 +1681,8 @@ List<LxBackupWarning> _scanUnknown(Map<String, dynamic> root) {
   return sc.warnings();
 }
 
-/// Копит находки обхода: обычные неизвестные ключи по одному, упразднённый
-/// `extensions` — списком затронутых записей.
+
+
 class _UnknownScan {
   final _fields = <String>[];
   final _seenField = <String>{};
@@ -1711,8 +1711,8 @@ class _UnknownScan {
     object(key, obj, known);
   }
 
-  /// Вложенный объект ВНУТРИ записи: путь уже назван (`chains[relay]`), и имя
-  /// ключа дописывается к нему, а не заменяет его.
+
+
   void nestedAt(
     Map<String, dynamic> parent,
     String where,
@@ -1724,10 +1724,10 @@ class _UnknownScan {
     object('$where.$key', obj, known);
   }
 
-  /// §441 (Л5) — `vars` DNS-сервера 1.0 — поле только `kind: template`. У
-  /// `user` и `preset` ключ не применяется (кодек его не читает) и называется
-  /// как незнакомый. Запись чужого вида отбрасывает [_dns10] целиком — её
-  /// ключи не называются.
+
+
+
+
   void dnsServer10Body(String where, Map<String, dynamic> item) {
     final kind = item['kind'];
     if ((kind == 'user' || kind == 'preset') && item.containsKey('vars')) {
@@ -1735,14 +1735,14 @@ class _UnknownScan {
     }
   }
 
-  /// Вложенные уровни одного Направления. Общий для корневых `directions[]` и
-  /// локальных `subscriptions[].outbounds[]`: форма у них одна.
+
+
   void directionBody(String where, Map<String, dynamic> item) {
     nestedAt(item, where, 'auto', _directionAutoKeys);
   }
 
-  /// Обходит секцию-список. [deeper], если задан, вызывается на каждой записи
-  /// с её ПОЛНЫМ путём — им секция спускается на свои вложенные уровни.
+
+
   void array(
     Map<String, dynamic> parent,
     String where,
@@ -1787,11 +1787,11 @@ class _UnknownScan {
   }
 }
 
-/// §393 B10 — запись `subscriptions[]` → типизированная модель.
-///
-/// §401 — незнакомое сюда не доезжает: его назвал общий обход
-/// ([_scanUnknown]), и класть его в состояние «до следующего экспорта»
-/// больше некуда (П1/П3).
+
+
+
+
+
 LxSubscription _subscriptionFromJson(
   Map<String, dynamic> j,
   List<LxBackupWarning> warnings,
@@ -1800,9 +1800,9 @@ LxSubscription _subscriptionFromJson(
   final label = (j['label'] as String?) ?? '';
   final where = label.isEmpty ? ((j['url'] as String?) ?? '') : label;
 
-  // §401 — класс флагов упразднён (SPEC 118 лаунчера). Ключи ОБЪЯВЛЕНЫ в
-  // таблице контракта, поэтому общий обход их не ловит: без отдельного кода
-  // они пропадали бы совсем молча.
+
+
+
   for (final key in const [
     'exclude_from_global',
     'expose_group_tags_to_global',
@@ -1812,17 +1812,17 @@ LxSubscription _subscriptionFromJson(
     }
   }
 
-  // §401 — `skip` у лаунчера список фильтров отсева, у нас его применять
-  // нечем; наш собственный boolean 0.10.x тоже. Ключ знакомый, разошёлся
-  // тип — отдельный код, а не «неизвестное поле».
+
+
+
   if (j['skip'] is List || j['skip'] is bool) {
     warnings.add(LxBackupWarning(kWarnFieldTypeMismatch, '$where.skip'));
   }
-  // §401 — объектный `detour` нашего старого формата в схеме 0.11 не
-  // объявлен вовсе: его место заняли `detour_tag` + `detour_node_*`. Значит
-  // это обычный неизвестный ключ, и называет его общий обход [_scanUnknown],
-  // а не отдельный код. Type-mismatch остаётся ровно за `skip` — единственной
-  // коллизией ТИПА объявленного ключа между 0.10.x и 0.11.
+
+
+
+
+
 
   final tag = (j['tag'] as Map?)?.cast<String, dynamic>() ?? const {};
   final update = (j['update'] as Map?)?.cast<String, dynamic>() ?? const {};
@@ -1840,13 +1840,13 @@ LxSubscription _subscriptionFromJson(
   );
 }
 
-/// §401 (D-083) — `subscriptions[].identity` → [SubscriptionIdentityOverride].
-///
-/// Применяются наши шесть ключей. Всё прочее (`hash_device_model` схемы и
-/// любое незнакомое) отбрасывается ОДНИМ предупреждением на подписку с
-/// перечнем: порядок — сначала ключи схемы, затем чужие по алфавиту, потому
-/// что текст обязан быть воспроизводимым (два импорта одного файла дают один
-/// и тот же перечень).
+
+
+
+
+
+
+
 SubscriptionIdentityOverride? _identityFromJson(
   Object? raw,
   String where,
@@ -1874,10 +1874,10 @@ SubscriptionIdentityOverride? _identityFromJson(
   );
 }
 
-/// Неприменённые ключи `identity` — ОДНИМ [kWarnSourceIdentityDropped] на
-/// подписку: сначала ключи схемы в её порядке, затем чужие по алфавиту, чтобы
-/// два импорта одного файла давали один и тот же перечень. Общий для входов
-/// 0.x и 1.0.
+
+
+
+
 void _noteIdentityDropped(
   Iterable<String> keys,
   String where,
@@ -1896,8 +1896,8 @@ void _noteIdentityDropped(
   ));
 }
 
-/// Ключи объекта `identity` в порядке схемы 0.12. Порядок фиксирован, а не
-/// взят из обхода map: перечень в предупреждении обязан быть воспроизводимым.
+
+
 const List<String> _identityKeyOrder = [
   'user_agent',
   'send_hwid',
@@ -1908,8 +1908,8 @@ const List<String> _identityKeyOrder = [
   'hash_device_model',
 ];
 
-/// То, что LxBox умеет применить. Остальное (включая незнакомое) — в
-/// [kWarnSourceIdentityDropped].
+
+
 const Set<String> _identityAppliedKeys = {
   'user_agent',
   'send_hwid',
@@ -1919,14 +1919,14 @@ const Set<String> _identityAppliedKeys = {
   'device_model',
 };
 
-/// §5 BACKUP.md — `disabled`: ключ отметки → unix seconds.
-///
-/// §400 — ключом идёт идентичность узла (тег в рамках источника), но
-/// принимаются и legacy-ключи 64-hex из бэкапов, снятых до контракта 0.10.0:
-/// они мигрируют по общему правилу (IDENTITY.md §5.1) при первом разборе
-/// источника уже на приёмнике. Пустой ключ отбрасывается — идентичности
-/// «пустая строка» не существует. Значение не-числом пропускается: отметка
-/// без времени бесполезна для TTL-очистки.
+
+
+
+
+
+
+
+
 Map<String, int> _disabledFromJson(Object? raw) {
   if (raw is! Map) return const {};
   final out = <String, int>{};
@@ -1940,12 +1940,12 @@ Map<String, int> _disabledFromJson(Object? raw) {
   return out;
 }
 
-/// §393 B10 — запись `servers[]` → типизированная модель.
-///
-/// §401 (D-082) — имя записи берётся из `node_tag`: у канона имя узла одно —
-/// тег. `label` — LEGACY-ВХОД: у записи БЕЗ `node_tag` подпись ещё может
-/// стать именем (тогда потери нет и предупреждения тоже), иначе она
-/// расходится с тегом и отбрасывается с [kWarnLabelDropped].
+
+
+
+
+
+
 LxServer _serverFromJson(
   Map<String, dynamic> j,
   List<LxBackupWarning> warnings,
@@ -1967,27 +1967,27 @@ LxServer _serverFromJson(
       ),
     );
   }
-  // Объектный `detour` схемой 0.11 не объявлен — это обычный неизвестный
-  // ключ, и его называет общий обход [_scanUnknown].
+
+
 
   return LxServer(
     uri: (j['uri'] as String?) ?? '',
     configJson: (j['config_json'] as Map?)?.cast<String, dynamic>(),
     name: name,
     enabled: j['enabled'] as bool? ?? true,
-    // §401 (D-08x) — имя папки-контейнера; собирает её обратно применение.
+
     folder: (j['folder'] as String?)?.trim() ?? '',
   );
 }
 
-/// §439 N2 — член папки 0.x с текстом `autogroup://…` → узел автовыбора тем
-/// же путём, что миграция хранения (`legacy_autogroup.dart`): разбор текста
-/// снят, и без перевода член лёг бы нечитаемым рядом с группой. Явный состав —
-/// ключи `protocol|server|port|credential` — сопоставляется с членами той же
-/// папки файла и становится ссылками `{tag}` на их имена (`node_tag`); адрес
-/// здесь им даёт слияние ([mergeBackupServers]). Член, который не нашёлся
-/// или неоднозначен, снимается с [kWarnGroupDegraded]. Нечитаемый текст
-/// остаётся членом как есть.
+
+
+
+
+
+
+
+
 List<LxServer> _legacyAutogroups0x(
   List<LxServer> servers,
   List<LxBackupWarning> warnings,
@@ -2037,22 +2037,22 @@ List<LxServer> _legacyAutogroups0x(
   return out;
 }
 
-/// Текст записи 0.x для разбора члена: URI или `config_json` строкой.
+
 String _body0x(LxServer s) => s.uri.isNotEmpty
     ? s.uri
     : (s.configJson == null ? '' : jsonEncode(s.configJson));
 
-/// §393 B9 — секция `dns` файла 0.12 → модели DNS.
-///
-/// Канон знает три происхождения (`template|preset|user`), модель LxBox —
-/// своё имя пользовательской записи (`inline`) и ещё `srs` у правил.
-///
-/// §401 — запись, которой в каноне места нет, ОТБРАСЫВАЕТСЯ с
-/// [kWarnDnsEntrySkipped], а не хранится сырой до следующего экспорта: карман
-/// провоза упразднён (П3), и держать её в состоянии значило бы завести
-/// состояние-призрак, которого пользователь не видит. Ссылка без адреса и
-/// пользовательская запись без тела применить нечем — пропуск молча, как
-/// всегда делало слияние 0.x.
+
+
+
+
+
+
+
+
+
+
+
 LxDns? _dnsFromJson(
   Map<String, dynamic>? j,
   List<LxBackupWarning> warnings,
@@ -2103,12 +2103,12 @@ LxDns? _dnsFromJson(
   );
 }
 
-/// Виды DNS-записи канона 0.12.
+
 const Set<String> _dns0xKinds = {'template', 'preset', 'user'};
 
-/// Запись `dns.servers[]` 0.12 (`name`, `ref`, `value`) → модель. preset
-/// адресуется `ref` = `<preset_id>:<tag>`, а у старых файлов — именем; ссылка
-/// делится по ПЕРВОМУ `:`.
+
+
+
 DnsServerRef? _dnsServer0x(Map<String, dynamic> e, String kind) {
   final name = _str(e['name']);
   final enabled = e['enabled'] is bool ? e['enabled'] as bool : true;
@@ -2133,8 +2133,8 @@ DnsServerRef? _dnsServer0x(Map<String, dynamic> e, String kind) {
       );
     default:
       if (name.isEmpty) return null;
-      // §441 — `vars` ссылки 0.12 (`DNSRef.Vars`): значения переменных
-      // template-сервера, как у записи 1.0.
+
+
       final vars = e['vars'];
       return DnsServerTemplate(
         enabled: enabled,
@@ -2149,16 +2149,16 @@ DnsServerRef? _dnsServer0x(Map<String, dynamic> e, String kind) {
   }
 }
 
-/// §441 (SPEC 129 §5.2) — template-сервер DNS, которого шаблон приёмника не
-/// объявил, не ввозится: собрать его тело не из чего. Шаблона нет
-/// ([RecordVarDecls.none]) — сверять не с чем, запись идёт как есть.
+
+
+
 bool _templateServerDeclared(DnsServerRef server, RecordVarDecls recordVars) =>
     server is! DnsServerTemplate ||
     recordVars.dnsServers.isEmpty ||
     recordVars.dnsServers.containsKey(server.tag);
 
-/// Запись `dns.rules[]` 0.12 → модель: `user` — тело `value`, `preset` —
-/// `ref`, `template` — имя.
+
+
 DnsRuleRef? _dnsRule0x(Map<String, dynamic> e, String kind) {
   final name = _str(e['name']);
   final enabled = e['enabled'] is bool ? e['enabled'] as bool : true;
@@ -2181,37 +2181,37 @@ DnsRuleRef? _dnsRule0x(Map<String, dynamic> e, String kind) {
   }
 }
 
-/// §393 B1 — каноническая форма → мобильное [Direction].
-///
-/// Переносится КАНОН, а не внутренняя структура: у сторон они разные. Отбор
-/// узлов едет ТЕЛОМ регулярки — язык паттернов различается (`/re/i` у
-/// лаунчера, [RegExp] у нас), а тело одинаково, и у мобилы [Direction.nodeFilter]
-/// уже хранит тело. Эталон — `core/backup/directions.go:importDirection`.
-///
-/// §401 — неизвестные ключи здесь больше не пересчитываются: их называет
-/// общий обход [_scanUnknown] полным путём.
-///
-/// §405 — `label` читается В МОДЕЛЬ: это поле применяет LxBox (колонка
-/// «Поддержка» `docs/BACKUP.md` §2, D-094). Отсутствие ключа — пустое имя, и
-/// показан будет тег ([Direction.displayLabel]).
+
+
+
+
+
+
+
+
+
+
+
+
+
 Direction _directionFromCanon(Map<String, dynamic> j, String tag) {
   final rawAuto = j['auto'];
   return Direction(
     tag: tag,
-    // §405 — пустое имя законно: отображаем тег.
+
     label: (j['label'] as String?) ?? '',
-    // Отсутствие ключа = true (`enabled.default` схемы), а не false.
+
     enabled: j['enabled'] as bool? ?? true,
     nodeFilter: (j['filter'] as String?) ?? '',
     nodeFilterInvert: j['invert'] as bool? ?? false,
     defaultFilter: (j['default'] as String?) ?? '',
-    // Служебные опции у сторон зовутся по-своему (`direct-out`/`block-out` у
-    // лаунчера, `direct`/`block` у нас) и потому едут признаками, а не тегами.
+
+
     includeDirect: j['include_direct'] as bool? ?? false,
     includeBlock: j['include_block'] as bool? ?? false,
     include: _strList(j['include']),
-    // Отсутствие ключа означает «решает шаблон», а не false: у мобилы
-    // шаблонное значение — true (см. `Direction.interruptExistConnections`).
+
+
     interruptExistConnections:
         j['interrupt_exist_connections'] as bool? ?? true,
     auto: rawAuto is Map
@@ -2220,23 +2220,23 @@ Direction _directionFromCanon(Map<String, dynamic> j, String tag) {
   );
 }
 
-/// §409 — `directions[].ping_url` / `directions[].ping_timeout_ms` → бюджет
-/// теста узла ([LxDirectionPing]).
-///
-/// Отсутствие ключа = override нет, и это НЕ ошибка: подавляющее большинство
-/// Направлений живёт на глобальном бюджете.
-///
-/// Валидация повторяет ту, что делает диалог §040 при сохранении: URL идёт
-/// обрезанным по краям и пустым не сохраняется, таймаут — целое положительное.
-/// Значение, не прошедшее её, ОТБРАСЫВАЕТСЯ, а Направление применяется без
-/// него: пустой URL и нулевой таймаут не «строгий бюджет», а мёртвая кнопка
-/// «Ping», и уронить из-за них весь файл значило бы потерять всё прочее (П6).
-///
-/// Тип разошёлся (строка вместо числа, число вместо строки) — знакомый ключ с
-/// чужим значением: [kWarnFieldTypeMismatch], как у `subscriptions[].skip`
-/// (§401). Значение ВНЕ диапазона своего типа (пустая строка, 0, минус)
-/// предупреждения не даёт: тип тот, и приехало ровно то, что на этой стороне
-/// означает «override сброшен».
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 LxDirectionPing _directionPingFromCanon(
   Map<String, dynamic> j,
   String tag,
@@ -2250,7 +2250,7 @@ LxDirectionPing _directionPingFromCanon(
   }
 
   final rawTimeout = j['ping_timeout_ms'];
-  // `bool` в Dart не `num`, поэтому отдельной проверки на него не нужно.
+
   if (rawTimeout != null && rawTimeout is! num) {
     warnings.add(
       LxBackupWarning(
@@ -2260,35 +2260,35 @@ LxDirectionPing _directionPingFromCanon(
     );
   }
 
-  // Пустую строку и неположительный таймаут отсеивает конструктор: тип у них
-  // верный, и означают они «override сброшен», а не ошибку файла.
+
+
   return LxDirectionPing(
     url: rawUrl is String ? rawUrl : null,
     timeoutMs: rawTimeout is num ? rawTimeout.toInt() : null,
   );
 }
 
-/// §393 B2 — мобильное [Direction] → каноническая форма.
-///
-/// Прямые значения, без ссылок: у мобилы ссылочно-served полей (шаблонных
-/// `@urltest_tolerance` лаунчера) нет вовсе — экспортируется то, что лежит.
-///
-/// §405 — `label` пишется, когда он непустой И отличается от тега. Поле
-/// объявлено в схеме, применяет его только LxBox (колонка «Поддержка»
-/// `docs/BACKUP.md` §2, D-094), лаунчер не применяет и провозит молча.
-/// `label == tag` не пишем: там нет имени, там повтор тега, и на той стороне
-/// он был бы неотличим от осознанно введённого имени.
-///
-/// §409 — `ping_url` / `ping_timeout_ms` пишутся ТОЛЬКО когда у Направления
-/// есть соответствующий override в `ping_options.groups[tag]`: отсутствие
-/// ключа и означает «override нет», а выписывать сюда разрешённое значение
-/// (глобальное или шаблонное) значило бы превратить умолчание в
-/// зафиксированную настройку на принимающей стороне.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Map<String, dynamic> _directionToJson(Direction d, LxDirectionPing? ping) => {
   'tag': d.tag,
   if (d.label.isNotEmpty && d.label != d.tag) 'label': d.label,
-  // Ключ пишем только для выключенного: отсутствие = true по схеме, и
-  // «enabled: true» у каждой записи раздувало бы файл без смысла.
+
+
   if (!d.enabled) 'enabled': false,
   if (d.nodeFilter.isNotEmpty) 'filter': d.nodeFilter,
   if (d.nodeFilterInvert) 'invert': true,
@@ -2303,34 +2303,34 @@ Map<String, dynamic> _directionToJson(Direction d, LxDirectionPing? ping) => {
 };
 
 
-/// §393 C9 — каноническая запись `chains[]` → мобильная [SourceChain].
-///
-/// Достижимость `hops` здесь НЕ проверяется: хоп — чаще всего узел подписки,
-/// которого до её обновления не существует, и рубеж валидации у обеих сторон
-/// один — сборка конфига (`chain_hop_missing`). Эталон —
-/// `core/backup/import.go:importChain`.
-///
-/// §405 — `label` читается В МОДЕЛЬ: поле применяет LxBox (колонка
-/// «Поддержка» `docs/BACKUP.md` §2, D-094). [kWarnLabelDropped] не
-/// поднимается —
-/// предупреждать не о чем, ничего не теряется. Отсутствие ключа — пустое имя,
-/// показан будет тег.
+
+
+
+
+
+
+
+
+
+
+
+
 SourceChain _chainFromCanon(Map<String, dynamic> j, String tag) {
   final canon =
       (j['chain'] as Map?)?.cast<String, dynamic>() ??
       const <String, dynamic>{};
-  // Канон разбирается кодеком цепочки: второй разбор тех же полей разошёлся
-  // бы с ним на первой же правке (трёхзначный `strip_evasion`, порядок
-  // каталога `strip`, `null` внутри `rewrite`). Позиции 0.12 — строки.
+
+
+
   final label = j['label'];
   final enabled = j['enabled'];
   return chainFromRecord({
     'kind': kSourceKindChain,
     'tag': tag,
     if (label is String) 'label': label,
-    // Отсутствие ключа = true (`enabled.default` схемы). В ожиданиях корпуса
-    // ключа нет вовсе, и читать его отсутствие как false значило бы
-    // импортировать выключенными все цепочки лаунчера.
+
+
+
     if (enabled is bool) 'enabled': enabled,
     'body': {
       for (final e in canon.entries)
@@ -2343,44 +2343,44 @@ SourceChain _chainFromCanon(Map<String, dynamic> j, String tag) {
   }).value!;
 }
 
-/// §406 (D-095) — цель правила и `route.final` опознаются ТОЧНЫМ совпадением
-/// после `trim()`.
-///
-/// Тег outbound'а у ядра регистрозависим: правило на `VPN-DE` при Направлении
-/// `vpn-de` ядро не свяжет ни с чем. Регистронезависимое опознание объявляло
-/// бы такую цель известной и пропускало правило ВКЛЮЧЁННЫМ — то есть ровно в
-/// тот отказ конфига, ради которого гейт и стоит. Разошедшийся регистр — это
-/// неизвестная цель, и правило обязано приехать выключенным.
-///
-/// Зарезервированные литералы сравниваются в каноническом написании ядра
-/// (`_reservedOutbounds`, всё в нижнем регистре): `Direct` таким же
-/// outbound'ом для ядра не является.
+
+
+
+
+
+
+
+
+
+
+
+
 bool _isKnownOutbound(String tag, Set<String> known) {
   final t = tag.trim();
   return _reservedOutbounds.contains(t) || known.contains(t);
 }
 
-/// §441 (SPEC 129 Н9) — известна ли цель [tag] списку [known]
-/// ([lxImportKnownTargets]) с зарезервированными литералами: та же проверка,
-/// что у целей правил, для маршрута DNS-серверов.
+
+
+
 bool lxIsKnownImportTarget(String tag, Set<String> known) =>
     _isKnownOutbound(tag, known);
 
-/// D-117 — корневые имена результата импорта (BACKUP.md §3, NODE_LINK §8):
-/// служебные теги шаблона приёмника ([systemTags]; без шаблона —
-/// [kLxImportDefaultSystemTags]), теги Направлений и `-auto` тех, у кого есть
-/// автовыбор, теги цепочек и корневые имена свёрток источников
-/// ([replaceTags], фича 565 фаза B: `tag` и у `both` его `-auto`).
-///
-/// [directions] и [chainTags] — то, что окажется у приёмника после слияния:
-/// его собственные записи и приехавшие, прошедшие гейт тегов. Запись файла,
-/// отсеянная гейтом, целью не становится: её тег либо уже есть у приёмника,
-/// либо служебный и Направлению не положен.
-///
-/// Это часть списка известных целей ([lxImportKnownTargets]), которая
-/// известна ДО слияния узлов: её получает подъём ссылок
-/// ([mergeBackupServers], `rootNames`), а корневые узлы результата он
-/// добавляет сам тем же [lxImportRootNodeTags].
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Set<String> lxImportRootNames({
   Iterable<Direction> directions = const [],
   Iterable<String> chainTags = const [],
@@ -2397,8 +2397,8 @@ Set<String> lxImportRootNames({
   for (final d in directions) {
     if (d.tag.trim().isEmpty) continue;
     add(d.tag);
-    // Двойник эмитится только у Направления с автовыбором
-    // (`build_config.dart`, `emitAuto`): цель без него — ссылка в никуда.
+
+
     if (d.auto != null) add(d.autoTag);
   }
   chainTags.forEach(add);
@@ -2406,34 +2406,34 @@ Set<String> lxImportRootNames({
   return names;
 }
 
-/// Теги корневых узлов [lists] — одиночных серверов, под которыми узел
-/// эмитится (префикс сервера + тег узла, [containerFinalForm]).
+
+
 Set<String> lxImportRootNodeTags(List<ServerList> lists) => {
       for (final l in lists)
         if (l is UserServer)
-          // Сервер, заведённый этим импортом, узлов ещё не разобрал: они в тексте.
+
           for (final n in l.nodes.isNotEmpty ? l.nodes : _nodesOf(l.rawBody))
             if (n.tag.isNotEmpty) containerFinalForm(l, n.tag),
     };
 
-/// D-117 — ЕДИНСТВЕННЫЙ список известных целей импорта (BACKUP.md §3): цели
-/// правил (`backup_unknown_outbound`), `route.final`
-/// (`backup_final_dropped`) и корневые имена подъёма ссылок.
-///
-/// Считается ПОСЛЕ слияния, по тому, что окажется у приёмника:
-/// [lxImportRootNames] (служебные теги шаблона, Направления и их `-auto`,
-/// цепочки), корневые узлы результата [lists], имена, которые приёмник знает
-/// сам ([receiverTargets]), и зарезервированные литералы.
-///
-/// Раньше списков было два: экран строил его из хранения приёмника ДО
-/// слияния, декодер дописывал теги файла, и ни один не видел `-auto`,
-/// корневых узлов файла и служебных тегов шаблона — импорт в пустое состояние
-/// выключал правила на цели, приехавшие этим же файлом.
-///
-/// `null` — «проверять нечем»: ни шаблона, ни Направлений, ни цепочек, ни
-/// узлов, ни имён приёмника. Тогда цели не режутся — выключить всё подряд
-/// хуже, чем импортировать как есть; умолчания служебных тегов такой список не
-/// открывают.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Set<String>? lxImportKnownTargets({
   Iterable<Direction> directions = const [],
   Iterable<String> chainTags = const [],
@@ -2468,9 +2468,9 @@ Set<String>? lxImportKnownTargets({
   };
 }
 
-/// Цель правила так, как её называет файл: `outbound` правила inline/srs
-/// (`reject` у отказа), `outbound` тела правила вида json. У пресета цели
-/// нет — она из шаблона. Пустая строка — цели нет, проверять нечего.
+
+
+
 String _ruleTarget(CustomRule r) => switch (r) {
       CustomRuleInline(:final outbound) => outbound,
       CustomRuleSrs(:final outbound) => outbound,
@@ -2481,17 +2481,17 @@ String _ruleTarget(CustomRule r) => switch (r) {
         },
     };
 
-/// D-117 — цели правил и `route.final` файла против списка известных целей
-/// [known] ([lxImportKnownTargets]). Один проход на оба формата файла.
-///
-/// Правило с целью, которой нет, приезжает ВЫКЛЮЧЕННЫМ с
-/// [kWarnUnknownOutbound], а не теряется: включённое правило с несуществующей
-/// целью роняет конфиг ядра целиком. `route.final` в никуда не применяется
-/// ([kWarnFinalDropped]): маршрут по умолчанию уводил бы весь трафик в
-/// несуществующий outbound. `known == null` — проверять нечем, файл как есть.
-///
-/// Возвращает новый [LxBackupFile]: правила в том же порядке, предупреждения
-/// дописаны в конец отчёта в порядке правил.
+
+
+
+
+
+
+
+
+
+
+
 LxBackupFile gateLxBackupTargets(LxBackupFile file, Set<String>? known) {
   if (known == null) return file;
   final warnings = [...file.warnings];
@@ -2535,10 +2535,10 @@ LxBackupFile gateLxBackupTargets(LxBackupFile file, Set<String>? known) {
   );
 }
 
-/// Запись схемы → правила LxBox (вид `json` — по записи на тело, D-111).
-///
-/// Цель здесь не сверяется: ссылку в никуда выключает [gateLxBackupTargets]
-/// после слияния.
+
+
+
+
 List<CustomRule> _ruleFromJson(
   Map<String, dynamic> j,
   Set<String> knownPresets,
@@ -2567,8 +2567,8 @@ List<CustomRule> _ruleFromJson(
   return rule == null ? const [] : [rule];
 }
 
-/// Тело разбора правила по виду. Вынесено из [_ruleFromJson], чтобы ветки
-/// switch не расходились по мере роста видов.
+
+
 CustomRule? _ruleBodyFromJson(
   Map<String, dynamic> j,
   String kindName,
@@ -2594,12 +2594,12 @@ CustomRule? _ruleBodyFromJson(
         portRanges: _strList(match['port_range']),
         protocols: _strList(match['protocol']),
         network: _strList(match['network']),
-        // §401 — mobile-only матчеры (`packages`, `wifiSsids`, приватные IP)
-        // из файла не приезжают: дома в общей схеме им нет, и провозить их
-        // больше нечем. Правило собирается из того, что в схеме есть.
+
+
+
         outbound: outbound.isEmpty ? kDirectOutboundTag : outbound,
-        // `dns`/`resolve` — наши поля таблицы §2 BACKUP.md: круг LxBox→LxBox
-        // возвращает их на место, лаунчер отбрасывает у себя с warning'ом.
+
+
         dns: RuleDns.fromJson(j['dns']),
         resolve: RuleResolve.fromJson(j['resolve']),
       );
@@ -2610,7 +2610,7 @@ CustomRule? _ruleBodyFromJson(
         enabled = false;
         warnings.add(LxBackupWarning(kWarnUnknownPreset, ref));
       }
-      // `vars` схемы — значения переменных пресета (`varsValues` модели).
+
       final vars = j['vars'];
       return CustomRulePreset(
         name: name,
@@ -2631,7 +2631,7 @@ CustomRule? _ruleBodyFromJson(
         name: name,
         enabled: enabled,
         orderNum: orderNum,
-        // `ref` — первый набор; ## 12 — `refs` главнее `ref`.
+
         srsUrl: _str(j['ref']),
         srsUrls: _strList(j['refs']),
         outbound: outbound,
@@ -2647,11 +2647,11 @@ CustomRule? _ruleBodyFromJson(
   }
 }
 
-/// §439 (D-111) — сырое правило `kind: json` формата 0.x: тело в `match`,
-/// объект или массив тел. Процедура одна с записью 1.0 ([_splitRuleBodies]);
-/// каждая часть — правило вида json с телом как есть (у LxBox это запись
-/// `inline` + `verbatim`, сборка кладёт тело в конфиг без переписи). Тело не
-/// объект и не массив — запись отбрасывается с [kWarnUnknownField].
+
+
+
+
+
 List<CustomRule> _jsonRule0x(
   Map<String, dynamic> j,
   String name,
@@ -2683,20 +2683,20 @@ List<String> _strList(Object? v) {
   return const [];
 }
 
-// ---------------------------------------------------------------------------
-// §438/§439 — декодер формата 1.0 (`lx_backup: 2`).
-//
-// Записи файла 1.0 — записи состояния, и разбирает их кодек хранения
-// (`models/codec/`): источники — `sourceFromRecord`, цепочки —
-// `chainFromRecord`, правила и DNS — свои кодеки записей. Поля LxBox, которых
-// контракт не объявил, сняты до кодека (`stripUndeclaredBackupFields`): их
-// назвал обход неизвестных ключей. Итог — те же промежуточные записи, что даёт
-// декодер 0.x ([LxSubscription], [LxServer], [LxFolder], [SourceChain],
-// [CustomRule], [LxDns]), слияние дальше одно на оба формата.
-//
-// Разбор терпим к типам: ключ чужого типа не роняет файл (П6), а читается
-// как отсутствующий.
-// ---------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 String _str(Object? v) => v is String ? v : '';
 
@@ -2707,18 +2707,18 @@ Map<String, dynamic>? _obj(Object? v) =>
 
 List<Object?> _list(Object? v) => v is List ? v : const [];
 
-/// `id` для кодека у записи файла без `id`: кодек хранения без него запись не
-/// читает, а импорт такую запись принимает (новой записи `id` выдаст слияние).
+
+
 const String _kNoFileId = '\u0000';
 
-/// Ссылка `{folder_id?, tag}` файла; пустой тег — ссылки нет.
+
 NodeLink? _link10(Object? raw) {
   final link = nodeLinkFromRecord(raw);
   return link == null || link.tag.isEmpty ? null : link;
 }
 
-/// Как назвать запись `sources[]` пользователю: адрес подписки, иначе имя,
-/// иначе тег (эталон — `source10Label` лаунчера).
+
+
 String _source10Label(Map<String, dynamic> j) {
   final url = _trimmed(j['url']);
   if (url.isNotEmpty) return url;
@@ -2727,8 +2727,8 @@ String _source10Label(Map<String, dynamic> j) {
   return _trimmed(j['tag']);
 }
 
-/// Запись источника для кодека хранения: без не объявленных контрактом полей
-/// LxBox и с `id` (см. [_kNoFileId]).
+
+
 Map<String, dynamic> _sourceForCodec(
   BackupRecord kind,
   Map<String, dynamic> j,
@@ -2741,13 +2741,13 @@ Map<String, dynamic> _sourceForCodec(
       'id': fileId.isEmpty ? _kNoFileId : fileId,
     };
 
-/// §439 Л2 — есть ли в записи файла поле LxBox, которое контракт объявил:
-/// только такое поле применяется, его отсутствие оставляет значение
-/// приёмника. Необъявленное снято до кодека и не применяется никогда.
+
+
+
 bool _carries(BackupRecord kind, Map<String, dynamic> j, String key) =>
     j.containsKey(key) && declaredBackupKeys(kind).contains(key);
 
-/// Флаги политики detour без ссылки (ссылка едет полем `detour`).
+
 DetourPolicy _flagsOf(DetourPolicy p) => p.copyWith(overrideDetour: NodeLink.none);
 
 LxBackupFile _parse10(
@@ -2795,7 +2795,7 @@ LxBackupFile _parse10(
         }
       case 'chain':
         final tag = _trimmed(j['tag']);
-        // Безымянная цепочка не адресуема: пропуск молча, как в 0.x.
+
         if (tag.isEmpty) continue;
         _dropForeignSections(j, kind, warnings);
         if (!takenChainTags.add(tag)) {
@@ -2808,8 +2808,8 @@ LxBackupFile _parse10(
         chainHops[tag] = chain.hops;
         chainPositions[tag] = i;
       default:
-        // Корневые `auto`/`unsupported` union не выражает, незнакомый вид —
-        // чужая сторона, ушедшая вперёд по схеме. Молча не теряется (П6).
+
+
         warnings.add(LxBackupWarning(
           kWarnSourceKindUnsupported,
           _source10Label(j),
@@ -2823,7 +2823,7 @@ LxBackupFile _parse10(
       if (_obj(item) case final j?) ..._rule10(j, knownPresets, warnings),
   ];
 
-  // §441 — DNS раньше переменных (Н8), предупреждения — на прежнем месте.
+
   final dnsWarnings = <LxBackupWarning>[];
   final dnsRaw =
       _dns10(decoded['dns'], knownPresets, dnsWarnings, recordVars);
@@ -2858,12 +2858,12 @@ LxBackupFile _parse10(
   );
 }
 
-/// §575 — секции у записи ЛЮБОГО вида (сервер, член папки, подписка, папка,
-/// цепочка, `auto`, `unsupported`): поле снимается целиком с
-/// `reason: not_allowed`, одно предупреждение на запись (контракт 1.1.85).
-/// Пустой набор предупреждения не даёт — терять в нём нечего. Само поле
-/// дальше не читается: у сервера и члена папки его снимает [_server10] до
-/// кодека, прочим видам кодек его не читает.
+
+
+
+
+
+
 void _dropForeignSections(
   Map<String, dynamic> j,
   String kind,
@@ -2884,19 +2884,19 @@ void _dropForeignSections(
   ));
 }
 
-/// Узел `kind: server` (корневой или член папки) → [LxServer] кодеком
-/// хранения.
-///
-/// Тело для дедупа и хранения — ИСХОДНИК (`origin.raw`), материализованное
-/// `body` — только у узла без исходника (BACKUP.md §9 п. 2). Исходник `json`
-/// и тело без исходника получают тег записи: у LxBox имя узла читается из его
-/// JSON, а тег записи и есть идентичность. Текст URI и WG-INI едет как есть:
-/// имя у share-ссылки в разных схемах лежит в разных местах, и переписывать
-/// его импорт не берётся.
-///
-/// Поле `sections` снимается до кодека ([_dropForeignSections], §575).
-/// `detour` — ссылка файла как есть: тег конфига из неё
-/// получает слияние по карте контейнеров ([mergeBackupServers]).
+
+
+
+
+
+
+
+
+
+
+
+
+
 LxServer? _server10(
   Map<String, dynamic> j,
   List<LxBackupWarning> warnings, {
@@ -2916,7 +2916,7 @@ LxServer? _server10(
   final read = sourceFromRecord(
     _sourceForCodec(
       folder == null ? BackupRecord.server : BackupRecord.folderNode,
-      // Пустой исходник читается как его отсутствие: тело берётся из `body`.
+
       hasOrigin ? j : ({...j}..remove('origin')),
       fileId,
       override: const {'kind': kSourceKindServer},
@@ -2935,7 +2935,7 @@ LxServer? _server10(
   if (obj != null) {
     configJson = {...obj, if (tag.isNotEmpty) 'tag': tag};
   } else {
-    // `uri`, `wg_ini`, будущие виды и нечитаемый json — текст как есть.
+
     uri = raw;
   }
 
@@ -2961,11 +2961,11 @@ LxServer? _server10(
   );
 }
 
-/// Член папки 1.0. `server` — узел; `unsupported` с исходником — у LxBox
-/// есть дом: нечитаемый член папки хранит текст и виден в списке (§234);
-/// `auto` — узел автовыбора кодеком хранения (§439 N2, род `selector` —
-/// как записан, §565); `chain` папка LxBox не держит —
-/// [kWarnSourceKindUnsupported].
+
+
+
+
+
 LxServer? _folderMember10(
   Map<String, dynamic> node,
   LxFolder folder,
@@ -2988,7 +2988,7 @@ LxServer? _folderMember10(
         autoGroup: group,
         name: group.tag,
         enabled: read.member.enabled,
-        // Контракт 1.1.66 — записи группы читатель кладёт как есть.
+
         warnings: read.member.warnings,
         folder: folder.name,
         folderRef: folder.key,
@@ -3014,11 +3014,11 @@ LxServer? _folderMember10(
   return null;
 }
 
-/// Подписка 1.0 кодеком хранения. Применяется то, у чего у LxBox есть дом:
-/// имя, `enabled`, префикс `tag_policy`, интервал `update`, `disabled`,
-/// `identity`, `detour`. Поля лаунчера (`postfix`, `fold`/`fold_tag`, `skip`,
-/// `max_nodes`, `relays_in_directions`, `update.auto_refresh`) игнорируются
-/// молча (BACKUP.md §1, колонка «Поддержка»).
+
+
+
+
+
 LxSubscription _subscription10(
   Map<String, dynamic> j,
   int position,
@@ -3063,8 +3063,8 @@ LxSubscription _subscription10(
   );
 }
 
-/// Папка 1.0 кодеком хранения: `id`, имя, `enabled`, префикс `tag_policy`,
-/// общий `detour`. Состав разбирается узлами ([_folderMember10]).
+
+
 LxFolder _folder10(Map<String, dynamic> j, int position) {
   final fileId = _trimmed(j['id']);
   final read = sourceFromRecord(_sourceForCodec(
@@ -3077,12 +3077,12 @@ LxFolder _folder10(Map<String, dynamic> j, int position) {
   bool carries(String key) => _carries(BackupRecord.folder, j, key);
   return LxFolder(
     position: position,
-    // Члены ссылаются на папку ключом, а не именем: в файле бывают тёзки.
-    // У записи без `id` ключ — номер записи с префиксом, которого у
-    // настоящего `id` не бывает.
+
+
+
     key: fileId.isNotEmpty ? fileId : '\u0000$position',
     id: fileId,
-    // Имя папки сравнивается как есть (BACKUP.md §9 п. 3): без подрезки.
+
     name: folder.name,
     enabled: folder.enabled,
     tagPrefix: folder.tagPrefix,
@@ -3094,10 +3094,10 @@ LxFolder _folder10(Map<String, dynamic> j, int position) {
   );
 }
 
-/// Цепочка 1.0 кодеком хранения: настройки маршрута из `body`, позиции —
-/// ссылками файла (в теги конфига их переводит [resolveBackupChainHops]).
-/// Ключ тела, которого модель не держит, — [kWarnUnknownField]: тело
-/// типизировано моделью, и провезти его некуда.
+
+
+
+
 ({SourceChain chain, List<NodeLink> hops})? _chain10(
   Map<String, dynamic> j,
   String tag,
@@ -3121,17 +3121,17 @@ LxFolder _folder10(Map<String, dynamic> j, int position) {
   );
 }
 
-/// §439 (D-111, BACKUP.md §2 «Одно правило — одно тело») — запись правила,
-/// у которой на месте тела ([body]) массив, раскладывается на записи по
-/// элементу-объекту в порядке массива, как если бы массив был развёрнут в
-/// файле подряд: имена `name`, `name #2`… по порядку получившихся записей
-/// (безымянная остаётся безымянной), `enabled` общий, `id` только у первой.
-/// `num` общий: номера файла LxBox сохраняет ([renumberBackupAxis]), и
-/// стабильная сортировка оси держит части подряд на месте исходной записи.
-///
-/// Элемент не объект — [kWarnUnknownField] ([where] называет место), прочие
-/// части идут. Пустой массив — запись отбрасывается тем же кодом. Не массив —
-/// запись как есть.
+
+
+
+
+
+
+
+
+
+
+
 List<Map<String, dynamic>> _splitRuleBodies(
   Map<String, dynamic> record,
   Object? body,
@@ -3161,14 +3161,14 @@ List<Map<String, dynamic>> _splitRuleBodies(
   return parts;
 }
 
-/// Правило 1.0 → правила LxBox через кодек записей (массив тел — D-111).
-///
-/// `inline` с ключами тела, которых типизированное правило не держит
-/// (`method: drop`, самостоятельный `action`, незнакомый матчер), переносится
-/// видом json — телом целиком, без потерь: вырезать ключ значило бы изменить
-/// смысл правила (норма B3). `rule_set` в теле (наборы едут `refs[]`) и
-/// `srs` с незнакомым ключом дома не имеют — запись отбрасывается целиком с
-/// [kWarnUnknownField].
+
+
+
+
+
+
+
+
 List<CustomRule> _rule10(
   Map<String, dynamic> j,
   Set<String> knownPresets,
@@ -3179,7 +3179,7 @@ List<CustomRule> _rule10(
   final ref = _str(j['ref']);
   final label = name.isNotEmpty ? name : (ref.isNotEmpty ? ref : kind);
   if (kind != 'inline' && kind != 'srs' && kind != 'preset') {
-    // Вид `json` формата 0.12 в 1.0 снят (он был тем же inline).
+
     warnings.add(LxBackupWarning(kWarnUnknownField, 'rules[].kind=$kind'));
     return const [];
   }
@@ -3210,8 +3210,8 @@ CustomRule? _ruleRecord10(
 
   if (rule is CustomRulePreset) {
     CustomRule out = rule;
-    // У preset имени в записи нет (обязательно оно только у inline/srs):
-    // правило зовётся своей ссылкой.
+
+
     if (out.name.isEmpty) out = out.withName(rule.presetId);
     if (knownPresets.isNotEmpty && !knownPresets.contains(rule.presetId)) {
       warnings.add(LxBackupWarning(kWarnUnknownPreset, rule.presetId));
@@ -3228,8 +3228,8 @@ CustomRule? _ruleRecord10(
       ));
       return null;
     }
-    // `dns`/`resolve` — поля LxBox у типизированного правила; у правила вида
-    // json им места нет, и молча они не теряются.
+
+
     for (final key in const ['dns', 'resolve']) {
       if (j[key] is Map && (j[key] as Map).isNotEmpty) {
         warnings.add(LxBackupWarning(kWarnUnknownField, 'rules[$label].$key'));
@@ -3239,14 +3239,14 @@ CustomRule? _ruleRecord10(
   return rule;
 }
 
-/// DNS-секция 1.0 → [LxDns] кодеком записей.
-///
-/// Серверы: `user` (тело без `tag`), `template` (ссылка тегом), `preset`
-/// (ссылка `ref`, тега нет). Правила: `user` (тело с `server`) и `preset`.
-/// Прочее — [kWarnDnsEntrySkipped], как у 0.x. Ключи, которых таблица среза
-/// не знает, сняты до кодека; `vars` и `description` сервера объявлены
-/// контрактом и читаются. §441 — template-сервер с тегом, которого шаблон
-/// приёмника не объявил, — тоже [kWarnDnsEntrySkipped].
+
+
+
+
+
+
+
+
 LxDns? _dns10(
   Object? raw,
   Set<String> knownPresets,
@@ -3273,7 +3273,7 @@ LxDns? _dns10(
       ));
       continue;
     }
-    // Пресет, которого в шаблоне этой стороны нет, применить нечем.
+
     if (server is DnsServerPreset &&
         server.presetId.isNotEmpty &&
         knownPresets.isNotEmpty &&
@@ -3295,8 +3295,8 @@ LxDns? _dns10(
     final e = _obj(item);
     if (e == null) continue;
     final kind = _str(e['kind']);
-    // Виды LxBox (`srs`, `template`) читаются, только когда контракт их
-    // объявит (таблица среза).
+
+
     final readable = kind == 'user' ||
         kind == 'preset' ||
         ((kind == 'srs' || kind == 'template') &&
@@ -3330,14 +3330,14 @@ LxDns? _dns10(
   );
 }
 
-// ─── §438 — обход неизвестных ключей формата 1.0 ────────────────────────────
-//
-// Списки — таблица полей BACKUP.md §2 формата 1.0 (схема
-// `backup.schema.json`), написанные руками по той же причине, что у 0.x:
-// контракт — это документ, а не форма наших классов. Списки 0.x и 1.0
-// разные: у 0.x правило несёт `match`/`outbound`, у 1.0 — `body`/`refs`.
-// §439 — к ним добавляются поля LxBox, объявленные контрактом (флаг Л2 таблицы
-// среза `lx_backup_slice.dart`).
+
+
+
+
+
+
+
+
 
 const Set<String> _root10Keys = {
   'lx_backup',
@@ -3352,7 +3352,7 @@ const Set<String> _root10Keys = {
   'warp',
 };
 
-/// Общая часть узла (`$defs/node`): её несёт и корневая запись, и член папки.
+
 const Set<String> _node10Keys = {
   'kind',
   'tag',
@@ -3365,16 +3365,16 @@ const Set<String> _node10Keys = {
   'service',
   'reason',
   'sections',
-  // §578 — «пропустить пресеты» узла (запрос в контракт); пишется только true.
+
   'skip_presets',
-  // Фича 478 — вердикт на члене папки. Ключ известен обходу, чтобы старый
-  // файл с `core_rejected` не давал `backup_unknown_field`; содержимое
-  // срезает санитизация §489.
+
+
+
   'warnings',
 };
 
-/// Запись `sources[]` любого вида: объединение ключей, как у лаунчера — ключ,
-/// законный у одного вида, на записи другого предупреждения не даёт.
+
+
 const Set<String> _source10Keys = {
   ..._node10Keys,
   'id',
@@ -3388,8 +3388,8 @@ const Set<String> _source10Keys = {
   'max_nodes',
   'update',
   'disabled',
-  // Фича 565 фаза B (§74) — свёртка в группу. Прежние `fold`/`fold_tag` по
-  // решению владельца 26.09.2026 не читаются: чужие ключи с предупреждением.
+
+
   'replace',
 };
 
@@ -3402,7 +3402,7 @@ const Set<String> _group10Keys = {
   'default',
   'members',
   'strategy',
-  // Поля стороны LxBox (контракт 1.0.1).
+
   'members_rule',
   'pool_badge',
 };
@@ -3439,11 +3439,11 @@ const Set<String> _dnsRule10Keys = {
   'body',
 };
 
-/// §438 — обход файла 1.0: те же два класса находок, что у [_scanUnknown]
-/// (`extensions` одним warning'ом, прочее — полным путём). Внутрь `body` не
-/// спускается: это объект sing-box, его ключи ведёт ядро (тело цепочки
-/// проверяет её разбор). Внутрь `identity` — тоже нет: неприменённые ключи
-/// называет [_identityFromJson] одним предупреждением.
+
+
+
+
+
 List<LxBackupWarning> _scanUnknown10(Map<String, dynamic> root) {
   final sc = _UnknownScan();
 
@@ -3519,38 +3519,38 @@ List<LxBackupWarning> _scanUnknown10(Map<String, dynamic> root) {
   return sc.warnings();
 }
 
-/// Результат слияния подписок файла с локальным состоянием
-/// ([mergeBackupSubscriptions]).
+
+
 typedef BackupSubscriptionMerge = ({
-  /// Списки источников после слияния (порядок локальных сохранён, новые — в
-  /// хвосте, в порядке файла).
+
+
   List<ServerList> lists,
 
-  /// URL подписки → её индекс в [lists]. Нужен последующим секциям импорта.
+
   Map<String, int> byUrl,
 
-  /// Сколько записей файла реально применилось.
+
   int applied,
 
-  /// §438 — `id` подписки в файле → `id` подписки здесь. Ссылки `hops[]` и
-  /// `detour` на узел подписки идут по этой карте (BACKUP.md §6).
+
+
   Map<String, String> ids,
 
-  /// §438 — `id` заведённой подписки → её место в файле: слияние узлов
-  /// ставит новые источники всех видов в порядке файла.
+
+
   Map<String, int> added,
 
-  /// §439 — `id` подписки здесь → общий `detour` из файла 1.0 (`null` — снять
-  /// свой). Тег конфига из ссылки получает слияние узлов, когда известна карта
-  /// контейнеров ([mergeBackupServers], `sourceDetours`). Подписок 0.x в
-  /// карте нет: их ссылка остаётся своей.
+
+
+
+
   Map<String, NodeLink?> detours,
 });
 
-/// §438 — `id` записи файла для НОВОЙ записи: берётся, если он есть, не занят
-/// и годится в идентификатор, иначе свежий (BACKUP.md §9 п. 8: два источника
-/// с одним `id` дали бы двух владельцев одной адресации). Форма ограничена:
-/// `id` приходит из чужого файла, а в состоянии он служит ключом.
+
+
+
+
 String _adoptSourceId(String fileId, Set<String> taken) {
   final id = fileId.isNotEmpty &&
           _sourceIdShape.hasMatch(fileId) &&
@@ -3563,32 +3563,32 @@ String _adoptSourceId(String fileId, Set<String> taken) {
 
 final RegExp _sourceIdShape = RegExp(r'^[A-Za-z0-9_-]{1,64}$');
 
-/// §393 B6/B10 + §401 (П1) — слияние `subscriptions[]` файла с локальными
-/// источниками. Чистая функция: состояние читает и пишет вызывающий.
-///
-/// Идентичность записи — URL: он и есть идентичность подписки на обеих
-/// сторонах контракта.
-///
-/// **Совпавшая по URL запись ОБНОВЛЯЕТСЯ настройками из файла.** Бэкап — это
-/// сериализация состояния (BACKUP_PRINCIPLES П1), и восстановленное состояние
-/// обязано быть неотличимо от настроенного руками. Раньше совпавшая запись
-/// получала только доливку disabled-отметок, поэтому восстановление СВОЕГО ЖЕ
-/// файла на том же устройстве не возвращало ни `identity`, ни префикс тегов:
-/// пользователь видел «импорт прошёл» и настроек на месте не находил.
-///
-/// Исключение ровно одно — **disabled-отметки ОБЪЕДИНЯЮТСЯ**, а не
-/// замещаются (§4 BACKUP.md): отметка, которой в файле нет, могла быть
-/// поставлена уже после экспорта, и молча включать такой узел нельзя.
-///
-/// §438 — у записи формата 1.0 ([LxSubscription.fullSettings]) отсутствие
-/// интервала обновления значит умолчание, а не «оставь своё»: формат несёт
-/// настройки подписки целиком (BACKUP.md §9 п. 1). Новая подписка берёт `id`
-/// из файла, если он свободен.
-///
-/// Локальные подписки, которых в файле нет, НЕ удаляются: импорт — слияние,
-/// а полная замена раздела была бы другим решением.
-///
-/// Новая подписка добавляется БЕЗ узлов: тело приедет обычным обновлением.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 BackupSubscriptionMerge mergeBackupSubscriptions(
   List<ServerList> lists,
   List<LxSubscription> incoming,
@@ -3613,13 +3613,13 @@ BackupSubscriptionMerge mergeBackupSubscriptions(
     final idx = byUrl[sub.url];
     if (idx != null) {
       final existing = merged[idx] as SubscriptionServers;
-      // Хеш, которого у нас нет, добавляется; свой не перетирается.
+
       final add = <String, DateTime>{
         for (final e in sub.disabled.entries)
           if (!existing.disabledHashes.containsKey(e.key)) e.key: at(e.value),
       };
-      // Как у disabled: ключа, которого у нас нет, добавляем. core_rejected
-      // сюда не доезжает — санитизация §489 срезает его до кодека.
+
+
       final addW = <String, List<StoredWarning>>{
         for (final e in sub.nodeWarnings.entries)
           if (!existing.nodeWarnings.containsKey(e.key)) e.key: e.value,
@@ -3627,27 +3627,27 @@ BackupSubscriptionMerge mergeBackupSubscriptions(
       merged[idx] = existing.copyWith(
         disabledHashes: {...existing.disabledHashes, ...add},
         nodeWarnings: {...existing.nodeWarnings, ...addW},
-        // Пустое имя в файле именем не является — своё не затираем.
+
         name: sub.label.isNotEmpty ? sub.label : null,
         tagPrefix: sub.tagPrefix,
         updateIntervalHours: sub.updateIntervalHours ??
             (sub.fullSettings ? _defaultUpdateIntervalHours : null),
         enabled: sub.enabled,
-        // `identity` — слепок целиком: объекта в файле НЕТ значит «настройка
-        // сброшена в дефолт», а не «оставь как было». Иначе состояние без
-        // override'а не переносилось бы вовсе.
+
+
+
         identity: sub.identity,
         clearIdentity: sub.identity == null,
-        // §439 Л2 — объявленные настройки LxBox: приехали — применяются, нет
-        // в файле — свои (сторона их не носит). Ссылку detour ставит слияние
-        // узлов по [detours].
+
+
+
         detourPolicy: sub.detourPolicy?.copyWith(
             overrideDetour: existing.detourPolicy.overrideDetour),
         importRules: sub.importRules,
         importRulesEnabled: sub.importRulesEnabled,
         onUpdateAction: sub.onUpdateAction,
-        // Фича 565 фаза B — свёртка: запись 1.0 несёт её целиком (нет
-        // объекта — не свёрнута), 0.x про неё не знает — своя остаётся.
+
+
         replace: sub.replace,
         clearReplace: sub.fullSettings && sub.replace == null,
       );
@@ -3666,9 +3666,9 @@ BackupSubscriptionMerge mergeBackupSubscriptions(
       url: sub.url,
       updateIntervalHours:
           sub.updateIntervalHours ?? _defaultUpdateIntervalHours,
-      // §401 (D-083) — per-source identity: чем подписка представляется
-      // провайдеру. Провайдеры ВЕТВЯТ выдачу по UA, и без переноса та же
-      // ссылка отдала бы на новой машине другой набор узлов.
+
+
+
       identity: sub.identity,
       disabledHashes: {
         for (final e in sub.disabled.entries) e.key: at(e.value),
@@ -3696,74 +3696,74 @@ BackupSubscriptionMerge mergeBackupSubscriptions(
   );
 }
 
-/// Умолчание интервала обновления подписки (`SubscriptionServers`).
+
 const int _defaultUpdateIntervalHours = 24;
 
-/// §438 — адрес узла в списке источников: индекс источника и индекс члена
-/// папки (`-1` — сам источник, корневой узел).
+
+
 typedef BackupNodeRef = ({int list, int member});
 
-/// Результат слияния одиночных узлов и папок ([mergeBackupServers]).
+
 typedef BackupServerMerge = ({
-  /// Списки источников после слияния (порядок локальных сохранён, новые — в
-  /// хвосте, в порядке файла).
+
+
   List<ServerList> lists,
 
-  /// §511 m2 — заведённые импортом источники (подписки, серверы, папки):
-  /// `id` здесь → место записи в `sources[]` файла.
+
+
   Map<String, int> added,
 
-  /// Сколько записей файла реально применилось.
+
   int applied,
 
-  /// §438 — `id` контейнера в файле → `id` здесь: папки этого слияния и
-  /// подписки из [mergeBackupSubscriptions] (`sourceIds`). Совпавший
-  /// контейнер держит локальный `id`, заведённый — `id` из файла (если
-  /// свободен). По карте переводятся ссылки `hops[]`/`detour` (BACKUP.md §6).
+
+
+
+
   Map<String, String> folderIds,
 
-  /// §438 — узлы, которые импорт принёс или узнал по телу: их секции идут в
-  /// общую перенумерацию оси ([renumberBackupAxis]).
+
+
   List<BackupNodeRef> touched,
 
-  /// §439 — ссылка файла → адрес здесь (NODE_LINK §7.2, §7.3): `folder_id`
-  /// по карте контейнеров и тег, под которым лёг член; `{tag}` на члена
-  /// контейнера — пара, если кандидат один (сперва среди узлов файла, затем
-  /// среди узлов приёмника). [legacy] — файл 0.x: тег сверяется и с сырым
-  /// тегом члена. Позиции цепочек переводит [resolveBackupChainHops].
+
+
+
+
+
   BackupLinkMapper linkOf,
 });
 
-/// §439 — перевод ссылки файла в адрес здесь ([BackupServerMerge.linkOf]).
+
 typedef BackupLinkMapper = NodeLink Function(NodeLink link, {bool legacy});
 
-/// §406 (D-095) — КАНОН ТЕЛА узла для дедупа при импорте.
-///
-/// Идентичности, кроме тела, у одиночной записи `servers[]` нет: `id`
-/// локальный и в файле его не существует, `node_tag` вычисляется из тела.
-/// Значит вопрос «этот узел у меня уже стоит?» решается сравнением тел — и
-/// сравнивать их посимвольно нельзя: одна и та же нода, пересобранная другим
-/// сериализатором, даёт другую строку и второй раз доливается в список.
-///
-/// Форма канона:
-///
-///  * **URI** — всё от первого `#` отрезается, затем `trim()`. Фрагмент это
-///    ИМЯ узла, а не его тело: `vless://…#Berlin` и `vless://…#Берлин` — один
-///    и тот же сервер под двумя подписями, и заводить его дважды не за что.
-///  * **JSON-объект** — из верхнего уровня удаляются `tag` и `detour` (форма
-///    identity-хеша, контракт D-007: `tag` — то же имя, `detour` — способ
-///    дозвона, а не узел), остаток рекурсивно сортируется по ключам
-///    ([deepSortKeys]) и печатается компактно. Перестановка ключей и разный
-///    отступ больше не заводят двойника.
-///  * **Многострочный текст** (WG-INI) — `trim()` как есть: `#` там начинает
-///    комментарий строки, и отрезать по нему нельзя (BACKUP.md §9 п. 2). До
-///    §438 текст резался по первому `#`, и конфиги с комментарием в начале
-///    сливались в один.
-///  * **Прочее** — `trim()` как есть.
-///
-/// Одна и та же функция канонизирует и приехавшее тело, и локальный
-/// `rawBody`: сравнение имеет смысл, только когда обе стороны приведены к
-/// одной форме.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 String canonicalNodeBody(String body) {
   final t = body.trim();
   if (t.startsWith('{')) {
@@ -3781,32 +3781,32 @@ String canonicalNodeBody(String body) {
   return hash < 0 ? t : t.substring(0, hash).trim();
 }
 
-/// §401 (D-08x) + §405 + §438 — слияние узлов и папок файла с локальными
-/// источниками. Чистая функция: состояние читает и пишет вызывающий.
-///
-/// **Папки.** У 0.x папка — имя в поле `folder` записи `servers[]`: записи с
-/// одинаковым именем становятся одной папкой, «одно имя = одна папка». У 1.0
-/// папка — своя запись ([folders]) с `id`, и ключ слияния двухступенчатый
-/// (BACKUP.md §9 п. 3): сперва папка с тем же `id` (та же папка, как бы её
-/// ни переименовали), затем по имени как есть — но только среди папок,
-/// существовавших ДО импорта. Папка, заведённая этим же импортом, по имени
-/// не находится: иначе вторая папка-тёзка файла дописалась бы в первую.
-/// Совпавшая папка держит свой `id` и имя, а настройки (`enabled`, префикс
-/// тегов) берёт из файла; настройки папки 0.x не трогает — их там нет.
-///
-/// **Узлы.** Идентичность узла — его ТЕЛО, приведённое к канону
-/// ([canonicalNodeBody]): корневые дедупятся против корневых, члены — в
-/// пределах своей папки (один сервер в двух папках законен). §405 —
-/// совпавшее по телу пропускается МОЛЧА и `applied` не растёт, иначе
-/// повторный импорт одного файла удваивал бы список. Порядок членов —
-/// порядок записей файла; новые встают в конец.
-///
-/// **Общий `detour` контейнера** (§439, BACKUP.md §9 пп. 1, 3): у папки 1.0
-/// берётся из её записи, у подписки — из [sourceDetours]
-/// ([mergeBackupSubscriptions]); тег конфига — по той же карте контейнеров,
-/// что у ссылок узлов. Флаги политики detour, `ping_*` папки и префикс
-/// одиночного узла — настройки LxBox: пока контракт их не объявил (Л2), в файл
-/// они не едут и остаются своими; объявленные применяются, когда приехали.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 BackupServerMerge mergeBackupServers(
   List<ServerList> lists,
   List<LxServer> incoming, {
@@ -3820,12 +3820,12 @@ BackupServerMerge mergeBackupServers(
   final takenIds = <String>{for (final l in merged) l.id};
   var applied = 0;
   final touched = <BackupNodeRef>[];
-  // Заведённые этим импортом источники → место в файле (подписки приходят
-  // уже заведёнными из [mergeBackupSubscriptions]).
+
+
   final added = <String, int>{...addedSources};
 
-  // Папки по обоим ключам: первая победившая. Имена папок, заведённых этим
-  // импортом из записи 1.0, по имени не находятся.
+
+
   final folderById = <String, int>{};
   final folderByName = <String, int>{};
   for (var i = 0; i < merged.length; i++) {
@@ -3835,9 +3835,9 @@ BackupServerMerge mergeBackupServers(
     folderByName.putIfAbsent(l.name, () => i);
   }
 
-  // Первый проход по папкам файла — сопоставление и `id` заводимых, ДО
-  // вставки: ссылка `detour` вправе метить в папку, объявленную ниже узла, и
-  // карта `id` должна быть полной к моменту разбора любого узла.
+
+
+
   final folderIds = <String, String>{};
   final matchedAt = <String, int>{};
   final plannedId = <String, String>{};
@@ -3854,20 +3854,20 @@ BackupServerMerge mergeBackupServers(
       localId = _adoptSourceId(f.id, takenIds);
       plannedId[f.key] = localId;
       if (!folderByName.containsKey(f.name)) {
-        folderByName[f.name] = -1; // заведётся этим импортом
+        folderByName[f.name] = -1;
         freshNames.add(f.name);
       }
     }
     if (f.id.isNotEmpty) folderIds[f.id] = localId;
   }
 
-  // Карта контейнеров для ссылок: подписки (из их слияния) и папки файла.
+
   final linkIds = {...sourceIds, ...folderIds};
 
-  // §439 — ссылки файла ставятся ПОСЛЕ слияния (NODE_LINK §7.2, §7.3): карта
-  // папок, места, куда легли члены, и корень результата известны только
-  // тогда. [count] — изменение ссылки считается применённым (у совпавшей
-  // папки, чьи прочие настройки не изменились).
+
+
+
+
   final pendingLinks =
       <({int at, int member, NodeLink? link, bool count})>[];
   for (var i = 0; i < merged.length; i++) {
@@ -3885,7 +3885,7 @@ BackupServerMerge mergeBackupServers(
     }
   }
 
-  // Второй проход — ОДИН, в порядке файла: папка, её члены, корневые узлы.
+
   final folderPosition = {for (final f in folders) f.key: f.position};
   final events = <(int, int, int, Object)>[
     for (var i = 0; i < folders.length; i++)
@@ -3906,8 +3906,8 @@ BackupServerMerge mergeBackupServers(
     });
 
   final folderAtKey = <String, int>{};
-  // §439 N2 — куда легли члены папок файла (тег в файле → тег здесь) и
-  // группы, чей состав переводится в адреса здесь после всех членов.
+
+
   final landings = <(int, String), String>{};
   final autoGroups = <_BackupAutoGroup>[];
   for (final (position, _, _, item) in events) {
@@ -3932,7 +3932,7 @@ BackupServerMerge mergeBackupServers(
             detourPolicy: policy,
             pingUrl: pingUrl,
             pingTimeoutMs: pingTimeoutMs,
-            // Фича 565 фаза B — поле контракта: нет объекта — не свёрнута.
+
             replace: item.replace,
             clearReplace: item.replace == null,
           );
@@ -3983,7 +3983,7 @@ BackupServerMerge mergeBackupServers(
     if (body.isEmpty) continue;
 
     if (srv.folderRef.isNotEmpty) {
-      // Член папки 1.0: папка обработана раньше своих членов.
+
       final at = folderAtKey[srv.folderRef];
       if (at == null) continue;
       final count = (merged[at] as FolderServers).members.length;
@@ -4002,13 +4002,13 @@ BackupServerMerge mergeBackupServers(
       final hit = singleBodies[key];
       if (hit != null) {
         final local = merged[hit] as UserServer;
-        // §439 Л2 — объявленные настройки LxBox узла: поле есть — замещает,
-        // нет — своё остаётся. Ссылку detour совпавший узел держит.
+
+
         final flags = srv.detourPolicy
             ?.copyWith(overrideDetour: local.detourPolicy.overrideDetour);
         final side = (flags != null && flags != local.detourPolicy) ||
             (srv.tagPrefix != null && srv.tagPrefix != local.tagPrefix);
-        final skip = srv.skipPresets && !local.skipPresets; // §578
+        final skip = srv.skipPresets && !local.skipPresets;
         if (side || skip) {
           merged[hit] = local.copyWith(
             detourPolicy: flags,
@@ -4028,9 +4028,9 @@ BackupServerMerge mergeBackupServers(
         detourPolicy: srv.detourPolicy ?? DetourPolicy.defaults,
         origin: UserSource.manual,
         rawBody: body,
-        // Фича 478 — прочие warnings записи; вердикт страховки срезан (§489).
+
         warnings: srv.warnings,
-        skipPresets: srv.skipPresets, // §578
+        skipPresets: srv.skipPresets,
       ));
       pendingLinks.add((
         at: merged.length - 1,
@@ -4045,7 +4045,7 @@ BackupServerMerge mergeBackupServers(
       continue;
     }
 
-    // Член папки 0.x: папка — имя.
+
     final at =
         _folder0xAt(merged, srv, folderByName, takenIds, added, position);
     applied += _mergeFolderMember(merged, at, srv, body, NodeLink.none, touched,
@@ -4085,8 +4085,8 @@ BackupServerMerge mergeBackupServers(
     }
   }
 
-  // Новые источники стоят в хвосте списка (подписки — первыми, их завело
-  // слияние подписок); хвост упорядочивается по месту в файле, стабильно.
+
+
   final firstNew = merged.indexWhere((l) => added.containsKey(l.id));
   if (firstNew >= 0) {
     final order = [for (var i = firstNew; i < merged.length; i++) i]
@@ -4116,21 +4116,21 @@ BackupServerMerge mergeBackupServers(
   );
 }
 
-/// §439 — перевод ссылок файла в адреса здесь (NODE_LINK §7.2, §7.3), общий
-/// для detour узлов и контейнеров и позиций цепочек.
-///
-/// - Пара с `folder_id` папки файла → `id` папки здесь и тег, под которым
-///   лёг член ([landings]); S3 — финальный тег группы этой папки вместо
-///   сырого при единственном кандидате. Прочий контейнер — по карте [ids],
-///   нет в карте — как есть (разбирает сборка).
-/// - `{tag}`, занятый корнем результата (одиночный сервер здесь, [rootNames]:
-///   Направления, цепочки, служебные теги), не трогается.
-/// - S1 — носитель в папке [at], тег — сырой тег члена этой папки (файла или
-///   здесь): пара.
-/// - Иначе тег сверяется с финальной формой «префикс + тег» членов папок
-///   ФАЙЛА (у файла 0.x — и с сырым тегом), и только если там такого имени
-///   нет — с членами контейнеров приёмника. Кандидат ровно один — пара;
-///   несколько или ни одного — ссылка как есть, без предупреждения.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 NodeLink Function(NodeLink link, {int? at, bool legacy}) _backupLinkMapper({
   required List<ServerList> merged,
   required List<LxServer> incoming,
@@ -4147,11 +4147,11 @@ NodeLink Function(NodeLink link, {int? at, bool legacy}) _backupLinkMapper({
         f.id: folderAtKey[f.key]!,
   };
   final folderByKey = {for (final f in folders) f.key: f};
-  // Корень результата — тот же список известных целей, что у правил и
-  // `route.final` (D-117): объявленные имена плюс корневые узлы слияния.
+
+
   final rootTaken = <String>{...rootNames, ...lxImportRootNodeTags(merged)};
 
-  // Члены папок файла: финальная форма и сырой тег → адреса здесь.
+
   final fileFinal = <String, Set<NodeLink>>{};
   final fileRaw = <String, Set<NodeLink>>{};
   final fileRawAt = <int, Set<String>>{};
@@ -4178,7 +4178,7 @@ NodeLink Function(NodeLink link, {int? at, bool legacy}) _backupLinkMapper({
     }
   }
 
-  // Члены контейнеров приёмника (узлы подписок в хранении не лежат).
+
   final hereFinal = <String, Set<NodeLink>>{};
   final hereRaw = <String, Set<NodeLink>>{};
   for (final l in merged) {
@@ -4219,7 +4219,7 @@ NodeLink Function(NodeLink link, {int? at, bool legacy}) _backupLinkMapper({
     }
     final t = link.tag;
     if (rootTaken.contains(t)) return link;
-    // S1 — сосед по папке носителя.
+
     if (at != null && at >= 0 && at < merged.length) {
       final carrier = merged[at];
       if (carrier is FolderServers) {
@@ -4246,7 +4246,7 @@ NodeLink Function(NodeLink link, {int? at, bool legacy}) _backupLinkMapper({
   };
 }
 
-/// Узлы текста одиночного сервера; не разобрался — пусто.
+
 List<NodeSpec> _nodesOf(String raw) {
   if (raw.trim().isEmpty) return const [];
   try {
@@ -4256,18 +4256,18 @@ List<NodeSpec> _nodesOf(String raw) {
   }
 }
 
-/// Финальные формы тега [raw] члена папки файла с префиксом модели [prefix]
-/// для сопоставления ссылок файла (NODE_LINK §7.3, S3): форма LxBox
-/// «префикс, пробел, тег» и форма контракта «префикс + тег» — у префикса
-/// файла без хвостового пробела (`"d:"`) финальный тег стороны-экспортёра
-/// `d:G`, а модель LxBox хранит `d:` и показывает `d: G` (§439 п. 9).
+
+
+
+
+
 Set<String> _fileFinalForms(String prefix, String raw) => {
       TagResolver.displayTag(prefix, raw),
       if (prefix.isNotEmpty) '$prefix$raw',
     };
 
-/// Член папки [folderAt]: дедуп по канону тела в пределах этой папки, новые
-/// в конец. Возвращает, сколько применилось (0 — узнан, применять нечего).
+
+
 int _mergeFolderMember(
   List<ServerList> merged,
   int folderAt,
@@ -4286,7 +4286,7 @@ int _mergeFolderMember(
       landings?[(folderAt, srv.name)] = here;
     }
     touched.add((list: folderAt, member: hit));
-    // §578 — `skip_presets: true` из файла; отсутствие своё не сбрасывает.
+
     final skip = srv.skipPresets && !folder.members[hit].skipPresets;
     if (!skip) return 0;
     final members = folder.members.toList();
@@ -4297,10 +4297,10 @@ int _mergeFolderMember(
   final member = FolderMember(
     raw: body,
     enabled: srv.enabled,
-    // Фича 478 — прочие warnings записи; вердикт страховки срезан (§489).
+
     warnings: srv.warnings,
     detour: detour,
-    skipPresets: srv.skipPresets, // §578
+    skipPresets: srv.skipPresets,
   );
   final here = member.node?.tag ?? '';
   if (srv.name.isNotEmpty && here.isNotEmpty) {
@@ -4311,8 +4311,8 @@ int _mergeFolderMember(
   return 1;
 }
 
-/// Папка члена 0.x [srv] по имени; заведённая им же папка находится по
-/// имени (иначе каждая запись с тем же `folder` заводила бы новую).
+
+
 int _folder0xAt(
   List<ServerList> merged,
   LxServer srv,
@@ -4335,7 +4335,7 @@ int _folder0xAt(
   return merged.length - 1;
 }
 
-/// §439 N2 — член-группа файла, ждущий перевода состава в адреса здесь.
+
 typedef _BackupAutoGroup = ({
   int folderAt,
   int member,
@@ -4343,10 +4343,10 @@ typedef _BackupAutoGroup = ({
   bool fresh,
 });
 
-/// Член-группа папки [folderAt]. Ссылочный член без тела ключуется тегом
-/// (BACKUP.md §9 п. 3): группа с тем же тегом в папке — та же группа, её
-/// значение берётся из файла; иначе новая встаёт в конец. Состав переводит
-/// [_bindBackupAutoGroups]. Возвращает, сколько применилось сейчас.
+
+
+
+
 int _mergeFolderAutoGroup(
   List<ServerList> merged,
   int folderAt,
@@ -4374,11 +4374,11 @@ int _mergeFolderAutoGroup(
   return 1;
 }
 
-/// §439 N2, NODE_LINK §7.2 — состав групп файла → адреса здесь: член своей
-/// папки файла получает `id` папки здесь и тег, под которым член лёг
-/// ([landings]); член чужого контейнера — `id` по карте [ids] (нет в карте —
-/// как есть, разбирает сборка). Совпавшая группа, чьё значение не
-/// изменилось, не считается применённой.
+
+
+
+
+
 int _bindBackupAutoGroups(
   List<ServerList> merged,
   List<_BackupAutoGroup> pending,
@@ -4415,16 +4415,16 @@ int _bindBackupAutoGroups(
   return applied;
 }
 
-/// §439 — позиции цепочек файла → ссылки здесь.
-///
-/// Хоп 1.0 — ссылка `{folder_id?, tag}` с сырым тегом (BACKUP.md §4, §6):
-/// `folder_id` переводится по карте контейнеров, тег — туда, куда лёг член,
-/// `{tag}` на члена контейнера поднимается до пары ([BackupServerMerge.linkOf],
-/// NODE_LINK §7.3). Позиция 0.x — строка (финальный или сырой тег), читается
-/// корневой ссылкой и поднимается тем же правилом с проверкой сырого тега.
-/// Без [linkOf] переводится только `folder_id` по [folderIds]. Контейнера нет
-/// ни в файле, ни здесь — ссылка ввозится как есть: недостижимую позицию
-/// разбирает сборка (`chain_hop_missing`), а не импорт.
+
+
+
+
+
+
+
+
+
+
 List<SourceChain> resolveBackupChainHops(
   LxBackupFile file,
   List<ServerList> lists,
@@ -4446,43 +4446,43 @@ List<SourceChain> resolveBackupChainHops(
   ];
 }
 
-/// §439 — `folder_id` ссылки файла → `id` контейнера здесь по карте [ids].
+
 NodeLink _remapLink(NodeLink link, Map<String, String> ids) {
   if (link.isRoot) return link;
   final local = ids[link.folderId];
   return local == null ? link : NodeLink(folderId: local, tag: link.tag);
 }
 
-/// §438 — ось порядка импорта (BACKUP.md §9 п. 7): корневые правила [rules].
-///
-/// Номера у LxBox — свои, и относительный порядок обязан сохраниться; при
-/// этом ось у сторон одна по раскладке шаблона (голова 0, пресеты 950–990,
-/// пользовательская зона 1000–1100, широкие перехватчики 1110–1150), и
-/// LxBox номер из файла сохраняет. Порядок правил от этого не меняется: он и
-/// задан номерами, а при равных корневое правило стоит раньше узлового, как у
-/// сборки. Перенумерация подряд от 1000 (так делает лаунчер) сохранила бы
-/// порядок самого импорта, но у LxBox сломала бы то, что идёт после:
-/// правило, добавленное руками, встаёт по `nextUserRuleNum` за максимум
-/// пользовательской зоны — за бывшие перехватчики 1110+, — а пресет,
-/// включённый позже со своим номером из шаблона (950–990), — перед бывшей
-/// головой `traffic-processing`, и `sniff` перестаёт быть первым правилом.
-/// v2.23.2 номера файла сохранял.
-///
-/// Крайние случаи (BACKUP.md §9 п. 7, форма лаунчера `5cbcc436`):
-///
-///  * **ни одно корневое правило не размечено** — номера не проставляются
-///    вовсе, правила возвращаются как есть. Разметку даёт загрузка
-///    (`markRuleOrder`): пресету — номер шаблона (голова 0, 950–990 …),
-///    остальным — подряд от [kUserRuleNumStart]. Номера от 1000 всем подряд
-///    поставили бы пресеты-перехватчики и голову `traffic-processing` за
-///    пользовательскими правилами;
-///  * **размечены не все** — неразмеченные корневые встают в хвост оси в
-///    порядке файла (без номера разметка при загрузке поставила бы их поверх
-///    размеченных), но не ниже [kUserRuleNumStart]: хвост файла с номерами
-///    шаблона не уводит правило пользователя в зону пресетов.
-///
-/// Возвращает корневые правила в порядке оси; номера проставляются в тех же
-/// объектах (как во всём §370).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 List<CustomRule> renumberBackupAxis(List<CustomRule> rules) {
   if (rules.every((r) => r.orderNum == null)) return rules;
 

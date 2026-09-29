@@ -20,21 +20,21 @@ import 'package:lxbox/services/record_vars.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// Конформанс-раннер корпуса LX Backup (SPEC 103, фаза 4), сторона LxBox.
-// Тот же набор гоняет Go (core/backup/corpus_test.go).
-//
-// Перенос настроек между приложениями имеет смысл ровно настолько, насколько
-// обе стороны одинаково понимают битую ссылку, непереносимую переменную и
-// чужой блок extensions. Расхождение здесь = пользователь получит на телефоне
-// не то, что видел на десктопе.
-//
-// §438 — кейсы лежат в двух форматах (`lx_backup: 1` и `2`). Раннер формат не
-// выбирает: импорт опознаёт его сам, дальше одно слияние на оба.
 
 
-/// Кейсы, которые сторона пока не проходит по известной причине: имя кейса →
-/// причина пропуска. Ожидание кейса не подгоняется — запись снимается вместе
-/// с работой, которая его закрывает.
+
+
+
+
+
+
+
+
+
+
+
+
+
 const Map<String, String> _pendingCases = {
 };
 
@@ -42,21 +42,21 @@ const Map<String, String> _pendingCases = {
 void main() {
   if (corpusSuiteUnavailable('test/contract/backup_corpus_test.dart')) return;
 
-  // §480 — секции движка грузятся и здесь. Раннер строит члена папки из его
-  // ссылки (`FolderMember.raw` → `parseAll`), а разбор без загруженного
-  // реестра не даёт НИ ОДНОГО узла: состав папки выходил списком пустых
-  // имён, то есть кейс жаловался на слияние, к которому отношения не имел.
-  // Та же грабля, что у `direction_corpus`; соседние backup-тесты реестр
-  // грузят с самого начала.
+
+
+
+
+
+
   setUpAll(loadEngineSections);
 
   final root = Directory('$kVendorRoot/corpus/backup');
-  if (!root.existsSync()) return; // контракт не синхронизирован
+  if (!root.existsSync()) return;
 
-  // §407 — предсостояние (`<case>.pre.backup.json`) кейсом НЕ является:
-  // раннер обязан отсеять его из списка, иначе погонит его отдельным
-  // прогоном и будет искать несуществующий `<case>.pre.expected.json`
-  // (`contract/corpus/README.md`, «Предсостояние кейса»).
+
+
+
+
   final cases = root
       .listSync()
       .whereType<File>()
@@ -72,9 +72,9 @@ void main() {
       final name = base.substring(root.path.length + 1);
       test(name, skip: _pendingCases[name], () async {
         final raw = File('$base.backup.json').readAsStringSync();
-        // Кейс формата новее ЧИТАЕМОГО (`lx_backup` выше
-        // kLxBackupVersion) сторона ПРОПУСКАЕТ по маркеру, как чужой
-        // extension, без override-файлов (`contract/corpus/README.md`).
+
+
+
         final marker = jsonDecode(raw);
         if (marker is Map &&
             marker['lx_backup'] is num &&
@@ -83,11 +83,11 @@ void main() {
               'читаемого $kLxBackupVersion');
           return;
         }
-        // Per-app override читается ТАК ЖЕ, как в URI- и body-раннерах
-        // (contract/corpus/README «Нормативность expected»): он означает
-        // задокументированное by-design различие сторон, а его отсутствие —
-        // что нормативна общая база и правка канона у лаунчера обязана
-        // доехать до нас красным тестом.
+
+
+
+
+
         final overrideFile = File('$base.expected.lxbox.json');
         final baseFile = File('$base.expected.json');
         final expectedFile =
@@ -95,19 +95,19 @@ void main() {
         final expected =
             jsonDecode(expectedFile.readAsStringSync()) as Map<String, dynamic>;
 
-        // §407 — ПРЕДСОСТОЯНИЕ. Слияние нельзя проверить импортом в пустоту:
-        // там слияние и замена дают один и тот же итог. Порядок строгий —
-        // пустое состояние → импорт `pre` → импорт самого кейса → сверка.
-        //
-        // Предупреждения предсостояния в сверку НЕ идут: оно декорация сцены,
-        // а не предмет кейса.
-        // SPEC 129 §9.1, D-118 — фикстура объявлений шаблона приёмника
-        // (`<case>.template.json`: `dns_options.servers` и `presets`), одна
-        // на ОБА импорта — предсостояния и кейса. Нормы
-        // Н2/Н4/Н8 зависят от умолчаний шаблона, а у сторон они разные
-        // (у LxBox `google_dot.outbound` = `vpn-1`), поэтому раннер
-        // нормализует по фикстуре кейса, а не по своему шаблону. Нет
-        // фикстуры — объявлений нет, нормализации нет.
+
+
+
+
+
+
+
+
+
+
+
+
+
         final templateFile = File('$base.template.json');
         final recordVars = templateFile.existsSync()
             ? RecordVarDecls.fromJson(
@@ -117,18 +117,18 @@ void main() {
         final state = _State(recordVars);
         final preFile = File('$base.pre.backup.json');
         if (preFile.existsSync()) {
-          // Предсостояние импортируется в ПУСТОЕ состояние без целей сцены,
-          // как у Go-раннера (`ImportOptions{RecordVars}` без
-          // `KnownOutbounds`): у пустого приёмника проверять цели нечем.
-          // С целями сцены `v10_dns_template_vars` выключил бы `google_dot`
-          // предсостояния (`vpn-1` привозит только сам кейс).
+
+
+
+
+
           state.import(preFile.readAsStringSync(), sceneTargets: const {});
         }
         final file = state.import(raw);
 
-        // Коды предупреждений — часть контракта: они отвечают на вопрос
-        // «что не применилось», и расхождение означает, что одна из сторон
-        // молчит о потере.
+
+
+
         final gotCodes = file.warnings.map((w) => w.code).toSet().toList()..sort();
         final wantCodes =
             ((expected['warnings'] as List?) ?? const []).cast<String>().toList()
@@ -152,10 +152,10 @@ void main() {
         _checkDetours(state, expected);
         _checkGroups(state, expected);
 
-        // §393 B12 — отметки выключенных узлов (§4 BACKUP.md). Паритет с
-        // Go-раннером (`corpus_test.go:checkDisabledHashes`): ожидание —
-        // плоский список ключей, которые обязаны найтись хоть у одной
-        // подписки. Ключ для формата обмена непрозрачен.
+
+
+
+
         final wantHashes =
             ((expected['disabled_hashes'] as List?) ?? const []).cast<String>();
         if (wantHashes.isNotEmpty) {
@@ -171,10 +171,10 @@ void main() {
         _checkFolders(state, expected);
         _checkSubscriptions(state, expected);
 
-        // §407 (BACKUP.md §9 п.2) — КОРНЕВЫЕ одиночные узлы в порядке
-        // состояния: совпавшие по телу держат локальную позицию, новые встают
-        // в конец. Дедуп по телу проверяется именно ОТСУТСТВИЕМ второй записи
-        // в этом списке, а не наличием первой.
+
+
+
+
         final wantRootServers = (expected['root_servers'] as List?)?.cast<String>();
         if (wantRootServers != null) {
           expect([
@@ -185,21 +185,21 @@ void main() {
 
         _checkDns(state, expected);
 
-        // §576 (контракт 1.1.87) — источник своего сервера и члена папки
-        // после импорта: голое тело узла. Документ и массив в источник не
-        // попадают. Сравнение по значению; `tag` несёт запись, он не
-        // сравнивается.
+
+
+
+
         _checkOriginRaw(state, expected);
 
-        // Фича 565 фаза B (§74) — свёртка `replace` в состоянии и в
-        // повторном экспорте. `replace_tags` (дериватив legacy `fold`) не
-        // сверяется: legacy-форма у LxBox не читается (решение владельца
-        // 26.09.2026, контракт 1.1.79).
+
+
+
+
         await _checkReplaces(state, expected);
 
-        // §401 — упразднённый механизм `extensions` (схема 0.10.x): импортёр
-        // обязан отбросить его и назвать ОДНИМ warning'ом на файл, а не
-        // провозить до следующего экспорта (BACKUP_PRINCIPLES.md П3).
+
+
+
         if (expected['extensions_dropped'] == true) {
           expect(
               file.warnings.where((w) => w.code == kWarnExtensionsDropped),
@@ -212,16 +212,16 @@ void main() {
   });
 }
 
-/// Состояние раннера — то же, что у приложения: списки источников,
-/// Направления, цепочки, правила и DNS. Собирается оно ТЕМ ЖЕ планом импорта,
-/// которым его собирает приложение (`planLxBackupImport`,
-/// `LxBackupImportService`): расхождение раннера и приложения означало бы, что
-/// зелёный корпус ничего не гарантирует. Раннер отличается только тем, что
-/// держит состояние в памяти, а не в storage, и шаблона у его приёмника нет:
-/// служебные теги — умолчания LxBox, пресеты не проверяются.
-///
-/// §441 — объявления переменных записей приёмника — фикстура кейса
-/// ([recordVars]); DNS сливает тот же план импорта.
+
+
+
+
+
+
+
+
+
+
 class _State {
   _State(this.recordVars);
 
@@ -240,8 +240,8 @@ class _State {
     String raw, {
     Set<String> sceneTargets = const {'proxy', 'direct'},
   }) {
-    // Цели сцены корпуса — те же, что у Go-раннера (`KnownOutbounds: proxy,
-    // direct`); у импорта предсостояния их нет.
+
+
     final plan = planLxBackupImport(
       raw,
       LxImportReceiver(
@@ -262,7 +262,7 @@ class _State {
     lists = plan.lists;
     directions = plan.directions;
     chains = plan.chains;
-    // `rules[]` — единственная секция полной замены (BACKUP.md §9 п. 7).
+
     rules = plan.rules;
     final file = plan.file;
     final applied = plan.dns;
@@ -277,10 +277,10 @@ class _State {
   }
 }
 
-/// §438 — причины у кодов, где причина нормирована перечнем
-/// (`backup_section_record_dropped`: с контракта 1.1.85 только `not_allowed`).
-/// Множество кодов их не различает, и сторона, отбросившая запись «не по той
-/// причине», показала бы пользователю неверное объяснение потери.
+
+
+
+
 void _checkWarningReasons(LxBackupFile file, Map<String, dynamic> expected) {
   final want = (expected['warning_reasons'] as Map?)?.cast<String, dynamic>();
   if (want == null) return;
@@ -292,14 +292,14 @@ void _checkWarningReasons(LxBackupFile file, Map<String, dynamic> expected) {
     expect(got, isNot(contains('')),
         reason: '${entry.key}: предупреждение без reason, а перечень причин '
             'нормирован');
-    // Множество различных причин, без повторов (README корпуса, 1.0.2).
+
     expect(got, (entry.value as List).cast<String>().toSet(),
         reason: '${entry.key}: причины');
   }
 }
 
-/// ОСЬ ПОРЯДКА корневых правил. §575 — правил узла больше нет (контракт
-/// 1.1.85, секции упразднены).
+
+
 void _checkRules(_State state, Map<String, dynamic> expected) {
   final wantRules =
       ((expected['rules'] as List?) ?? const []).cast<Map<String, dynamic>>();
@@ -321,22 +321,22 @@ void _checkRules(_State state, Map<String, dynamic> expected) {
     expect(got.name, want['name'], reason: 'имя правила #$i');
     expect(got.enabled, want['enabled'],
         reason: 'состояние правила ${want['name']}');
-    // ## 12 (D-100) — `refs` в ожиданиях необязателен: нет ключа — не
-    // проверяем; есть — все наборы правила по порядку.
+
+
     final wantRefs = want['refs'];
     if (wantRefs is List) {
       expect(got.srsUrls, wantRefs.cast<String>(),
           reason: 'refs правила ${want['name']}');
     }
-    // §438 — цель как вид: тег | `reject` | `drop`. У preset цели нет —
-    // она из шаблона, и ожидание её не несёт.
+
+
     final wantOutbound = want['outbound'];
     if (wantOutbound is String && wantOutbound.isNotEmpty) {
       expect(_outboundView(got), wantOutbound,
           reason: 'цель правила ${want['name']}');
     }
-    // D-111 — тело правила deep-equal: у json-правила — его текст, у
-    // остальных — `body` записи хранения.
+
+
     if (want.containsKey('body')) {
       final gotBody = got is CustomRuleJson
           ? jsonDecode(got.json)
@@ -344,7 +344,7 @@ void _checkRules(_State state, Map<String, dynamic> expected) {
       expect(gotBody, _deepEqualsJson(want['body']),
           reason: 'тело правила ${want['name']}');
     }
-    // §438 — переменные ЭТОГО правила (preset), не глобальные `vars`.
+
     final wantVars = want['vars'];
     if (wantVars is Map) {
       expect(got is CustomRulePreset ? got.varsValues : null,
@@ -354,8 +354,8 @@ void _checkRules(_State state, Map<String, dynamic> expected) {
   }
 }
 
-/// Цель правила так, как её видит ядро: `reject`/`drop` — отказ, иначе тег.
-/// У правила вида json цель читается из тела.
+
+
 String _outboundView(CustomRule r) {
   if (r is CustomRuleJson) {
     final body = jsonDecode(r.json);
@@ -369,9 +369,9 @@ String _outboundView(CustomRule r) {
   return r.outbound == kOutboundReject ? 'reject' : r.outbound;
 }
 
-/// §393 B3 — Направления, созданные импортом (паритет с Go-раннером,
-/// `corpus_test.go:checkDirections`). Сверяется КАНОНИЧЕСКАЯ форма, а не
-/// внутренняя структура: именно о ней договорились стороны.
+
+
+
 void _checkDirections(LxBackupFile file, Map<String, dynamic> expected) {
   final wantDirections =
       ((expected['directions'] as List?) ?? const []).cast<Map<String, dynamic>>();
@@ -381,15 +381,15 @@ void _checkDirections(LxBackupFile file, Map<String, dynamic> expected) {
     final tag = want['tag'] as String;
     final got = byTag[tag];
     expect(got, isNotNull, reason: 'направление $tag не создано импортом');
-    // §405 — `label` УКАЗАТЕЛЬНОЙ семантики: поле объявлено в схеме, но
-    // применяет его только LxBox (D-094). Отсутствие ключа в базовом golden
-    // значит «сторона его не применяет», а не «имя обязано быть пустым».
+
+
+
     final wantLabel = want['label'];
     if (wantLabel is String) {
       expect(got!.label, wantLabel, reason: '$tag: имя');
     }
-    // Отбор узлов переносится ТЕЛОМ регулярки — у мобилы nodeFilter уже
-    // хранит тело, обёртки и флагов в нём нет.
+
+
     expect(got!.nodeFilter, want['filter'] ?? '', reason: '$tag: отбор');
     expect(got.nodeFilterInvert, want['invert'] ?? false,
         reason: '$tag: инверсия отбора');
@@ -399,9 +399,9 @@ void _checkDirections(LxBackupFile file, Map<String, dynamic> expected) {
         reason: '$tag: опция block');
     expect(got.auto != null, want['has_auto'] ?? false,
         reason: '$tag: автовыбор');
-    // §409 — бюджет теста узла, та же указательная семантика, что у `label`.
-    // Контракт 1.0.1 — опции-теги в порядке записи; отсутствие ключа — «не
-    // проверяем», пустой список — «опций нет».
+
+
+
     final wantInclude = (want['include'] as List?)?.cast<String>();
     if (wantInclude != null) {
       expect(got.include, wantInclude, reason: '$tag: опции include');
@@ -419,17 +419,17 @@ void _checkDirections(LxBackupFile file, Map<String, dynamic> expected) {
   }
 }
 
-/// §393 C9 — цепочки хопов (SPEC 110). Список ИСЧЕРПЫВАЮЩИЙ: точное ЧИСЛО
-/// цепочек, иначе запись, пропущенная merge'м по занятому тегу, могла бы тихо
-/// материализоваться второй копией.
-///
-/// `chain` сверяется DEEP-EQUAL канона, без чувствительности к порядку ключей
-/// и ВКЛЮЧАЯ `null` внутри `rewrite` (RFC 7396).
-///
-/// §438 — `hops` ожидания — позиции как ССЫЛКИ (тег + имя папки). Позиция
-/// LxBox — NodeLink (D-112): раннер находит контейнер по `folder_id` и сверяет
-/// пару «сырой тег + папка»: перепись `folder_id` по карте id видна именно
-/// так. Канон сверяется с сырыми тегами строками — так его пишет корпус.
+
+
+
+
+
+
+
+
+
+
+
 void _checkChains(_State state, Map<String, dynamic> expected) {
   final wantChains =
       ((expected['chains'] as List?) ?? const []).cast<Map<String, dynamic>>();
@@ -442,13 +442,13 @@ void _checkChains(_State state, Map<String, dynamic> expected) {
     final tag = want['tag'] as String;
     final got = byTag[tag];
     expect(got, isNotNull, reason: 'цепочка $tag не создана импортом');
-    // §405 — та же указательная семантика, что у `directions[]`.
+
     final wantLabel = want['label'];
     if (wantLabel is String) {
       expect(got!.label, wantLabel, reason: '$tag: имя');
     }
-    // enabled — УКАЗАТЕЛЬНАЯ семантика (контракт 0.7.1): отсутствие ключа в
-    // ожиданиях = «не проверяем», НЕ «ожидаем false».
+
+
     final wantEnabled = want['enabled'];
     if (wantEnabled is bool) {
       expect(got!.enabled, wantEnabled,
@@ -470,11 +470,11 @@ void _checkChains(_State state, Map<String, dynamic> expected) {
   }
 }
 
-/// В какой контейнер состояния указывает ссылка (NodeLink, D-112): член папки
-/// (`folder:<имя>/<сырой тег>`), узел подписки
-/// (`subscription:<url>/<сырой тег>`), пара на контейнер, которого в состоянии нет
-/// (`folder_id:<id>/<тег>`), иначе корневая ссылка (`/<тег>`): корневой узел,
-/// Направление, цепочка, служебный тег или тег, которого нет.
+
+
+
+
+
 ({String tag, String view}) _resolveHop(NodeLink hop, List<ServerList> lists) {
   if (hop.isRoot) return (tag: hop.tag, view: '/${hop.tag}');
   for (final l in lists) {
@@ -491,9 +491,9 @@ void _checkChains(_State state, Map<String, dynamic> expected) {
   return (tag: hop.tag, view: 'folder_id:${hop.folderId}/${hop.tag}');
 }
 
-/// Ссылка ожидания (`README.md` корпуса, «Ссылка в ожиданиях») в той же
-/// строковой форме, что [_resolveHop]. `folder: ""` — корневая ссылка
-/// (запись ожиданий до NodeLink).
+
+
+
 String _wantLinkView(Map<String, dynamic> w) {
   final tag = w['tag'];
   final folder = w['folder'];
@@ -505,9 +505,9 @@ String _wantLinkView(Map<String, dynamic> w) {
   return '/$tag';
 }
 
-/// `detours` — личный detour узлов: тег носителя (корневой узел — его тег,
-/// член папки — сырой тег) → ссылка. Карта исчерпывающая: detour у узла,
-/// которого в ожиданиях нет, — расхождение.
+
+
+
 void _checkDetours(_State state, Map<String, dynamic> expected) {
   final want = (expected['detours'] as Map?)?.cast<String, dynamic>();
   if (want == null) return;
@@ -527,11 +527,11 @@ void _checkDetours(_State state, Map<String, dynamic> expected) {
   }, reason: 'detour узлов: носители и ссылки');
 }
 
-/// Контракт 1.0.1 — `groups`: тег провайдерской группы (`kind: auto` в папке)
-/// → `members` по порядку и `default`. Карта ИСЧЕРПЫВАЮЩАЯ, как `detours`.
-/// Член без `folder_id` внутри папки — член этой папки (NODE_LINK §5.1 № 8);
-/// группа по правилу явного состава не несёт — `members: []`. `default` —
-/// тег выбранного члена (§565), сверяется как ссылка на члена папки.
+
+
+
+
+
 void _checkGroups(_State state, Map<String, dynamic> expected) {
   final want = (expected['groups'] as Map?)?.cast<String, dynamic>();
   if (want == null) return;
@@ -575,8 +575,8 @@ void _checkGroups(_State state, Map<String, dynamic> expected) {
       ],
       reason: '${entry.key}: члены группы',
     );
-    // §565 фаза A — род `selector` исполняется: `default` хранится тегом
-    // члена ([AutoSelectSpec.manualDefault]) и обязан совпасть с ожиданием.
+
+
     expect(gotDefault[entry.key], w.containsKey('default')
         ? _wantLinkView((w['default'] as Map).cast<String, dynamic>())
         : null,
@@ -584,13 +584,13 @@ void _checkGroups(_State state, Map<String, dynamic> expected) {
   }
 }
 
-/// §401 / контракт 0.12 — ПАПКА: ожидание — карта {имя папки → теги членов}
-/// в порядке; проверяется и состав, и то, что запись без папки в папку не
-/// затесалась. Состав читается из СОСТОЯНИЯ после слияния (§407).
-///
-/// §438 — `folder_ids`: имя → `id` папки после импорта. Совпавшая по `id`
-/// папка держит ЛОКАЛЬНЫЙ id — по нему видно, какая ступень слияния
-/// сработала (BACKUP.md §9 п. 3).
+
+
+
+
+
+
+
 void _checkFolders(_State state, Map<String, dynamic> expected) {
   final wantFolders = (expected['folders'] as Map?)?.cast<String, dynamic>();
   if (wantFolders != null) {
@@ -619,13 +619,13 @@ void _checkFolders(_State state, Map<String, dynamic> expected) {
   }
 }
 
-/// §407 (D-095, BACKUP.md §9 п.1) — ПОДПИСКИ после слияния. Ожидание
-/// ИСЧЕРПЫВАЮЩЕЕ: подписка, которой в нём нет, — либо не оставленная
-/// локальная, либо задвоенная.
-///
-/// `postfix` у LxBox поля не имеет вовсе (тег источника здесь только
-/// префикс), поэтому сверяется с пустой строкой: ожидание с постфиксом
-/// требует override стороны.
+
+
+
+
+
+
+
 void _checkSubscriptions(_State state, Map<String, dynamic> expected) {
   final wantSubs = (expected['subscriptions'] as Map?)?.cast<String, dynamic>();
   if (wantSubs == null) return;
@@ -649,14 +649,14 @@ void _checkSubscriptions(_State state, Map<String, dynamic> expected) {
     }
     final wantNodes = (want['nodes'] as List?)?.cast<String>();
     if (wantNodes != null) {
-      // Состав локальной подписки в файл не едет и потеряться на слиянии не
-      // вправе.
+
+
       expect([for (final n in got.nodes) n.tag], wantNodes,
           reason: '${entry.key}: состав узлов пережил слияние');
     }
     final wantPending = (want['pending_disabled'] as List?)?.cast<String>();
     if (wantPending != null) {
-      // Объединение двух множеств отметок: порядок в нём смысла не несёт.
+
       expect(got.disabledHashes.keys.toList()..sort(),
           wantPending.toList()..sort(),
           reason: '${entry.key}: отметки выключения ОБЪЕДИНЯЮТСЯ, '
@@ -665,16 +665,16 @@ void _checkSubscriptions(_State state, Map<String, dynamic> expected) {
   }
 }
 
-/// §438 — DNS-секция состояния: серверы исчерпывающим списком (вид, тег или
-/// ссылка, включённость, тело deep-equal), число правил и все три скаляра.
-/// «Тело едет байт в байт» — свойство одного кодека; у LxBox оно идёт через
-/// свой декодер и хранилище, и видно только здесь.
-///
-/// SPEC 129 §9.1, D-118 (контракт 1.0.2) — `vars` записи сервера deep-equal,
-/// и отсутствие ключа `vars` у записи в ожидании значит «ожидаем пусто» у
-/// ЛЮБОГО кейса (исключение из правила «нет ключа — не проверяем», README
-/// корпуса): иначе сторона, не снявшая умолчание или необъявленное имя,
-/// прошла бы зелёной.
+
+
+
+
+
+
+
+
+
+
 void _checkDns(
   _State state,
   Map<String, dynamic> expected,
@@ -686,8 +686,8 @@ void _checkDns(
   expect(state.dnsServers, hasLength(wantServers.length),
       reason: 'число DNS-серверов');
   for (var i = 0; i < wantServers.length; i++) {
-    // Запись хранения — та же форма, что запись файла: `user`/`preset`/
-    // `template`, тег или `ref`, тело без `tag`.
+
+
     final got = dnsServerToRecord(state.dnsServers[i]);
     final w = wantServers[i];
     expect(got['kind'], w['kind'], reason: 'DNS-сервер #$i: вид');
@@ -721,21 +721,21 @@ void _checkDns(
 }
 
 
-/// Канон цепочки (`schema/source_chain.schema.json`) из мобильной модели —
-/// ровно поля маршрута, без идентичности записи (`tag`/`label`/`enabled`),
-/// которая в схеме живёт уровнем выше, и без позиции в списке источников.
+
+
+
 Map<String, dynamic> _canonOf(SourceChain c) => c.toCanonJson();
 
-/// Матчер структурного равенства JSON-деревьев: нечувствителен к порядку
-/// ключей и НЕ схлопывает `null` (RFC 7396 — он удаляет ключ, а не значит
-/// «пусто»). `equals` для вложенных Map/List этого не даёт.
+
+
+
 Matcher _deepEqualsJson(Object? want) =>
     predicate<Object?>((got) => deepEqualsJson(got, want), 'deep-equals $want');
 
-/// Фича 565 фаза B (§74) — `replaces`: ключ — имя папки или адрес подписки,
-/// значение — объект `replace` как в файле, `null` — свёртки нет (§76). Сверяется модель после импорта и
-/// запись повторного экспорта. `auto` — по ключам ожидания: LxBox пишет форму
-/// целиком (умолчания [DirectionAuto] тоже), лишние ключи — не расхождение.
+
+
+
+
 Future<void> _checkReplaces(_State state, Map<String, dynamic> expected) async {
   final want = (expected['replaces'] as Map?)?.cast<String, dynamic>();
   if (want == null) return;
@@ -756,7 +756,7 @@ Future<void> _checkReplaces(_State state, Map<String, dynamic> expected) async {
             (raw['replace'] as Map).cast<String, dynamic>(),
   };
   void compare(String where, Map<String, Map<String, dynamic>> side) {
-    // `null` у ключа — источник не свёрнут (контракт 1.1.79 §76).
+
     expect(side.keys.toSet(), {
       for (final e in want.entries)
         if (e.value != null) e.key,
@@ -784,8 +784,8 @@ Future<void> _checkReplaces(_State state, Map<String, dynamic> expected) async {
   compare('повторный экспорт', exported);
 }
 
-/// §576 — `origin_raw`: «тег» (корневой сервер) или «имя папки/тег» (член)
-/// → JSON источника записи.
+
+
 void _checkOriginRaw(_State state, Map<String, dynamic> expected) {
   final want = (expected['origin_raw'] as Map?)?.cast<String, dynamic>();
   if (want == null) return;

@@ -9,14 +9,14 @@ import 'package:lxbox/services/lx_backup.dart';
 import 'package:lxbox/services/lx_backup_import.dart';
 import 'package:lxbox/services/record_vars.dart';
 
-// §441 (SPEC 129 контракта) — импорт значений переменных записи:
-// Н8 (корневые `dns_<tag>_<var>` → запись сервера файла), слияние §5.2
-// (наложение по именам, Н2/Н4 против шаблона приёмника), Н9 (неизвестная
-// цель маршрута выключает DNS-сервер), Н2/Н4 у `rules[kind=preset].vars`.
 
-/// Объявления приёмника с умолчаниями, как у лаунчера в кейсе корпуса
-/// `v10_dns_template_vars` (SPEC 129 §9.1): `google_dot.outbound` =
-/// `proxy-out`, пресет `russian` с `out` = `direct-out`.
+
+
+
+
+
+
+
 final _decls = RecordVarDecls.fromJson({
   'dns_options': {
     'servers': [
@@ -269,7 +269,7 @@ void main() {
         [
           'dns.servers[#2].vars',
           'dns.servers[my-doh].vars',
-          // §575 — секции узла снимаются целиком, вглубь обход не идёт.
+
         ],
       );
       final servers = f.dns!.servers;
@@ -489,10 +489,10 @@ void main() {
       expect(plan.dns!.servers.single.enabled, isTrue);
     });
   });
-  // §443 (SPEC 129 §5.5) — порядок импорта: сперва своё хранение приёмника к
-  // нормам записи, потом наложение файла. Значение, которое файл не называл
-  // (`dns_ip`), переживает импорт; своё необъявленное имя и умолчание
-  // снимаются молча, в том числе у записи, которой файл не коснулся.
+
+
+
+
   group('§5.5 порядок: хранение приёмника к нормам, потом файл', () {
     test('dns_ip приёмника, не названный файлом, цел; своё — молча к нормам',
         () {
@@ -515,14 +515,14 @@ void main() {
         _receiver(
           decls: _decls,
           servers: const [
-            // Хранение, не переписанное после обновления шаблона: умолчание
-            // `outbound`, сирота `legacy_x`, неподрезанный `dns_ip`.
+
+
             DnsServerTemplate(enabled: false, tag: 'google_dot', varValues: {
               'outbound': 'proxy-out',
               'dns_ip': ' 8.8.4.4 ',
               'legacy_x': '1',
             }),
-            // Запись, которой файл не касается.
+
             DnsServerTemplate(enabled: true, tag: 'cloudflare_dot', varValues: {
               'outbound': 'proxy-out',
             }),

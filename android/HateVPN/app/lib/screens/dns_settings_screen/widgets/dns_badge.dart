@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Small coloured badge used in DNS server / rule tiles.
+
 class DnsBadge extends StatelessWidget {
   const DnsBadge(this.text, this.color, {super.key});
 
@@ -9,8 +9,8 @@ class DnsBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Высота с запасом + single-line: на крупном шрифте/скейле текст в
-    // плоском чипе рвался на строки и вылезал из контейнера.
+
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(

@@ -1,43 +1,43 @@
 part of '../traffic_profiler.dart';
 
-// ─────────────────────────────────────────────────────────────────────────
-// Public types
-// ─────────────────────────────────────────────────────────────────────────
+
+
+
 
 enum TrafficEventKind { dnsResolve, dnsFail, tcpOpen, tcpClose, udpOpen }
 
-/// §048 Принцип 3 — атрибуция как **continuous signal**, а не binary
-/// match-or-drop. Каждое event в session/global buffer'е помечено уровнем
-/// уверенности; UI показывает все 4, но визуально различает.
+
+
+
 enum ConfidenceLevel {
-  /// `router: found package name: target` — sing-box явно сказал что this
-  /// is target. Default visual (no marker).
+
+
   verified,
 
-  /// `meta.process` ∈ session.secondaryPackages — WebView / paired UID.
-  /// UI marker: `🔗 via <pkg>`.
+
+
   secondary,
 
-  /// §219 — (DORMANT) больше не присваивается: стратегия 4 (inference по
-  /// recent-DNS IP в окне `_processInferenceWindow`) выпилена в §044. Значение
-  /// оставлено для десериализации старых session JSON. UI marker: `〽 inferred`.
+
+
+
   inferred,
 
-  /// Никакая strategy не сработала. Событие показывается в Live tab'е
-  /// или в Per-app session как `unattributed nearby` секция. UI marker:
-  /// `〽 unattributed`.
+
+
+
   unattributed,
 }
 
-/// Маркеры **проблем сетевого соединения**, которые показываются как ⚠
-/// в UI и попадают в session JSON. Это **не статистические аномалии** —
-/// это конкретные diagnostic-сигналы (engine error / heuristic для RST).
-///
-/// Locale-агностичные:
-/// - `dnsTimeout` — sing-box залогировал `dns: exchange failed ...`.
-///   Прямой engine-сигнал, не heuristic.
-/// - `tcpReset` — conn закрылся в течение 1с без bytes, вероятный
-///   firewall RST / unreachable. Heuristic, возможны false positives.
+
+
+
+
+
+
+
+
+
 enum ConnectionIssueKind { dnsTimeout, tcpReset }
 
 class ConnectionIssue {
@@ -51,13 +51,13 @@ class ConnectionIssue {
       };
 }
 
-/// §160 — чистый аггрегатор событий в `byDomain` / `byIp`. Считает агрегаты
-/// из переданного списка событий (globalRollingBuffer / отфильтрованный набор
-/// в TraceExplorer) — TraceExplorer вызывает его сам, не завязываясь на
-/// внутреннее состояние профайлера.
-///
-/// Unattributed-события пропускаются (как и раньше): чтобы «nearby» events
-/// без owner'а не пачкали Domains/IPs картинку. В Live-ленте они видны.
+
+
+
+
+
+
+
 ({Map<String, DomainStats> byDomain, Map<String, IpStats> byIp})
     computeTraceAggregates(List<TrafficEvent> events) {
   final byDomain = <String, DomainStats>{};
@@ -141,20 +141,20 @@ class TrafficEvent {
   final String? ip;
   final int? port;
 
-  /// §174/§181 — РОУТИНГ-цепочка от ядра: `[node, …selectors-снизу-вверх]`
-  /// (напр. `["[BL]-3", "✨auto", "vpn-1"]`). БЕЗ detour (§181 развернул §178-склейку).
-  /// Человекочитаемая «цепочка решения» строится в UI: `rule ⇒ группы ⇒ : node`.
+
+
+
   final List<String> outboundChain;
 
-  /// §181 — DETOUR-ось (транспорт): `[detour, …наружу]` (напр. `["WARP"]`).
-  /// Отдельно от outboundChain — это куда физически ныряет пакет ПОСЛЕ выбора
-  /// сервера, не часть решения маршрута. Пусто для прямых / без detour.
+
+
+
   final List<String> detourChain;
 
-  /// §204 — тип финального outbound (`CcConnection.outboundType`:
-  /// selector/urltest/vless/wireguard/…). Протащен из conn, чтобы detail-секция
-  /// Routing была 1:1 с Conns (строка «Outbound type»). null для DNS / если
-  /// ядро не отдало.
+
+
+
+
   final String? outboundType;
   final int? upBytes;
   final int? downBytes;
@@ -162,65 +162,65 @@ class TrafficEvent {
   final String? connId;
   final String? process;
 
-  /// §219 — (DORMANT) всегда `false` в текущем коде: эквивалентно
-  /// `confidence == inferred`, а стратегия 4 (`_inferProcessByIp`) выпилена в
-  /// §044. Поле оставлено для backward-compat со старыми session JSON и
-  /// UI/API-consumer'ами, не понимающими `confidence`. НЕ удалять (сломает
-  /// десериализацию старых дампов), НЕ пытаться «заполнять».
+
+
+
+
+
   final bool processInferred;
-  final String? network; // tcp / udp
+  final String? network;
   final String? rule;
   final String? rulePayload;
 
-  /// §219 — (DORMANT) никогда не заполняется: лог-питатель профайлера снят в
-  /// §180 (DNS из структурного стрима, TCP из ядра). Копируется при
-  /// трансформациях и сериализуется для backward-compat со старыми session
-  /// JSON; UI читает как `?? ''`. НЕ удалять (совместимость дампов).
+
+
+
+
   final String? rawLogLine;
 
-  /// §048 Принцип 3 — confidence в attribution event'а к target session'у.
-  /// Для events в `_globalRollingBuffer` (без active session) — всегда
-  /// `verified` если процесс известен, иначе `unattributed`.
+
+
+
   final ConfidenceLevel confidence;
 
-  /// Какая strategy сработала: `router_log`, `secondary_packages`,
-  /// `recent_dns_ip`, `system_wide_correlation`, etc. Заполняется только
-  /// для не-`verified` уровней.
+
+
+
   final String? matchedVia;
 
-  /// Объяснение почему unattributed event попал в session events
-  /// (e.g. «system-wide DNS failure during active session»).
+
+
   final String? shownBecause;
 
-  /// DNS record type (A / AAAA / CNAME / HTTPS / SVCB / SOA / MX / TXT /
-  /// unknown). Заполняется для `dnsResolve` / `dnsFail`. Defensive parsing
-  /// (§048 Принцип 2): принимаем любой record type, не теряем events.
+
+
+
   final String? dnsRecordType;
 
-  /// `true` если event попал в session.events через pre-session backfill
-  /// из `_globalRollingBuffer` (§048 Принцип 4). UI marker:
-  /// `〽 backfilled from pre-recording`.
+
+
+
   final bool backfilled;
 
   final List<ConnectionIssue> issues;
   final Map<String, Object?>? extra;
 
-  /// §252 (эволюция §181) — трассировка: слева ось РЕШЕНИЯ, справа от `:` —
-  /// физический путь пакета по факту:
-  /// `процесс ⇒ [tcp] rule ⇒ группы : транспорт-вход → … → выход (селектор
-  /// (его выбор)) → domain`
-  /// `⇒` — как роутер выбирал (процесс → правило → селекторы сверху вниз);
-  /// `:` — граница «решение / путь»; `→` — движение пакета (вход первым,
-  /// выход в интернет — последним перед целью). Пары «селектор + его выбор»
-  /// схлопнуты в `селектор (выбор)` (§251).
+
+
+
+
+
+
+
+
   String get routingLine => routingLineOf();
 
-  /// [compact] — для live-списка: префикс `process ⇒ [network]` опускается,
-  /// т.к. дублирует строку процесса + бейдж типа над ней. Строка начинается с
-  /// `rule` (`final ⇒ vpn-1 : …`). Detail-sheet зовёт без compact (полная).
+
+
+
   String routingLineOf({bool compact = false}) {
     final sb = StringBuffer();
-    // Ось решения (⇒): процесс → [net] правило → селекторы (сверху вниз).
+
     final inner = <String>[];
     if (!compact && process != null && process!.isNotEmpty) inner.add(process!);
     final ruleText = (rule != null && rule!.isNotEmpty) ? rule! : 'final';
@@ -228,16 +228,16 @@ class TrafficEvent {
         ? '[$network] $ruleText'
         : ruleText);
     if (outboundChain.length > 1) {
-      // selectors = chain[1:] от ВЕРХНЕГО к нижнему (reverse).
+
       inner.addAll(outboundChain.sublist(1).reversed);
     }
     sb.write(inner.join(' ⇒ '));
-    // §252 — физический путь (→ по ходу пакета): транспорт изнутри наружу
-    // (detour-ось развёрнута: вход первым) → выход ОДНИМ элементом
-    // `селектор (…вложенно… (node))` → назначение. Выход сворачивается ПО
-    // СТРУКТУРЕ outboundChain (`[node, …selectors]` — роли известны от
-    // ядра §174), не через SelectorInfo: селекторы не должны рассыпаться в
-    // ложные «хопы», даже если держатель тегов пуст.
+
+
+
+
+
+
     final phys = <String>[...foldSelectorPairs(detourChain).reversed];
     if (outboundChain.isNotEmpty) {
       var exit = outboundChain.first;
@@ -251,13 +251,13 @@ class TrafficEvent {
         : (ip != null && ip!.isNotEmpty ? ip : null);
     if (dest != null) phys.add(dest);
     if (phys.isNotEmpty) sb.write(' : ${phys.join(' → ')}');
-    // §181 — длительность в человеческом формате: <1s → "930ms", иначе "1s"/"1m".
+
     if (duration != null) sb.write(' · ${_fmtDuration(duration!)}');
     return sb.toString();
   }
 
-  /// §181 — короткая длительность: до секунды в мс (важно для коротких conn),
-  /// от секунды — `formatDuration` (1s / 1m / 1h Xm).
+
+
   static String _fmtDuration(Duration d) {
     if (d.inMilliseconds < 1000) return '${d.inMilliseconds}ms';
     return formatDuration(d);
@@ -281,8 +281,8 @@ class TrafficEvent {
         if (network != null) 'network': network,
         if (rule != null) 'rule': rule,
         if (rulePayload != null) 'rule_payload': rulePayload,
-        // §048 — confidence всегда отражается, даже для verified
-        // (consumers могут отличать «default» от опущенного поля).
+
+
         'confidence': confidence.name,
         if (matchedVia != null) 'matched_via': matchedVia,
         if (shownBecause != null) 'shown_because': shownBecause,
@@ -290,17 +290,17 @@ class TrafficEvent {
         if (backfilled) 'backfilled': true,
         if (issues.isNotEmpty)
           'issues': issues.map((a) => a.toJson()).toList(),
-        // §315 — `extra` НЕ сериализовался вовсе: UI-путь (detail-sheet)
-        // читает объект напрямую и работал, а Debug API (`/profiler/live`)
-        // молча терял dns_server/source (§180) и трассу группы (§315) —
-        // диагностика по API не видела того, что видит экран.
+
+
+
+
         if (extra != null && extra!.isNotEmpty) 'extra': extra,
       };
 
-  /// §084 H6 — копия с переопределением полей. Используется в
-  /// `_pollConnections` чтобы из `raw` (session-snapshot) собрать `globalEv`
-  /// (global-buffer вариант с confidence/matchedVia) без ручного копирования
-  /// всех 20+ полей (источник дрейфа при добавлении нового поля).
+
+
+
+
   TrafficEvent copyWith({
     ConfidenceLevel? confidence,
     String? matchedVia,
@@ -316,7 +316,7 @@ class TrafficEvent {
         port: port,
         outboundChain: outboundChain,
         detourChain: detourChain,
-        outboundType: outboundType, // §204
+        outboundType: outboundType,
         upBytes: upBytes,
         downBytes: downBytes,
         duration: duration,

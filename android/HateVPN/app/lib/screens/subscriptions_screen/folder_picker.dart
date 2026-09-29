@@ -5,10 +5,10 @@ import '../../models/server_list.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// §234 — bottom-sheet выбора папки (для «Move to folder…»). Показывает все
-/// папки кроме [excludeId] + пункт «New folder…» (создаёт и сразу выбирает).
-/// Возвращает индекс выбранной папки в `controller.entries` или null (отмена).
-/// [title] == null → локализованный заголовок по умолчанию.
+
+
+
+
 Future<int?> showFolderPicker(
   BuildContext context,
   SubscriptionController controller, {
@@ -61,7 +61,7 @@ Future<int?> showFolderPicker(
   if (chosenId == null) return null;
 
   if (chosenId.isEmpty) {
-    // «New folder…» — спросить имя, создать, выбрать её.
+
     if (!context.mounted) return null;
     final name = await showFolderNameDialog(context);
     if (name == null || name.isEmpty) return null;
@@ -75,8 +75,8 @@ Future<int?> showFolderPicker(
   return null;
 }
 
-/// §234 — диалог имени папки (создание/переименование).
-/// [title] == null → локализованный заголовок по умолчанию («New folder»).
+
+
 Future<String?> showFolderNameDialog(BuildContext context,
     {String initial = '', String? title}) async {
   final ctl = TextEditingController(text: initial);
@@ -108,10 +108,10 @@ Future<String?> showFolderNameDialog(BuildContext context,
   return (name == null || name.isEmpty) ? null : name;
 }
 
-/// §234 — подтверждение удаления папки: `'keep'` — вынести серверы одиночными,
-/// `'all'` — удалить вместе с серверами, null — отмена. Авто-узлы роспуск не
-/// переживают (см. `SubscriptionController.deleteFolderAt`): диалог их
-/// называет, а папке из одних авто-узлов «Keep servers» не предлагает.
+
+
+
+
 Future<String?> showDeleteFolderDialog(
     BuildContext context, FolderServers folder, String displayName) {
   final members = folder.members;

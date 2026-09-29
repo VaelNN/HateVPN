@@ -3,7 +3,7 @@ import 'package:lxbox/models/codec/rule_record.dart';
 import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/services/storage_migration/legacy_form_v0.dart';
 
-/// ## 12 контракта (D-100) — несколько `.srs`-наборов в одном правиле.
+
 void main() {
   group('CustomRuleSrs.srsUrls', () {
     test('одиночный srsUrl → список из одного, srsUrl = первый', () {

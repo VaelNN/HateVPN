@@ -6,8 +6,8 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import 'engine_test_setup.dart';
 
-/// `_coerceType` для `type: int`: JSON-число должно быть математически
-/// целым. Дробный порт в контейнере v2rayN иначе молча становился 443.
+
+
 String _vmess(Object port) {
   final cfg = jsonEncode({
     'v': '2',

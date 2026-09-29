@@ -13,13 +13,13 @@ import 'package:lxbox/services/contract/group_genus.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §322 — узел автовыбора внутри папки: хранится членом `kind: auto`
-/// (§439 N2, `codec/auto_group_record.dart`), а на билде превращается в
-/// `urltest` по членам ЭТОЙ же папки.
+
+
+
 class _FakeCtx extends EmitContext {
   _FakeCtx({this.passiveCheck = false});
 
-  /// §272/§322 — глобальная настройка приложения, доходит до групп через ctx.
+
   @override
   final bool passiveCheck;
 
@@ -60,14 +60,14 @@ class _FakeCtx extends EmitContext {
 }
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   String vless(String uuid, String ip, String name) =>
       'vless://$uuid@$ip:443?type=tcp&security=none#$name';
 
-  /// Члены папки: строка — текст узла, [AutoSelectSpec] — член `kind: auto`.
+
   FolderServers folder(List<Object> members, {bool enabled = true}) =>
       FolderServers(
         id: 'f1',
@@ -107,7 +107,7 @@ void main() {
 
       final ut = urltests(ctx);
       expect(ut, hasLength(1));
-      // Теги — ИТОГОВЫЕ, с префиксом папки.
+
       expect(ut.single['outbounds'], ['F: DE-1', 'F: NL-1']);
       expect(ut.single['tag'], 'F: Мой авто');
     });
@@ -146,7 +146,7 @@ void main() {
         label: 'Grp',
         membership: const ExplicitMembers([
           NodeLink(folderId: 'f1', tag: 'B'),
-          // член без folder_id внутри папки — свой контейнер (NODE_LINK §5.1 № 8)
+
           NodeLink(tag: 'A'),
         ]),
       );
@@ -156,7 +156,7 @@ void main() {
         vless('u2', '2.2.2.2', 'B'),
         auto,
       ]).build(ctx);
-      // Порядок — списка, а не папки.
+
       expect(urltests(ctx).single['outbounds'], ['F: B', 'F: A']);
       expect(ctx.warnings, isEmpty);
     });
@@ -179,8 +179,8 @@ void main() {
         auto,
       ]).build(ctx);
       expect(urltests(ctx).single['outbounds'], ['F: B']);
-      // Контракт 1.1.67 (§63) — запись отчёта сборки с кодом
-      // group_member_dropped {tag, member}, одна на выбывшего члена.
+
+
       expect(ctx.warnings, [
         'Group F: Grp: gone left the group [group_member_dropped]',
         'Group F: Grp: A left the group [group_member_dropped]',
@@ -239,7 +239,7 @@ void main() {
       final ctx = _FakeCtx();
       folder([vless('u1', '1.1.1.1', 'A'), auto]).build(ctx);
       expect(urltests(ctx), isEmpty);
-      // Сами серверы при этом на месте.
+
       expect(ctx.entries, hasLength(1));
     });
 
@@ -250,7 +250,7 @@ void main() {
         AutoSelectSpec(id: 'a', tag: 'G', label: 'G'),
       ]).build(ctx);
       expect(ctx.selectorTags, contains('F: G'));
-      // urltest внутри urltest — вложенность без пользы.
+
       expect(ctx.autoTags, isNot(contains('F: G')));
     });
 
@@ -274,7 +274,7 @@ void main() {
       ]).build(on);
       expect(urltests(on).single['passive_check'], isTrue);
 
-      // Выключено → ключа нет вовсе (omitempty = апстрим-поведение).
+
       final off = _FakeCtx();
       folder([
         vless('u1', '1.1.1.1', 'A'),
@@ -316,7 +316,7 @@ void main() {
               .single;
       final n = back.node;
       expect(n, isA<AutoSelectSpec>());
-      // Подпись группы — её тег: запись kind: auto отдельной подписи не несёт.
+
       expect(n!.tag, 'Мой авто');
       expect(n.label, 'Мой авто');
       expect((n as AutoSelectSpec).membership,

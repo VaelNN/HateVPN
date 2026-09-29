@@ -21,20 +21,20 @@ import 'custom_rule_edit/tabs/params_tab.dart';
 import 'custom_rule_edit/tabs/view_tab.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// Редактор `CustomRule` (spec §030).
-///
-/// Все match-поля заполняются параллельно — sing-box внутри категории
-/// (domain-family, port-family) матчит OR, между категориями AND. Правило
-/// вида `domain_suffix=[.ru] & port=[443]` = "любой .ru домен И порт 443".
-/// Протокол — отдельно, всегда AND (на routing rule level).
-///
-/// `kind=srs` — remote `.srs` rule_set по URL. Port/protocol всё равно
-/// применяются (на routing rule level).
-///
-/// §053 Stage 3 — state живёт в [CustomRuleEditController]; tab'ы /
-/// sections подписываются через [CustomRuleEditScope]. Screen State
-/// держит только owner-ship controller'а + UI-actions требующие
-/// BuildContext (save/back/delete dialog'и, picker'ы, snackbar'ы).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class CustomRuleEditScreen extends StatefulWidget {
   const CustomRuleEditScreen({
     super.key,
@@ -48,21 +48,21 @@ class CustomRuleEditScreen extends StatefulWidget {
 
   final CustomRule initial;
 
-  /// §578 — узлы для превью пресета с `for_each` (View-таб), тот же отбор,
-  /// что у строки пресета на экране маршрутов.
+
+
   final List<PresetNode> presetNodes;
   final List<OutboundOption> outboundOptions;
   final Set<String> existingNames;
 
-  /// §279 (§3.5.1) — live display-имя preset-правила (label из локализованного
-  /// шаблона + порядковый суффикс копии) для read-only Name-поля. null —
-  /// не preset-правило либо fallback на `initial.name`/`preset.label`.
+
+
+
   final String? displayName;
 
-  /// Bundle-пресет (spec §033). Обязателен когда `initial.kind == preset` —
-  /// форма рендерит его `vars` для юзер-ввода. Null для preset-правила =
-  /// broken-preset (пресет удалён/переименован в шаблоне) — показываем
-  /// fallback-экран с Delete.
+
+
+
+
   final SelectableRule? preset;
 
   @override
@@ -73,9 +73,9 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
     with WidgetsBindingObserver {
   late final CustomRuleEditController _ctrl;
 
-  /// §567 — почему SSID сейчас не читается (null — всё в порядке или
-  /// причина без подсказки). Проверяется при открытии экрана и при
-  /// возврате в приложение (из системных настроек), не на rebuild.
+
+
+
   WifiHint? _wifiHint;
   List<String> _wifiMissing = const [];
 
@@ -117,12 +117,12 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
     if (hint != _wifiHint) setState(() => _wifiHint = hint);
   }
 
-  // ─── Save / delete / back ────────────────────────────────────────────
+
 
   Future<void> _save() async {
-    // §447 — одна проверка для всех путей сохранения: Save в AppBar и Save
-    // из диалога несохранённых правок раньше обходили гейт кнопки формы, и
-    // массив или невалидный JSON уходили в правила.
+
+
+
     final blocked = _ctrl.saveBlockReason;
     if (blocked != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -130,9 +130,9 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
       );
       return;
     }
-    // §279 — у preset-правила `name` — снапшот label'а (fallback, display
-    // резолвит live); поле read-only, дедуп/переименование НЕ применяем —
-    // иначе display-резолвнутый existingNames переписал бы снапшот.
+
+
+
     if (widget.initial.kind == CustomRuleKind.preset) {
       Navigator.pop(
           context, _CustomRuleEditResult.saved(_ctrl.snapshot()));
@@ -157,10 +157,10 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
       );
     }
 
-    // §051 Phase 2 — preflight permission check если у правила есть wifi
-    // условия. Без NEARBY_WIFI_DEVICES + ACCESS_BACKGROUND_LOCATION sing-box
-    // не сможет прочитать SSID и rule не сматчится. Лучше предупредить
-    // СЕЙЧАС чем юзер удивится «правило сохранил а не работает».
+
+
+
+
     if (_ctrl.wifiNetworks.isNotEmpty) {
       final missing = <String>[];
       if (!await ul.UrlLauncher.checkBackgroundLocationPermission()) {
@@ -171,9 +171,9 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
       }
       if (missing.isNotEmpty && mounted) {
         await WifiPermissionDialog.show(context, missing: missing);
-        // Не блокируем save — юзер мог нажать «Allow Wi-Fi info» и нам
-        // надо сохранить правило в любом случае. Permission'ы прорастут
-        // при следующем connect (или сразу если runtime grant прошёл).
+
+
+
       }
     }
 
@@ -186,39 +186,39 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
     final confirmed = await showDeleteConfirmDialog(
       context,
       title: getLocalText.s("Delete rule?"),
-      // §279 — display-имя (live-label пресета), fallback — снапшот.
+
       message: getLocalText.s(
           "Remove \"%s\" permanently?", widget.displayName ?? widget.initial.name),
-    ); // §219
+    );
     if (confirmed == true && mounted) {
       Navigator.pop(context, _CustomRuleEditResult.deleted());
     }
   }
 
-  /// Обработчик back (system + AppBar leading). Если unsaved — confirm
-  /// с тремя опциями: Save / Keep editing / Discard.
+
+
   Future<void> _handleBack() async {
     if (!_ctrl.isDirty()) {
       Navigator.pop(context);
       return;
     }
-    final action = await showUnsavedChangesDialog(context); // §219
+    final action = await showUnsavedChangesDialog(context);
     if (!mounted) return;
     if (action == 'save') {
-      _save(); // сам сделает Navigator.pop при успехе
+      _save();
     } else if (action == 'discard') {
       Navigator.pop(context);
     }
-    // 'keep' / null — остаёмся на экране
+
   }
 
-  // ─── SRS cloud menu (long-press на ☁) ────────────────────────────────
 
-  /// Контекстное меню для cloud-иконки URL'а (long-press).
-  /// - Refresh SRS = тот же `downloadSrs` что и tap
-  /// - Clear cache = удалить локальный `.srs` файл, не трогая правило.
-  ///   После очистки `_enabled` сбрасывается в false — без cache правило
-  ///   не может работать, switch в UI тоже заблокируется.
+
+
+
+
+
+
   Future<void> _showCloudMenu(Offset pos) async {
     final overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox;
@@ -262,7 +262,7 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
     }
   }
 
-  // ─── Wi-Fi pickers (§051 Phase 2) ────────────────────────────────────
+
 
   Future<void> _addCurrentWifi() async {
     final result = await ul.UrlLauncher.getCurrentWifiInfo();
@@ -299,8 +299,8 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
     }
   }
 
-  /// §567 — SecurityException без списка: показываем оба разрешения, как
-  /// до §567.
+
+
   static const _defaultWifiMissing = [
     'android.permission.ACCESS_BACKGROUND_LOCATION',
     'android.permission.NEARBY_WIFI_DEVICES',
@@ -336,9 +336,9 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
     await SettingsStorage.addToWifiHistory(result.ssid, result.bssid);
   }
 
-  /// §567 — tap по подсказке секции Wi-Fi ведёт туда, где причина
-  /// чинится: геолокация — системный тумблер, разрешения — диалог с
-  /// кнопками «Allow Wi-Fi info» / «Open Settings».
+
+
+
   Future<void> _onTapWifiHint() async {
     switch (_wifiHint) {
       case null:
@@ -367,7 +367,7 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
     _ctrl.setPackages(result.packages);
   }
 
-  /// §247 — окно «Action & Resolve» (⚙ у Action-пикера).
+
   void _openActionResolve() {
     showActionResolveSheet(
       context,
@@ -385,7 +385,7 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
     );
   }
 
-  // ─── Build ───────────────────────────────────────────────────────────
+
 
   @override
   Widget build(BuildContext context) {
@@ -421,8 +421,8 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
                 onPressed: _handleBack,
               ),
               actions: [
-                // §264 — locked-пресет (traffic-processing) нельзя удалить:
-                // delete-иконку скрываем.
+
+
                 if (!(_ctrl.preset?.locked ?? false))
                   IconButton(
                     tooltip: getLocalText.s("Delete rule"),
@@ -455,9 +455,9 @@ class _CustomRuleEditScreenState extends State<CustomRuleEditScreen>
   }
 }
 
-/// Save-icon в AppBar: подсвечивается primary-цветом если `isDirty()`.
-/// Вынесено в отдельный widget чтобы rebuild ограничивался только этой
-/// кнопкой (а не всем AppBar'ом) когда controller notify'ит.
+
+
+
 class _SaveIconButton extends StatelessWidget {
   const _SaveIconButton({required this.controller, required this.onPressed});
 
@@ -470,7 +470,7 @@ class _SaveIconButton extends StatelessWidget {
       animation: controller,
       builder: (ctx, _) {
         final dirty = controller.isDirty();
-        // §447 — та же блокировка, что у Save формы; причина — в подсказке.
+
         final blocked = controller.saveBlockReason;
         return IconButton(
           tooltip: blocked ?? getLocalText.s("Save"),
@@ -485,7 +485,7 @@ class _SaveIconButton extends StatelessWidget {
   }
 }
 
-/// Результат редактора — либо сохранение, либо удаление.
+
 class _CustomRuleEditResult {
   const _CustomRuleEditResult._({this.saved, this.wasDeleted = false});
   final CustomRule? saved;
@@ -497,7 +497,7 @@ class _CustomRuleEditResult {
       const _CustomRuleEditResult._(wasDeleted: true);
 }
 
-/// Публичный wrapper для использования в RoutingScreen.
+
 class CustomRuleEditResult {
   const CustomRuleEditResult._internal(this._inner);
   final _CustomRuleEditResult _inner;

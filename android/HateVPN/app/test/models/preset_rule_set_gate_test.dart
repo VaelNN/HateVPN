@@ -9,10 +9,10 @@ import 'package:lxbox/screens/routing_screen/routing_screen_helpers.dart'
     show RoutingHelpers;
 import 'package:lxbox/services/builder/preset_expand.dart';
 
-/// §534 — гейт `rule_set` пресета на пути скачивания/UI (`isRuleSetEnabledFor`,
-/// `remoteRuleSetsOfPreset`) — та же семантика, что у билдера
-/// (`fragmentGateSatisfied` + `presetVarsMap`): канонический `#enable` (§107) и
-/// легаси `enabled` (§045), ref-переменная — из глобального словаря (§265).
+
+
+
+
 void main() {
   const url = 'https://example.invalid/set.srs';
 
@@ -37,9 +37,9 @@ void main() {
   CustomRulePreset ruleWith([Map<String, String> values = const {}]) =>
       CustomRulePreset(name: 'P', presetId: 'p', varsValues: values);
 
-  /// Проверка сразу на обоих хелперах: `isRuleSetEnabledFor` и
-  /// `remoteRuleSetsOfPreset` с `rule`; без `rule` набор в списке всегда
-  /// (cleanup-путь трогает все кэши).
+
+
+
   void expectGate(
     Map<String, dynamic> rs,
     CustomRulePreset rule, {
@@ -98,10 +98,10 @@ void main() {
     });
 
     test('необъявленная переменная → выключен (семантика билдера)', () {
-      // Смена поведения §534: прежний хелпер для необъявленной `@nope`
-      // возвращал true (fallback 'true'), билдер — false (плейсхолдер не
-      // подставился, это не "true"). Набор, который в конфиг не попадёт,
-      // качать незачем — побеждает билдер.
+
+
+
+
       expectGate(remote('a', {'enabled': '@nope'}), ruleWith(), enabled: false);
     });
   });
@@ -147,8 +147,8 @@ void main() {
     });
 
     test('globalVars пуст, значение в varsValues → выключен', () {
-      // Значение ref-переменной живёт в глобальном userVars, varsValues
-      // пресета для неё не читается — как у билдера.
+
+
       expectGate(rs, ruleWith({'r': 'true'}), preset: preset, enabled: false);
     });
   });
@@ -174,7 +174,7 @@ void main() {
         empty.error,
       ]);
 
-      // Словарь собран целиком, гейт на пути скачивания видит остальные vars.
+
       expect(unset.vars, {'a': null, 'b': 'x', 'x': 'true'});
     });
   });
@@ -301,8 +301,8 @@ void main() {
       ).map((e) => e.tag).toSet();
       expect(allRemote, containsAll(['geoip-ru', 'ru-apps']));
       final srsPaths = {for (final t in allRemote) t: '/cache/$t.srs'};
-      // Билдер неймспейсит теги пресета (`ru-direct:geoip-ru`, §103 C7) —
-      // набор опознаём по подставленному локальному пути.
+
+
       final tagByPath = {for (final e in srsPaths.entries) e.value: e.key};
 
       for (final geo in ['true', 'false']) {

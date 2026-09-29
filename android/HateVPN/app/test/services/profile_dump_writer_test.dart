@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/profile_dump_writer.dart';
 import 'package:lxbox/vpn/pprof_profile.dart';
 
-/// §207 — `ProfileDumpWriter`: goroutine-дамп → `.txt`, CPU-профиль → `.pb`,
-/// оба в temp с timestamp-именем. Round-trip содержимого.
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -77,11 +77,11 @@ void main() {
     };
     for (final p in PprofProfile.all) {
       expect(allowed, contains(p.id), reason: '${p.id} not in native allowlist');
-      // pathAndQuery must start with the id (native splits on '?').
+
       expect(p.pathAndQuery.split('?').first, p.id);
-      // Only goroutine summaries/full are text.
+
       expect(p.isText, p.id == 'goroutine');
-      // Only CPU profile is blocking.
+
       expect(p.blockingSeconds > 0, p.id == 'profile');
     }
   });

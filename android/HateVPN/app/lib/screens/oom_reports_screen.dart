@@ -12,15 +12,15 @@ import '../services/ui_helpers.dart';
 import '../widgets/big_text_view.dart';
 import '../widgets/safe_bottom.dart';
 
-/// §318 — вкладка «OOM» на экране Debug: снимки памяти, снятые ядром.
-///
-/// Пишет их oom-killer ядра (§271) при превышении порога RSS: pprof-профили
-/// кучи в момент реальной проблемы, на устройстве пользователя, без участия
-/// разработчика. До §318 они лежали в `files/oom_reports/` недостижимыми —
-/// и без ротации доросли на тест-устройстве до 427 МБ.
-///
-/// Отдельная вкладка, а не строки в «Crashes»: краш и OOM — разные события
-/// (паника против давления памяти), в общем списке сигнал теряется.
+
+
+
+
+
+
+
+
+
 class OomReportsTab extends StatefulWidget {
   const OomReportsTab({super.key});
 
@@ -53,8 +53,8 @@ class _OomReportsTabState extends State<OomReportsTab>
     showSnack(getLocalText.s("Share failed: %s", r.name));
   }
 
-  /// Удаление всех снимков — операция необратимая и по объёму заметная,
-  /// поэтому через тот же confirm, что и остальные удаления (§219).
+
+
   Future<void> _clearAll(int total) async {
     final ok = await showDeleteConfirmDialog(
       context,
@@ -92,8 +92,8 @@ class _OomReportsTabState extends State<OomReportsTab>
                 child: Text(
                   reports.isEmpty
                       ? getLocalText.s("Memory snapshots taken by the core when it approached its memory limit.")
-                      // Суммарный размер в заголовке — главное, что нужно
-                      // знать про эту папку: она растёт сама.
+
+
                       : getLocalText.plural(
                           "%1\$d snapshots · %2\$s. Tap to inspect, share to get the pprof profiles.",
                           reports.length,
@@ -124,8 +124,8 @@ class _OomReportsTabState extends State<OomReportsTab>
     );
   }
 
-  /// Пустой список — нормальное состояние, а не поломка экрана: ядро просто
-  /// не упиралось в лимит памяти.
+
+
   Widget _buildEmpty(BuildContext context) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -181,8 +181,8 @@ class _OomReportsTabState extends State<OomReportsTab>
     );
   }
 
-  /// Размер каталога + RSS на момент снимка + версия ядра. RSS в подписи —
-  /// чтобы отличить «подобрался к лимиту» от «взлетел» не открывая снимок.
+
+
   String _subtitleOf(OomReportFile r) {
     final parts = <String>[formatBytes(r.size)];
     if (r.memoryUsage != null) parts.add(r.memoryUsage!);
@@ -191,12 +191,12 @@ class _OomReportsTabState extends State<OomReportsTab>
   }
 }
 
-/// §318 — просмотр одного снимка: таблица memstats из `metadata.json`, ниже
-/// `go.log` ядра на момент срабатывания killer'а.
-///
-/// pprof-профили тут не показываем — их читает `go tool pprof`, для этого
-/// есть share. Экран отвечает на вопрос «сколько и чего было занято», а не
-/// заменяет профайлер.
+
+
+
+
+
+
 class OomReportViewScreen extends StatefulWidget {
   const OomReportViewScreen({super.key, required this.report});
 
@@ -224,14 +224,14 @@ class _OomReportViewScreenState extends State<OomReportViewScreen>
       final j = jsonDecode(await File(widget.report.path).readAsString());
       if (j is Map) meta = j.cast<String, Object?>();
     } catch (_) {
-      // Битые метаданные — покажем хотя бы лог.
+
     }
     String? log;
     try {
       final f = File('${widget.report.dirPath}/$kOomLogName');
       if (await f.exists()) log = await f.readAsString();
     } catch (_) {
-      // Лога может не быть: ядро пишет его только при непустом буфере.
+
     }
     if (!mounted) return;
     setState(() {
@@ -259,8 +259,8 @@ class _OomReportViewScreenState extends State<OomReportViewScreen>
           ),
         ],
       ),
-      // §333 — снапшот core-log читается целиком; в едином SelectableText
-      // это Paragraph на весь лог. Мета — шапкой, лог — построчными sliver'ами.
+
+
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
@@ -319,14 +319,14 @@ class _OomReportViewScreenState extends State<OomReportViewScreen>
     );
   }
 
-  /// Порядок строк — от «сколько всего» к деталям кучи и GC: читающий сверху
-  /// вниз сначала видит масштаб, потом причину. Ключи, которых нет в снимке,
-  /// пропускаем молча — набор полей у разных версий ядра отличается.
-  ///
-  /// Подписи — литеральные `getLocalText.s("…")`, а НЕ `s(label)` по таблице
-  /// «поле → строка»: чекер `tool/l10n/ui_check.dart` видит только литералы,
-  /// и при динамическом ключе восемнадцать подписей молча остались бы без
-  /// перевода (§l10n — английский текст и есть ключ словаря).
+
+
+
+
+
+
+
+
   static List<(String, String)> _metaRows() => [
         ('memoryUsage', getLocalText.s("Process memory (RSS)")),
         ('availableMemory', getLocalText.s("Available memory")),

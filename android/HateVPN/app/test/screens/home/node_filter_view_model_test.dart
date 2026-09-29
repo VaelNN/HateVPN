@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/screens/home/node_filter_view_model.dart';
 
-/// §085 R3 — unit tests для NodeFilterViewModel (извлечён из home_screen).
-/// Раньше эта логика жила в _HomeScreenState и была не покрыта тестами.
+
+
 void main() {
   late NodeFilterViewModel vm;
   late int notifications;
@@ -18,9 +18,9 @@ void main() {
   group('defaults', () {
     test('чистое состояние', () {
       expect(vm.showNonMatching, true);
-      // §096 — detour: старт = фильтр выкл → показать всё (точку не зажигает).
+
       expect(vm.detourEnabled, false);
-      expect(vm.detourHide, true); // `!` дефолт on, но фильтр выкл → неважен
+      expect(vm.detourHide, true);
       expect(vm.detourActive, false);
       expect(vm.detourOnly, false);
       expect(vm.panelExpanded, false);
@@ -32,7 +32,7 @@ void main() {
       expect(vm.enabledSubscriptions, isEmpty);
       expect(vm.subscriptionsInvert, false);
       expect(vm.pingEnabled, false);
-      // §095 — поле предзаполнено реальным «200», но disabled → не активно.
+
       expect(vm.pingController.text, '200');
       expect(vm.activeMaxPingMs, isNull);
       expect(vm.isActive, false);
@@ -108,7 +108,7 @@ void main() {
       expect(vm.detourPoolPasses(false), false, reason: 'non-detour отсеян');
     });
     test('checkbox off → ! неважен, всё проходит', () {
-      vm.toggleDetourHide(); // hide=false, но фильтр выкл
+      vm.toggleDetourHide();
       expect(vm.detourEnabled, false);
       expect(vm.detourPoolPasses(true), true);
       expect(vm.detourPoolPasses(false), true);
@@ -203,21 +203,21 @@ void main() {
 
   group('per-direction memory (syncDirection)', () {
     test('фильтр Направления A восстанавливается после A→B→A', () {
-      // войти в Направление A
+
       vm.syncDirection('A');
       vm.toggleProtocol('vless');
       vm.toggleSubscription('sub-1');
-      // переключиться на B → A-фильтры сохранены, B чистый
+
       vm.syncDirection('B');
       expect(vm.enabledProtocols, isEmpty);
       expect(vm.enabledSubscriptions, isEmpty);
-      // настроить B
+
       vm.toggleProtocol('trojan');
-      // вернуться в A → восстановлено
+
       vm.syncDirection('A');
       expect(vm.enabledProtocols, {'vless'});
       expect(vm.enabledSubscriptions, {'sub-1'});
-      // снова B → trojan
+
       vm.syncDirection('B');
       expect(vm.enabledProtocols, {'trojan'});
     });
@@ -225,25 +225,25 @@ void main() {
     test('пустое Направление не плодит запись + same-direction no-op', () {
       vm.syncDirection('A');
       final before = notifications;
-      vm.syncDirection('A'); // no-op
+      vm.syncDirection('A');
       expect(notifications, before);
     });
 
     test('§095 дефолтный ping (200, disabled) переживает смену Направления', () {
       vm.syncDirection('A');
       expect(vm.pingController.text, '200');
-      vm.syncDirection('B'); // capture A нормализует дефолт → '' (no orphan)
+      vm.syncDirection('B');
       expect(vm.pingController.text, '200');
-      vm.syncDirection('A'); // restore A → пусто → дефолтное «200»
+      vm.syncDirection('A');
       expect(vm.pingController.text, '200');
       expect(vm.pingEnabled, false);
     });
 
     test('detour/show-non-matching глобальны (не per-direction)', () {
       vm.syncDirection('A');
-      vm.setDetourEnabled(true); // → скрыть detour
+      vm.setDetourEnabled(true);
       vm.syncDirection('B');
-      // глобальный флаг не сбрасывается при смене Направления
+
       expect(vm.detourEnabled, true);
       expect(vm.detourActive, true);
     });

@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/background_mode.dart';
 import 'package:lxbox/services/settings_storage.dart' show TunAppsConfig;
 
-/// §293 — валидаторы enum-настроек на моделях (единый источник для storage-
-/// сеттеров и Debug write-путей; раньше инлайн-списки в обоих).
+
+
 void main() {
   group('BackgroundMode.isValid', () {
     test('never/lazy/always → true', () {
@@ -15,7 +15,7 @@ void main() {
       expect(BackgroundMode.isValid('garbage'), isFalse);
       expect(BackgroundMode.isValid(''), isFalse);
       expect(BackgroundMode.isValid('NEVER'), isFalse);
-      // Контраст: fromNative глушит мусор в never (не бросает).
+
       expect(BackgroundMode.fromNative('garbage'), BackgroundMode.never);
     });
   });

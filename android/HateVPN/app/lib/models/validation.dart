@@ -1,6 +1,6 @@
-/// Результат `validateConfig(config)` — §3.5 спеки 026.
-///
-/// Fatal → UI отказывается запускать VPN. Warn → debug log.
+
+
+
 library;
 
 import '../services/l10n/get_local_text.dart';
@@ -12,20 +12,20 @@ sealed class ValidationIssue {
   const ValidationIssue();
   Severity get severity;
 
-  /// §285 — тело рендера подкласса. [t] — локализатор: активная локаль для
-  /// [message], пиненный английский [GetLocalText.en] для [renderEn].
-  /// Публичный — переиспользуется композицией из ui_msg.dart (пофайловая
-  /// приватность Dart). Теги/поля — wire-значения, не переводятся.
+
+
+
+
   String messageWith(GetLocalText t);
 
-  /// §285 — рендер в момент показа (активная локаль через global getLocalText).
+
   String message() => messageWith(getLocalText);
 
-  /// Machine-рендер (AppLog) — пиненный английский, независимо от локали.
+
   String renderEn() => messageWith(GetLocalText.en);
 
-  /// Поля данных подкласса — равенство/hashCode по данным, не по строке
-  /// (§279: строка locale-зависима).
+
+
   List<Object?> get props => const [];
 
   @override
@@ -66,13 +66,13 @@ final class DanglingOutboundRef extends ValidationIssue {
       t.s("Rule \"%1\$s\" references missing outbound \"%2\$s\".", rule, tag);
 }
 
-/// §084 H1 — outbound с `detour`, ссылающимся на несуществующий tag.
-/// Возникает напр. когда override-detour хранит bare-tag, а целевой
-/// outbound эмитится prefixed (§080), или при ручном редактировании JSON.
-/// sing-box core реджектит такой config при старте → fatal.
+
+
+
+
 final class DanglingDetourRef extends ValidationIssue {
-  final String owner; // tag outbound'а с битым detour
-  final String tag; // на что ссылается (отсутствует в конфиге)
+  final String owner;
+  final String tag;
   const DanglingDetourRef(this.owner, this.tag);
 
   @override
@@ -89,12 +89,12 @@ final class DanglingDetourRef extends ValidationIssue {
   );
 }
 
-/// §121 — `dns.final` или `route.default_domain_resolver` ссылается на
-/// DNS-сервер, отсутствующий в `dns.servers`. Возникает напр. когда сервер
-/// был выбран резольвером, а потом исчез (выключили пресет, чьи серверы это
-/// были). sing-box core реджектит такой config при старте → fatal.
+
+
+
+
 final class DanglingDnsServerRef extends ValidationIssue {
-  final String field; // 'dns.final' | 'route.default_domain_resolver'
+  final String field;
   final String tag;
   const DanglingDnsServerRef(this.field, this.tag);
 
@@ -109,16 +109,16 @@ final class DanglingDnsServerRef extends ValidationIssue {
       t.s("%1\$s references missing DNS server \"%2\$s\".", field, tag);
 }
 
-/// §384 — `dns.final` / `route.default_domain_resolver` указывает на сервер
-/// типа `fakeip` или `hosts`. Ядро реджектит такой конфиг на старте
-/// (`initialize DNS server: default server cannot be fakeip`) → fatal, падаем
-/// ДО старта (§254-принцип). Тот же запрет ядра, что ловит [BadDnsGroupMember]
-/// для членов групп, — но для resolver-ссылок его не проверял никто, и UI
-/// давал выбрать fakeip в обоих пикерах (device-verified на эмуляторе).
+
+
+
+
+
+
 final class BadResolverServerType extends ValidationIssue {
-  final String field; // 'dns.final' | 'route.default_domain_resolver'
+  final String field;
   final String tag;
-  final String serverType; // 'fakeip' | 'hosts'
+  final String serverType;
   const BadResolverServerType(this.field, this.tag, this.serverType);
 
   @override
@@ -136,11 +136,11 @@ final class BadResolverServerType extends ValidationIssue {
   );
 }
 
-/// §312 — DNS-группа (kernel SPEC 033) осталась без единого члена: пуста в
-/// storage либо все члены выброшены эмиссионным фильтром (disabled/unknown/
-/// self/duplicate — см. `_filterDnsGroupMembers`). Ядро реджектит пустой
-/// `servers` на старте → fatal. Молча не чиним и не выкидываем группу —
-/// решение за юзером (анти-паттерн §277/§278).
+
+
+
+
+
 final class EmptyDnsGroup extends ValidationIssue {
   final String tag;
   const EmptyDnsGroup(this.tag);
@@ -158,13 +158,13 @@ final class EmptyDnsGroup extends ValidationIssue {
   );
 }
 
-/// §312 — член DNS-группы недопустимого типа: ядро запрещает `fakeip` и
-/// `hosts` внутри группы (fatal на старте). Форма такие серверы не
-/// предлагает, но JSON-вкладка/Debug PUT позволяют — ловим до старта ядра.
+
+
+
 final class BadDnsGroupMember extends ValidationIssue {
   final String group;
   final String member;
-  final String memberType; // 'fakeip' | 'hosts'
+  final String memberType;
   const BadDnsGroupMember(this.group, this.member, this.memberType);
 
   @override
@@ -182,12 +182,12 @@ final class BadDnsGroupMember extends ValidationIssue {
   );
 }
 
-/// §312 — цикл DNS-групп (группа→член→…→группа, включая самовключение,
-/// уцелевшее на пути мимо билдера). Ядро ловит циклы на старте → fatal;
-/// зеркалим до старта, аналог [DetourCycle] (§254 — не правим, юзер сам).
+
+
+
 final class DnsGroupCycle extends ValidationIssue {
-  /// Репрезентативный цикл: теги в порядке обхода, последний замыкает на
-  /// первый.
+
+
   final List<String> cycle;
   const DnsGroupCycle(this.cycle);
 
@@ -204,24 +204,24 @@ final class DnsGroupCycle extends ValidationIssue {
   );
 }
 
-/// §141 P1.8a / §254 — цикл в detour-графе (включая self-reference
-/// `A.detour=A` и кольца через selector/urltest-группы: группа зависит от
-/// ВСЕХ членов — так же считает и ядро при топосортировке старта).
-/// `DanglingDetourRef` ловит ссылку на ОТСУТСТВУЮЩИЙ tag, но цикл из
-/// существующих tag'ов он пропускает. Ядро отклоняет такой конфиг на старте
-/// (`circular outbound dependency`). Fatal.
-///
-/// §254 — конфиг НЕ правится автоматически: детектор называет минимальный
-/// набор нод-виновников ([culprits], алгоритм окраски в validator.dart),
-/// устранение — за пользователем.
+
+
+
+
+
+
+
+
+
+
 final class DetourCycle extends ValidationIssue {
-  /// Репрезентативный цикл: теги в порядке обхода (последний замыкает на
-  /// первый). Показывается при раскрытии в UI.
+
+
   final List<String> cycle;
 
-  /// Минимальный набор рёбер к устранению: нода + её detour-цель. Пустой
-  /// только для колец из одних групп (selector→selector, конструируемо лишь
-  /// правкой JSON руками) — там устранение = состав групп, не detour.
+
+
+
   final List<({String tag, String detour})> culprits;
 
   const DetourCycle(this.cycle, {this.culprits = const []});
@@ -231,7 +231,7 @@ final class DetourCycle extends ValidationIssue {
 
   @override
   List<Object?> get props => [
-    // Списки схлопываем в строки — _propsEqual сравнивает элементы по `==`.
+
     cycle.join('\u0000'),
     culprits.map((c) => '${c.tag}\u0000${c.detour}').join('\u0001'),
   ];
@@ -310,19 +310,19 @@ class ValidationResult {
   static const ok = ValidationResult([]);
 }
 
-/// §141 P0.1 — бросается при `hasFatal`, чтобы реализовать документированный
-/// контракт «Fatal → UI отказывается запускать VPN» (см. doc-комментарий
-/// `Severity` выше). Раньше fatal-issues только логировались, а невалидный
-/// `configJson` всё равно доезжал до ядра → зацикленный фейл-старт + битый
-/// конфиг персистился как source-of-truth.
-///
-/// Перехватывается в `SubscriptionController.generateConfig` (try/catch →
-/// `_lastError = humanizeError(e)`, возврат `null`). Все 24+ callsite уже
-/// делают `if (config != null)` skip-check, так что save не происходит.
-///
-/// §279 — пользовательский рендер списка issues живёт в `ValidationFatalMsg`
-/// (ui_msg.dart): `humanizeError` заворачивает исключение в него, показ —
-/// в момент build. `toString()` — только диагностический маркер для логов.
+
+
+
+
+
+
+
+
+
+
+
+
+
 class FatalValidationException implements Exception {
   final List<ValidationIssue> issues;
   const FatalValidationException(this.issues);

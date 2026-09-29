@@ -8,15 +8,15 @@ import 'package:lxbox/models/dns_ref.dart';
 import 'package:lxbox/services/builder/post_steps.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §043 + §117: tests for `resolveDnsServersList` / `resolveDnsServersBodies`
-/// / `resolveTemplateDnsServerBody`.
-///
-/// §117: template-серверы — обёртки `{description, enabled, vars?, server}`,
-/// tag в `server.tag`, `@var`-плейсхолдеры в body.
-///
-/// §439 A1 — резолверы работают с моделями [DnsServerRef]; записи, которые
-/// модель не выражает (формы до §043), наверх не отдаются и в хранении
-/// остаются (миграция `_migrateLegacyDnsServers` снята).
+
+
+
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -41,7 +41,7 @@ void main() {
     if (tmp.existsSync()) await tmp.delete(recursive: true);
   });
 
-  // §117-обёртки — эталон формата задачи 1 (wizard_template.json).
+
   Map<String, dynamic> tplGoogleUdp() => {
         'description': 'Google DNS (direct)',
         'enabled': true,
@@ -96,7 +96,7 @@ void main() {
         },
       };
 
-  // Обёртка без vars — как local_dns_resolver в шаблоне.
+
   Map<String, dynamic> tplLocal() => {
         'description': 'System DNS',
         'enabled': true,
@@ -126,7 +126,7 @@ void main() {
       expect(body, isNotNull);
       expect(body!['tag'], 'google_udp');
       expect(body['server'], '8.8.8.8');
-      expect(body['detour'], 'direct-out'); // normalize — зона caller'а
+      expect(body['detour'], 'direct-out');
     });
 
     test('varValues юзера бьют дефолты', () {
@@ -159,7 +159,7 @@ void main() {
       expect(body!.containsKey('detour'), false);
     });
 
-    // §555/§570 (контракт 1.1.70, §66) — телу видны все переменные шаблона.
+
     test('необъявленное сервером имя берётся из переменных шаблона', () {
       final wrapper = {
         'server': {
@@ -197,7 +197,7 @@ void main() {
   group('resolveDnsServersList', () {
     test('Empty storage → auto-discovery populates template + preset entries',
         () async {
-      // SettingsStorage starts empty.
+
       final result = await resolveDnsServersList(
         templateServers: [tplGoogleUdp(), tplCloudflareUdp()],
         presetServersByTag: {'yandex_udp': presetYandexUdp()},
@@ -207,10 +207,10 @@ void main() {
       expect(result.whereType<DnsServerPreset>().length, 1);
       expect(result.whereType<DnsServerTemplate>().length, 2);
 
-      // Preset идёт перед template (priority order).
+
       expect(result[0], isA<DnsServerPreset>());
       expect(result[0].tag, 'yandex_udp');
-      // §117: tag берётся из server.tag обёртки.
+
       expect(result[1].tag, 'google_udp');
     });
 
@@ -248,14 +248,14 @@ void main() {
     });
 
     test('Orphan cleanup: kind:template ref на удалённый tag → drop', () async {
-      // §117: удалённые из шаблона теги (quad9_dot и т.п.) орфан-чистятся.
+
       await SettingsStorage.saveDnsServers([
         const DnsServerTemplate(enabled: true, tag: 'quad9_dot'),
         const DnsServerTemplate(enabled: true, tag: 'google_udp'),
       ]);
 
       final result = await resolveDnsServersList(
-        templateServers: [tplGoogleUdp()], // quad9_dot отсутствует
+        templateServers: [tplGoogleUdp()],
         presetServersByTag: {},
       );
 
@@ -272,7 +272,7 @@ void main() {
 
       final result = await resolveDnsServersList(
         templateServers: [],
-        presetServersByTag: {}, // нет active preset с этим tag
+        presetServersByTag: {},
       );
 
       final tags = result.map((s) => s.tag).toList();
@@ -328,10 +328,10 @@ void main() {
         presetServersByTag: {},
       );
 
-      // google_udp user-disabled flag preserved
+
       final google = result.firstWhere((s) => s.tag == 'google_udp');
       expect(google.enabled, false);
-      // cloudflare_udp auto-discovered
+
       final cf = result.firstWhere((s) => s.tag == 'cloudflare_udp');
       expect(cf, isA<DnsServerTemplate>());
       expect(cf.enabled, true);
@@ -350,10 +350,10 @@ void main() {
       expect(out.length, 1);
       expect(out.first['tag'], 'google_udp');
       expect(out.first['type'], 'udp');
-      expect(out.first['server'], '8.8.8.8'); // default подставлен
-      // detour=direct-out (default) → ключ не пишется (§117 решение №2)
+      expect(out.first['server'], '8.8.8.8');
+
       expect(out.first.containsKey('detour'), false);
-      // Mutable стрипнуты
+
       expect(out.first.containsKey('enabled'), false);
       expect(out.first.containsKey('description'), false);
     });
@@ -375,8 +375,8 @@ void main() {
       expect(out.first['server'], '8.8.4.4');
     });
 
-    // §441 (SPEC 129 Н10) — вторая линия fail-closed: снятый ключ пускал
-    // запросы сервера напрямую, мимо выбранного Направления.
+
+
     test('detour на исчезнувшее Направление → сервер не эмитится, warning',
         () {
       final warnings = <String>[];
@@ -391,7 +391,7 @@ void main() {
         ],
         templateByTag: {'google_udp': tplGoogleUdp()},
         presetServersByTag: {},
-        knownOutboundTags: {'direct-out', 'vpn-1'}, // vpn-3 выключен
+        knownOutboundTags: {'direct-out', 'vpn-1'},
         warningsOut: warnings,
         detourDroppedOut: dropped,
       );
@@ -446,7 +446,7 @@ void main() {
       );
       expect(out.length, 1);
       expect(out.first['tag'], 'yandex_udp');
-      // _preset_label стрипнут
+
       expect(out.first.containsKey('_preset_label'), false);
     });
 
@@ -497,8 +497,8 @@ void main() {
         templateByTag: {},
         presetServersByTag: {'yandex_udp': presetYandexUdp()},
       );
-      // DNS-правило пресета ссылается на сервер — выключить нельзя (битый
-      // конфиг), build делает force-include (defense-in-depth к UI-локу).
+
+
       expect(out.length, 1);
       expect(out.first['tag'], 'yandex_udp');
     });
@@ -527,14 +527,14 @@ void main() {
               'server_port': 53,
             },
           ),
-          // Тот же tag второй раз — skipped
+
           const DnsServerTemplate(enabled: true, tag: 'google_udp'),
         ],
         templateByTag: {'google_udp': tplGoogleUdp()},
         presetServersByTag: {},
       );
       expect(out.length, 1);
-      expect(out.first['server'], '8.8.4.4'); // inline wins
+      expect(out.first['server'], '8.8.4.4');
     });
   });
 }

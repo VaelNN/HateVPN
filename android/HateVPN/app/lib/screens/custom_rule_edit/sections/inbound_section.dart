@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../../services/l10n/locale_controller.dart';
 
-/// §030/new_fields — INBOUND section: фильтр по inbound'у, через который
-/// пришёл пакет (`tun-in` — VpnService, `mixed-in` — локальный SOCKS/HTTP
-/// прокси, §119). AND с остальным правилом; эмитится на routing-rule level
-/// (headless rule_set `inbound` не поддерживает).
-///
-/// **UX (решение юзера):** секция СВЁРНУТА по умолчанию — одна строка-
-/// заголовок с summary справа. Клик раскрывает галочки. Лейблы
-/// человекочитаемые, значение = тег билдера ([choices]).
-///
-/// `mixed-in` появляется в [choices] только когда vpn_mode даёт его реально
-/// (proxy/vpn_proxy) — гейт делает контроллер ([CustomRuleEditController.
-/// inboundChoices]). В tun-only режиме доступен один `TUN`.
+
+
+
+
+
+
+
+
+
+
+
+
 class InboundSection extends StatefulWidget {
   const InboundSection({
     super.key,
@@ -22,10 +22,10 @@ class InboundSection extends StatefulWidget {
     required this.onToggle,
   });
 
-  /// Выбранные теги (`tun-in`/`mixed-in`).
+
   final Set<String> selected;
 
-  /// Доступные варианты (`tag` → `label`), уже отфильтрованы по vpn_mode.
+
   final List<({String tag, String label})> choices;
 
   final void Function(String tag, bool checked) onToggle;
@@ -37,16 +37,16 @@ class InboundSection extends StatefulWidget {
 class _InboundSectionState extends State<InboundSection> {
   bool _expanded = false;
 
-  /// Summary свёрнутого заголовка: `any` / лейблы выбранных через запятую.
-  /// Для краткости берём первое слово лейбла (TUN / Proxy).
+
+
   String get _summary {
     if (widget.selected.isEmpty) return 'any';
     final labels = widget.choices
         .where((c) => widget.selected.contains(c.tag))
         .map((c) => c.label.split(' ').first)
         .toList();
-    // Выбранный тег, которого нет в choices (стейл `mixed-in` в tun-only) —
-    // показываем сырой тег, чтобы юзер видел что фильтр есть.
+
+
     for (final tag in widget.selected) {
       if (!widget.choices.any((c) => c.tag == tag)) labels.add(tag);
     }

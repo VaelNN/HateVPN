@@ -10,22 +10,22 @@ import 'profiler_filter_sheet.dart';
 import 'traffic_event_detail_sheet.dart';
 import '../../services/l10n/locale_controller.dart';
 
-/// §160 / §044-new-profiler — общий explorer трафика. Единый движок Profiler
-/// (Stats→Live) и per-app trace, без дубля кода.
-///
-/// **§044/new-profiler:** управление свёрнуто в ОДНУ control-строку (Live/pause
-/// · Record-scope · Aggregate-меню · Filter-окно · Export); фильтр вынесен в
-/// `ProfilerFilterSheet`. Фильтр-state — общий `ProfilerFilter` (от родителя).
-///
-/// Агрегаты (`byDomain`/`byIp`) считаются здесь из [events] общим
-/// `computeTraceAggregates`. [events] — полный таймлайн (любой порядок;
-/// explorer сам разворачивает для показа). [unattributed] — system-wide
-/// «no owner» события (Live-секция внизу). [recording] — идёт ли запись
-/// (для empty-state текста).
-///
-/// Record-управление опционально (Profiler даёт, App-вкладка — нет, там запись
-/// через START/STOP сессии). Если [onToggleRecording] == null — кнопка Record
-/// не рисуется.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class TraceExplorer extends StatefulWidget {
   const TraceExplorer({
     super.key,
@@ -42,17 +42,17 @@ class TraceExplorer extends StatefulWidget {
   final List<TrafficEvent> unattributed;
   final bool recording;
 
-  /// Общая фильтр-модель (редактируется фильтр-окном, применяется здесь).
+
   final ProfilerFilter filter;
 
-  /// Показывать ли App-таб в фильтр-окне (App-вкладка: target фиксирован → нет).
+
   final bool showAppTab;
 
-  /// Применять ли app-ось к списку (App-вкладка: target фиксирован → нет).
+
   final bool includeAppsFilter;
 
-  /// §044 — показывать кнопку retention (окно хранения Live). Только Profiler;
-  /// в App-вкладке журнал = события сессии, окно не настраивается.
+
+
   final bool showRetention;
 
   @override
@@ -65,8 +65,8 @@ class _TraceExplorerState extends State<TraceExplorer> {
   _Mode _mode = _Mode.live;
   AggAxis _aggAxis = AggAxis.domain;
 
-  // Пауза только для отображения Live: запись продолжается, список замирает
-  // на снимке. Снимок фиксируется в момент паузы.
+
+
   bool _paused = false;
   List<TrafficEvent>? _frozenEvents;
   List<TrafficEvent>? _frozenUnattributed;
@@ -77,8 +77,8 @@ class _TraceExplorerState extends State<TraceExplorer> {
   void initState() {
     super.initState();
     _filter.addListener(_onFilterChanged);
-    // §044/new-profiler — подтянуть выбранное окно хранения Live (для Profiler;
-    // в App-вкладке record-управления нет, но загрузка безвредна).
+
+
     TrafficProfiler.I.loadRetention().then((_) {
       if (mounted) setState(() {});
     });
@@ -103,8 +103,8 @@ class _TraceExplorerState extends State<TraceExplorer> {
     if (mounted) setState(() {});
   }
 
-  /// Ключ из детального sheet → общий поиск. Повторный тот же ключ — clear.
-  /// `switchToAggregated` — для «View in Aggregated» из sheet'а агрегата.
+
+
   void _applySearchKey(String key, {bool switchToAggregated = false}) {
     final clean = key.trim();
     if (clean.isEmpty) return;
@@ -132,7 +132,7 @@ class _TraceExplorerState extends State<TraceExplorer> {
 
   @override
   Widget build(BuildContext context) {
-    // Источник: на паузе — снимок, иначе живые списки родителя.
+
     final srcEvents = _paused ? (_frozenEvents ?? const []) : widget.events;
     final srcUnattr =
         _paused ? (_frozenUnattributed ?? const []) : widget.unattributed;
@@ -145,14 +145,14 @@ class _TraceExplorerState extends State<TraceExplorer> {
     );
   }
 
-  /// §044/new-profiler — control-строка: pause · retention · aggregate · filter.
+
   Widget _controlBar(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
       child: Row(
         children: [
-          // 1 — Live / pause (только в Live-режиме).
+
           if (_mode == _Mode.live)
             IconButton(
               tooltip: _paused
@@ -162,21 +162,21 @@ class _TraceExplorerState extends State<TraceExplorer> {
               color: _paused ? cs.error : cs.primary,
               onPressed: _togglePause,
             ),
-          // Record + Export убраны из строки — они в хедере (большая кнопка
-          // START/STOP + export справа). Дубль не нужен (просьба юзера).
-          // Retention (окно хранения Live) — только в Profiler.
+
+
+
           if (widget.showRetention) _retentionButton(context),
-          // Aggregate-меню.
+
           _aggregateButton(context),
           const Spacer(),
-          // Filter-окно (+ жёлтая точка-бейдж активных).
+
           _filterButton(context),
         ],
       ),
     );
   }
 
-  /// Retention — окно хранения Live-журнала. Меню 1m / 10m / 1h.
+
   Widget _retentionButton(BuildContext context) {
     const opts = <(String, int)>[
       ('1m', 60),
@@ -229,7 +229,7 @@ class _TraceExplorerState extends State<TraceExplorer> {
     );
   }
 
-  /// Aggregate — кнопка-меню: Поток / by Domain / by IP.
+
   Widget _aggregateButton(BuildContext context) {
     final isLive = _mode == _Mode.live;
     final IconData icon;
@@ -301,13 +301,13 @@ class _TraceExplorerState extends State<TraceExplorer> {
     );
   }
 
-  /// Собрать список замеченных пакетов + есть ли потеряшки + §230 замеченные
-  /// rule/outbound — для табов фильтр-окна. Источник = текущие события
-  /// (Live-буфер / события сессии).
+
+
+
   ({Set<String> apps, bool hasUnattr, Set<String> rules, Set<String> outbounds})
       _collectSeen() {
     final apps = <String>{};
-    final rules = <String>{}; // '' = «final» (событие без явного правила)
+    final rules = <String>{};
     final outbounds = <String>{};
     var hasUnattr = false;
     for (final e in widget.events) {
@@ -316,13 +316,13 @@ class _TraceExplorerState extends State<TraceExplorer> {
       }
       final p = e.process;
       if (p != null && p.isNotEmpty) {
-        // process может быть «a,b» (secondary packages) — раскладываем.
+
         for (final seg in p.split(',')) {
           final t = seg.trim();
           if (t.isNotEmpty) apps.add(t);
         }
       }
-      rules.add(e.rule ?? ''); // '' попадёт как псевдо-пункт «final»
+      rules.add(e.rule ?? '');
       outbounds.addAll(e.outboundChain);
       outbounds.addAll(e.detourChain);
     }
@@ -352,17 +352,17 @@ class _TraceExplorerState extends State<TraceExplorer> {
     );
   }
 
-  /// Filter — открывает фильтр-окно. Счётчик `(N)` в лейбле = маркер активных
-  /// фильтров (Positioned-точку убрали — не влезала в строку, просьба юзера).
+
+
   Widget _filterButton(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    // App-вкладка app-ось не применяет → не считаем её в бейдж.
+
     final n = widget.includeAppsFilter
         ? _filter.activeCount
         : _filter.activeCountNoApps;
     final active = n > 0;
-    // §044 — жёлтый круг-бейдж «фильтр выбран» (возвращён по просьбе юзера) +
-    // счётчик (N) в лейбле.
+
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -409,8 +409,8 @@ class _TraceExplorerState extends State<TraceExplorer> {
             onSearchKey: _applySearchKey),
       );
     }
-    // Aggregated — агрегаты считаем из полного (нефильтрованного) набора,
-    // фильтр применяется к строкам внутри AggregatedView по search.
+
+
     final agg = computeTraceAggregates(srcEvents);
     return AggregatedView(
       events: srcEvents,

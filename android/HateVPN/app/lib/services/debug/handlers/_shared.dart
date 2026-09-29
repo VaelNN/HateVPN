@@ -4,15 +4,15 @@ import '../context.dart';
 import '../contract/errors.dart';
 import '../transport/request.dart';
 
-/// `?rebuild=true` на любом CRUD-хендлере: после успешного write'а
-/// триггерит `SubscriptionController.generateConfig()` +
-/// `HomeController.saveParsedConfig(...)`. Возвращает extras для
-/// body ответа:
-///
-/// - rebuild не запрошен → `{}` (не добавляет ключей).
-/// - rebuild прошёл → `{'rebuilt': true, 'config_bytes': N}`.
-/// - rebuild свалился → `{'rebuilt': false, 'rebuild_error': '...'}`.
-///   Write уже успел — статус 200/201 остаётся, ошибка под своим ключом.
+
+
+
+
+
+
+
+
+
 Future<Map<String, Object?>> maybeRebuild(DebugRequest req, DebugContext ctx) async {
   if (!req.qBool('rebuild')) return const {};
   final sub = ctx.requireSub();
@@ -38,8 +38,8 @@ Future<Map<String, Object?>> maybeRebuild(DebugRequest req, DebugContext ctx) as
   }
 }
 
-/// Strict extractor: ключ из Map должен иметь нужный тип или отсутствовать.
-/// Присутствие ключа с null или wrong-type → [BadRequest].
+
+
 bool? fieldBool(Map<String, dynamic> m, String key) {
   if (!m.containsKey(key)) return null;
   final v = m[key];
@@ -73,9 +73,9 @@ List<String>? fieldStringList(Map<String, dynamic> m, String key) {
   throw BadRequest('field "$key" must be array, got ${v.runtimeType}');
 }
 
-/// §439 (D-112) — поле-ссылка на узел: объект `{folder_id?, tag}`. Терпимо:
-/// строка — корневая ссылка `{tag}` (форма до 2.23.3), `null` и пустой тег —
-/// ссылки нет ([NodeLink.none]). Ключа нет — `null` (не трогать).
+
+
+
 NodeLink? fieldNodeLink(Map<String, dynamic> m, String key) {
   if (!m.containsKey(key)) return null;
   final v = m[key];
@@ -88,8 +88,8 @@ NodeLink? fieldNodeLink(Map<String, dynamic> m, String key) {
   return link.tag.isEmpty ? NodeLink.none : link;
 }
 
-/// §439 — список ссылок на узлы (позиции цепочки): элементы как у
-/// [fieldNodeLink], пустой тег остаётся позицией (её ловит проверка цепочки).
+
+
 List<NodeLink>? fieldNodeLinkList(Map<String, dynamic> m, String key) {
   if (!m.containsKey(key)) return null;
   final v = m[key];
@@ -116,9 +116,9 @@ List<int>? fieldIntList(Map<String, dynamic> m, String key) {
   throw BadRequest('field "$key" must be array, got ${v.runtimeType}');
 }
 
-/// Парсит JSON-object → `Map<String, String>`. Значения приводятся к string
-/// via `toString()` (`null` → `""`). Используется для `vars_values`
-/// в preset-rule'ах.
+
+
+
 Map<String, String>? fieldStringMap(Map<String, dynamic> m, String key) {
   if (!m.containsKey(key)) return null;
   final v = m[key];

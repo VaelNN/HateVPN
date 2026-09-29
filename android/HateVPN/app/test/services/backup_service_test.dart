@@ -7,8 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/backup_service.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §040 backup-restore — round-trip и edge cases для нового single-format
-/// (`storage` + `vpn_settings` блоки).
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -33,8 +33,8 @@ void main() {
     if (tmp.existsSync()) await tmp.delete(recursive: true);
   });
 
-  /// Полный snapshot который имитирует «реальное» состояние юзера в форме
-  /// хранения §439: vars + rules + tun_apps + sources + dns.
+
+
   Map<String, dynamic> sampleSnapshot() => {
         'storage_version': 1,
         'vars': {
@@ -74,7 +74,7 @@ void main() {
           },
         ],
         'route_final': 'vpn-1',
-        // §221 — directions (живая модель роутинга §125) + guard миграции.
+
         'directions': [
           {'tag': 'vpn-1', 'label': 'Main', 'enabled': true},
           {'tag': 'vpn-2', 'label': 'Backup', 'enabled': true},
@@ -103,7 +103,7 @@ void main() {
     final raw = await SettingsStorage.exportRaw();
     expect(raw['vars'], isA<Map<String, dynamic>>());
     expect((raw['rules'] as List).length, 1);
-    // Mutating returned map должно не аффектить storage (deep clone).
+
     raw['vars']['log_level'] = 'debug';
     final fresh = await SettingsStorage.exportRaw();
     expect(fresh['vars']['log_level'], 'info');
@@ -119,8 +119,8 @@ void main() {
     expect(cr, isEmpty);
   });
 
-  // §413 — экспорт по умолчанию не несёт Debug API (токен — секрет); полная
-  // замена молча гасила Debug API устройства. Ключа нет в файле → не трогать.
+
+
   test('replaceRaw merge=false keeps device Debug API keys absent in snapshot',
       () async {
     await seedStorage(sampleSnapshot());
@@ -146,9 +146,9 @@ void main() {
         reason: 'отсутствующий в файле ключ переносится');
   });
 
-  // §447 — флаги стартовых промптов — свойство устройства: полная замена их
-  // не сбрасывает (иначе после restore заново всплывали Add tile и Check for
-  // updates?). `wizard_*` из файла не приходят (нет в allowlist).
+
+
+
   test('replaceRaw merge=false keeps startup prompt flags', () async {
     await seedStorage(sampleSnapshot());
     for (final k in SettingsStorage.startupPromptVarKeys) {
@@ -258,7 +258,7 @@ void main() {
       expect(st.containsKey('route_final'), isTrue);
       expect(st.containsKey('enabled_groups'), isTrue);
       expect(st.containsKey('dns'), isTrue);
-      // Источники — категория Server lists: в routing едут только цепочки.
+
       expect((st['sources'] as List? ?? const []), isEmpty);
       expect(st.containsKey('vars'), isFalse);
     });
@@ -270,23 +270,23 @@ void main() {
       final json = await svc.buildExport(include: {BackupCategory.routing});
       final st = (jsonDecode(json) as Map<String, dynamic>)['storage']
           as Map<String, dynamic>;
-      // Регрессия: directions был в allowlist restore, но НЕ в export →
-      // вся модель роутинг-Направлений §125 терялась при backup на новом устройстве.
+
+
       expect(st.containsKey('directions'), isTrue,
           reason: 'directions обязаны попадать в backup (§125 модель роутинга)');
       expect((st['directions'] as List), hasLength(2));
       expect(st.containsKey('directions_migrated'), isTrue,
           reason: 'guard миграции — иначе миграция пере-сработает поверх restore');
-      // §393 A2 — легаси-пара ТОЛЬКО на restore: новый архив её не пишет.
+
       expect(st.containsKey('channels'), isFalse);
       expect(st.containsKey('channels_migrated'), isFalse);
     });
 
-    // §221 — инвариант против будущих забытых ключей: КАЖДЫЙ top-level ключ из
-    // allowedTopLevelKeys (restore принимает) должен экспортироваться при
-    // include={all} (иначе data-loss при backup, как было с directions).
+
+
+
     test('§221 — allowlist ⊆ export (все категории)', () async {
-      // Снапшот с непустым значением для каждого allowlist-ключа.
+
       final snap = <String, dynamic>{};
       for (final k in SettingsStorage.allowedTopLevelKeys) {
         snap[k] = switch (k) {
@@ -304,7 +304,7 @@ void main() {
           'directions_migrated' || 'presets_migrated' ||
           'interrupt_connections_on_switch' =>
             true,
-          _ => '_probe', // строковые: route_final, node_sort_mode, ...
+          _ => '_probe',
         };
       }
       await seedStorage(snap);
@@ -318,9 +318,9 @@ void main() {
       });
       final st = (jsonDecode(json) as Map<String, dynamic>)['storage']
           as Map<String, dynamic>;
-      // §393 A2 — легаси-пары `channels`/`channels_migrated` в allowlist НЕТ:
-      // их переименовывает миграция формы хранения до allowlist'а (§439),
-      // симметрия §221 полная.
+
+
+
       final missing = SettingsStorage.allowedTopLevelKeys
           .where((k) => !st.containsKey(k))
           .toList();
@@ -334,9 +334,9 @@ void main() {
               '(backup_service.dart): $missing');
     });
 
-    // §349 — auto_ping_on_start был единственным var-сиротой: писался через
-    // setVar, но не входил ни в allowlist, ни в template → export клал,
-    // default-deny импорта дропал («1 unknown keys skipped» на свой же бэкап).
+
+
+
     test('§349 — auto_ping_on_start ∈ appFeatureFlagVars allowlist', () {
       expect(
           SettingsStorage.allowedVarKeys(const [])
@@ -345,8 +345,8 @@ void main() {
           reason: 'настройка обязана переживать restore (§221-симметрия)');
     });
 
-    // §279 — app_language: var-allowlist membership (иначе import дропает
-    // неизвестный var → настройка не переживает restore).
+
+
     test('§279 — app_language ∈ appFeatureFlagVars allowlist', () {
       expect(SettingsStorage.allowedVarKeys(const []).contains('app_language'),
           isTrue,
@@ -354,15 +354,15 @@ void main() {
               'export vars нефильтрован, import — по allowlist)');
     });
 
-    // §279/§189 — guard: app_language НЕ член NativePrefsKeys. Членство
-    // автоматически экспортировало бы его вторым представлением в
-    // vpn_settings-блок бэкапа (неопределённый precedence на import);
-    // boxvpn_boot-копия — derived cache, единственный дом бэкапа — vars.
+
+
+
+
     test('§279 — app_language ∉ NativePrefsKeys.all (derived cache)', () {
       expect(NativePrefsKeys.all.contains('app_language'), isFalse);
     });
 
-    // §279 — полный export→import round-trip сохраняет app_language.
+
     test('§279 — app_language переживает export→import round-trip', () async {
       await seedStorage({
         'vars': {'app_language': 'ru'},
@@ -430,11 +430,11 @@ void main() {
       BackupCategory.debugConfig,
     });
 
-    // Wipe storage by replacing with empty.
+
     await SettingsStorage.replaceRaw({});
     expect(await SettingsStorage.getCustomRules(), isEmpty);
 
-    // Restore.
+
     final contents = await svc.parseImport(exported);
     final apply = await svc.applyImport(
       contents,
@@ -449,7 +449,7 @@ void main() {
     expect(apply.errors, isEmpty);
     expect(apply.serverListsApplied, 1);
 
-    // Compare key fields.
+
     final restored = await SettingsStorage.exportRaw();
     expect(restored['rules'], original['rules']);
     expect(restored['tun_apps'], original['tun_apps']);
@@ -465,9 +465,9 @@ void main() {
   });
 
   test('§248 — detour-роль Направления переживает backup round-trip', () async {
-    // Restore пишет raw JSON мимо UI/storage-мутаторов — поле `detour`
-    // обязано пережить export→restore и прочитаться в Direction.isDetour
-    // (parse-гейт fromJson валидную роль не срезает).
+
+
+
     await seedStorage({
       'directions': [
         {'tag': 'vpn-1', 'label': 'Main', 'enabled': true},
@@ -477,12 +477,12 @@ void main() {
     });
     final svc = const BackupService();
     final exported = await svc.buildExport(include: {BackupCategory.routing});
-    // Сырое поле в самом бэкапе (формат переживает и ручную правку файла).
+
     final st = (jsonDecode(exported) as Map<String, dynamic>)['storage']
         as Map<String, dynamic>;
     expect(((st['directions'] as List)[1] as Map)['detour'], isTrue);
 
-    // Wipe → restore.
+
     await SettingsStorage.replaceRaw({});
     final contents = await svc.parseImport(exported);
     final apply = await svc.applyImport(contents,
@@ -497,9 +497,9 @@ void main() {
   });
 
   test('§274 — detour+include_block переживают round-trip оба', () async {
-    // §274 снял взаимоисключение ролей §248: detour-Направление — валидная цель
-    // правил, парс-гейт fromJson больше не коэрсит include_block у detour.
-    // Оба поля обязаны пережить export→restore как есть.
+
+
+
     await seedStorage({
       'directions': [
         {'tag': 'vpn-1', 'label': 'Main', 'enabled': true},
@@ -543,7 +543,7 @@ void main() {
       expect(raw.containsKey('totally_random_field_12345'), isFalse,
           reason: 'чужеродный top-level ключ не должен попасть в storage');
       expect(raw.containsKey('another_alien_key'), isFalse);
-      // Валидные ключи остаются.
+
       expect((raw['vars'] as Map)['log_level'], 'info');
     });
 
@@ -551,10 +551,10 @@ void main() {
         () async {
       final dropped = await SettingsStorage.replaceRaw({
         'vars': {
-          'log_level': 'debug', // template-var → ok
-          'auto_update_subs': 'false', // app-флаг → ok
-          'haptic_enabled': 'false', // app-флаг (был не в STORAGE.md) → ok
-          'alien_var_xyz': 'should_be_dropped', // чужой → drop
+          'log_level': 'debug',
+          'auto_update_subs': 'false',
+          'haptic_enabled': 'false',
+          'alien_var_xyz': 'should_be_dropped',
         },
       });
       expect(dropped, contains('vars.alien_var_xyz'));
@@ -572,7 +572,7 @@ void main() {
         'warp_account': {'private_key': 'wp'},
         'masque_account': {'priv_key_der': 'mp', 'endpoint': 'e'},
       });
-      // Ни один не должен попасть в dropped (оба в allowlist).
+
       expect(dropped, isNot(contains('warp_account')));
       expect(dropped, isNot(contains('masque_account')));
       final raw = await SettingsStorage.exportRaw();
@@ -630,15 +630,15 @@ void main() {
             'rule_outbounds': {'r1': 'vpn-1'},
             'node_overrides': {'x': 1},
           };
-      // Снимок без storage_version — форма 2.23.2: мёртвые ключи удаляет
-      // миграция формы (§439 §1.1) ещё до allowlist'а.
+
+
       final droppedLegacy = await SettingsStorage.replaceRaw(snapshot());
       expect(droppedLegacy, isEmpty);
       for (final k in deadKeys) {
         expect((await SettingsStorage.exportRaw()).containsKey(k), isFalse,
             reason: '$k не должен попасть в storage');
       }
-      // Те же ключи в документе текущей формы — отбрасывает allowlist.
+
       final dropped = await SettingsStorage.replaceRaw(
           {'storage_version': 1, ...snapshot()});
       expect(dropped, containsAll(deadKeys));
@@ -658,7 +658,7 @@ void main() {
   test(
       'partial restore: routing-only keeps existing app vars + adds custom_rules',
       () async {
-    // Seed pre-existing state.
+
     await seedStorage({
       'vars': {'log_level': 'warn'},
     });
@@ -684,24 +684,24 @@ void main() {
         merge: true, include: {BackupCategory.routing});
     expect(apply.errors, isEmpty);
 
-    // Existing vars preserved.
+
     expect(await SettingsStorage.getVar('log_level', ''), 'warn');
-    // New custom_rules added.
+
     final cr = await SettingsStorage.getCustomRules();
     expect(cr.length, 1);
     expect(cr.first.name, 'X');
   });
 
-  // ---------------------------------------------------------------------------
-  // §393 A2 — restore старого архива. Внутренний бэкап старой сборки несёт
-  // легаси-пару `channels`/`channels_migrated`: имена переименовывает миграция
-  // блока `storage` при разборе архива (§439, до `replaceRaw`) — легаси в
-  // storage не попадает, а merge-upsert коллидирует по одному имени
-  // `directions`, и архив честно побеждает живые данные (adversarial-ревью A2:
-  // раньше на merge-дефолте архив молча терялся).
-  // ---------------------------------------------------------------------------
+
+
+
+
+
+
+
+
   group('§393 A2 restore→migrate', () {
-    /// Архив, каким его писала сборка ДО переименования ключа.
+
     String legacyArchive() => jsonEncode({
           'app': 'lxbox',
           'kind': 'backup',
@@ -732,17 +732,17 @@ void main() {
       final apply = await svc.applyImport(contents,
           merge: false, include: {BackupCategory.routing});
       expect(apply.errors, isEmpty);
-      // Легаси-ключи прошли allowlist (не попали в droppedKeys).
+
       expect(apply.droppedKeys, isEmpty);
 
-      // Направления видны БЕЗ перезапуска app'а.
+
       final restored = await SettingsStorage.getDirections();
       expect(restored.map((c) => c.tag), ['vpn-1', 'vpn-2']);
       expect(restored[1].isDetour, isTrue);
       expect(restored[1].nodeFilter, 'DE');
       expect(await SettingsStorage.getRouteFinal(), 'vpn-2');
 
-      // Легаси-пары в storage не осталось — миграция их удалила.
+
       final raw = await rawStorage();
       expect(raw.containsKey('channels'), isFalse);
       expect(raw.containsKey('channels_migrated'), isFalse);
@@ -751,10 +751,10 @@ void main() {
 
     test('старый архив, merge поверх ЖИВЫХ Направлений — архив побеждает',
         () async {
-      // Канонический сценарий восстановления: свежая установка уже посеяла
-      // (или юзер настроил) свои Направления, затем накатывается старый архив
-      // в merge-дефолте UI. До нормализации имён архивный `channels` ложился
-      // РЯДОМ с живым `directions` и молча выбрасывался веткой-уборщиком.
+
+
+
+
       await SettingsStorage.replaceRaw({
         'directions': [
           {'tag': 'vpn-1', 'label': 'LIVE-Home', 'enabled': true},
@@ -769,8 +769,8 @@ void main() {
       expect(apply.errors, isEmpty);
 
       final restored = await SettingsStorage.getDirections();
-      // vpn-2 архива — detour-Направление: fromJson сам помечает label
-      // префиксом kDetourTagPrefix (§248), поэтому «⚙ Relay».
+
+
       expect(restored.map((c) => c.label), ['Main', '⚙ Relay'],
           reason: 'юзер восстанавливает архив РАДИ его Направлений — они '
               'обязаны заменить живой список, а не молча проиграть ему');

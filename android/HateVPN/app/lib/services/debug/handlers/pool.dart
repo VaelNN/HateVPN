@@ -3,16 +3,16 @@ import '../contract/errors.dart';
 import '../transport/request.dart';
 import '../transport/response.dart';
 
-/// `/pool` — §208 (SPEC 019 V2) read-only снапшот пула round_robin-группы.
-/// Зеркалит UI «View pool» (тот же `HomeController.getPool` → CcChannel.getPool
-/// → ядро GetPool RPC). Для отладки балансировщика без UI-попапа.
-///
-/// Routes:
-/// - `GET /pool?tag=<autoTag>` → `{"tag": "...", "slots": [{slot,tag,delay}], "count": N}`
-///
-/// `tag` — auto-двойник round_robin-Направления (напр. `vpn-1-auto`). Не-round_robin
-/// группа / туннель down / пул не готов → `slots: []` (не ошибка — у группы
-/// просто нет пула). `delay`==0 → нода мёртвая/не измерена.
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> poolHandler(DebugRequest req, DebugContext ctx) async {
   if (req.path != '/pool') {
     throw NotFound('pool path: ${req.path}');
@@ -25,8 +25,8 @@ Future<DebugResponse> poolHandler(DebugRequest req, DebugContext ctx) async {
 
   final home = ctx.requireHome();
   final slots = await home.getPool(tag);
-  // §209 — null = CC-клиент недоступен (НЕ пустой пул). Раньше тихо отдавал
-  // count:0 неотличимо от «пул пуст» — сбивало диагностику. Теперь явный 409.
+
+
   if (slots == null) {
     throw const Conflict('cc client unavailable (tunnel down?)');
   }

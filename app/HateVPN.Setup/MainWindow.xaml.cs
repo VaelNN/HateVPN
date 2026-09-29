@@ -101,7 +101,7 @@ public partial class MainWindow : Window
             if (key?.GetValue("InstallPath") is string saved && !string.IsNullOrWhiteSpace(saved))
                 return saved.TrimEnd(Path.DirectorySeparatorChar);
         }
-        catch { /* The default folder remains available. */ }
+        catch {   }
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "HateVPN");
     }
 
@@ -140,7 +140,7 @@ public partial class MainWindow : Window
             var initial = Directory.Exists(current) ? current : Path.GetDirectoryName(current);
             if (initial is not null && Directory.Exists(initial)) dialog.InitialDirectory = initial;
         }
-        catch { /* The folder dialog will use its default location. */ }
+        catch {   }
         if (dialog.ShowDialog(this) == true) InstallPathBox.Text = dialog.FolderName;
     }
 
@@ -180,7 +180,7 @@ public partial class MainWindow : Window
             {
                 UseShellExecute = true,
                 Verb = "runas",
-                // MSI properties must quote the value, not the entire NAME=value argument.
+
                 Arguments = $"/i \"{msiPath}\" /qn /norestart DESKTOPSHORTCUT={desktop} INSTALLFOLDER=\"{installPath}\" /L*v \"{logPath}\""
             };
             InstallStageText.Text = "Устанавливаем HateVPN…";

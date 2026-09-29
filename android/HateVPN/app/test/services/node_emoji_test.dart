@@ -5,11 +5,11 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §090 G2b — unit tests для эмодзи-тегов (палитра / hasEmoji / дефолт по
-/// протоколу / вставка в rawBody с round-trip через парсер).
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   NodeSpec parse(String uri) => parseUri(uri)!;
@@ -31,7 +31,7 @@ void main() {
     test('detects pictographic + flags, false для plain', () {
       expect(hasEmoji('🏠 Home'), isTrue);
       expect(hasEmoji('⚡ Fast'), isTrue);
-      expect(hasEmoji('🇷🇺 RU'), isTrue); // regional-indicator pair
+      expect(hasEmoji('🇷🇺 RU'), isTrue);
       expect(hasEmoji('PlainName'), isFalse);
       expect(hasEmoji('M1-2'), isFalse);
     });
@@ -57,7 +57,7 @@ void main() {
       expect(defaultEmojiFor(wg()), '🏠');
     });
     test('§025 WARP (тег WARP) → 🔥☁️ (приоритет над WireguardSpec)', () {
-      // Реальный путь: toWireguardUri даёт wireguard://…#WARP → parseUri.
+
       final warp = parse(
           'wireguard://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA=@engage.cloudflareclient.com:2408'
           '?publickey=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbA=&address=172.16.0.2/32&reserved=12,34,56#WARP');
@@ -76,16 +76,16 @@ void main() {
       expect(defaultEmojiFor(masque), '🎭');
     });
     test('обычный WireGuard (не WARP) остаётся 🏠', () {
-      expect(defaultEmojiFor(wg()), '🏠'); // тег wg-node, не WARP
+      expect(defaultEmojiFor(wg()), '🏠');
     });
-    // §514 / контракт 1.1.52 — цель `127.0.0.1` / `localhost` / `::1` больше
-    // НЕ ПРИЕЗЖАЕТ ссылкой: `parseUri` судит её баннером провайдера и даёт
-    // null (кейс ниже это закрепляет). Поэтому приоритет «локальное > протокол»
-    // проверяется на спеке, собранной напрямую, а не через разбор URI: ветка
-    // 🔁 в defaultEmojiFor жива и нужна — узел с таким адресом попадает в
-    // состав не из подписки, а руками (SOCKS-форма, свой конфиг).
+
+
+
+
+
+
     test('local 127.0.0.1 → 🔁 (приоритет над протоколом)', () {
-      expect(defaultEmojiFor(wg(server: '127.0.0.1')), '🔁'); // local > WG
+      expect(defaultEmojiFor(wg(server: '127.0.0.1')), '🔁');
     });
     test('localhost → 🔁', () {
       expect(defaultEmojiFor(wg(server: 'localhost')), '🔁');
@@ -93,10 +93,10 @@ void main() {
     test('::1 → 🔁', () {
       expect(defaultEmojiFor(wg(server: '::1')), '🔁');
     });
-    // Сторож нормы, а не эмодзи: кейс выше раньше кормил 🔁 ссылкой на
-    // `127.0.0.1`, и «починка» упавшего теста возвратом такой ссылки тихо
-    // отменила бы отбраковку баннеров (§514). Если ссылка снова начнёт давать
-    // узел — падает здесь, с названной причиной.
+
+
+
+
     test('§514 — ссылка на loopback есть баннер провайдера, а не узел', () {
       final dropped = XrayDropVerdict();
       final node = parseUri(
@@ -106,8 +106,8 @@ void main() {
       expect(node, isNull);
       expect(dropped.explicit, isTrue);
       expect(dropped.reason?.code, 'provider_banner_link');
-      // message_from: fragment — ремарка после `#` есть то самое сообщение,
-      // ради которого запись существует.
+
+
       expect(dropped.reason?.params['message'], 'Subscription expired');
       expect(dropped.reason?.value, '127.0.0.1');
     });
@@ -118,7 +118,7 @@ void main() {
       const uri = 'vless://11111111-1111-1111-1111-111111111111@1.2.3.4:443?security=none#MyServer';
       final node = parse(uri);
       final out = withDefaultEmoji(uri, node);
-      expect(out, isNot(uri)); // изменился
+      expect(out, isNot(uri));
       expect(parse(out).tag.startsWith('⚡'), isTrue);
       expect(parse(out).tag.contains('MyServer'), isTrue);
     });

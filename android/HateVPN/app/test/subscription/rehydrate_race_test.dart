@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -25,10 +25,10 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §101 — стартовая гонка rehydrate↔bootstrap + guard на пустой fetch.
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
@@ -51,24 +51,24 @@ void main() {
   setUp(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     tempDir = await Directory.systemTemp.createTemp('rehydrate_race_');
-    // SettingsStorage/HttpCache не делают mkdir родителя — создаём заранее.
+
     await Directory('${tempDir.path}/docs').create();
     await Directory('${tempDir.path}/support').create();
     PathProviderPlatform.instance = _FakePathProvider(tempDir.path);
     SettingsStorage.resetCacheForTesting();
-    // Ретраи fetch без реального сна 1s+3s — иначе HTTP 500-кейс занимал
-    // ~4s и в параллельном suite сдвигался к таймауту → flaky (§101).
+
+
     fetchBackoffsForTesting = const [Duration.zero, Duration.zero];
   });
 
   tearDown(() async {
     fetchBackoffsForTesting = null;
-    // AppLog пишет persistent log async — может race'ить с recursive delete
-    // (см. settings_storage_test). Каждый тест в своём createTemp.
+
+
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -93,7 +93,7 @@ void main() {
 
       final c = SubscriptionController();
       await c.init();
-      await c.rehydrationDone; // не виснет и не кидает
+      await c.rehydrationDone;
 
       expect(c.entries.single.list.nodes, isEmpty);
     });
@@ -116,8 +116,8 @@ void main() {
 
       final c = SubscriptionController();
       await c.init();
-      // rehydrate уже стартовал (unawaited) и висит на первом await —
-      // реордерим до его завершения, как §098 drag&drop на старте.
+
+
       await c.moveEntry(1, 0);
       await c.rehydrationDone;
 
@@ -188,8 +188,8 @@ void main() {
       c.httpClientForTesting =
           MockClient((req) async => http.Response(bodyB, 200));
       await c.refreshEntry(c.entries.single);
-      // §219 — HttpCache.save в success-path unawaited; детерминированно ждём
-      // его завершения через test-seam (было хрупкое Future.delayed(50ms)).
+
+
       await c.lastCacheSaveForTesting;
 
       final list = c.entries.single.list as SubscriptionServers;

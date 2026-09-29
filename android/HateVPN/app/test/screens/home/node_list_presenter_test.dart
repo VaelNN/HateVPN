@@ -7,19 +7,19 @@ import 'package:lxbox/models/home_state.dart';
 import 'package:lxbox/screens/home/node_filter_view_model.dart';
 import 'package:lxbox/screens/home/node_list_presenter.dart';
 
-/// §096 — presenter-level тест detour pool-фильтра (бинарный) + контракт
-/// «СИСТЕМНЫЕ control-узлы НИКОГДА не отсеиваются pool'ом». Покрывает wiring
-/// `splitNodes` → `ConfigNode.isDetour` / `isSystemControlTag`, который unit-тест
-/// `detourPoolPasses` (pure bool) не трогает (closes §096 review HIGH-finding).
-///
-/// §359 — «control» ≠ «шасси»: `vpn-1`/`vpn-1-auto`/direct — приложение (всегда
-/// видны), узел автовыбора подписки — обычная нода списка (фильтруется).
+
+
+
+
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // A ходит через B → B = detour-таргет (isDetour); A/C — payload non-detour.
-  // vpn-1-auto/direct — шасси (§359: Направление из groupLabels + его auto-двойник,
-  // direct по типу). Z — отсутствует в configModel.
+
+
+
   final configRaw = jsonEncode({
     'outbounds': [
       {'tag': 'A', 'type': 'vless', 'detour': 'B'},
@@ -44,8 +44,8 @@ void main() {
     );
     state = HomeState(
       configRaw: configRaw,
-      nodes: tags, // для computeListData (viewSortedNodes → sortedNodes)
-      // §359 — шасси задаётся явно: Направление из storage + его auto-двойник.
+      nodes: tags,
+
       groupLabels: const {'vpn-1': 'VPN ①'},
       directionAutoTags: const {'vpn-1-auto'},
     );
@@ -63,7 +63,7 @@ void main() {
   test('старт (фильтр выкл): показаны ВСЕ, включая detour B', () {
     expect(filter.detourEnabled, false);
     final (matching, nonMatching) = presenter.splitNodes(tags, state);
-    // нет match-фильтра + detour выкл → весь pool в matching.
+
     expect(matching, containsAll(['A', 'B', 'C', 'vpn-1-auto', 'direct', 'Z']));
     expect(nonMatching, isEmpty);
   });
@@ -77,7 +77,7 @@ void main() {
 
   test('checkbox on + ! off: только detour — B + control, A/C/Z скрыты', () {
     filter.setDetourEnabled(true);
-    filter.toggleDetourHide(); // hide → only-detour
+    filter.toggleDetourHide();
     final (matching, _) = presenter.splitNodes(tags, state);
     expect(matching, contains('B'), reason: 'detour-нода видна');
     expect(matching, containsAll(['vpn-1-auto', 'direct']),
@@ -89,11 +89,11 @@ void main() {
   });
 
   test('control-узлы видны во ВСЕХ detour-режимах (никогда не drop)', () {
-    // фильтр выкл (показать всё)
+
     expect(presenter.splitNodes(tags, state).$1, containsAll(['vpn-1-auto', 'direct']));
-    filter.setDetourEnabled(true); // скрыть detour
+    filter.setDetourEnabled(true);
     expect(presenter.splitNodes(tags, state).$1, containsAll(['vpn-1-auto', 'direct']));
-    filter.toggleDetourHide(); // только detour
+    filter.toggleDetourHide();
     expect(presenter.splitNodes(tags, state).$1, containsAll(['vpn-1-auto', 'direct']));
   });
 
@@ -103,10 +103,10 @@ void main() {
     expect(data.matchingSet, containsAll(['vpn-1-auto', 'direct']));
   });
 
-  // ── §359 — авто-узлы подписок фильтруются как обычные узлы ──────────────
+
   group('§359 авто-узел подписки — обычная нода', () {
-    // Две авто-группы подписки: least_test (без balancer) и round_robin
-    // (с balancer{}, §208). Плюс шасси: Направление vpn-1, его двойник, direct, block.
+
+
     final subRaw = jsonEncode({
       'outbounds': [
         {'tag': 'sub-🇫🇮 Helsinki', 'type': 'vless'},
@@ -149,7 +149,7 @@ void main() {
       expect(s.isSystemControlTag('block'), isTrue, reason: 'по типу');
       expect(s.isSystemControlTag('sub-🇪🇺 Europe | Auto'), isFalse);
       expect(s.isSystemControlTag('sub-🇪🇺 Europe | Game | Auto'), isFalse);
-      // isControlTag (по типу) на них по-прежнему true — предикаты разные.
+
       expect(s.isControlTag('sub-🇪🇺 Europe | Auto'), isTrue);
     });
 
@@ -202,7 +202,7 @@ void main() {
           ['sub-🇪🇺 Europe | Auto', 'sub-🇪🇺 Europe | Game | Auto']));
       expect(matching, isNot(contains('sub-🇫🇮 Helsinki')));
 
-      filter.toggleProtocol('urltest'); // снять
+      filter.toggleProtocol('urltest');
       filter.toggleProtocol('vless');
       (matching, _) = presenter.splitNodes(subTags, s);
       expect(matching, contains('sub-🇫🇮 Helsinki'));
@@ -225,7 +225,7 @@ void main() {
 
     test('лейблы без перевода: Auto / Fastest / Pool', () {
       expect(protoLabel('urltest'), 'Auto');
-      expect(protoLabel('tailscale'), 'Tailscale'); // §435
+      expect(protoLabel('tailscale'), 'Tailscale');
       expect(autoModeLabel('least_test'), 'Fastest');
       expect(autoModeLabel('round_robin'), 'Pool');
     });

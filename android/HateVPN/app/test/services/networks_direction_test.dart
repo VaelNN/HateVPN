@@ -11,7 +11,7 @@ import 'package:lxbox/widgets/node_view_item.dart';
 
 import '../contract_paths.dart';
 
-/// Задача 579 — псевдо-направление NETWORKS: состав, состояние узла, строка.
+
 void main() {
   setUpAll(loadTestRegistry);
 

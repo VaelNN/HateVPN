@@ -7,22 +7,22 @@ import '../contract/errors.dart';
 import '../transport/request.dart';
 import '../transport/response.dart';
 
-/// §357 — `/support/*`: тестирование support-ленты (§356) без наработки часов.
-///
-/// - `GET  /support/state`    — сырое `support_state.json` + производные;
-/// - `POST /support/reset`    — сброс read/baseline/снуза/кэша
-///                              (`?keep_active=false` — обнулить и счётчик);
-/// - `POST /support/preview`  — body = JSON ОДНОГО сообщения формата ленты →
-///                              немедленный полноэкранный показ ВНЕ гейтов
-///                              (пороги/очередь/туннель не проверяются).
-///                              `?dry=true` (default) — кнопки работают, но
-///                              markRead/snooze НЕ пишутся; `?dry=false` —
-///                              пишут (сквозной тест очереди).
-///                              `?snooze_hours=N` — snooze_active_hours
-///                              синтетической ленты для кнопки «Later» (def 10).
-///
-/// Показ — паттерн preview-empty-state: `home.requestSupportPreview` +
-/// notify → home_screen пушит SupportMessageScreen. Нужен живой UI-процесс.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> supportHandler(DebugRequest req, DebugContext ctx) async {
   return switch ((req.method, req.path)) {
     ('GET', '/support/state') => _state(),
@@ -49,9 +49,9 @@ Future<DebugResponse> _state() async {
   });
 }
 
-/// Сброс решённого (read/baseline/снуз/кэш) — лента начинает с чистого листа.
-/// Наработку по умолчанию НЕ трогаем (`keep_active=false` — обнулить и её,
-/// вместе с `session_credited`, иначе native-кредит тут же вернёт хвост).
+
+
+
 Future<DebugResponse> _reset(DebugRequest req) async {
   final keepActive =
       (req.query['keep_active'] ?? 'true').toLowerCase() != 'false';

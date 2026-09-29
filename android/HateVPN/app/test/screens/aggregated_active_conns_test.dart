@@ -3,7 +3,7 @@ import 'package:lxbox/screens/per_app_trace_tab/widgets/aggregate_axis.dart';
 import 'package:lxbox/screens/per_app_trace_tab/widgets/aggregated_view.dart';
 import 'package:lxbox/services/traffic_profiler.dart';
 
-// §160 — активные соединения в Aggregated = open − close по ключу.
+
 void main() {
   final t0 = DateTime.utc(2026, 6, 22, 12, 0, 0);
 

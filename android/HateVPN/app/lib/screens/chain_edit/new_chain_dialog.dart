@@ -1,14 +1,14 @@
-// §393 C7 — диалог создания цепочки: тег + имя.
-//
-// Идиома — `showNewDirectionDialog` (§393 A3). Тег спрашивается ЗДЕСЬ и
-// только здесь: после создания он immutable (на него ссылаются фильтры
-// Направлений, `route_final` и позиции ДРУГИХ цепочек), и узнать о конфликте
-// после создания было бы поздно.
-//
-// Проверка — тот же [directionTagConflict], что зовёт storage (`_addChain`):
-// единственный источник правды. Занятые теги приходят ОБОИХ видов сразу —
-// цепочек и Направлений: одинаковый тег дал бы два outbound'а с одним именем,
-// и ядро отвергло бы конфиг целиком.
+
+
+
+
+
+
+
+
+
+
+
 
 import 'package:flutter/material.dart';
 
@@ -23,9 +23,9 @@ class NewChainRequest {
   final String label;
 }
 
-/// Открывает диалог создания. null — пользователь отменил.
-///
-/// [usedTags] — теги существующих цепочек И Направлений.
+
+
+
 Future<NewChainRequest?> showNewChainDialog(
   BuildContext context, {
   required List<String> usedTags,

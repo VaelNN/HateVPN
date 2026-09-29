@@ -8,20 +8,20 @@ import 'package:lxbox/services/parser/ini_parser.dart';
 import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/parse_all.dart';
 
-// SPEC 103 D-023/D-030 — normalizeWGKey (wireguard_parser.dart) требует
-// РОВНО 32 байта base64; короткие плейсхолдеры вроде "pk"/"pubk" больше не
-// парсятся (null-skip). Валидные 32-байтные ключи для INI-фикстур.
+
+
+
 const _testPriv = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA=';
 const _testPub = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbA=';
 const _testPriv2 = 'ccccccccccccccccccccccccccccccccccccccccccA=';
 const _testPub2 = 'ddddddddddddddddddddddddddddddddddddddddddA=';
 
 void main() {
-  // Контракт 1.1.24 забрал секцию `wireguard` (виды `uri` и `conf`) В РЕЕСТР,
-  // и черновик из полной копии стал оверлеем. Разбор INI теперь НЕВОЗМОЖЕН
-  // без загруженного реестра: таблица записей лежит там, а оверлей несёт
-  // только отличия. Прежде файл обходился без setUpAll, потому что полная
-  // копия черновика была самодостаточной.
+
+
+
+
+
   setUpAll(() async {
     await ContractRegistry.I.loadFromDirectory('assets/contract');
     await MapperSections.I
@@ -57,7 +57,7 @@ void main() {
     });
   });
 
-  // §243 — имя файла становится tag'ом через фрагмент синтетического URI.
+
   group('§243 nameHint → tag', () {
     final ini = '[Interface]\nPrivateKey = $_testPriv\nAddress = 10.0.0.2/32\n\n'
         '[Peer]\nPublicKey = $_testPub\nEndpoint = h:51820\n';
@@ -82,9 +82,9 @@ void main() {
         () {
       const name = 'Мой сервер (NL) 2';
       final spec = parseWireguardIni(ini, nameHint: name)!;
-      expect(spec.tag, name); // не %-энкоженная каша
-      // §456 — источник — сам INI байт в байт; тег хранится полем записи и
-      // при перечитывании приходит nameHint'ом (путь чтения хранения).
+      expect(spec.tag, name);
+
+
       expect(spec.rawSource, ini);
       final again = parseWireguardIni(spec.rawSource, nameHint: name);
       expect(again, isNotNull);
@@ -98,7 +98,7 @@ void main() {
       final uriLine =
           'wireguard://$_testPriv@h:51820?publickey=$_testPub&address=10.0.0.2/32';
       final uriNodes = parseAll(decode(uriLine), nameHint: 'from-file');
-      expect(uriNodes.single.tag, 'wireguard-h-51820'); // hint не подмешан
+      expect(uriNodes.single.tag, 'wireguard-h-51820');
     });
 
     test('parseAll: AmneziaConfig — индексные суффиксы контейнеров', () {
@@ -127,9 +127,9 @@ AllowedIPs = 0.0.0.0/0
 Endpoint = 1.2.3.4:51820
 """;
 
-    // §480 — рукописного `peerCommentName` больше нет: цепочку имени
-    // объявляет `label.source` секции `conf`, и проверяется она по ОТВЕТУ
-    // разбора, а не по внутренней функции.
+
+
+
     test('комментарий под [Peer] сильнее имени файла', () {
       expect(parseWireguardIni(proton, nameHint: 'file')!.tag, 'CH-FREE#11');
       expect(parseWireguardIni(proton)!.rawSource, proton);

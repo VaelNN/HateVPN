@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../widgets/banner_palette.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §047 — banner который показывается под `Default Domain Resolver` когда
-/// выбран `local_dns_resolver`. Объясняет риск + предлагает quick-fix
-/// «Switch to cloudflare_udp» если этот server существует в catalog'е.
+
+
+
 class LocalResolverWarningBanner extends StatelessWidget {
   const LocalResolverWarningBanner({
     super.key,
@@ -18,8 +18,8 @@ class LocalResolverWarningBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // §206 — цвета из единого источника (widgets/banner_palette.dart), а не
-    // хардкод `Colors.amber`. Theme-aware для light/dark из коробки.
+
+
     final c = bannerColors(context, BannerSeverity.warning);
     return Container(
       margin: const EdgeInsets.fromLTRB(0, 4, 0, 8),

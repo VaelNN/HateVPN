@@ -38,14 +38,14 @@ interface PlatformInterfaceWrapper : PlatformInterface {
         sourceAddress: String, sourcePort: Int,
         destinationAddress: String, destinationPort: Int
     ): ConnectionOwner {
-        // §128 (F12.3 generalization): этот callback зовётся Go на КАЖДОЕ
-        // соединение (`find_process: true` — глобальный дефолт template). На
-        // Android 10 без root `getConnectionOwnerUid` для недоступного владельца
-        // бросает SecurityException; `getPackagesForUid` может бросить
-        // RuntimeException. Без try/catch исключение пролетает через JNI →
-        // Runtime::Abort (см. §050 findings F12.3). Fail-safe: вернуть owner с
-        // INVALID_UID — sing-box трактует как «owner unknown», `find_process`
-        // правило просто не матчит, routing продолжает работать.
+
+
+
+
+
+
+
+
         val uid = try {
             BoxApplication.connectivity.getConnectionOwnerUid(
                 ipProtocol,
@@ -59,10 +59,10 @@ interface PlatformInterfaceWrapper : PlatformInterface {
         if (uid == Process.INVALID_UID) {
             return ConnectionOwner().apply { userId = Process.INVALID_UID }
         }
-        // Sing-box 1.13 ушёл от двухступенчатого callback'а
-        // (`packageNameByUid`/`uidByPackageName`) к одной структуре `ConnectionOwner`,
-        // которую мы заполняем сразу: UID + список пакетов под ним. Process path и
-        // username на Android неприменимы (нет /proc-доступа без root) — оставляем пустыми.
+
+
+
+
         val packages = try {
             BoxApplication.packageManager.getPackagesForUid(uid)?.toList() ?: emptyList()
         } catch (e: Exception) {
@@ -71,9 +71,9 @@ interface PlatformInterfaceWrapper : PlatformInterface {
         }
         return ConnectionOwner().apply {
             userId = uid
-            // §049 F12.1: userName заполняется первым package'ом (как в reference
-            // `PlatformInterfaceWrapper.kt:60` 1.13.11). Видно в Clash API
-            // `/connections` endpoint.
+
+
+
             userName = packages.firstOrNull() ?: ""
             setAndroidPackageNames(StringArray(packages.iterator()))
         }
@@ -88,13 +88,13 @@ interface PlatformInterfaceWrapper : PlatformInterface {
     }
 
     override fun getInterfaces(): NetworkInterfaceIterator {
-        // §128 (F12.3 generalization): зовётся Go ВСЕГДА при connect (init
-        // маршрутизации). `allNetworks` / `getLinkProperties` /
-        // `getNetworkCapabilities` могут бросить SecurityException на Android 10
-        // без root / на кастомных прошивках; `getNetworkInterfaces` —
-        // SocketException. Без try/catch → JNI Runtime::Abort (см. §050 F12.3).
-        // Fail-safe: вернуть пустой итератор — sing-box деградирует к
-        // auto-detect интерфейса без явного списка.
+
+
+
+
+
+
+
         return runCatching { buildInterfaces() }
             .getOrElse {
                 android.util.Log.w("PIW", "getInterfaces failed, returning empty: ${it.message}")
@@ -143,11 +143,11 @@ interface PlatformInterfaceWrapper : PlatformInterface {
     private fun emptyInterfaceIterator(): NetworkInterfaceIterator =
         object : NetworkInterfaceIterator {
             override fun hasNext() = false
-            // §151 F1 — JNI no-throw: `NetworkInterfaceIterator.Next()` —
-            // Go-метод БЕЗ `error`, поэтому throw отсюда НЕ ловится gomobile →
-            // `Runtime::Abort` процесса (в отличие от error-возвращающих
-            // callback'ов). Контракт — звать `Next()` лишь после `HasNext()==true`,
-            // но если ядро нарушит — отдаём пустой интерфейс, а не бросаем.
+
+
+
+
+
             override fun next(): LibboxNetworkInterface = LibboxNetworkInterface()
         }
 
@@ -155,35 +155,35 @@ interface PlatformInterfaceWrapper : PlatformInterface {
     override fun includeAllNetworks(): Boolean = false
     override fun clearDNSCache() {}
 
-    /// §049 F12.3 + §050 actual root cause fix:
-    ///
-    /// `WifiManager.connectionInfo` на API 29+ требует `ACCESS_BACKGROUND_LOCATION`
-    /// permission. Без неё binder throws **`SecurityException`** через
-    /// `Parcel.readException()`. У нас этой permission в Manifest нет.
-    ///
-    /// **Реальный crash mechanism (раскрыт в §050)**:
-    /// 1. Sing-box (Go) → cgo → `cproxy_PlatformInterface_ReadWIFIState`
-    /// 2. Java callback `readWIFIState()` invokes `WifiManager.connectionInfo`
-    /// 3. SecurityException thrown без permission (API 29+)
-    /// 4. Exception propagates through JNI boundary без handler в cproxy code
-    /// 5. `Seq$RefTracker.incRefnum` пытается cleanup → JNI env corrupted
-    /// 6. `ClassLinker::FindClass` fails → `Runtime::Abort`
-    /// 7. abort message "Unknown reference: 42" — **misleading follow-up**
-    ///    effect broken JNI state, не реальный refnum lookup issue.
-    ///
-    /// Reference SagerNet не падает потому что проверяет permission ДО
-    /// `cs.startOrReloadService()` через `commandServer.needWIFIState() &&
-    /// !hasPermission()` → stopAndAlert. Sing-box не запускается без permission.
-    ///
-    /// **Defensive fix**: try/catch SecurityException → return null. Sing-box
-    /// получает null gracefully (как раньше когда readWIFIState всегда был null).
-    ///
-    /// Combined с permission check в `BoxService.startSingbox` (post-`startOrReloadService`
-    /// `needWIFIState() && !hasPermission()` warning log) — F12.3 теперь
-    /// fully functional когда permission granted, fails gracefully когда нет.
-    /// Delegate to `WifiInfoReader` — single source of truth для defensive
-    /// чтения wifi state. См. `WifiInfoReader.kt` docstring для детального
-    /// контекста (3 call-sites consolidation, drift risk история).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     override fun readWIFIState(): WIFIState? {
         val state = WifiInfoReader.readAsState(BoxApplication.application)
         if (state == null) {
@@ -199,23 +199,23 @@ interface PlatformInterfaceWrapper : PlatformInterface {
         return state
     }
 
-    // §179 (rc.6) — `systemCertificates()` УДАЛЁН из PlatformInterface ядром
-    // (javap AAR rc.6: метода нет). sing-box 1.14 апстрим-мердж перенёс сбор
-    // системных CA внутрь Go-рантайма (читает AndroidCAStore сам через
-    // platform-bridge), наш Kotlin-сборщик §128 больше не нужен и не вызывается.
-    // Оставлять `override fun systemCertificates()` = 'overrides nothing' →
-    // ошибка компиляции. Удалён целиком. Если TLS к серверам с системными
-    // (не встроенными) CA сломается на rc.6 — вернуть как НЕ-override хук через
-    // отдельный binding (маловероятно: ядро берёт CA само).
 
-    // ─── libbox 1.14: новые методы PlatformInterface ────────────────────
-    // sing-box 1.14 влил Tailscale/SSH-сервер. Для Android VPN-клиента этот
-    // функционал не нужен — отдаём безопасные заглушки. Контракт §050/§151:
-    // методы БЕЗ `throws Exception` (registerMyInterface, *NeighborMonitor,
-    // usePlatformShell) бросать НЕЛЬЗЯ → no-op; error-возвращающие — пустые
-    // значения, чтобы ядро деградировало gracefully, а не валилось.
 
-    /** Tailscale identity hook — на Android не используем. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     override fun registerMyInterface(name: String) {}
 
     override fun usePlatformShell(): Boolean = false
@@ -244,23 +244,23 @@ interface PlatformInterfaceWrapper : PlatformInterface {
 
     override fun closeNeighborMonitor(listener: io.nekohasekai.libbox.NeighborUpdateListener) {}
 
-    // ─── 1.14.0-lx.3 (rc.2): platform-bridge (upstream L3-forwarding) ────
-    // Апстрим влил "bridge outbound" — платформенный L3-мост, где ОС отдаёт
-    // ядру отдельный TUN-fd под egress. Android VPN-клиент его не использует
-    // (весь трафик уже идёт через наш единственный VpnService-TUN). Контракт
-    // §050/§151: `usePlatformBridge` БЕЗ `throws` → безопасный `false`, ядро
-    // мост не строит; `createBridge` С `throws Exception` (как openShellSession)
-    // — ядро его не позовёт при false, но контракт требует реализацию.
 
-    /** Не используем platform-bridge — весь трафик через VpnService-TUN. */
+
+
+
+
+
+
+
+
     override fun usePlatformBridge(): Boolean = false
 
-    /// `cancelNotification` — новый метод PlatformInterface в ядре lx.27-rc.2
-    /// (пришёл из апстрима вместе с Taildrop). Дефолт — no-op: реализации без
-    /// собственных уведомлений (ProbeSession) не обязаны его переопределять,
-    /// а `BoxVpnService` форвардит в `BoxService.cancelNotification`.
-    /// Сигнатура с `throws` (§151 F1: бросать отсюда безопасно), но нам нечего
-    /// бросать — уведомлений мы не ставили.
+
+
+
+
+
+
     override fun cancelNotification(identifier: String, typeID: Int) {}
 
     override fun createBridge(
@@ -270,8 +270,8 @@ interface PlatformInterfaceWrapper : PlatformInterface {
 
     private class StringArray(private val iter: Iterator<String>) : StringIterator {
         override fun hasNext() = iter.hasNext()
-        // §151 F1 — JNI no-throw: `StringIterator.Next()` — Go-метод БЕЗ `error`,
-        // throw отсюда = `Runtime::Abort`. За концом отдаём "", не бросаем.
+
+
         override fun next(): String = if (iter.hasNext()) iter.next() else ""
         override fun len(): Int = 0
     }

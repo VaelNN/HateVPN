@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -8,8 +8,8 @@ import 'package:lxbox/services/crash_banner_state.dart';
 import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/stderr_reader.dart';
 
-/// §316 (пользовательская половина) — история краш-репортов ядра: чтение
-/// правильного файла, список, ротация, одноразовость плашки.
+
+
 void main() {
   late Directory tempDir;
   const pathChannel = MethodChannel('plugins.flutter.io/path_provider');
@@ -17,9 +17,9 @@ void main() {
   setUp(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     tempDir = await Directory.systemTemp.createTemp('crash_reports_test_');
-    // На устройстве базу даёт native `getFilesDir`; в тестах MethodChannel
-    // ядра не поднят → `CrashReports.baseDir()` падает на Dart-путь, его и
-    // подменяем. Заодно тут же живёт storage (отметка показанного краша).
+
+
+
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(pathChannel, (call) async {
       if (call.method == 'getApplicationDocumentsDirectory' ||
@@ -38,7 +38,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // AppLog пишет persistent-лог в ту же папку async — race с delete.
+
     }
   });
 
@@ -50,10 +50,10 @@ void main() {
     return f;
   }
 
-  /// Репорт в том виде, в каком его кладёт ЯДРО: каталог-таймстамп с
-  /// `go.log` + `metadata.json` + `configuration.json` внутри.
-  /// Device-verified 27.07.2026 — до этого код ждал плоский файл и молча
-  /// отдавал пустой список при полном архиве.
+
+
+
+
   Future<void> writeReport(
     String stamp, {
     String trace = 'panic',
@@ -77,8 +77,8 @@ void main() {
 
     test('stderr.log игнорируется даже если существует (фоллбэка нет)',
         () async {
-      // Имя из схемы до libbox 1.14. Ядро его больше не пишет; тянуть
-      // мёртвое имя фоллбэком — решение юзера «не делать».
+
+
       await write('stderr.log', 'legacy panic');
       expect(await StderrReader.read(), isNull);
       expect(await StderrReader.path(), isNull);
@@ -153,13 +153,13 @@ void main() {
 
       final left = (await CrashReports.list()).map((e) => e.name).toSet();
       expect(left, hasLength(10));
-      // Удалялись самые старые (c0..c3), свежие целы.
+
       expect(left, isNot(contains('c0')));
       expect(left, isNot(contains('c3')));
       expect(left, contains('c4'));
       expect(left, contains('c13'));
-      // Каталог сносится целиком, а не только go.log — иначе остаётся
-      // мусор из metadata/configuration, который уже ничего не значит.
+
+
       expect(
           Directory('${tempDir.path}/$kCrashArchiveDir/c0').existsSync(),
           isFalse);
@@ -193,7 +193,7 @@ void main() {
       await CrashBannerState.I.markShown();
       expect(CrashBannerState.I.pending, isNull);
 
-      // Повторный запуск: тот же файл, отметка уже стоит.
+
       await CrashBannerState.I.refresh();
       expect(CrashBannerState.I.pending, isNull,
           reason: 'про этот краш уже сказали');

@@ -6,12 +6,12 @@ import 'package:lxbox/screens/dns_server_edit/edit_controller.dart';
 import 'package:lxbox/screens/dns_server_edit/tabs/json_tab.dart';
 import 'package:lxbox/screens/dns_settings_screen/resolved_server.dart';
 
-/// #143 / §458 — read-only JSON-вкладка редактора template/preset-сервера.
-/// После §439 у [DnsServerRef] нет `toJson`; вкладка кодировала снимок
-/// контроллера в `JsonEncoder` напрямую и падала на каждом template/preset
-/// («Converting object to an encodable object failed: Instance of
-/// 'DnsServerTemplate'»). Блок «storage shape» должен быть записью 1.0
-/// кодеком.
+
+
+
+
+
+
 void main() {
   Widget host(DnsServerEditController c) => MaterialApp(
         home: Scaffold(
@@ -63,7 +63,7 @@ void main() {
     expect(storage, contains('"tag": "dns_tpl"'));
     expect(storage, contains('"vars"'));
     expect(storage, contains('"server": "9.9.9.9"'));
-    // Превью — отрезолвленное тело с текущим значением переменной.
+
     expect(texts.last, contains('"server": "9.9.9.9"'));
   });
 

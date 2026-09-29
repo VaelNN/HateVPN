@@ -32,14 +32,14 @@ class AppSettingsScreen extends StatefulWidget {
     this.highlightCoreLogs = false,
   });
 
-  /// 0 = General, 1 = Appearance (§541), 2 = Subscriptions, 3 = Diagnostics,
-  /// 4 = Automation.
-  /// Used by deep-links.
+
+
+
   final int initialTab;
 
-  /// Если true — после первого render'а скроллим к «Forward sing-box logs»
-  /// SwitchListTile и пульсируем подсветку 2.5s. Используется banner'ом
-  /// в Live tab чтобы юзер сразу увидел нужный toggle.
+
+
+
   final bool highlightCoreLogs;
 
   @override
@@ -60,13 +60,13 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
   bool _autoUpdateDisabledSubs = false;
   bool _autoReloadOnChange = false;
   bool _autoCheckUpdates = true;
-  // §220 — снятие портретной фиксации (default OFF = портрет).
+
   bool _allowRotation = false;
-  // §541 — две колонки списка узлов на широком окне (default ON).
+
   bool _nodeListTwoColumns = true;
   bool _loaded = false;
-  // §207 — pprof capture in flight (goroutine dump / CPU profile). Guards
-  // both buttons so a double-tap can't spin two servers on the same port.
+
+
 
   bool _debugEnabled = false;
   String _debugToken = '';
@@ -77,23 +77,23 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
   bool _coreLogsEnabled = false;
   bool _configLocked = false;
 
-  // Для deep-link «highlightCoreLogs» из Live tab banner'а — скроллим
-  // к этому tile'у после первого render'а и пульсируем background 2.5s.
+
+
   final GlobalKey _coreLogsTileKey = GlobalKey();
   bool _coreLogsHighlighted = false;
   Timer? _coreLogsHighlightTimer;
-  // §051 Phase 3 — auto-record visited Wi-Fi networks (default off).
+
   bool _autoRecordWifi = false;
 
-  // §118 — subscription fetch identity (UA override + HWID + device-meta).
-  // _deviceOs/_verOs/_deviceModel — OVERRIDE-значения (пусто = device-дефолт).
+
+
   String _userAgent = '';
   bool _sendHwid = false;
   String _hwid = '';
   String _deviceOs = '';
   String _verOs = '';
   String _deviceModel = '';
-  // §425 — регион использования + автоопределённая страна.
+
   String _region = SettingsStorage.regionAuto;
   String _detectedRegion = '';
 
@@ -104,9 +104,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     _debugPortCtl = TextEditingController();
     unawaited(_loadAutoStart());
     if (widget.highlightCoreLogs) {
-      // Tile живёт в Diagnostics tab (initialTab=3). Tab сам строит
-      // children когда юзер на нём — postFrame этого build'а гарантирует
-      // что _coreLogsTileKey.currentContext доступен.
+
+
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToAndHighlightCoreLogs();
       });
@@ -120,7 +120,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
       ctx,
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeOutCubic,
-      alignment: 0.3, // tile в верхней трети viewport'а — так юзер сразу видит
+      alignment: 0.3,
     );
     setState(() => _coreLogsHighlighted = true);
     _coreLogsHighlightTimer?.cancel();
@@ -139,14 +139,14 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Юзер вернулся из системных настроек — перечитать whitelist-статус.
+
     if (state == AppLifecycleState.resumed) {
       unawaited(_refreshBatteryStatus());
     }
   }
 
   Future<void> _loadAutoStart() async {
-    // §189 — auto_start / core_logs читаем из JSON-зеркала native_prefs.
+
     final auto = await SettingsStorage.getNativeBool(NativePrefsKeys.autoStart);
     final haptic = await SettingsStorage.getVar(HapticService.prefsKey, 'true');
     final autoPing = await SettingsStorage.getVar('auto_ping_on_start', 'true');
@@ -221,10 +221,10 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     }
   }
 
-  /// §037 — toggle config_locked_for_debug.
-  /// Когда true — `SubscriptionController.generateConfig()` тихо skip'ает
-  /// rebuild при UI-действиях, и pinned config.json (например, отправленный
-  /// через Debug API `PUT /config`) остаётся в живых.
+
+
+
+
   Future<void> _toggleConfigLocked(bool locked) async {
     setState(() => _configLocked = locked);
     await SettingsStorage.setConfigLockedForDebug(locked);
@@ -239,12 +239,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // §031 Debug API — toggle / token / port handlers.
-  //
-  // Все изменения ведут к [applyDebugApiSettings], который читает SettingsStorage
-  // и приводит DebugServer в соответствие (start/stop/rebind).
-  // ---------------------------------------------------------------------------
+
+
+
+
+
+
 
   Future<void> _toggleDebugApi(bool enable) async {
     setState(() => _debugEnabled = enable);
@@ -254,10 +254,10 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
       await SettingsStorage.setDebugToken(token);
       if (mounted) setState(() => _debugToken = token);
     }
-    // §037 — config lock is a debug-only feature. Disabling Debug API
-    // implicitly unlocks: иначе юзер останется с pinned config'ом без
-    // UI-способа его разблокировать (lock toggle живёт под Debug API
-    // блоком и спрятан, когда API выключен).
+
+
+
+
     if (!enable && _configLocked) {
       await SettingsStorage.setConfigLockedForDebug(false);
       if (mounted) setState(() => _configLocked = false);
@@ -304,16 +304,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     await applyDebugApiSettings();
   }
 
-  /// §043: toggle forwarding sing-box логов в наш AppLog как `DebugSource.core`.
-  /// Изменение применяется ТОЛЬКО после полного рестарта процесса — `Libbox.setup`
-  /// с флагом `debug` вызывается один раз в `BoxApplication.initialize` (см.
-  /// гард `if (initialized) return`). Stop/start VPN не помогает (service-level,
-  /// не process-level), нужен force-stop + relaunch. Кнопка «Quit & reopen»
-  /// рядом с toggle делает это вызовом `quitApp()` (finishAffinity + killProcess
-  /// в Kotlin); юзер сам тапает иконку и получает свежий процесс.
+
+
+
+
+
+
+
   Future<void> _toggleCoreLogs(bool enable) async {
     setState(() => _coreLogsEnabled = enable);
-    // §189 — через NativePrefs (JSON-истина + зеркало в native).
+
     await SettingsStorage.setNativeBool(
         NativePrefsKeys.coreLogsEnabled, enable);
     if (!mounted) return;
@@ -325,26 +325,26 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     );
   }
 
-  /// §043 follow-up: confirm-диалог + `BoxVpnClient.quitApp()`. Process умрёт
-  /// через ~250ms; Future от quitApp в норме не ресолвится — поэтому ничего
-  /// не делаем после await.
+
+
+
   Future<void> _confirmQuitApp() async {
     final ok = await AppSettingsDialogs.confirmQuitApp(context);
     if (ok != true) return;
     await _vpn.quitApp();
   }
 
-  /// §220 — toggle «Allow rotation». Применяется мгновенно (helper дёргает
-  /// SystemChrome.setPreferredOrientations), рестарт не нужен.
+
+
   Future<void> _toggleAllowRotation(bool allow) async {
     setState(() => _allowRotation = allow);
     await SettingsStorage.setAllowRotation(allow);
     await applyAllowRotationSetting();
   }
 
-  /// §032 Quick Connect — кнопка «Add tile» в General-табе.
-  /// На API 33+ система сама покажет prompt; на более старых — даём
-  /// текстовую инструкцию (drag через шторку).
+
+
+
   Future<void> _addQuickSettingsTile() async {
     final result = await _vpn.requestAddTile();
     if (!mounted) return;
@@ -368,13 +368,13 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     messenger.showSnackBar(SnackBar(content: Text(msg), duration: duration));
   }
 
-  /// Tap on the Notifications row in Background → System setup.
-  ///
-  /// — granted   → open per-app notification settings (toggle categories etc.)
-  /// — denied    → try the runtime POST_NOTIFICATIONS prompt; if that returns
-  ///               with permission still denied (user picked "Don't allow", or
-  ///               had previously selected "Don't ask again"), fall back to
-  ///               the App Permissions screen.
+
+
+
+
+
+
+
   Future<void> _onNotificationsTap() async {
     final granted = await ul.UrlLauncher.checkNotificationPermission();
     if (granted) {
@@ -382,9 +382,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
       return;
     }
     await ul.UrlLauncher.requestNotificationPermission();
-    // Re-check; system dialog is async, but on API 33+ it resolves before the
-    // call returns. If "Don't ask again" was previously chosen, the prompt
-    // is silently skipped — push the user to Settings instead.
+
+
+
     final after = await ul.UrlLauncher.checkNotificationPermission();
     if (mounted) {
       setState(() => _notificationsEnabled = after);
@@ -411,12 +411,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     }
   }
 
-  /// §051 — tap на «Nearby Wi-Fi» row. Симметрично Notifications row:
-  /// - granted → App Permissions screen (юзер видит/может revoke)
-  /// - denied  → shared `WifiPermissionDialog` (объяснение + runtime prompt
-  ///             + Settings fallback)
-  /// State после возврата из Settings рефрешится через
-  /// `didChangeAppLifecycleState` → `_refreshBatteryStatus`.
+
+
+
+
+
+
   Future<void> _onNearbyWifiTap() async {
     final granted = await ul.UrlLauncher.checkNearbyWifiPermission();
     if (granted) {
@@ -432,9 +432,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     if (mounted) setState(() => _nearbyWifiGranted = after);
   }
 
-  /// §567 — причина, по которой SSID не читается при выданных
-  /// разрешениях строки «Location (background)»: `fine_location_missing`
-  /// (FINE в списке отсутствующих) или `location_disabled`. Иначе null.
+
+
+
   Future<String?> _readWifiLocationIssue() async {
     final r = await ul.UrlLauncher.getCurrentWifiInfo();
     if (r is! ul.WifiInfoError) return null;
@@ -444,17 +444,17 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     return r.reason == 'location_disabled' ? 'location_disabled' : null;
   }
 
-  /// §051 — tap на «Location (background)» row.
-  /// - granted → App Permissions screen
-  /// - denied  → shared `WifiPermissionDialog` (для BACKGROUND_LOCATION
-  ///             runtime prompt бесполезен на API 30+, dialog покажет
-  ///             только «Open Settings»).
+
+
+
+
+
   Future<void> _onBackgroundLocationTap() async {
     final granted =
         await ul.UrlLauncher.checkBackgroundLocationPermission();
     if (granted) {
-      // §567 — BACKGROUND есть, но SSID всё равно не читается: ведём туда,
-      // где чинится конкретная причина.
+
+
       switch (await _readWifiLocationIssue()) {
         case 'location_disabled':
           await ul.UrlLauncher.openLocationSettings();
@@ -479,8 +479,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     if (mounted) setState(() => _backgroundLocationGranted = after);
   }
 
-  /// Preset-инструкции перед переходом в system App info — OEM'ы прячут
-  /// нужные тоглы в разных местах, юзер без подсказки теряется.
+
+
   Future<void> _openAppInfoWithHint() async {
     final proceed = await AppSettingsDialogs.openAppInfoHint(context);
     if (proceed == true) await _vpn.openAppDetailsSettings();
@@ -489,10 +489,10 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      // §279 — слушаем и LocaleController: этот экран показан как pushed route,
-      // rebuild корневого MaterialApp его не перестраивает (Navigator держит
-      // route поверх). Без подписки смена языка не двигала radio-галку picker'а
-      // и не перерисовывала строки самого экрана настроек.
+
+
+
+
       animation: Listenable.merge([themeNotifier, LocaleController.I]),
       builder: (context, _) {
         return DefaultTabController(
@@ -529,7 +529,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
   EdgeInsets _tabPadding(BuildContext context) => EdgeInsets.fromLTRB(
       12, 12, 12, MediaQuery.of(context).padding.bottom + 24);
 
-  // ─── §118 subscription fetch identity (UA override + HWID + meta) ──────
+
 
   Future<String?> _editIdentityText({
     required String title,
@@ -585,7 +585,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
   }
 
   void _setSendHwid(bool val) {
-    // §118 — лениво генерим UUID при первом включении (решение №2/№3).
+
     if (val && _hwid.isEmpty) {
       _hwid = generateUuidV4();
       unawaited(SettingsStorage.setVar(SubscriptionIdentity.varHwid, _hwid));
@@ -708,15 +708,15 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
       autoCheckUpdates: _autoCheckUpdates,
       autoPing: _autoPing,
       haptic: _haptic,
-      autoReloadOnChange: _autoReloadOnChange, // §338
+      autoReloadOnChange: _autoReloadOnChange,
       padding: _tabPadding(context),
       onAutoStartChanged: (val) {
         setState(() => _autoStart = val);
-        // §189 — через NativePrefs (JSON-истина + зеркало в native).
+
         unawaited(
             SettingsStorage.setNativeBool(NativePrefsKeys.autoStart, val));
       },
-      // §338 — автоприменение изменений конфига (любой источник, не подписки).
+
       onAutoReloadOnChangeChanged: (val) {
         setState(() => _autoReloadOnChange = val);
         unawaited(SettingsStorage.setAutoReloadOnChange(val));
@@ -748,8 +748,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     );
   }
 
-  /// §425 — выбор региона использования: auto / none / известные регионы
-  /// (сегодня — ключи `loc` пула WARP) / произвольный код страны.
+
+
   Future<void> _editRegion() async {
     const other = '__other__';
     final known = await WarpEndpointPicker.availableRegions();
@@ -758,7 +758,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
       SettingsStorage.regionAuto,
       SettingsStorage.regionNone,
       ...known,
-      // Явно выбранный код вне известного списка — показать, не терять.
+
       if (_region != SettingsStorage.regionAuto &&
           _region != SettingsStorage.regionNone &&
           !known.contains(_region))
@@ -772,10 +772,10 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
           for (final o in options)
             RadioListTile<String>(
               value: o,
-              // ignore: deprecated_member_use
+
               groupValue: _region,
               title: Text(GeneralTab.regionLabel(o, _detectedRegion)),
-              // ignore: deprecated_member_use
+
               onChanged: (v) => Navigator.of(ctx).pop(v),
             ),
           ListTile(
@@ -798,7 +798,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
             autofocus: true,
             maxLength: 2,
             textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(hintText: 'IL'), // l10n-exempt
+            decoration: const InputDecoration(hintText: 'IL'),
           ),
           actions: [
             TextButton(
@@ -815,7 +815,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
       if (picked != null &&
           SettingsStorage.normalizeRegion(picked) ==
               SettingsStorage.regionAuto) {
-        picked = null; // мусор вместо кода — не сохраняем
+        picked = null;
       }
     }
     if (picked == null || !mounted) return;
@@ -861,9 +861,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
     );
   }
 
-  /// §051 Phase 3 — toggle для auto-record. Сразу sync'ит state в native
-  /// observer (start/stop NetworkCallback). Существующая история не
-  /// чистится при OFF — это user data, явный поход в Pick saved.
+
+
+
   Future<void> _toggleAutoRecordWifi(bool enabled) async {
     setState(() => _autoRecordWifi = enabled);
     await SettingsStorage.setAutoRecordWifi(enabled);
@@ -880,16 +880,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> with WidgetsBindi
   }
 }
 
-/// Centered scrollable [TabBar] whose left & right edges fade to transparent,
-/// so a tab clipped by the screen edge dissolves instead of being cut off —
-/// a soft hint that the bar scrolls. The fade is a fixed-width edge gradient
-/// (no scroll-metrics tracking) so it always renders on the first frame.
+
+
+
+
 class _FadingTabBar extends StatelessWidget implements PreferredSizeWidget {
   const _FadingTabBar({required this.tabs});
 
   final List<Widget> tabs;
 
-  // Width of each edge fade, in px.
+
   static const double _fadeWidth = 32;
 
   @override

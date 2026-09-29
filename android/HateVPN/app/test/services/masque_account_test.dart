@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/warp/masque_account.dart';
 
-/// §130 — MasqueAccount round-trip + redaction + URI.
+
 void main() {
   MasqueAccount sample() => const MasqueAccount(
         privKeyDer: 'PRIVDER==',
@@ -40,7 +40,7 @@ void main() {
     final r = sample().redacted();
     expect(r['priv_key_der'], '<redacted>');
     expect(r['token'], '<redacted>');
-    expect(r.containsKey('server_pub_der'), isTrue); // pubkey не секрет
+    expect(r.containsKey('server_pub_der'), isTrue);
     expect(r['server'], '162.159.198.1');
   });
 
@@ -56,7 +56,7 @@ void main() {
   test('§393 — версия HTTP задаётся при сборке URI, а не хранится в аккаунте',
       () {
     expect(sample().toMasqueUri(vhttp: 'h2'), contains('vhttp=h2'));
-    // Ключа network в хранимом JSON больше нет; старая запись с ним читается.
+
     expect(sample().toJson().containsKey('network'), isFalse);
     final legacy = sample().toJson().cast<String, dynamic>()
       ..['network'] = 'h2';

@@ -3,33 +3,33 @@ import 'package:flutter/material.dart';
 import '../services/url_launcher.dart' as ul;
 import '../services/l10n/locale_controller.dart';
 
-/// §051 — shared explainer dialog для Wi-Fi-related permissions.
-///
-/// Single source of truth для двух точек вызова:
-/// - `BoxService` → `stopAndAlert("alert:permission_location:...")` →
-///   HomeController парсит wire-строку в `StopPermissionLocation` (§279),
-///   `HomeScreen._onControllerChange` зовёт этот dialog по typed-значению.
-/// - `Settings → Background → System setup` row tap (Location / Nearby Wi-Fi):
-///   когда permission denied, dialog объясняет зачем нужно + предлагает
-///   runtime prompt для NEARBY_WIFI_DEVICES или Settings link для
-///   ACCESS_BACKGROUND_LOCATION (single source of truth — на API 30+
-///   только через Settings).
-///
-/// `missing` принимает список полных permission-имён
-/// (`android.permission.NEARBY_WIFI_DEVICES`, `android.permission.ACCESS_BACKGROUND_LOCATION`,
-/// и т.д.). Внутренне выбирает какие кнопки показывать:
-/// - есть NEARBY_WIFI_DEVICES → button "Allow Wi-Fi info" (runtime prompt)
-/// - есть BACKGROUND_LOCATION → button "Open Settings" обязательна
-/// - есть ACCESS_FINE_LOCATION (§567) → текст про «Use precise location»,
-///   та же кнопка "Open Settings"
-/// - оба → обе кнопки
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class WifiPermissionDialog {
   WifiPermissionDialog._();
 
-  /// Показать dialog. `missing` — список full permission names. Возвращает
-  /// после dismissal (после tap'а на кнопку или barrier dismiss). Re-check
-  /// permissions через `UrlLauncher.checkXxx()` — async system prompt
-  /// resolve'ится до return'а на API 33+.
+
+
+
+
   static Future<void> show(
     BuildContext context, {
     required List<String> missing,
@@ -40,8 +40,8 @@ class WifiPermissionDialog {
     final needsNearby = missing.any((p) => p.endsWith('NEARBY_WIFI_DEVICES'));
     final needsBackgroundLocation =
         missing.any((p) => p.endsWith('ACCESS_BACKGROUND_LOCATION'));
-    // §567 — без «точного местоположения» Android молча отдаёт
-    // `<unknown ssid>`; чинится только в Settings, как и BACKGROUND.
+
+
     final needsFineLocation =
         missing.any((p) => p.endsWith('ACCESS_FINE_LOCATION'));
 

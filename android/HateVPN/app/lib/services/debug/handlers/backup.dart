@@ -10,17 +10,17 @@ import '../contract/errors.dart';
 import '../transport/request.dart';
 import '../transport/response.dart';
 
-/// `/backup/*` — экспорт/импорт пользовательских данных. Wire-format
-/// симметричен `BackupService` (см. `lib/services/backup_service.dart`):
-/// файл из UI можно скормить в `POST /backup/import` через curl, и наоборот.
-///
-/// Каждый запрос содержит блоки:
-/// - `storage` — `lxbox_settings.json` целиком (Flutter side)
-/// - `vpn_settings` — native VPN toggles (auto_start, keep_on_exit,
-///   background_mode, core_logs_enabled, allow_bypass)
-///
-/// Кеши (cache.db, stderr.log, SRS-blob, runtime node-tags) не включаются —
-/// restore их пересоздаст.
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> backupHandler(DebugRequest req, DebugContext ctx) async {
   return switch ('${req.method} ${req.path}') {
     'GET /backup/export' => _export(req),
@@ -31,14 +31,14 @@ Future<DebugResponse> backupHandler(DebugRequest req, DebugContext ctx) async {
 
 const _allParts = {'storage', 'vpn_settings'};
 
-/// `GET /backup/export[?include=storage,vpn_settings][&from=v0_bak]` → JSON.
-/// Default `include` — всё. Каждая часть опциональна; пустое или
-/// отсутствующее поле в выходе означает «нечего экспортировать».
-///
-/// §439 §3.5 — `from=v0_bak`: блок `storage` берётся из
-/// `lxbox_settings.json.v0.bak` (состояние формы 2.23.2 на момент миграции),
-/// а не из живого хранения. Такой конверт принимает `POST /backup/import`
-/// версии 2.23.2 — путь отката для стендов. Копии нет — 404.
+
+
+
+
+
+
+
+
 Future<DebugResponse> _export(DebugRequest req) async {
   final from = req.query['from'];
   if (from != null && from != 'v0_bak') {
@@ -73,21 +73,21 @@ Future<DebugResponse> _export(DebugRequest req) async {
     }
   }
   if (include.contains('vpn_settings')) {
-    // §189 — единая сериализация (делегат NativePrefs, как BackupService).
+
     out['vpn_settings'] = await SettingsStorage.exportNativePrefsBackup();
   }
   return JsonResponse(out, pretty: true);
 }
 
-/// `POST /backup/import[?merge=false&rebuild=false]`. Body — JSON объект
-/// с полями `storage` и/или `vpn_settings`.
-/// - §439 §3.4 — блок `storage` формы 2.23.2 (без `storage_version`)
-///   принимается и мигрирует до allowlist'а; в ответе `applied.migrated: true`
-///   и отчёт `applied.migration`.
-/// - `merge=false` (default) — replace existing.
-/// - `merge=true` — top-level merge (vars upsert, остальные ключи overwrite).
-/// - `rebuild=true` — после restore зовёт `SubscriptionController.generateConfig`
-///   и сохраняет в HomeState (то же что `POST /action/rebuild-config`).
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> _import(DebugRequest req, DebugContext ctx) async {
   final body = req.jsonBodyAsMap();
   final merge = req.qBool('merge');
@@ -96,8 +96,8 @@ Future<DebugResponse> _import(DebugRequest req, DebugContext ctx) async {
 
   final storage = body['storage'];
   if (storage is Map<String, dynamic>) {
-    // §439 §3.4 — форма 2.23.2 мигрирует здесь, до replaceRaw: отчёт уходит
-    // в ответ. Шаблон — ради `ref` preset-серверов DNS.
+
+
     final template = await TemplateLoader.load();
     final legacy = storageDocNeedsMigration(storage);
     final migration = migrateStorageDoc(
@@ -105,11 +105,11 @@ Future<DebugResponse> _import(DebugRequest req, DebugContext ctx) async {
       presetIdByDnsServerTag: legacy
           ? presetIdsByDnsServerTag(template.selectableRules)
           : const {},
-      // §439 п. 8 — ссылки на узлы подписок тем же словарём, что у `_load`.
+
       subscriptionBodies: legacy
           ? await SettingsStorage.subscriptionBodiesForMigration(storage)
           : const {},
-      // §441 — Н2–Н4 у vars template-серверов DNS и пресетов.
+
       recordVars: legacy
           ? RecordVarDecls.fromTemplate(template)
           : RecordVarDecls.none,
@@ -118,19 +118,19 @@ Future<DebugResponse> _import(DebugRequest req, DebugContext ctx) async {
     if (migration.migrated || migration.warnings.isNotEmpty) {
       applied['migration'] = migration.toReportJson();
     }
-    // §159 — replaceRaw применяет allowlist (default-deny). Отброшенные
-    // неизвестные/чужеродные ключи возвращаются и отдаются в ответе.
+
+
     final dropped =
         await SettingsStorage.replaceRaw(migration.doc, merge: merge);
     applied['storage_keys'] = storage.length;
     if (dropped.isNotEmpty) applied['dropped_keys'] = dropped;
-    // §279 — restore мог привезти другой app_language: полный пайплайн смены
-    // локали через владеющий контроллер (не голое значение в сторадже).
+
+
     await LocaleController.I.reloadFromStorage();
-    // §393 A2 — порядок restore→migrate. Легаси-пару `channels` уже
-    // переименовала миграция выше; вызов остаётся ради fresh-seed, когда тело
-    // не принесло Направлений вовсе. Тот же вызов, что в
-    // `BackupService.applyImport`; идемпотентен на новых ключах.
+
+
+
+
     await SettingsStorage.migrateDirectionsIfNeeded(
       template.groupTemplates,
       varDefaults: {
@@ -143,7 +143,7 @@ Future<DebugResponse> _import(DebugRequest req, DebugContext ctx) async {
 
   final vpn = body['vpn_settings'];
   if (vpn is Map<String, dynamic>) {
-    // §189 — единая сериализация (делегат NativePrefs, как BackupService).
+
     applied['vpn_settings'] = await SettingsStorage.applyNativePrefsBackup(vpn);
   } else if (vpn != null) {
     throw const BadRequest('vpn_settings must be a JSON object');

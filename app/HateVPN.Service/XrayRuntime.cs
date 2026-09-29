@@ -79,7 +79,7 @@ internal sealed class XrayRuntime : IDisposable
                     { tunnelHealthy = true; break; }
                 }
                 catch (OperationCanceledException) when (_stop.IsCancellationRequested) { break; }
-                catch { /* Try the other trace endpoint. */ }
+                catch {   }
             }
             if (tunnelHealthy)
             {

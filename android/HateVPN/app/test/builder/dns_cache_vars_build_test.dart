@@ -8,8 +8,8 @@ import 'package:lxbox/services/template_loader.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §580 — кэш DNS: три переменные шаблона (TEMPLATE_LANG §6.8) доходят до
-/// `dns.cache_capacity`, `dns.optimistic`, `experimental.cache_file.store_dns`.
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late WizardTemplate template;

@@ -6,11 +6,11 @@ import 'package:lxbox/screens/home/source_lookup.dart';
 
 import '../../parser/engine_test_setup.dart';
 
-/// §091/§235 — Unit tests для prefix-based `sourcesOfTag` (бывш.
-/// `subscriptionsOfTag`; §235 — источник = подписка ИЛИ папка §234).
-/// Принадлежность ноды источнику = `tag.startsWith('$prefix ')`; пустой
-/// префикс не участвует; suffix после префикса игнорируется (никакого
-/// reverse-парсинга / collision-эвристики — класс багов §077/§079/§080 ушёл).
+
+
+
+
+
 
 NodeSpec _node(String tag) => VlessSpec(
       id: 'id-$tag',
@@ -78,8 +78,8 @@ SubscriptionEntry _folder({
 }
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('prefix match', () {
@@ -108,11 +108,11 @@ void main() {
     final entries = [_sub(id: 's1', tagPrefix: '🇷🇺')];
 
     test('любой суффикс после "\$prefix " матчит', () {
-      // Раньше (reverse-map) различал digit-only collision-suffix; теперь
-      // принадлежность определяется ровно префиксом.
+
+
       expect(sourcesOfTag('🇷🇺 M1', entries), {'s1'});
-      expect(sourcesOfTag('🇷🇺 M1-1', entries), {'s1'}); // collision
-      expect(sourcesOfTag('🇷🇺 M1-X', entries), {'s1'}); // non-digit
+      expect(sourcesOfTag('🇷🇺 M1-1', entries), {'s1'});
+      expect(sourcesOfTag('🇷🇺 M1-X', entries), {'s1'});
       expect(sourcesOfTag('🇷🇺 M1 extra', entries), {'s1'});
       expect(sourcesOfTag('🇷🇺 что угодно', entries), {'s1'});
     });
@@ -137,8 +137,8 @@ void main() {
     });
 
     test('префикс A — префикс другого B (prefix-of-prefix) разводится пробелом', () {
-      // 'RU' и 'RU2': tag 'RU2 M1' начинается с 'RU2 ', но НЕ с 'RU '
-      // (после 'RU' идёт '2', не пробел) → только B.
+
+
       final entries = [
         _sub(id: 'A', tagPrefix: 'RU'),
         _sub(id: 'B', tagPrefix: 'RU2'),
@@ -201,9 +201,9 @@ void main() {
     });
   });
 
-  // §255 — ownerOfTag: суперсет sourcesOfTag для навигации к владельцу
-  // culprit-ноды (ловит и UserServer без префикса, и члена папки).
-  // Возвращает TagOwner(entryIndex, memberIndex?).
+
+
+
   group('ownerOfTag', () {
     test('prefixed subscription node → entryIndex, memberIndex null', () {
       final entries = [_sub(id: 's1', tagPrefix: '🇷🇺', nodes: ['Node A'])];
@@ -213,14 +213,14 @@ void main() {
     });
 
     test('bare UserServer node (без префикса) → entryIndex', () {
-      // sourcesOfTag сюда бы вернул empty (UserServer не участвует); ownerOfTag
-      // — суперсет, ловит по bare-тегу.
+
+
       final entries = [_user(id: 'u1', nodes: ['MyServer'])];
       expect(ownerOfTag('MyServer', entries)?.entryIndex, 0);
     });
 
     test('folder member → entryIndex + memberIndex', () {
-      // Папка _folder имеет члена с raw #M1 → node.tag == 'M1' (member 0).
+
       final entries = [
         _sub(id: 's0', tagPrefix: 'x', nodes: ['zzz']),
         _folder(id: 'f1', tagPrefix: 'pr'),

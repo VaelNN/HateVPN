@@ -1,23 +1,23 @@
-/// Замороженные читатели формы хранения 2.23.2 (§439 §2.1, §2.2).
-///
-/// Тела `ServerList.fromJson` (с подтипами и `FolderMember.fromJson`),
-/// `DetourPolicy.fromJson`, `SubscriptionIdentityOverride.fromJson`,
-/// `CustomRule.fromJson` (с подтипами), `SourceChain.fromJson`,
-/// `DnsServerRef.fromJson` и `DnsRuleRef.fromJson` на момент 2.23.2 — перенос
-/// без правок логики. Миграция читает старые данные ровно так, как читала их
-/// 2.23.2, и уже потом пишет кодеком записей 1.0: совпадение `config.json` до и
-/// после держится на этом переносе, а не на переписанном разборе.
-///
-/// Модели строятся конструкторами. Подчинённые объекты, форма которых в 1.0
-/// не менялась и которые читает кодек записей (`SubscriptionMeta`,
-/// `ImportRule`, `RuleDns`, `RuleResolve`), читаются своими `fromJson`.
-///
-/// §575 — ключ `sections` (если был в старой форме) не читается: секций у
-/// узлов больше нет.
-///
-/// Старые имена полей живут только здесь и только на чтении. Зовут модуль
-/// миграция хранения (`migrate_storage.dart`) и входы старой формы: файл правил
-/// `format: 1` (`rule_transfer.dart` — правила, DNS-серверы и DNS-правила).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../config/consts.dart' show kDirectOutboundTag;
@@ -36,10 +36,10 @@ import '../json_clone.dart' show deepCloneJson;
 import '../parser/body_decoder.dart';
 import '../parser/parse_all.dart';
 
-// ─── server_lists[] ─────────────────────────────────────────────────────────
 
-/// `ServerList.fromJson` 2.23.2. Бросает на незнакомый `type` и на запись без
-/// `id` — как 2.23.2, которая такую запись пропускала.
+
+
+
 ServerList readLegacyServerList(Map<String, dynamic> j) {
   final t = j['type'] as String?;
   switch (t) {
@@ -54,7 +54,7 @@ ServerList readLegacyServerList(Map<String, dynamic> j) {
   }
 }
 
-/// `SubscriptionServers.fromJson` 2.23.2.
+
 SubscriptionServers _readSubscription(Map<String, dynamic> j) =>
     SubscriptionServers(
       id: j['id'] as String,
@@ -90,8 +90,8 @@ SubscriptionServers _readSubscription(Map<String, dynamic> j) =>
       onUpdateAction: SubscriptionOnUpdateAction.fromJson(j['on_update_action']),
     );
 
-/// `SubscriptionServers._disabledHashesFromJson` 2.23.2: не-Map → пусто,
-/// значение не датой — пропуск отметки.
+
+
 Map<String, DateTime> _readDisabledHashes(dynamic raw) {
   if (raw is! Map) return const {};
   final out = <String, DateTime>{};
@@ -102,7 +102,7 @@ Map<String, DateTime> _readDisabledHashes(dynamic raw) {
   return out;
 }
 
-/// `SubscriptionServers._importRulesFromJson` 2.23.2.
+
 List<ImportRule> _readImportRules(dynamic raw) {
   if (raw is! List) return const [];
   return raw
@@ -111,7 +111,7 @@ List<ImportRule> _readImportRules(dynamic raw) {
       .toList();
 }
 
-/// `SubscriptionIdentityOverride.fromJson` 2.23.2.
+
 SubscriptionIdentityOverride _readIdentity(Map<String, dynamic> j) =>
     SubscriptionIdentityOverride(
       userAgent: (j['user_agent'] as String?) ?? '',
@@ -122,16 +122,16 @@ SubscriptionIdentityOverride _readIdentity(Map<String, dynamic> j) =>
       deviceModel: (j['device_model'] as String?) ?? '',
     );
 
-/// `UserServer.fromJson` 2.23.2: узлы перечитываются из `raw_body`.
+
 UserServer _readUserServer(Map<String, dynamic> j) {
-  // §576 п.3 — документ и массив в источнике сводятся к телу узла.
+
   final rawBody = bareNodeSourceOf((j['raw_body'] as String?) ?? '');
   final nodes = <NodeSpec>[];
   if (rawBody.isNotEmpty) {
     try {
       nodes.addAll(parseAll(decode(rawBody), own: true));
     } catch (_) {
-      // Некорректный raw — узлов нет, запись остаётся.
+
     }
   }
   return UserServer(
@@ -150,7 +150,7 @@ UserServer _readUserServer(Map<String, dynamic> j) {
   );
 }
 
-/// `FolderServers.fromJson` 2.23.2.
+
 FolderServers _readFolder(Map<String, dynamic> j) => FolderServers(
       id: j['id'] as String,
       name: (j['name'] as String?) ?? '',
@@ -170,17 +170,17 @@ FolderServers _readFolder(Map<String, dynamic> j) => FolderServers(
       pingTimeoutMs: (j['ping_timeout_ms'] as num?)?.toInt(),
     );
 
-/// `FolderMember.fromJson` 2.23.2.
+
 FolderMember readLegacyFolderMember(Map<String, dynamic> j) => FolderMember(
-      // §576 п.3 — документ и массив в источнике сводятся к телу узла.
+
       raw: bareNodeSourceOf((j['raw'] as String?) ?? ''),
       enabled: (j['enabled'] as bool?) ?? true,
-      // 2.23.2 хранила финальный тег строкой: корневая ссылка, пару из неё
-      // делает миграция (`migrate_storage.dart`, §439 п. 8).
+
+
       detour: NodeLink(tag: (j['detour'] as String?) ?? ''),
     );
 
-/// `DetourPolicy.fromJson` 2.23.2.
+
 DetourPolicy _readDetourPolicy(Map<String, dynamic> j) => DetourPolicy(
       registerDetourServers: (j['register_detour_servers'] as bool?) ?? false,
       registerDetourInAuto: (j['register_detour_in_auto'] as bool?) ?? false,
@@ -189,13 +189,13 @@ DetourPolicy _readDetourPolicy(Map<String, dynamic> j) => DetourPolicy(
       replaceDetourChain: (j['replace_detour_chain'] as bool?) ?? false,
     );
 
-// ─── chains[] ───────────────────────────────────────────────────────────────
 
-/// Цепочка 2.23.2 и её место в общем списке источников.
+
+
 typedef LegacyChain = ({SourceChain chain, int order});
 
-/// `SourceChain.fromJson` 2.23.2. Позиция `order` возвращается рядом: модель
-/// 1.0 её не держит, место цепочки — индекс в `sources[]`.
+
+
 LegacyChain readLegacyChain(Map<String, dynamic> json) {
   final tag = (json['tag'] as String? ?? '').trim();
   return (
@@ -225,8 +225,8 @@ LegacyChain readLegacyChain(Map<String, dynamic> json) {
   );
 }
 
-/// `_sortChainsByOrder` 2.23.2: стабильная сортировка по `order`, записи без
-/// позиции (-1) — в конец, при равенстве — порядок файла.
+
+
 List<SourceChain> sortLegacyChains(List<LegacyChain> chains) {
   const unset = 1 << 30;
   final indexed = [
@@ -241,9 +241,9 @@ List<SourceChain> sortLegacyChains(List<LegacyChain> chains) {
   return [for (final e in indexed) e.c.chain];
 }
 
-// ─── custom_rules[] ─────────────────────────────────────────────────────────
 
-/// `CustomRule.fromJson` 2.23.2: без `kind` — inline.
+
+
 CustomRule readLegacyCustomRule(Map<String, dynamic> j) {
   final kindRaw = j['kind'] as String?;
   final kind = CustomRuleKind.values.firstWhere(
@@ -329,11 +329,11 @@ String? _id(Map<String, dynamic> j) {
   return (id?.trim().isNotEmpty ?? false) ? id : null;
 }
 
-/// `outbound` с запасным `target` (имя до 1.4.1).
+
 String _outbound(Map<String, dynamic> j) =>
     (j['outbound'] as String?) ?? (j['target'] as String?) ?? kDirectOutboundTag;
 
-/// `CustomRuleSrs.ttlHoursFrom` 2.23.2.
+
 int _ttlHours(Object? v) {
   final n = v is num ? v.toInt() : null;
   if (n == null || n < 0) return kDefaultSrsTtlHours;
@@ -353,10 +353,10 @@ Map<String, String> _stringMap(dynamic v) {
   };
 }
 
-// ─── dns_options ────────────────────────────────────────────────────────────
 
-/// `DnsServerRef.fromJson` 2.23.2: запись без `kind` (форма до §043),
-/// незнакомый вид, пустой `tag`, inline без `body` → null.
+
+
+
 DnsServerRef? readLegacyDnsServer(Map<String, dynamic> j) {
   final kind = j['kind'];
   final tag = j['tag']?.toString();
@@ -394,8 +394,8 @@ DnsServerRef? readLegacyDnsServer(Map<String, dynamic> j) {
   }
 }
 
-/// `DnsRuleRef.fromJson` 2.23.2: незнакомый вид (в том числе `user` и `rule`
-/// до §033) или запись без обязательных полей → null.
+
+
 DnsRuleRef? readLegacyDnsRule(Map<String, dynamic> j) {
   final kind = j['kind'];
   if (kind is! String) return null;

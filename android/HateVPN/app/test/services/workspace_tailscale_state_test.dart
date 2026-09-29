@@ -8,13 +8,13 @@ import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/services/tailscale_state/state_store.dart';
 import 'package:lxbox/services/workspaces/workspace_store.dart';
 
-/// §445 — Workspaces × каталоги состояния Tailscale: Save as копирует набор
-/// записей индекса (каталоги общие, без копирования), Load каталоги не
-/// трогает, Rename переносит набор, Delete удаляет каталоги без других ссылок.
-/// `tailscale/` в слот не копируется.
-///
-/// Pattern: mocked path_provider (Documents и Support) + temp на тест, как в
-/// `workspace_store_test.dart`.
+
+
+
+
+
+
+
 void main() {
   late Directory docs;
   late Directory support;
@@ -85,7 +85,7 @@ void main() {
       try {
         if (d.existsSync()) await d.delete(recursive: true);
       } on FileSystemException {
-        // AppLog пишет persistent-лог в docs async — race с delete.
+
       }
     }
   });
@@ -95,7 +95,7 @@ void main() {
     expect((await build([home]))[home.nodes.single], 'home');
     await putState('home');
 
-    // Первое Save as из «Default»: набор сцены уезжает в Home.
+
     await ws.saveAs('Home');
     expect((await slots())['Home'], {'H': 'home'});
     expect(
@@ -104,7 +104,7 @@ void main() {
         isFalse,
         reason: 'каталоги состояния в слот не копируются');
 
-    // Save as Work — копия, затем в Work узел заменён другим.
+
     await ws.saveAs('Work');
     expect((await slots())['Work'], {'H': 'home'});
     final work = server('W', 'work');
@@ -115,19 +115,19 @@ void main() {
     expect((await slots()).keys.toSet(), {'Home', 'Work'},
         reason: 'набор «Default» снят сборкой');
 
-    // Load Home: каталоги не трогаются, личность Home на месте.
+
     expect(await ws.load('Home'), isTrue);
     expect((await build([home]))[home.nodes.single], 'home');
     expect(stateDir('home').existsSync(), isTrue);
     expect(stateDir('work').existsSync(), isTrue,
         reason: 'сборка Home не стирает каталог Work');
 
-    // Rename Work → Job: набор тот же.
+
     await ws.rename('Work', 'Job');
     expect((await slots())['Job'], {'W': 'work'});
     expect((await slots()).containsKey('Work'), isFalse);
 
-    // Delete Job: его каталог удалён, каталог Home — нет.
+
     await ws.delete('Job');
     expect((await slots()).containsKey('Job'), isFalse);
     expect(stateDir('work').existsSync(), isFalse);

@@ -9,21 +9,21 @@ import '../stats_screen/routing_section.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// §152 — детальный bottom sheet по одному соединению.
-///
-/// Тайл в [ConnectionsView] обрезает host/rule ellipsis'ом — здесь показываем
-/// полный снимок `conn` (статичный, на момент тапа): сгруппированные
-/// `label : value`, только непустые поля, без ellipsis. Тап по строке копирует
-/// значение; footer — Copy JSON + Close.
-///
-/// §122 — источник = `CcConnection` (libbox CommandClient). Поля: id/network/
-/// domain/destination/rule/uplink/downlink/createdAt/closedAt + §174/§178
-/// chains/detours + outbound/outboundType + processPath/packageName.
-/// §204 — Routing-секция (Route/Rule/Chain/Detour/Outbound/type) единая с
-/// профайлером через `routingRows`.
-///
-/// [onClose] переиспользует `_ConnectionsViewState._closeConnection`
-/// (close через CommandClient + аккумулятор сам обновит снапшот).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<void> showConnectionDetailSheet(
   BuildContext context,
   CcConnection conn, {
@@ -56,7 +56,7 @@ class _ConnectionDetailSheet extends StatelessWidget {
   final bool oneWay;
   final void Function(String id) onClose;
 
-  // §219 — _destPort вынесен в format_utils (portOf).
+
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +76,7 @@ class _ConnectionDetailSheet extends StatelessWidget {
       expand: false,
       builder: (ctx, scrollController) => Column(
         children: [
-          // Grabber
+
           Container(
             width: 36,
             height: 4,
@@ -86,7 +86,7 @@ class _ConnectionDetailSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          // Header
+
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
@@ -150,11 +150,11 @@ class _ConnectionDetailSheet extends StatelessWidget {
   List<Widget> _sections(BuildContext context) {
     final out = <Widget>[];
 
-    // Поля по контракту libbox CommandClient (`CcConnection`):
-    // domain/destination/network/rule/uplink/downlink/createdAt/closedAt +
-    // §122 ProcessInfo (process/package) + outbound/outboundType/protocol.
 
-    // App (§122 — из getProcessInfo). Показываем только если есть данные.
+
+
+
+
     if (conn.processPath.isNotEmpty || conn.packageName.isNotEmpty) {
       out.addAll(_group(context, 'App', [
         if (conn.processPath.isNotEmpty)
@@ -164,22 +164,22 @@ class _ConnectionDetailSheet extends StatelessWidget {
       ]));
     }
 
-    // Destination
+
     out.addAll(_group(context, 'Destination', [
       _row(context, 'Host', conn.domain),
       _row(context, 'Destination', conn.destination),
       _row(context, 'Dest port', portOf(conn.destination)),
     ]));
 
-    // Network
+
     out.addAll(_group(context, 'Network', [
       _row(context, 'Network', conn.network),
       if (conn.protocol.isNotEmpty) _row(context, 'Protocol', conn.protocol),
     ]));
 
-    // Routing (§204) — единый набор строк (routingRows), общий с профайлером:
-    // Route (§181) + Rule + Chain + Detour + Outbound + Outbound type. Пустые
-    // строки скрывает _row.
+
+
+
     out.addAll(_group(
       context,
       'Routing',
@@ -193,14 +193,14 @@ class _ConnectionDetailSheet extends StatelessWidget {
       ).map((r) => _row(context, r.label, r.value)).toList(),
     ));
 
-    // Traffic
+
     out.addAll(_group(context, 'Traffic', [
       _row(context, 'Upload', '${formatBytes(conn.uplink)} (${conn.uplink} B)'),
       _row(context, 'Download',
           '${formatBytes(conn.downlink)} (${conn.downlink} B)'),
     ]));
 
-    // Timing
+
     String timingStart = '';
     String timingDuration = '';
     if (conn.createdAt > 0) {
@@ -221,7 +221,7 @@ class _ConnectionDetailSheet extends StatelessWidget {
       _row(context, 'Duration', timingDuration),
     ]));
 
-    // ID
+
     out.addAll(_group(context, 'ID', [
       _row(context, 'ID', conn.id),
     ]));
@@ -229,7 +229,7 @@ class _ConnectionDetailSheet extends StatelessWidget {
     return out;
   }
 
-  /// Плашка-пояснение для однобокого (зависшего) соединения.
+
   Widget _oneWayBanner(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final detail = conn.uplink > 0 && conn.downlink == 0
@@ -267,8 +267,8 @@ class _ConnectionDetailSheet extends StatelessWidget {
     );
   }
 
-  /// Возвращает заголовок + непустые строки группы, либо `[]` если все
-  /// строки группы пустые (группа целиком скрывается).
+
+
   List<Widget> _group(BuildContext context, String title, List<Widget?> rows) {
     final visible = rows.whereType<Widget>().toList();
     if (visible.isEmpty) return const [];
@@ -290,8 +290,8 @@ class _ConnectionDetailSheet extends StatelessWidget {
     ];
   }
 
-  /// `label : value` строка. `null` если value пустое (не рендерится).
-  /// Тап копирует value в буфер.
+
+
   Widget? _row(BuildContext context, String label, String value) {
     if (value.isEmpty) return null;
     final cs = Theme.of(context).colorScheme;

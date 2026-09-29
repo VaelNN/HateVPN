@@ -14,12 +14,12 @@ import 'package:lxbox/services/settings_storage.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §578 — пресет `tailscale` с `for_each` при сборке: записи на каждый узел
-/// Tailscale, попавший в конфиг, в порядке конфига.
+
+
 void main() {
   setUpAll(loadEngineSections);
 
-  // DNS-шаг сборки пишет в хранение: временный каталог вместо документов.
+
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
   setUp(() async {
@@ -168,8 +168,8 @@ void main() {
         'server': 'work-ts-dns',
       },
     ]);
-    // Ядро ищет preferred_by DNS-правила среди DNS-серверов
-    // (rule_item_preferred_by_dns.go): тег узла там валит старт.
+
+
     final serverTags = {for (final s in dnsServers(r)) s['tag']};
     for (final x in byPreferred(dnsRules(r))) {
       expect(x['preferred_by'], [x['server']]);

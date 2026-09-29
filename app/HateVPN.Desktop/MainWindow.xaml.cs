@@ -105,7 +105,7 @@ public partial class MainWindow : Window
         _busy = true;
         try
         {
-            // Ask the broker even if the last UI snapshot is stale.
+
             if ((_serviceReady && _state.Owned) || HasTunnel)
             {
                 var response = await _client.SendAsync(new("disconnect"));
@@ -201,7 +201,7 @@ public partial class MainWindow : Window
                 try { _proxyLease.Acquire(); }
                 catch (Exception ex)
                 {
-                    try { await _client.SendAsync(new("disconnect")); } catch { /* Poll the broker next. */ }
+                    try { await _client.SendAsync(new("disconnect")); } catch {   }
                     _proxyLease.Release();
                     RestoreWindow();
                     ShowError("Не удалось включить системный прокси Windows: " + ex.Message);
@@ -332,7 +332,7 @@ public partial class MainWindow : Window
 
     private static string Bytes(ulong bytes) => bytes >= 1073741824 ? $"{bytes / 1073741824d:F1} ГБ" : bytes >= 1048576 ? $"{bytes / 1048576d:F1} МБ" : $"{bytes / 1024d:F0} КБ";
 
-    // Older saved profiles retain their original names; only their on-screen labels are neutralized.
+
     private static string PublicLabel(string text) => text
         .Replace("XRay REALITY", "VPN", StringComparison.OrdinalIgnoreCase)
         .Replace("AmneziaWG", "VPN", StringComparison.OrdinalIgnoreCase)

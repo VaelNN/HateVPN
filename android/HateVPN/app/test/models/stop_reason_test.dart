@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/stop_reason.dart';
 
-// §279 Phase 0 — разбор строкового native-протокола stop-событий в typed
-// StopReason. Инвариант миграции: message() воспроизводит дословно те же
-// English-строки, что собирались в HomeController до §279.
+
+
+
 void main() {
   group('StopReason.fromEvent', () {
     test('revoked → StopRevoked (errorReason игнорируется)', () {
@@ -24,7 +24,7 @@ void main() {
       );
       expect(r, isA<StopPermissionLocation>());
       expect((r as StopPermissionLocation).permissions, 'fine,background');
-      // Debug API lastStartError — та же строка, что до §279.
+
       expect(r.renderEn(),
           'Stopped: alert:permission_location:fine,background');
     });
@@ -55,9 +55,9 @@ void main() {
 
   group('StopStartTimeout (§519)', () {
     test('НЕ разбирается из native-события — причина синтезируется нами', () {
-      // Ядро/native при таймауте фазы `connecting` молчат: `errorReason`
-      // пустой. Поэтому `fromEvent` эту причину не производит и не должен —
-      // её ставит `HomeController._armTransientTimeout`.
+
+
+
       expect(StopReason.fromEvent(revoked: false, errorReason: null), isNull);
     });
 

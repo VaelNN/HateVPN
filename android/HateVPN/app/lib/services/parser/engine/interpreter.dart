@@ -1,26 +1,26 @@
-/// §480 W1 — ИНТЕРПРЕТАТОР СЕКЦИИ: единственный движок на все виды источника.
-///
-/// Устроен как санитайзер (`body_sanitizer.dart`): один проход по ОБЪЯВЛЕННЫМ
-/// записям, значение достаётся только через `source`, ни одного имени схемы.
-/// Разница в направлении — санитайзер судит уже собранное тело, движок его
-/// собирает.
-///
-/// Порядок исполнения (норма SPEC 133 §5, `selector` + `when`):
-///
-/// 1. `scheme_sets` — написание схемы даёт присваивания (схема несёт тело);
-/// 2. `defaults` секции — адрес/порт по умолчанию;
-/// 3. userinfo по `uri.userinfo`;
-/// 4. **первый проход**: записи с `selector: true`, в порядке объявления;
-/// 5. **второй проход**: остальные записи — `when` у каждой проверяется по
-///    УЖЕ ПОСТРОЕННОМУ телу и/или по источникам;
-/// 6. `default_from` / `default_when` / `materialize_default` — заполнение
-///    пустоты объявленными источниками;
-/// 7. метка и неизвестные параметры.
-///
-/// Тело остаётся СЫРЫМ: значения кладутся как пришли, годность их судит
-/// санитайзер по реестру. Единственное, что решает движок, — СТРУКТУРА
-/// («есть ли блок `tls`», «какой транспорт»), потому что санитайзеру
-/// отсутствие ключа неотличимо от «не задано».
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import 'dart:convert' show Base64Codec, jsonDecode;
@@ -36,31 +36,31 @@ import 'section.dart';
 import 'source_space.dart';
 import 'trace.dart';
 
-/// §506 — нормализатор `bandwidth_mbps`: `<число><единица?>` → целое в
-/// МЕГАБИТАХ, или `null`, если строка полосой не является.
-///
-/// Зачем: панели пишут полосу с единицей как придётся (`100mbps`, `1 Gbps`,
-/// `50m`), а ядру нужно число. До этого `type: int` на такой строке давал
-/// ОТСУТСТВИЕ значения, и узел приезжал без полосы молча.
-///
-/// Почему нормализатор, а не `extract`-регулярка «ведущие цифры»: единица
-/// здесь не отбрасывается, а ЧИТАЕТСЯ — `1gbps` это 1000 Мбит/с, а не 1, и
-/// ведущие цифры дали бы неверное число.
-///
-/// Единицы десятичные (`mbps` = 10⁶ бит/с), регистр не значим,
-/// пробел между числом и единицей допускается. Дробный результат округляется
-/// ВВЕРХ: `0.5mbps` — это полмегабита, и ноль вместо него значил бы «не
-/// задано», то есть ту же потерю, от которой избавляемся.
-///
-/// Суждение о годности остаётся санитайзеру: незнакомая единица и мусор дают
-/// `null`, и значение уезжает в карту как пришло.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @visibleForTesting
 int? normalizeBandwidthMbps(String value) {
   final m = RegExp(r'^\s*(\d+(?:\.\d+)?)\s*([a-zA-Z]*)\s*$').firstMatch(value);
   if (m == null) return null;
   final n = double.tryParse(m.group(1)!);
   if (n == null || !n.isFinite) return null;
-  // Голое число уже в мегабитах — это канон, множитель 1.
+
   final factor = switch (m.group(2)!.toLowerCase()) {
     '' || 'm' || 'mb' || 'mbps' => 1.0,
     'g' || 'gb' || 'gbps' => 1000.0,
@@ -74,7 +74,7 @@ int? normalizeBandwidthMbps(String value) {
   return mbps.ceil();
 }
 
-/// Итог исполнения секции.
+
 final class EngineResult {
   const EngineResult({
     required this.body,
@@ -88,10 +88,10 @@ final class EngineResult {
     this.bodySource = '',
   });
 
-  /// Сырая карта тела в ключах sing-box.
+
   final Map<String, dynamic> body;
 
-  /// Метка из объявленных источников, уже нормализованная.
+
   final String label;
 
   final List<NodeWarning> warnings;
@@ -99,36 +99,36 @@ final class EngineResult {
   final bool wsEarlyDataHeaderImplicit;
   final (String, int)? tagAddress;
 
-  /// Рода узла, объявленные ВХОДОМ (`kind_when`): их судит не тело, а
-  /// источник.
+
+
   final Set<String> kinds;
 
-  /// Написание имени в теге-фолбэке, объявленное секцией (`label.fallback
-  /// .scheme`): `null` — фолбэк строится по типу тела, как у всех прочих.
+
+
   final String? tagScheme;
 
-  /// §480 — ВХОД, которым тело приехало, как его назвала секция
-  /// (`body_source`).
-  ///
-  /// Санитайзер судит по нему `max_when.except_sources` — единственное место
-  /// контракта, где вход влияет на РЕЗУЛЬТАТ, а не только на разбор. До
-  /// этого конвейер передавал туда заглушку на всех входах, кроме
-  /// sing-box-JSON, и правило работало вслепую.
+
+
+
+
+
+
+
   final String bodySource;
 }
 
-/// Исполнить секцию на тексте источника.
-///
-/// `null` — записи нет: не сработала ни одна форма, либо обязательная запись
-/// (`required`) не нашла значения. Тем же `null` отвечали рукописные мапперы.
+
+
+
+
 EngineResult? runSection(MapperSection section, String text,
     {MapperTrace? trace, XrayDropVerdict? dropped}) {
   final space = _selectForm(section, text);
   if (space == null) {
-    // §512 (контракт 1.1.49, PARSING_PRINCIPLES §4.1) — ФОРМА не опознана: схему секция
-    // ведёт, но ни одна её форма текст не прочитала (оболочка не раскрылась,
-    // пейлоад не JSON и не ini). Отличается от `field_missing` ниже: там
-    // форма сработала, а обязательного значения в ней не нашлось.
+
+
+
+
     if (dropped != null && dropped.reason == null) {
       dropped.reason = const RegistryWarning(code: 'form_unrecognized');
     }
@@ -137,17 +137,17 @@ EngineResult? runSection(MapperSection section, String text,
   return _Run(section, space, trace, dropped: dropped).execute();
 }
 
-/// §480 W5 — исполнить секцию на РАЗОБРАННОМ документе-объекте.
-///
-/// Второй вход движка, и разница с [runSection] ровно одна: пространство
-/// строится не лексером из текста, а из уже разобранной карты. Элемент к
-/// этому моменту разобран один раз на весь документ (норма §1: «JSON
-/// элемента разбирается один раз на элемент»), и просить движок разбирать
-/// текст заново значило бы разбирать подписку из 2000 узлов дважды.
-///
-/// Всё остальное общее: те же формы, тот же `detect`, те же записи и тот же
-/// порядок проходов. Вид источника движок не знает — `kind` выбирает
-/// секцию у загрузчика, а не ветку здесь.
+
+
+
+
+
+
+
+
+
+
+
 EngineResult? runSectionOnJson(
   MapperSection section,
   Map<String, dynamic> doc, {
@@ -158,10 +158,10 @@ EngineResult? runSectionOnJson(
 }) {
   final space = _selectJsonForm(section, doc);
   if (space == null) {
-    // §560 — то же, что у текстового входа ([runSection]): секция элемент
-    // опознала, но ни одна её форма его не прочитала (`streamSettings:
-    // "none"`). Причина называется кодом PARSING_PRINCIPLES §4.1 и едет в `dropped[]`, а
-    // не теряется молча (корпус body/xray/malformed_stream).
+
+
+
+
     if (dropped != null && dropped.reason == null) {
       dropped.reason = const RegistryWarning(code: 'form_unrecognized');
     }
@@ -172,20 +172,20 @@ EngineResult? runSectionOnJson(
       .execute();
 }
 
-/// §480 — исполнить секцию на тексте INI (`.conf`).
-///
-/// Третий вход движка. От [runSection] отличается разбором входа: текст
-/// раскладывается адаптером `ini` по диалекту, объявленному САМОЙ СЕКЦИЕЙ
-/// (`ini_dialect`), а не правилами, зашитыми в движок. Всё остальное —
-/// формы, `detect`, записи, оба прохода, метка — общее.
-///
-/// [nameHint] — имя, которое предлагает ВЫЗЫВАЮЩИЙ (имя файла при импорте,
-/// тег записи хранения, поле Tag редактора). INI тега не несёт, и цепочка
-/// метки у него длиннее, чем у ссылки: источник-комментарий → подсказка →
-/// шаблон фолбэка. Подсказка приходит параметром, а не источником текста,
-/// потому что в самом документе её нет; секция адресует её объявленным
-/// именем `hint` в `label.source`, то есть место подсказки в цепочке остаётся
-/// данными.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 EngineResult? runSectionOnIni(
   MapperSection section,
   String text, {
@@ -202,9 +202,9 @@ EngineResult? runSectionOnIni(
       .execute(inputCodes: parsed.codes);
 }
 
-/// Порядок проб форм: объявленный, но форма с `detect.default` — последней,
-/// независимо от места в списке (MAPPER_ENGINE: «всё остальное»; так же
-/// пробует лаунчер). Относительный порядок прочих форм не меняется.
+
+
+
 List<MapperForm> formsInTrialOrder(List<MapperForm> forms) {
   if (forms.length < 2) return forms;
   final i = forms.indexWhere((f) => f.detect?['default'] == true);
@@ -217,8 +217,8 @@ List<MapperForm> formsInTrialOrder(List<MapperForm> forms) {
   ];
 }
 
-/// Форма для входа INI: `detect` формы судится предикатами `ini` над УЖЕ
-/// разобранным пространством — язык предикатов один на оба уровня (§2 НОРМЫ).
+
+
 SourceSpace? _selectIniForm(MapperSection section, String text) {
   final dialect = section.iniDialect ?? const IniDialect();
   final parsed = parseIniSpace(text, dialect);
@@ -232,24 +232,24 @@ SourceSpace? _selectIniForm(MapperSection section, String text) {
   return null;
 }
 
-/// Выбрать форму (P1) и построить пространство источников.
-///
-/// Формы пробуются ПО ПОРЯДКУ, первая, чей `detect` сработал, выигрывает;
-/// `detect.default` — ветка «всё остальное» и пробуется последней, где бы ни
-/// стояла в списке ([formsInTrialOrder]).
+
+
+
+
+
 SourceSpace? _selectForm(MapperSection section, String text) {
   final forms = section.forms.isEmpty
       ? const [MapperForm(id: 'url', space: 'url')]
       : formsInTrialOrder(section.forms);
   for (final form in forms) {
-    // Текстовый `detect` формы с оболочкой судится по ДВУМ текстам (unwrap →
-    // redetect, MAPPER_ENGINE §1): сырому пэйлоаду и раскрытому. Предикаты
-    // законно пишут про обе вещи: «тело — один base64-блоб без `@`» — про
-    // оболочку (на раскрытом тексте он ложен по построению), а `^[^#]*@` у
-    // формы `method:uuid@host` — про то, что под ней (на блобе `@` нет).
-    // Форма, чей предикат сошёлся хоть на одном из двух, — эта форма, как у
-    // лаунчера. `scheme_in` раскрытием не меняется (схема остаётся на месте),
-    // `json` судится ниже по разобранному объекту.
+
+
+
+
+
+
+
+
     if (form.space == 'ini') {
       final ini = _selectLinkIniForm(section, form, text);
       if (ini != null) return ini;
@@ -257,10 +257,10 @@ SourceSpace? _selectForm(MapperSection section, String text) {
     }
     final rawHit = formMatchesText(form.detect, text);
     if (!rawHit && form.decode.isEmpty) continue;
-    // `forms[].decode` — оболочка источника: тело после схемы бывает целиком
-    // base64 (перекодированные подписки). Декодер работает над ПЭЙЛОАДОМ, а
-    // схему возвращает на место: написание схемы — источник (`scheme_sets`,
-    // `label_fallback`), и потерять его нельзя.
+
+
+
+
     final decoded = _applyFormDecode(form, text);
     if (decoded == null) continue;
     if (!rawHit) {
@@ -273,22 +273,22 @@ SourceSpace? _selectForm(MapperSection section, String text) {
       case 'url':
         final space = lexUri(decoded, formId: form.id);
         if (space == null) continue;
-        // `forms[].decode` с ОБЛАСТЬЮ (§0.10 FROZEN) — декодер накрывает не
-        // весь текст, а названный кусок, и применяется ПОСЛЕ лексера: текст
-        // уже разложен на части, часть декодируется, части собираются назад.
-        // Область нужна потому, что base64 у одной схемы накрывает РАЗНЫЕ
-        // куски ссылки в разных формах (только userinfo либо весь authority),
-        // а метка `#…` в обеих формах остаётся открытым текстом снаружи —
-        // декодер «на весь текст» ломает и ту, и другую.
-        // Область `authority` у ссылочной формы накрывает ВЕСЬ пэйлоад, и
-        // раскрыть её обязан декодер ДО лексера: сам base64 законно несёт
-        // `?` и `/` (алфавит std), а лексер, увидев их в ещё закрытом тексте,
-        // отрезал бы по ним путь и query — «хвост» уехал бы в никуда, а
-        // authority пришёл бы обрезанным. Так устроена всякая форма, где под
-        // оболочкой лежит ссылка с параметрами (`…@host:port?a=1&b=2`).
-        //
-        // `userinfo` так раскрыть нельзя: там декодируется КУСОК внутри
-        // authority, и границы его знает только лексер — эта ветка ниже.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         final unwrapped = _applyScopedDecodeToPayload(form, decoded);
         if (unwrapped == null) continue;
         if (unwrapped != decoded) {
@@ -299,21 +299,21 @@ SourceSpace? _selectForm(MapperSection section, String text) {
         final scoped = _applyScopedDecode(form, space);
         if (scoped != null) return scoped;
       case 'json':
-        // §480 — ТЕКСТОВАЯ форма с объектным пространством: оболочка формы
-        // (`decode`) раскрывает текст до JSON, и дальше запись адресует его
-        // json-путём, как у объектного входа. Без этого текстовый вход и
-        // объектный разошлись бы двумя ветками кода при одной грамматике.
-        //
-        // Предикат `detect.json` формы судится ПО РАЗОБРАННОМУ значению, а
-        // разобрать его можно только здесь: до `decode` текст ещё в оболочке.
-        // Поэтому форма отсеивается в два приёма — текстовой частью выражения
-        // выше и объектной здесь.
-        //
-        // Шаг с ОБЛАСТЬЮ у объектного пространства исполняется ЗДЕСЬ, а не
-        // лексером: разбирать оболочку как ссылку незачем — под ней лежит
-        // объект. Область у такой формы всегда накрывает пэйлоад целиком
-        // (`authority` контейнера — это и есть весь текст после схемы), и
-        // декодирование сводится к тому же шагу над пэйлоадом.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         final unwrapped = _applyScopedDecodeToPayload(form, decoded);
         if (unwrapped == null) continue;
         final doc = _decodeFormJson(form, unwrapped);
@@ -324,35 +324,35 @@ SourceSpace? _selectForm(MapperSection section, String text) {
           scheme: _splitScheme(decoded)?.scheme ?? '',
           json: doc,
           jsonBase: form.base,
-          // ПЛОСКИЙ СЛОЙ контейнера (§0.10 НОРМЫ: «json — разбор объекта в
-          // плоский слой»). Ключи ВЕРХНЕГО уровня становятся тем же
-          // пространством имён, что query у ссылки, и общие блоки
-          // (`tls#uri`, `transports#uri`) читают `sni`, `alpn`, `fp`, `path`
-          // одним и тем же `source` на обеих формах.
-          //
-          // Иначе блок диалекта пришлось бы дублировать под каждый
-          // контейнер: записи у них совпали бы до буквы, потому что
-          // контейнер и назван так, чтобы повторять имена query.
+
+
+
+
+
+
+
+
+
           query: _flattenContainer(doc),
         );
       default:
-        // Неизвестное пространство: молча выдавать пустое тело нельзя — это
-        // был бы узел из ничего, поэтому форма просто не отвечает.
+
+
         continue;
     }
   }
   return null;
 }
 
-/// Ссылочная форма с пространством `ini` (`<схема>://<base64 .conf>#метка`):
-/// под оболочкой лежит целый `.conf`, а не ссылка.
-///
-/// Метка пишется СНАРУЖИ оболочки, поэтому фрагмент снимается до `detect` и
-/// декода (предикат формы — «пэйлоад целиком из алфавита base64» — про
-/// оболочку, `#метка` в неё не входит) и возвращается в пространство как
-/// источник `fragment`. Раскрытый текст раскладывается диалектом секции
-/// (`ini_dialect`; у ссылки — диалект протокола, [MapperSections]). Схема
-/// остаётся написанием источника (`scheme_sets`, фолбэк метки).
+
+
+
+
+
+
+
+
+
 SourceSpace? _selectLinkIniForm(
     MapperSection section, MapperForm form, String text) {
   final split = _splitScheme(text);
@@ -381,8 +381,8 @@ SourceSpace? _selectLinkIniForm(
   );
 }
 
-/// Форма для объектного входа: `detect` формы судится предикатами `json`
-/// (§2 НОРМЫ — язык предикатов ОДИН на обоих уровнях).
+
+
 SourceSpace? _selectJsonForm(MapperSection section, Map<String, dynamic> doc) {
   final forms = section.forms.isEmpty
       ? const [MapperForm(id: 'json', space: 'json')]
@@ -394,27 +394,27 @@ SourceSpace? _selectJsonForm(MapperSection section, Map<String, dynamic> doc) {
   return null;
 }
 
-/// Пэйлоад источника — то, что стоит ПОСЛЕ `<схема>://`. `detect` и `decode`
-/// формы работают над ним: признак «тело целиком base64» о схеме ничего не
-/// говорит, а декодер обязан её сохранить.
+
+
+
 ({String scheme, String payload})? _splitScheme(String text) {
   final i = text.indexOf('://');
   if (i <= 0) return null;
   return (scheme: text.substring(0, i), payload: text.substring(i + 3));
 }
 
-/// Исполнить `forms[].decode` над пэйлоадом; `null` — шаг не отработал, и
-/// форма не отвечает (молча выдать пустое тело нельзя — это узел из ничего).
-///
-/// `{"reparse": "url"}` говорит, что декодированный текст — снова ссылка: он
-/// возвращается со схемой на месте и разбирается лексером обычным порядком.
-/// §480 W4 — ФРАГМЕНТ снимается до декода и возвращается после: имя узла
-/// пишется СНАРУЖИ оболочки, а внутрь её уехала только запись. Не сними его —
-/// и `#имя` попало бы в base64-декодер, оболочка не раскрылась бы вовсе.
-///
-/// Шаг `percent` — тоже W4: у формы, где base64 приезжает percent-экранированным
-/// (панели пишут `=`-паддинг как `%3D`), порядок «percent, потом base64»
-/// выразим только списком.
+
+
+
+
+
+
+
+
+
+
+
+
 String? _applyFormDecode(MapperForm form, String text) {
   if (form.decode.isEmpty) return text;
   final split = _splitScheme(text);
@@ -427,9 +427,9 @@ String? _applyFormDecode(MapperForm form, String text) {
     payload = payload.substring(0, hash);
   }
   for (final step in form.decode) {
-    if (step == 'url') continue; // percent снимает сам лексер.
-    // Шаг с ОБЛАСТЬЮ здесь пропускается: он исполняется после лексера
-    // ([_applyScopedDecode]), когда известно, где кончается названный кусок.
+    if (step == 'url') continue;
+
+
     if (step is Map && step['scope'] != null && step['scope'] != 'all') {
       continue;
     }
@@ -461,30 +461,30 @@ String? _applyFormDecode(MapperForm form, String text) {
       continue;
     }
     if (step is Map && step['reparse'] != null) continue;
-    // Шаг `json` пространство не декодирует, а ОБЪЯВЛЯЕТ: разбор в объект —
-    // дело [_decodeFormJson], который работает над тем же результатом. Здесь
-    // шаг пропускается, чтобы текст доехал до него целым.
+
+
+
     if (step == 'json') continue;
   }
   return '${split.scheme}://$payload$fragment';
 }
 
-/// Декодер формы с областью `authority` — НАД ПЭЙЛОАДОМ, до лексера.
-///
-/// `authority` у формы, чья оболочка накрывает всё после схемы, — это не
-/// «кусок ссылки», а ГРАНИЦА: схема и метка обязаны остаться снаружи
-/// декодера, иначе оболочка не раскроется. Ровно это и делает
-/// [_applyFormDecode], снимая схему и фрагмент, поэтому здесь остаётся
-/// применить сам декодер к пэйлоаду.
-///
-/// Раскрывать ДО лексера обязательно в обоих пространствах:
-///
-/// - `json` — под оболочкой лежит объект, и лексеру там делать нечего;
-/// - `url` — под оболочкой лежит ссылка, но сам base64 законно несёт `?` и
-///   `/`, и лексер, увидев их в ещё закрытом тексте, отрезал бы по ним путь
-///   и query.
-///
-/// `null` — обязательный декодер не отработал, и форма не отвечает.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 String? _applyScopedDecodeToPayload(MapperForm form, String text) {
   final split = _splitScheme(text);
   if (split == null) return text;
@@ -497,9 +497,9 @@ String? _applyScopedDecodeToPayload(MapperForm form, String text) {
   }
   for (final step in form.decode) {
     if (step is! Map) continue;
-    // Только `authority`: она и есть «весь пэйлоад». `userinfo` — кусок
-    // ВНУТРИ authority, его границы знает лексер, и раскрывается он
-    // [_applyScopedDecode] после разбора.
+
+
+
     if (step['scope'] != 'authority') continue;
     final decoder = step['decoder'];
     if (decoder == 'percent') {
@@ -518,19 +518,19 @@ String? _applyScopedDecodeToPayload(MapperForm form, String text) {
   return '${split.scheme}://$payload$fragment';
 }
 
-/// Декодер формы с ОБЛАСТЬЮ (§0.10 FROZEN): `scope: userinfo|authority`.
-///
-/// Применяется ПОСЛЕ лексера и пересобирает ссылку с декодированным куском,
-/// после чего лексер проходит по ней ещё раз. Пересборка, а не правка полей
-/// пространства, потому что декодированный authority приносит СВОЮ структуру:
-/// `base64(method:password@host:port)` — это и userinfo, и хост, и порт
-/// разом, и разбирать его обязан тот же лексер, а не второе место с теми же
-/// правилами.
-///
-/// Query, path и fragment берутся из ВНЕШНЕГО текста: метка `#…` лежит
-/// открытым текстом снаружи в обеих формах.
-///
-/// `null` — обязательный декодер не отработал, и форма не отвечает.
+
+
+
+
+
+
+
+
+
+
+
+
+
 SourceSpace? _applyScopedDecode(MapperForm form, SourceSpace space) {
   var result = space;
   for (final step in form.decode) {
@@ -567,9 +567,9 @@ SourceSpace? _applyScopedDecode(MapperForm form, SourceSpace space) {
       return null;
     }
 
-    // Пересборка: декодированный кусок встаёт на своё место, остальное —
-    // как было. Хвост (path/query/fragment) восстанавливается из полей
-    // пространства, потому что лексер уже отделил его от authority.
+
+
+
     final tail = StringBuffer()
       ..write(result.path)
       ..write(result.query.pairs.isEmpty
@@ -587,59 +587,59 @@ SourceSpace? _applyScopedDecode(MapperForm form, SourceSpace space) {
   return result;
 }
 
-/// Ключи ВЕРХНЕГО уровня контейнера плоским слоем имён.
-///
-/// Скаляры только: вложенный объект и список адресуются `json.<путь>`, и
-/// строкой их не представить — `'$v'` дал бы `{a: 1}` Dart-написанием, чужим
-/// обеим сторонам.
-///
-/// `null` ключа и ОТСУТСТВИЕ ключа здесь неразличимы намеренно: панели шлют
-/// `"scy": null` в значении «не задано», и корпус требует читать это как
-/// отсутствие, а не как строку `null`.
+
+
+
+
+
+
+
+
+
 QueryPairs _flattenContainer(Map<String, dynamic> doc) => QueryPairs([
       for (final e in doc.entries)
         if (e.value != null && e.value is! Map && e.value is! List)
           (e.key, '${e.value}'),
     ]);
 
-/// §480 — разобрать результат `forms[].decode` текстовой формы с
-/// `space: json` в объект.
-///
-/// Работает над ПЭЙЛОАДОМ: схему [_applyFormDecode] возвращает на место ради
-/// `scheme_sets` и метки-фолбэка, но JSON-документу она чужая, и оставить её
-/// значило бы не разобрать ни одного узла.
-///
-/// `null` — шаг `json` формой не объявлен, текст не JSON либо это не объект.
-/// Во всех трёх случаях форма просто не отвечает.
+
+
+
+
+
+
+
+
+
 Map<String, dynamic>? _decodeFormJson(MapperForm form, String decoded) {
   if (!form.decode.contains('json')) return null;
   var payload = _splitScheme(decoded)?.payload ?? decoded;
-  // ФРАГМЕНТ отрезается: `_applyFormDecode` снял его перед декодером и вернул
-  // на место (имя узла пишется СНАРУЖИ оболочки), но документу он чужой —
-  // `{...}#MyNodeName` не JSON, и форма молча уступила бы место следующей.
-  //
-  // Значения он не теряет: у формы-контейнера имя узла лежит в самом объекте,
-  // и `label.source` этой формы фрагмент не читает.
+
+
+
+
+
+
   final hash = payload.indexOf('#');
   if (hash >= 0) payload = payload.substring(0, hash);
   try {
     final parsed = jsonDecode(payload.trim());
     if (parsed is Map) return parsed.cast<String, dynamic>();
   } catch (_) {
-    // Не JSON — пробуется следующая форма (у контейнерных схем она и есть
-    // объявленный откат на текстовую запись).
+
+
   }
   return null;
 }
 
-/// Декодеры оболочки формы. Отдельный тип, чтобы не тащить статику в `_Run`.
+
 abstract final class _RunDecode {
-  /// Байты из base64 в любом из четырёх написаний; `null` — не base64.
-  ///
-  /// Декодер СВОЙ и ленивый, как `encoding/base64` у Go: `dart:convert`
-  /// отвергает неканоническую форму (лишние биты в последнем символе,
-  /// `…ccC=`), а D-030 требует именно её принимать — иначе живой ключ
-  /// объявляется мусором. Канонизацию делает вызывающий, кодируя обратно.
+
+
+
+
+
+
   static List<int>? bytes(String raw) {
     final trimmed = raw.replaceAll(RegExp(r'=+$'), '');
     if (trimmed.isEmpty) return null;
@@ -649,7 +649,7 @@ abstract final class _RunDecode {
       if (v == null) return null;
       values.add(v);
     }
-    // Один остаточный символ кодирует меньше байта — это не base64.
+
     final rem = values.length % 4;
     if (rem == 1) return null;
 
@@ -673,11 +673,11 @@ abstract final class _RunDecode {
   }
 
   static int? _b64Value(int unit) {
-    if (unit >= 0x41 && unit <= 0x5A) return unit - 0x41; // A-Z
-    if (unit >= 0x61 && unit <= 0x7A) return unit - 0x61 + 26; // a-z
-    if (unit >= 0x30 && unit <= 0x39) return unit - 0x30 + 52; // 0-9
-    if (unit == 0x2B || unit == 0x2D) return 62; // + -
-    if (unit == 0x2F || unit == 0x5F) return 63; // / _
+    if (unit >= 0x41 && unit <= 0x5A) return unit - 0x41;
+    if (unit >= 0x61 && unit <= 0x7A) return unit - 0x61 + 26;
+    if (unit >= 0x30 && unit <= 0x39) return unit - 0x30 + 52;
+    if (unit == 0x2B || unit == 0x2D) return 62;
+    if (unit == 0x2F || unit == 0x5F) return 63;
     return null;
   }
 
@@ -686,12 +686,12 @@ abstract final class _RunDecode {
       var s = raw.replaceAll('-', '+').replaceAll('_', '/');
       final pad = s.length % 4;
       if (pad != 0) s = s.padRight(s.length + (4 - pad), '=');
-      // Байты — UTF-8, и читать их обязаны как UTF-8. `String.fromCharCodes`
-      // принимал каждый БАЙТ за символ latin-1, и любое не-ASCII имя узла
-      // приезжало искажённым: «изPS» становилось «Ð¸Ð·PS». Малформед
-      // допускается, а не бросается: мусорный байт в имени не стоит узлу
-      // разбора целиком. Серия битых байтов — ОДИН U+FFFD, как у лаунчера
-      // (контракт 1.1.74): метка входит в тег узла.
+
+
+
+
+
+
       return decodeUtf8Lenient(_b64.decode(s));
     } catch (_) {
       return null;
@@ -699,15 +699,15 @@ abstract final class _RunDecode {
   }
 }
 
-/// `detect` по ТЕКСТУ (уровень ссылки и вид источника).
-///
-/// Вынесено наружу: тем же предикатом судится вид источника (W6), и второго
-/// языка для документа норма (§2) не допускает — иначе сниффер формата
-/// вернулся бы в код.
+
+
+
+
+
 bool formMatchesText(Map<String, dynamic>? d, String text) {
   if (d == null || d['default'] == true) return true;
-  // Предикаты по ТЕКСТУ адресуют пэйлоад: «тело целиком base64» — это про то,
-  // что после схемы, и со схемой такое выражение не совпало бы никогда.
+
+
   final payload = _splitScheme(text)?.payload ?? text;
   final schemeIn = (d['scheme_in'] as List?)?.cast<String>();
   if (schemeIn != null) {
@@ -720,9 +720,9 @@ bool formMatchesText(Map<String, dynamic>? d, String text) {
   final txt = (d['text'] as Map?)?.cast<String, dynamic>();
   if (txt != null) {
     final prefix = txt['prefix_fold'] as String?;
-    // Префикс сверяется и с пэйлоадом, и с ЦЕЛЫМ текстом: у формы ссылки
-    // выражение адресует то, что после схемы, а у вида источника — сам
-    // документ, и `vpn://` это его начало, а не начало пэйлоада.
+
+
+
     if (prefix != null) {
       final p = prefix.toLowerCase();
       if (!payload.toLowerCase().startsWith(p) &&
@@ -730,35 +730,35 @@ bool formMatchesText(Map<String, dynamic>? d, String text) {
         return false;
       }
     }
-    // `contains` — как префикс: у формы ссылки ищем в пэйлоаде, у вида
-    // источника — в целом документе. Иначе `contains: "://"` на одиночной
-    // ссылке не срабатывает: разделитель схемы в пэйлоад не входит, и после
-    // одной обёртки base64 документ отвергается, хотя список из двух ссылок
-    // проходит (во второй строке `://` остаётся уже в пэйлоаде).
+
+
+
+
+
     final contains = txt['contains'] as String?;
     if (contains != null &&
         !payload.contains(contains) &&
         !text.contains(contains)) {
       return false;
     }
-    // `prefix_trim` — первый НЕПРОБЕЛЬНЫЙ символ: `{`/`[` у JSON стоят после
-    // произвольного отступа, и требовать их первым байтом значило бы
-    // отвергать выровненный документ.
+
+
+
     final prefixTrim = txt['prefix_trim'] as String?;
     if (prefixTrim != null && !payload.trimLeft().startsWith(prefixTrim)) {
       return false;
     }
-    // `min_len` — длина ПОСЛЕ снятия пробелов. Короткая строка из букв и
-    // цифр проходит алфавит base64 случайно, и порог отсекает её без
-    // отдельной ветки в коде.
+
+
+
     final minLen = (txt['min_len'] as num?)?.toInt();
     if (minLen != null && payload.replaceAll(RegExp(r'\s+'), '').length < minLen) {
       return false;
     }
   }
-  // `ini.first_section_fold` — имя ПЕРВОЙ секции INI, без учёта регистра;
-  // строки-комментарии до неё пропускаются (комментарий над `[Interface]`
-  // законен и несёт имя узла, G7).
+
+
+
   final ini = (d['ini'] as Map?)?.cast<String, dynamic>();
   if (ini != null) {
     final want = (ini['first_section_fold'] as String?)?.toLowerCase();
@@ -766,9 +766,9 @@ bool formMatchesText(Map<String, dynamic>? d, String text) {
       return false;
     }
   }
-  // Комбинаторы предиката: рекурсия по тому же выражению. Имя формы им не
-  // нужно — предикат судит ТЕКСТ, а не форму, и с вынесением наружу
-  // (`formMatchesText`) вложенное выражение адресуется напрямую.
+
+
+
   final not = d['not'];
   if (not is Map && formMatchesText(not.cast<String, dynamic>(), text)) {
     return false;
@@ -795,8 +795,8 @@ bool formMatchesText(Map<String, dynamic>? d, String text) {
   return true;
 }
 
-/// Имя первой секции INI (`[Interface]` → `Interface`); `null` — секций нет.
-/// Комментарные и пустые строки до неё пропускаются.
+
+
 String? _firstIniSection(String text) {
   for (final raw in text.split(RegExp(r'\r?\n'))) {
     final l = raw.trim();
@@ -810,20 +810,20 @@ String? _firstIniSection(String text) {
   return null;
 }
 
-/// `detect.ini` по РАЗОБРАННОМУ пространству INI — тот же язык предикатов,
-/// что и у текста, и у объекта (§2 НОРМЫ).
-///
-/// Предикаты:
-///
-/// - `sections: [<Имя>…]` — все названные секции в документе есть;
-/// - `keys_any: [<Ключ>…]` — есть хотя бы ОДИН из названных ключей, в любой
-///   секции. Имя без секции потому, что признак рода ставится КЛЮЧОМ, а не
-///   его местом: один и тот же ключ опознаёт форму, где бы диалект его ни
-///   держал;
-/// - `keys_all: [<Ключ>…]` — есть все названные.
-///
-/// Имена регистронезависимы: пространство сложено в нижнем регистре, и
-/// предикат опускает регистр перед сравнением.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool detectMatchesIni(Map<String, dynamic>? d, Map<String, String> space) {
   if (d == null || d['default'] == true) return true;
   final ini = (d['ini'] as Map?)?.cast<String, dynamic>();
@@ -831,8 +831,8 @@ bool detectMatchesIni(Map<String, dynamic>? d, Map<String, String> space) {
 
   bool hasKey(String key) {
     final want = key.toLowerCase();
-    // Ключ адресуется либо целиком (`Interface.Jc`), либо одним именем — тогда
-    // подходит любая секция.
+
+
     if (want.contains('.')) return space.containsKey(want);
     return space.keys.any((k) {
       final dot = k.lastIndexOf('.');
@@ -856,39 +856,39 @@ bool detectMatchesIni(Map<String, dynamic>? d, Map<String, String> space) {
   return true;
 }
 
-/// `detect.json` по РАЗОБРАННОМУ значению — тот же язык предикатов, что и у
-/// формы, и у вида источника (§2 НОРМЫ).
-///
-/// Предикаты (`PRIMITIVES.md` §1.2):
-///
-/// - `value_of: {<путь>: <значение>}` — точное равенство скаляра;
-/// - `value_in: {<путь>: [<значения>]}` — вхождение в набор;
-/// - `required_keys: [<путь>…]` — путь существует (значение любое, включая
-///   пустое); прежнее написание `has_key` читается, но не пишется;
-/// - `any_keys: [<путь>…]` — существует ХОТЯ БЫ ОДИН из путей (дизъюнкция);
-///   пустой список условием не является;
-/// - `key_absent: [<путь>…]` — НИ ОДНОГО из путей нет. Отрицание
-///   `required_keys`, и именно им реестр отличает версии одной схемы друг от
-///   друга: ветка старшей версии объявляется как «поля версии нет ни по
-///   одному из путей» (§532 дефект 1);
-/// - `array_elem_any_keys: ["outbounds[].protocol", …]` — хотя бы у ОДНОГО
-///   элемента массива есть этот путь. Массив назван явно (`[]` в пути), а не
-///   угадывается: «первый элемент решает за весь массив» — ровно тот
-///   рукописный сниффер, который волна снимает.
-///
-/// Несколько предикатов в одном `detect` — конъюнкция.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool detectMatchesJson(Map<String, dynamic>? d, dynamic value) {
   if (d == null || d['default'] == true) return true;
 
-  // Комбинаторы УРОВНЯ `detect` — там же, где они живут у предиката по
-  // тексту, и это единственное их место (GRAMMAR_SYNC §1 №3): внутри `json`
-  // своей копии `any`/`all`/`not` грамматика не заводит, иначе каждый
-  // под-словарь обзаводится собственными тремя операторами и два написания
-  // одного выражения расходятся на первой же ветке.
-  //
-  // Считаются ДО `json`: выражение вида `{"all": […], "not": {…}}` своего
-  // ключа `json` не имеет вовсе, и без этого обхода ветка не срабатывала бы
-  // никогда.
+
+
+
+
+
+
+
+
+
   final topAll = d['all'];
   if (topAll is List) {
     for (final sub in topAll) {
@@ -916,8 +916,8 @@ bool detectMatchesJson(Map<String, dynamic>? d, dynamic value) {
 
   final j = (d['json'] as Map?)?.cast<String, dynamic>();
   if (j == null) {
-    // Ключа `json` нет: выражение состояло из одних комбинаторов — они уже
-    // сошлись выше. Пустое выражение истинно, чужое (текстовое) — нет.
+
+
     if (d.containsKey('json')) return false;
     final combinatorsOnly = d.keys.every(
       (k) => k == 'all' || k == 'any' || k == 'not',
@@ -941,26 +941,26 @@ bool detectMatchesJson(Map<String, dynamic>? d, dynamic value) {
       if (!set.any((v) => _scalarEq(actual, v))) return false;
     }
   }
-  // `required_keys` — FROZEN-написание обеих сторон (GRAMMAR_SYNC §4 №7).
-  // `has_key` — прежнее написание того же предиката: читается, но новые
-  // секции его не пишут. Третьего имени у одного предиката не заводится.
+
+
+
   final hasKey = ((j['required_keys'] ?? j['has_key']) as List?)?.cast<String>();
   if (hasKey != null) {
     for (final path in hasKey) {
       if (jsonPathValue(value, path) == null) return false;
     }
   }
-  // `any_keys` — дизъюнкция существования: хотя бы один путь есть. Пустой
-  // список условием НЕ является (иначе секция без вариантов отсекала бы всё).
+
+
   final anyOfKeys = (j['any_keys'] as List?)?.cast<String>();
   if (anyOfKeys != null && anyOfKeys.isNotEmpty) {
     if (!anyOfKeys.any((p) => jsonPathValue(value, p) != null)) return false;
   }
-  // `key_absent` — отрицание `required_keys`: НИ ОДНОГО из путей нет (§532
-  // дефект 1). Прежде предикат не исполнялся вовсе, и «ключа нет» читалось
-  // как истина при ЛЮБОМ содержимом: элемент с ЧУЖОЙ версией протокола
-  // проходил ветку, объявленную как «поля версии нет», и уезжал в секцию
-  // старшей версии. Семантика Go — `linkmap/detect.go:293`.
+
+
+
+
+
   final keyAbsent = (j['key_absent'] as List?)?.cast<String>();
   if (keyAbsent != null) {
     for (final path in keyAbsent) {
@@ -976,21 +976,21 @@ bool detectMatchesJson(Map<String, dynamic>? d, dynamic value) {
   final type = j['type'] as String?;
   if (type != null && !_isJsonType(value, type)) return false;
 
-  // `type_of: {<путь>: object|array|string|number|bool}` — ФОРМА значения по
-  // пути. Нужна там, где мусорный ТИП поля делает элемент нечитаемым
-  // целиком: `streamSettings: "none"` это не «транспорта нет», а битая
-  // запись, и собрать из неё рабочий узел без транспорта и TLS значило бы
-  // выдать узел, которого провайдер не присылал.
-  //
-  // ПУТЬ ОБЯЗАН СУЩЕСТВОВАТЬ (§532 дефект 2, семантика Go —
-  // `linkmap/detect.go:298`): предикат отвечает на вопрос «что это за
-  // значение», и у отсутствующего значения ответа нет. Прежде отсутствующий
-  // путь условию не противоречил, и предикат вырождался в «либо нужный тип,
-  // либо ничего» — тем самым `type_of` перестал отличать форму от её
-  // отсутствия, а реестр это различие несёт СВОИМИ средствами: «объект ИЛИ
-  // ключа нет» пишется через `any` + `key_absent` — так объявлены формы
-  // xray-секций, у которых контейнер потока законно отсутствует, — и подмена
-  // предиката делала вторую ветку мёртвой.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   final typeOf = (j['type_of'] as Map?)?.cast<String, dynamic>();
   if (typeOf != null) {
     for (final e in typeOf.entries) {
@@ -1000,8 +1000,8 @@ bool detectMatchesJson(Map<String, dynamic>? d, dynamic value) {
     }
   }
 
-  // Комбинаторы — те же, что у текстового предиката: одно выражение обязано
-  // читаться одинаково на обоих уровнях (§2 НОРМЫ).
+
+
   final any = j['any'];
   if (any is List && any.isNotEmpty) {
     var hit = false;
@@ -1028,9 +1028,9 @@ bool detectMatchesJson(Map<String, dynamic>? d, dynamic value) {
   return true;
 }
 
-/// Тип значения JSON — набор имён тот же, что у Go (`jsonTypeOf`,
-/// `linkmap/detect.go:495`): `bool` в нём есть, и без него предикат о булевом
-/// поле молча не сходился бы ни с чем.
+
+
+
 bool _isJsonType(dynamic value, String type) => switch (type) {
       'object' => value is Map,
       'array' => value is List,
@@ -1040,12 +1040,12 @@ bool _isJsonType(dynamic value, String type) => switch (type) {
       _ => false,
     };
 
-/// `[].outbounds[].protocol` — хотя бы у одного элемента каждого названного
-/// массива есть остаток пути.
-///
-/// Массивов в пути бывает НЕСКОЛЬКО (массив конфигов, у каждого свой
-/// `outbounds`), поэтому обход рекурсивный. Пустой путь слева от `[]`
-/// означает «сам корень — массив».
+
+
+
+
+
+
 bool _anyElemHas(dynamic root, String path) {
   final marker = path.indexOf('[]');
   if (marker < 0) return jsonPathValue(root, path) != null;
@@ -1066,22 +1066,22 @@ bool _scalarEq(dynamic actual, dynamic expected) {
   return actual.toString() == expected.toString();
 }
 
-/// Значение по точечному пути; числовой сегмент индексирует массив.
-///
-/// Массив НЕ приводится к строке (§4 НОРМЫ): запись, которой нужен не
-/// скаляр, берёт значение как есть (`list`, `coerce`, `flatten`). Склейка
-/// массива в строку — источник живого дефекта у Go (Q133-16).
+
+
+
+
+
 dynamic jsonPathValue(dynamic root, String path) {
-  // `$root` — САМ документ, а не ключ в нём (Go: `linkmap/detect.go:445`).
-  // Нужен предикатам о форме документа целиком: `type_of: {"$root": "array"}`
-  // в `source_kinds.json` отличает массив от объекта, и выразить это именем
-  // ключа нельзя. Разбирается ЗДЕСЬ, а не в предикате: путь один и тот же на
-  // всех примитивах, читающих путь.
+
+
+
+
+
   if (path.trim() == r'$root') return root;
   dynamic cur = root;
   for (final seg in path.split('.')) {
     if (seg.isEmpty) continue;
-    // Контракт 1.1.83 (MAPPER_ENGINE §4) — селектор элемента `имя[k=v]`.
+
     final sel = _parseSelector(seg);
     if (sel != null) {
       final list = cur is Map ? cur[sel.name] : null;
@@ -1110,7 +1110,7 @@ dynamic jsonPathValue(dynamic root, String path) {
   return cur;
 }
 
-/// Сегмент пути с селектором элемента: `имя[ключ=значение]`.
+
 typedef _Selector = ({String name, String key, String value});
 
 final RegExp _kSelectorRe = RegExp(r'^([^\[\]=]+)\[([^\[\]=]+)=([^\[\]]*)\]$');
@@ -1125,8 +1125,8 @@ _Selector? _parseSelector(String seg) {
   });
 }
 
-/// Элемент подходит селектору: объект, чей СКАЛЯР по `ключ` равен значению
-/// без учёта регистра (как `value_of`).
+
+
 bool _selectorMatches(dynamic el, _Selector sel) {
   if (el is! Map) return false;
   final v = el[sel.key];
@@ -1134,9 +1134,9 @@ bool _selectorMatches(dynamic el, _Selector sel) {
   return v.toString().toLowerCase() == sel.value.toLowerCase();
 }
 
-/// Объявленность пути с селектором (MAPPER_ENGINE §8): путь раскрывается в
-/// числовые пути ВСЕХ подходящих элементов документа. Путь без селектора
-/// возвращается как есть. Раскрытие статично — от `when` не зависит.
+
+
+
 List<String> expandSelectorPaths(dynamic root, String path) {
   if (!path.contains('[')) return [path];
   var prefixes = <({String path, dynamic node})>[(path: '', node: root)];
@@ -1172,26 +1172,26 @@ List<String> expandSelectorPaths(dynamic root, String path) {
   return [for (final p in prefixes) p.path];
 }
 
-/// Нормализаторы, работающие над СПИСКОМ: применяются после разреза значения
-/// по `list.sep`, а не над исходной строкой.
+
+
 const Set<String> _kListNormalizers = {'port_range_spec', 'cidr_prefix'};
 
-/// Беззнаковое целое: у диапазонных полей знака не бывает, а `int.tryParse`
-/// принял бы `-5` числом.
+
+
 final RegExp _kUintRe = RegExp(r'^\d+$');
 
-/// ПЛАН СЕКЦИИ — то, что не зависит от узла и потому считается ОДИН РАЗ.
-///
-/// Рекомендация НОРМЫ («предкомпиляция при загрузке, а не интерпретация на
-/// лету») и главная статья цены слоя: раскладка записей на проходы A/B и
-/// сортировка по `priority` считались на КАЖДОМ узле, хотя секция между
-/// узлами не меняется. На подписке в 2000 узлов это 2000 одинаковых сортировок
-/// одного и того же списка.
-///
-/// План кэшируется по ЭКЗЕМПЛЯРУ секции ([_planCache]): загрузчик отдаёт один
-/// и тот же объект, пока реестр не перезагрузили, а перезагрузка даёт новый
-/// экземпляр — и новый план вместе с ним, без ручной инвалидации. Ключ —
-/// сама секция, а не её имя: два плана для одной секции разошлись бы молча.
+
+
+
+
+
+
+
+
+
+
+
+
 final class _SectionPlan {
   _SectionPlan(MapperSection section)
       : selectors = _pass(section, selector: true),
@@ -1201,54 +1201,54 @@ final class _SectionPlan {
         declaredJson = _declaredJsonOf(section),
         labelKeys = _labelKeysOf(section);
 
-  /// Записи прохода A (`selector: true`) в нормативном порядке.
+
   final List<MapperParam> selectors;
 
-  /// Записи прохода B — все остальные, в том же порядке.
+
   final List<MapperParam> dependents;
 
-  /// Оба прохода подряд: стадии после них (`default_from`, `required`) идут
-  /// по ВСЕМ записям в том же нормативном порядке.
+
+
   late final List<MapperParam> all = [...selectors, ...dependents];
 
-  /// Все написания, ОБЪЯВЛЕННЫЕ таблицей: имя записи, её `aliases` и имена в
-  /// `source` (`query.<имя>`).
-  ///
-  /// Считается по таблице, а не по факту чтения (норма §8): запись,
-  /// не применившаяся по `when`, объявленной быть не перестаёт. Иначе `eh=`
-  /// без `ed=` и любой параметр чужого транспорта давали бы info о
-  /// «неизвестном параметре» на ровном месте — а это ровно то молчание
-  /// наоборот, ради которого затеяна кампания.
-  ///
-  /// §551 — ВКЛЮЧАЯ носителей наложенных слоёв (`overlays[].source`): набор
-  /// читает `_Run._reportUnknown`, и до §551 он строился заново на каждом
-  /// прогоне секции. Overlays — поле самой секции, поэтому ключ кеша (её
-  /// экземпляр) их покрывает.
+
+
+
+
+
+
+
+
+
+
+
+
+
   final Set<String> declared;
 
-  /// То же для ini-документа (`ini.<Секция>.<Ключ>`), см. `_Run._declaredIni`.
+
   final Set<String> declaredIni;
 
-  /// То же для объектного входа (`json.<имя>` верхнего уровня), см.
-  /// `_Run._declaredJson`.
+
+
   final Set<String> declaredJson;
 
-  /// Ключи верхнего уровня, объявленные источником метки, см.
-  /// `_Run._labelKeys`.
+
+
   final Set<String> labelKeys;
 
-  /// Стабильная сортировка по `priority` с индексом ОБЪЯВЛЕНИЯ как
-  /// тай-брейком (норма §7: порядок объявления нормативен).
+
+
   static List<MapperParam> _pass(MapperSection s, {required bool selector}) {
     final all = s.params.values.toList();
-    // Индекс объявления — по МЕСТУ в таблице, а не по ИМЕНИ записи: имя у
-    // записи короткое (`path`), и одноимённых в секции столько, сколько
-    // транспортов её включили (`ws.path`, `http.path`, `xhttp.path`). Пока
-    // индекс считался по имени, все они получали позицию ПОСЛЕДНЕЙ, и
-    // порядок объявления — нормативный по §7 — рассыпался: запись с
-    // уникальным именем обгоняла ту, от которой зависела. Живой случай:
-    // плоское поле early data исполнялось раньше записи пути, чей хвост
-    // обязан был его перебить, и хвост молча проигрывал (§320).
+
+
+
+
+
+
+
+
     final picked = [
       for (var i = 0; i < all.length; i++)
         if (all[i].selector == selector) i,
@@ -1268,8 +1268,8 @@ final class _SectionPlan {
       for (final s in p.spellings) {
         out.add(s.toLowerCase());
       }
-      // Норма §10.3: имя из `source` объявлено НАРАВНЕ с именем записи —
-      // запись читает `query.<name>`, и `<name>` бывает не равно её имени.
+
+
       final sources = [
         ...p.source,
         for (final l in p.sourceByForm.values) ...l,
@@ -1280,12 +1280,12 @@ final class _SectionPlan {
         }
       }
     }
-    // Параметр, НЕСУЩИЙ наложенный слой, объявлен самим слоем: `overlays[]`
-    // называет его своим `source`, и читают его записи под именем слоя
-    // (`extra.mode`), а не плоским `query.extra`. Без этой ветки набор видел
-    // только адресатов, а носитель оставался «никем не объявленным» и уезжал
-    // в `uri_param_unknown` — у корпуса это все шесть кейсов `xhttp_extra_*`,
-    // включая тот, где слой битый и записей не даёт вовсе.
+
+
+
+
+
+
     for (final o in section.overlays) {
       for (final src in o.source) {
         if (src.startsWith('query.')) {
@@ -1301,7 +1301,7 @@ final class _SectionPlan {
     void declare(String src) {
       if (!src.startsWith('ini.')) return;
       final rest = src.substring('ini.'.length);
-      // `$comment.<Секция>` источником-ключом не является.
+
       if (rest.startsWith(r'$')) return;
       if (rest.split('.').length != 2) return;
       out.add(rest.toLowerCase());
@@ -1362,59 +1362,59 @@ final class _SectionPlan {
   }
 }
 
-/// Кэш планов по экземпляру секции. `Expando` — чтобы план жил ровно столько,
-/// сколько живёт секция, и не держал её от сборки после перезагрузки реестра.
+
+
 final Expando<_SectionPlan> _planCache = Expando<_SectionPlan>('mapper plan');
 
-/// Точечный путь, разложенный на сегменты ОДИН РАЗ.
-///
-/// `_put`/`_read`/`_erase` резали строку на каждом обращении, а путей в
-/// секции конечное число и известны они при загрузке. Кэш статический и общий
-/// по той же причине, что кэш регулярок: один и тот же путь приходит от
-/// разных записей и с каждого узла подписки.
+
+
+
+
+
+
 final Map<String, List<String>> _segCache = {};
 
 List<String> _segments(String path) => _segCache[path] ??= path.split('.');
 
-/// Исполнение одной записи: состояние живёт ровно на время разбора.
+
 final class _Run {
   _Run(this.section, this.space, this._trace,
       {this.nameHint, XrayDropVerdict? dropped, this.context, this.document})
       : _plan = _planCache[section] ??= _SectionPlan(section),
         _dropped = dropped;
 
-  /// Контракт 1.1.63 (MAPPER_ENGINE, источник `context.<путь>`) — значение
-  /// JSON от ВЫЗЫВАЮЩЕГО: то, что лежит рядом с текстом, но не в нём
-  /// (объект контейнера, корень профиля). `null` — контекста нет, источники
-  /// `context.*` пусты.
+
+
+
+
   final Map<String, dynamic>? context;
 
-  /// Контракт 1.1.63 (`deref`) — документ, в котором запись ищет соседа по
-  /// ссылке (у Xray — массив `outbounds` элемента). `null` — документа нет,
-  /// условия по слою `ref.*` ложны.
+
+
+
   final List<dynamic>? document;
 
-  /// Слои `ref.<as>`: сосед, найденный `deref` записи. Кладётся ДО `when`
-  /// записи и читается этой и последующими записями.
+
+
   final Map<String, Object?> _refs = {};
 
-  /// План секции: проходы и множество объявленных — посчитаны один раз.
+
   final _SectionPlan _plan;
 
-  /// Имя, предложенное ВЫЗЫВАЮЩИМ: источник `hint` в `label.source`. В самом
-  /// документе его нет, поэтому оно приходит параметром, а МЕСТО его в
-  /// цепочке метки остаётся данными.
+
+
+
   final String? nameHint;
 
-  /// Коллектор трассы; `null` — трасса не собирается, и ни одна строка не
-  /// строится (приложение «ТРАССА»: коллектор не стоит ничего, когда
-  /// выключен).
+
+
+
   final MapperTrace? _trace;
 
-  /// §484 — причина отбраковки записи (`field_missing` у `required`).
+
   final XrayDropVerdict? _dropped;
 
-  /// Имя маппера для трассы: `<тип тела>.<вид источника>.<форма>`.
+
   String get _mapperId =>
       '${section.singboxType}.${section.kind}'
       '${space.formId.isEmpty ? '' : '.${space.formId}'}';
@@ -1426,62 +1426,62 @@ final class _Run {
   final Map<String, dynamic> extensionFields = {};
   final List<NodeWarning> warnings = [];
 
-  /// Какая запись заняла путь и с каким `priority` — для G3 (`priority` +
-  /// `merge`): без этого две записи в один путь дрались бы порядком обхода.
+
+
   final Map<String, int> _writtenBy = {};
 
-  /// Имена источников, которые записи ПРОЧИТАЛИ: всё остальное в query —
-  /// неизвестный параметр (`unknown_key`).
+
+
   final Set<String> _consumed = {};
 
   bool _wsEarlyDataHeaderImplicit = false;
 
-  /// Порт по умолчанию, названный `scheme_sets` текущего написания схемы
-  /// (служебный ключ `$default_port`). Применяется вместе с `defaults`.
+
+
   dynamic _schemeDefaultPort;
 
-  /// `on_no_match: {action: drop_node}` — узла нет вовсе. Отличается от
-  /// «тело пустое»: секция сказала, что такой записи у нас нет Spec'а.
+
+
   bool _dropNode = false;
 
-  /// Наложенные слои по имени: `extra` → плоская карта ключей слоя.
+
   final Map<String, QueryPairs> _overlays = {};
 
-  /// `flatten` (FROZEN, P15): вложенный объект, поднятый в СВОЙ слой.
-  ///
-  /// Слой кладётся в [_overlays] под именем, которое `flatten` и назвал
-  /// (`extra`, `xmux`), и дальше читается обычным `source` с этим
-  /// префиксом. Отдельный слой, а не правка документа на месте (как у Go),
-  /// по двум причинам:
-  ///
-  /// 1. документ элемента едет дальше как `rawSource` узла — исходник
-  ///    провайдера байт в байт, — и дописать в него ключи значило бы
-  ///    показать человеку не то, что он прислал;
-  /// 2. и главное: кто из двух написаний побеждает, обязана решать САМА
-  ///    ЗАПИСЬ порядком своих источников (PRIMITIVES §0.9). У xhttp это
-  ///    решение РАЗНОЕ: у обычных полей сильнее вложенный слой (SPEC 002
-  ///    §1.5), а у базовой тройки `mode`/`path`/`host` — плоский, причём
-  ///    даже будучи пустым (D-097: `SplitHTTPConfig.Build` безусловно
-  ///    затирает `extra` внешними значениями). Подъём «в плоский слой»
-  ///    принял бы это решение за запись и одинаково для всех ключей.
-  ///
-  /// Пустое значение слоя = «слой промолчал» (правило `empty: absent`
-  /// движка), поэтому непустое плоское поле переживает пустое одноимённое
-  /// в слое — §410, регрессия v2.21.0.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   final Set<String> _flattened = {};
 
-  /// [inputCodes] — коды, которые поставил САМ РАЗБОР входа, а не запись
-  /// таблицы: у INI это «вторая `[Peer]` отброшена». Ни одна запись о них не
-  /// узнает — ключи отброшенной секции до пространства не доехали вовсе.
+
+
+
   EngineResult? execute({List<String> inputCodes = const []}) {
-    // §480 — ПЕРВАЯ СТРОКА ТРАССЫ: какая секция и какая ФОРМА взяли элемент.
-    //
-    // Пишется здесь, а не у каждого входа, потому что вход у движка не один:
-    // ссылка, объект и текст INI сходятся в этом методе, и строка «что
-    // опознано» обязана быть у всех трёх одинаковой — иначе механическая
-    // сверка Go↔Dart ловила бы ложное расхождение на самом первом событии.
-    // Форма названа `val`, потому что именно её выбрал `detect`: у входа с
-    // несколькими формами это и есть первое решение движка.
+
+
+
+
+
+
+
+
     _trace?.add(
       stage: TraceStage.elemDetect,
       mapper: _mapperId,
@@ -1495,33 +1495,33 @@ final class _Run {
     }
     body['type'] = section.singboxType;
 
-    // Слои (`overlays[]`) строятся ДО записей: запись адресует их обычным
-    // `source` с префиксом имени, и к моменту её исполнения слой обязан быть.
+
+
     _buildOverlays();
 
-    // 1. `scheme_sets` — написание схемы НЕСЁТ ТЕЛО: у части схем цифра или
-    // суффикс в написании это дискриминатор версии либо транспорта, а не
-    // алиас, и присваивания берутся прямо из него.
-    // Ключ `"*"` — присваивания, общие для ВСЕХ написаний схемы. Нужен там,
-    // где свойство безусловно и источника у него не будет вовсе: у QUIC-схем
-    // TLS включён всегда, параметра `security` в ссылке нет, и выразить это
-    // записью нечем. Общий набор кладётся ПЕРВЫМ, чтобы присваивания
-    // конкретного написания могли его переопределить.
+
+
+
+
+
+
+
+
     final schemeAll = section.schemeSets['*'];
     if (schemeAll is Map) _applySets(schemeAll.cast<String, dynamic>(), null);
 
     final schemeSet = _lookupFold(section.schemeSets, space.scheme);
     if (schemeSet is Map) _applySets(schemeSet.cast<String, dynamic>(), null);
 
-    // Адрес НЕ подставляется движком: секция объявляет его записями
-    // (`server` ← `host`, `server_port` ← `port`) наравне с прочими. Иначе у
-    // схем, где адрес лежит не в authority (endpoint-схемы, json-формы),
-    // пришлось бы заводить исключение в коде.
 
-    // 3. userinfo (P2).
+
+
+
+
+
     if (!_applyUserinfo()) return null;
 
-    // 4–5. Два прохода: сперва селекторы, потом зависимые.
+
     for (final p in _plan.selectors) {
       _applyParam(p);
       if (_dropNode) return null;
@@ -1531,23 +1531,23 @@ final class _Run {
       if (_dropNode) return null;
     }
 
-    // 6. Заполнение пустоты объявленными источниками.
+
     for (final p in _plan.all) {
       _applyDefaults(p);
     }
 
-    // 6b. `defaults` СЕКЦИИ — норма §10.1: после ОБОИХ проходов и только в
-    // путь, который никто не занял. Ни `priority`, ни `merge` к ним не
-    // применяются: они не участвуют в конкуренции, а заполняют оставшееся.
-    //
-    // Порядок важен: напиши дефолтный порт раньше записей — он победил бы
-    // явный порт из ссылки, потому что пишется первым. Формулировка «после
-    // проходов, только в пустое» предпочтительнее «с очень большим
-    // priority»: она не зависит от выбора магического числа и не ломается,
-    // если запись объявит `merge: overwrite`.
+
+
+
+
+
+
+
+
+
     for (final e in section.defaults.entries) {
-      // `$`-ключ — служебная запись (проза `impl` рядом со значением), а не
-      // путь тела: то же соглашение, что у `$`-записей таблицы.
+
+
       if (e.key.startsWith(DraftNames.serviceParamPrefix)) continue;
       if (_read(e.key) != null) {
         _trace?.add(
@@ -1572,34 +1572,34 @@ final class _Run {
         why: TraceWhy.byDefault,
       );
     }
-    // `$default_port` написания схемы — там же и по тому же правилу; он
-    // сильнее `defaults` секции только потому, что конкретнее: секция одна на
-    // все написания, а он назван для одного.
+
+
+
     if (_schemeDefaultPort != null && _read('server_port') == null) {
       _put('server_port', _schemeDefaultPort);
     }
 
-    // Обязательные записи: их отсутствие — это «узла нет».
+
     for (final p in _plan.all) {
       if (!p.required) continue;
-      // Пути, которые запись обязана наполнить. Обычно один (`maps_to`), но
-      // целевых путей у записи бывает несколько, и `maps_to` у неё может не
-      // быть вовсе: «обязательна» значит «заполнен ХОТЬ ОДИН из объявленных
-      // путей», одинаково для `maps_to`, `split_into` и `extract.into`.
-      //
-      // Без ветки `extract` проверка молча пропускалась (`paths.isEmpty`), и
-      // `required: true` у записи, которая пути называет через `extract.into`,
-      // не означал НИЧЕГО: `.conf` с секцией `[Peer]` без `Endpoint` собирался
-      // в «узел» с пиром без адреса и порта. Q133-64 лаунчера, у нас тот же.
+
+
+
+
+
+
+
+
+
       final paths = <String>[
         if (p.mapsTo != null) p.mapsTo!,
         ...p.splitInto.keys,
         ...?p.extract?.into.values.map(
           (v) => v is Map ? v['path'] as String? ?? '' : '$v',
         ),
-        // `on_no_match: take_all` — тот же адресат, объявленный для случая,
-        // когда регулярка значение не разложила. Без него голый IPv6 в
-        // `Endpoint` считался бы незаполненным и снимал бы исправный узел.
+
+
+
         if (p.onNoMatch['action'] == 'take_all' &&
             p.onNoMatch['into'] is String)
           p.onNoMatch['into'] as String,
@@ -1615,7 +1615,7 @@ final class _Run {
       }
     }
 
-    // 7. Неизвестные параметры источника.
+
     _reportUnknown();
 
     final label = _label();
@@ -1628,9 +1628,9 @@ final class _Run {
       why: label.isEmpty ? TraceWhy.empty : TraceWhy.none,
     );
 
-    // Последняя строка трассы — итог: тело (ключи в том порядке, в каком их
-    // положил движок), метка и вход. По ней сверка видит не только КАК
-    // получилось, но и ЧТО получилось.
+
+
+
     _trace?.add(
       stage: TraceStage.result,
       mapper: _mapperId,
@@ -1656,11 +1656,11 @@ final class _Run {
     );
   }
 
-  /// Рода узла, объявленные ВХОДОМ (`kind_when`, G1).
-  ///
-  /// Предикат судится по источникам, а не по телу: вход мог попросить подвид
-  /// протокола и не донести ни одного годного поля — тело такого узла от
-  /// базового неотличимо, а правило рода от этого не отменяется.
+
+
+
+
+
   Set<String> _kinds() {
     if (section.kindWhen.isEmpty) return const {};
     final out = <String>{};
@@ -1671,10 +1671,10 @@ final class _Run {
     return out;
   }
 
-  /// Адрес для тега-фолбэка, когда он лежит НЕ в корне тела.
-  ///
-  /// `null` — адрес там, где его ищут по умолчанию (`server`/`server_port`),
-  /// и вызывающему подсказывать нечего.
+
+
+
+
   (String, int)? _tagAddress() {
     final sPath = section.label.fallbackServerPath;
     if (sPath == null) return null;
@@ -1685,32 +1685,32 @@ final class _Run {
     return ('$server', port is num ? port.toInt() : 0);
   }
 
-  /// Записи в порядке исполнения: `priority` (меньше = раньше), при равенстве
-  /// — порядок объявления в секции (G3, FROZEN).
 
-  /// Построить наложенные пространства (FROZEN `overlays[]`).
-  ///
-  /// Текст слоя достаётся объявленным `source`, проходит объявленный
-  /// `decode`, разбирается как JSON-объект (вложенный слой чужого диалекта
-  /// им и является) и укладывается плоско. `flatten` поднимает члены
-  /// названных вложенных объектов на тот же уровень.
-  ///
-  /// Слой НЕ сливается с query: кто из двух побеждает, решает сама запись
-  /// порядком своих источников — у части полей сильнее слой, у части плоский
-  /// слой, причём даже будучи пустым.
+
+
+
+
+
+
+
+
+
+
+
+
   void _buildOverlays() {
     for (final o in section.overlays) {
       if (o.name.isEmpty) continue;
       String? text;
-      // §514 / контракт 1.1.52 (D133-57) — слой приезжает ДВУМЯ формами, и
-      // обе живые. ТЕКСТОМ (`query.extra`) — там его надо декодировать и
-      // разобрать; УЖЕ ОБЪЕКТОМ (`json.extra`) — у схемы-КОНТЕЙНЕРА ссылка сама
-      // есть JSON, и Marzban кладёт `extra` его ВЛОЖЕННЫМ объектом
-      // (`app/subscription/v2ray.py:249`). Прежде объект до слоя не доезжал
-      // вовсе: гейт `v is String` его молча отбрасывал, и `xmux` вместе со
-      // sc*-полями терялся МОЛЧА — притом что ТОТ ЖЕ вход у схемы-соседа
-      // разбирался полностью. Конвейер `decode` к объекту не применяется: он определён на
-      // ТЕКСТЕ, а тут значение уже разобрано JSON'ом.
+
+
+
+
+
+
+
+
+
       Map<String, dynamic>? direct;
       for (final src in o.source) {
         final v = _readSourceBare(src);
@@ -1758,12 +1758,12 @@ final class _Run {
     }
   }
 
-  /// Имя, которым слой ОБЪЯВЛЕН, прочитано — значит он не «неизвестный ключ».
-  ///
-  /// Слой читается до общего прохода по записям, и его источник ни одна запись
-  /// своим `source` не называет: без этой отметки ключ-носитель слоя попадал бы
-  /// и в `uri_param_unknown`, и в `unknown_key` — притом что именно из него
-  /// узел и наполнился.
+
+
+
+
+
+
   void _consumeOverlaySource(String src) {
     if (src.startsWith('query.')) {
       _consumeSpelling(src.substring('query.'.length));
@@ -1774,9 +1774,9 @@ final class _Run {
     }
   }
 
-  /// Разложить объект слоя в плоские пары. Вынесено из [_buildOverlays], чтобы
-  /// обе формы источника (текст и готовый объект) раскладывались ОДНИМ
-  /// правилом: иначе у формы-объекта `flatten` пришлось бы писать второй раз.
+
+
+
   List<(String, String)> _overlayPairs(
     Map<String, dynamic> obj,
     List<String> flatten,
@@ -1799,17 +1799,17 @@ final class _Run {
     return pairs;
   }
 
-  /// `flatten` (FROZEN, P15): поднять члены названных вложенных объектов на
-  /// уровень объекта-хозяина.
-  ///
-  /// Хозяин ищется по ЦЕПОЧКЕ источников записи — первый найденный объект и
-  /// побеждает: один и тот же вложенный слой чужой диалект пишет под разными
-  /// именами (`xhttpSettings` ∥ `splithttpSettings`), и запись объявляет оба
-  /// написания обычным списком, а не двумя копиями таблицы.
-  ///
-  /// Поднятое кладётся в ОТДЕЛЬНЫЙ слой [_jsonLifted] под полным путём: у
-  /// документа он читается вторым, поэтому существующий ключ хозяина
-  /// поднятым не перекрывается (D-097).
+
+
+
+
+
+
+
+
+
+
+
   void _applyFlatten(MapperParam p) {
     for (final src in _sourcesOf(p)) {
       if (!src.startsWith('json.')) continue;
@@ -1818,15 +1818,15 @@ final class _Run {
       if (owner is! Map) continue;
       for (final name in p.flatten) {
         if (!_flattened.add(name)) continue;
-        // Имя ищется у хозяина, а если его там нет — в УЖЕ поднятом слое:
-        // у xhttp `xmux` лежит ВНУТРИ `extra`, и до подъёма `extra` такого
-        // ключа у хозяина нет вовсе. Порядок имён в `flatten` поэтому
-        // нормативен — ровно как у Go, где второе имя ищется в уже
-        // правленом объекте.
-        // Объект слоя бывает в ДВУХ местах разом: `xmux` лежит и у хозяина,
-        // и внутри `extra`. Порядок тот же, что у прочих полей: сперва
-        // вложенный слой, потом плоский, и решает его первое непустое
-        // значение — слой это набор пар, а не один ключ.
+
+
+
+
+
+
+
+
+
         final sources = <Map>[
           if (_overlayRaw[name] is Map) _overlayRaw[name]! as Map,
           if (owner[name] is Map) owner[name] as Map,
@@ -1838,17 +1838,17 @@ final class _Run {
             final v = e.value;
             if (v == null) continue;
             if (v is Map || v is List) {
-              // Вложенный объект слоя сам может быть назван в `flatten`
-              // следующим именем — значение придерживается для него.
+
+
               _overlayRaw.putIfAbsent(e.key, () => v);
               continue;
             }
             pairs.add((e.key, _scalar(v)));
           }
         }
-        // Пустое значение слоя = «слой промолчал»: непустое одноимённое из
-        // второго места сильнее. Без этого `extra.xmux.maxConcurrency: ""`
-        // затирал бы заданное поле хозяина — §410, регрессия v2.21.0.
+
+
+
         final nonEmpty = {
           for (final p in pairs)
             if (p.$2.trim().isNotEmpty) p.$1.toLowerCase(),
@@ -1859,19 +1859,19 @@ final class _Run {
               p,
         ]);
       }
-      // Хозяин найден — прочие написания того же слоя не разбираются:
-      // цепочка источников это «первый непустой», а не «все сразу».
+
+
       return;
     }
   }
 
-  /// Вложенные объекты, встреченные внутри слоя: следующее имя `flatten`
-  /// ищет свой объект и здесь (`extra.xmux`).
+
+
   final Map<String, dynamic> _overlayRaw = {};
 
-  /// Скаляр слоя строкой. Числа печатаются БЕЗ экспоненты и без хвоста
-  /// `.0` (PRIMITIVES §0.9): `30.0` в JSON означает то же, что `30`, а
-  /// `1e+06` в теле — мусор.
+
+
+
   static String _scalar(Object v) {
     if (v is double && v == v.roundToDouble() && v.abs() < 1e15) {
       return v.toInt().toString();
@@ -1879,13 +1879,13 @@ final class _Run {
     return '$v';
   }
 
-  /// Источники записи для текущей формы, плоско.
+
   Iterable<String> _sourcesOf(MapperParam p) =>
       p.sourceByForm[space.formId] ?? p.source;
 
-  /// §484 — обязательная запись маппера не наполнилась: узел снимается с
-  /// `field_missing`, как у санитайзера на корне тела, а текст `{field}` берёт
-  /// `desc_en` записи, если реестр его объявил, иначе путь тела.
+
+
+
   void _rejectFieldMissing({
     required String bodyPath,
     MapperParam? param,
@@ -1907,39 +1907,39 @@ final class _Run {
     }
   }
 
-  // ───────────────────────────── userinfo ─────────────────────────────
+
 
   bool _applyUserinfo() {
     final u = section.userinfo;
     if (u == null) return true;
-    // Декодер ФОРМЫ (`decode: ["url"]`) снимает percent один раз со всего
-    // пространства — это и есть норма «percent один раз и до всего
-    // остального». В userinfo `+` при этом ЛИТЕРАЛЕН: form-encoding там не
-    // действует (`pa+ss123` — пароль с плюсом, а не с пробелом).
+
+
+
+
     var raw = percentDecodeOnce(space.userinfo, mode: DecodeMode.path);
 
-    // `decode` секции — ПОВЕРХ него, и порядок задан ею: у ss percent идёт
-    // ДО base64, и выразить это можно только списком.
-    // §514 / контракт 1.1.52 (D133-56) — `decode_requires_separator`: признак
-    // работает В ОБЕ СТОРОНЫ, и обе половины обязательны. Разделитель ВО
-    // ВХОДЕ доказывает открытую форму (двоеточие в алфавит base64 не входит) и
-    // снимает конвейер целиком; его отсутствие В РЕЗУЛЬТАТЕ означает ложное
-    // срабатывание декодера, и результат отвергается. Без второй половины
-    // открытое одиночное имя (версия 4 прокси-схемы: userid без пароля)
-    // проходит RawStdEncoding и уехало бы мусором.
+
+
+
+
+
+
+
+
+
     final needSep = u.decodeRequiresSeparator;
     final skipDecode = needSep != null && raw.contains(needSep);
     for (final step in u.decode) {
       if (skipDecode && step != 'percent') continue;
       switch (step) {
         case 'percent':
-          // Userinfo — не query: `+` здесь литерален.
+
           raw = percentDecodeOnce(raw, mode: DecodeMode.path);
         case 'base64':
         case 'base64?':
           final decoded = _tryBase64(raw);
           if (decoded != null) {
-            // Вторая половина признака: разделитель обязан ПОЯВИТЬСЯ.
+
             if (needSep != null && !decoded.contains(needSep)) break;
             raw = decoded;
           } else if (step == 'base64') {
@@ -1954,10 +1954,10 @@ final class _Run {
     }
 
     if (raw.isEmpty) {
-      // `required` у userinfo судит ОБОЛОЧКУ: ссылка без него — не узел этой
-      // схемы. Объявлен здесь, а не у записи, потому что поля, которые
-      // userinfo наполняет, приходят позициями `into`, и записи под ними у
-      // части схем нет вовсе.
+
+
+
+
       if (u.required) {
         final path =
             u.singleInto ?? (u.into.isNotEmpty ? u.into.first : 'userinfo');
@@ -1969,27 +1969,27 @@ final class _Run {
 
     final sep = u.splitSep;
     if (sep == null || !raw.contains(sep)) {
-      // Разделителя нет: значение целиком идёт в ОДНО поле, и поле это
-      // называет `single_into` — ЯВНО, записью в секции.
-      //
-      // Неявное правило «одинокий userinfo → первое имя `into`» сведение
-      // грамматики отвергло (GRAMMAR_SYNC §1 №15, 19.09.2026): оно верно не
-      // для всех диалектов и молча даёт неверный ответ там, где конвенция
-      // протокола другая — у одной из схем `into` перечисляет имя и пароль, а
-      // одинокий userinfo означает именно ПАРОЛЬ, то есть ВТОРОЕ имя. Поэтому
-      // секции ОБЪЯВЛЯЮТ поле сами, и черновики волны это уже делают.
-      //
-      // Умолчание СНЯТО (контракт 1.1.25): лаунчер проставил `single_into`
-      // всем 14 секциям с `userinfo`, включая те, где оно совпадает с
-      // `into[0]`, и завёл линтер на явное написание. Разница между
-      // «совпало» и «никто не смотрел» видна только в тексте секции, и
-      // догадка здесь её бы снова стёрла. Секция без `single_into` теперь
-      // одинокий userinfo НЕ читает вовсе — это красное, а не тихий разбор
-      // в поле, которое никто не называл.
-      //
-      // `userinfo.pass` пространства источников заполняется только когда
-      // значение действительно уехало в ПОСЛЕДНЕЕ имя: иначе запись с
-      // `source: "userinfo.pass"` прочитала бы первый компонент.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       final single = u.singleInto;
       if (single != null && raw.isNotEmpty) {
         _write(single, raw, null);
@@ -2002,8 +2002,8 @@ final class _Run {
       return true;
     }
 
-    // `limit: 2` — резать по ПЕРВОМУ разделителю: хвост остаётся в последнем
-    // поле целиком. Без лимита пароль с двоеточием теряется.
+
+
     final limit = u.splitLimit;
     List<String> parts;
     if (limit != null && limit > 0) {
@@ -2025,23 +2025,23 @@ final class _Run {
     return true;
   }
 
-  // ───────────────────────────── запись ─────────────────────────────
+
 
   void _applyParam(MapperParam p) {
-    // `round_trip_only: "emit"` — значение пришло бы из ссылки, но тег чужого
-    // конфига; поле пишет только сборка/эмит (dialer.detour).
+
+
     if (p.roundTripOnly == 'emit') return;
 
-    // Контракт 1.1.63 — `deref` кладёт слой `ref.<as>` ДО `when` записи.
+
     _applyDeref(p);
 
-    // Контракт 1.1.56 (MAPPER_ENGINE §10.4) — `$value` в `when`: СЕЛЕКТОР
-    // записи, а не условие. Делит одно значение источника между записями с
-    // одним `maps_to` (`uplinkDataPlacement` берёт header/cookie,
-    // `uplinkDataPlacementOther` — остальное). Промах — молчаливый пропуск
-    // БЕЗ `on_when_false`: значение не подавлено, его пишет другая запись.
-    // Судится до остальных ключей `when`; источник прочитанным не отмечается
-    // (§10.2). Пустое значение = отсутствует.
+
+
+
+
+
+
+
     if (p.when.containsKey(r'$value')) {
       var own = _valueOfBare(p);
       if (own is String && own.isEmpty) own = null;
@@ -2069,11 +2069,11 @@ final class _Run {
         act: TraceAct.skip,
         why: TraceWhy.whenFalse,
       );
-      // `on_when_false` — значение во входе БЫЛО, но структурное правило не
-      // дало ему доехать до тела. Спрашиваем источник ТОЛЬКО ради кода и
-      // только когда запись его назвала: иначе запись, чьё условие ложно на
-      // каждом втором узле, шумела бы впустую. Чтение — без отметки
-      // «прочитано» (§10.2): подавленный параметр остаётся тем, чем был.
+
+
+
+
+
       final code = p.onWhenFalse['code'] as String?;
       if (code != null) {
         final probe = _valueOfBare(p);
@@ -2085,43 +2085,43 @@ final class _Run {
       return;
     }
 
-    // `flatten` (FROZEN, P15) — члены названных вложенных объектов
-    // поднимаются на уровень объекта-хозяина, и дальше их читают ОБЫЧНЫЕ
-    // записи своим `source`. Исполняется до чтения значения самой записи:
-    // у служебной записи (`$`-префикс) вся работа в этом и состоит, своего
-    // `maps_to` у неё нет.
+
+
+
+
+
     if (p.flatten.isNotEmpty) _applyFlatten(p);
 
-    // `on_len_gt` — код за длинный массив. Ставится до чтения скаляра
-    // записи: служебный `$extra_*` существует ради этого примитива, а
-    // `source` у него — массив, на котором обычный lookup молчит. Проход
-    // по остальным записям узла не обрывается.
+
+
+
+
     _applyOnLenGt(p);
 
     var raw = _applySubstitute(p, _valueOf(p));
     final emptyRaw = raw == null || (raw is String && raw.isEmpty);
     if (emptyRaw) {
-      // `on_empty` — код за ПУСТОЕ значение записи. Ставится до разбора
-      // `default_when`: спрашивают не «чем заполнить», а «что человеку
-      // сказать», и дефолт этого не отменяет.
-      //
-      // Оба написания отсутствия судятся одинаково и ЗДЕСЬ, потому что до
-      // этой точки они уже сошлись: пустой хвост userinfo (`uuid:@host`) в
-      // тело не пишется (`parts[i].isEmpty → continue`), отсутствие хвоста
-      // (`uuid@host`) не даёт `userinfo.pass` вовсе, и `_valueOf` на обоих
-      // отвечает `null`. Различать их значило бы выдумать разницу, которой
-      // у тела нет.
+
+
+
+
+
+
+
+
+
+
       _applyOnEmpty(p);
-      // `default_when: {absent: true, value: …}` — «не сказано» ЕСТЬ
-      // значение, и дальше запись исполняется как обычная. Без этого
-      // селектор рода узла (`version` у форка Xray, где 2 подразумевается)
-      // не отработал бы на конфиге, который версии не пишет вовсе.
+
+
+
+
       if (p.defaultWhen['absent'] == true && p.defaultWhen['value'] != null) {
         raw = p.defaultWhen['value'];
       } else {
-        // Параметра нет. `implies` не срабатывает (он от НАЛИЧИЯ), `sets` — у
-        // ключа `""`, если секция его объявила: так выражается «пусто тоже
-        // значение» (`security` без параметра включает TLS).
+
+
+
         final absentSet = p.sets[''];
         if (absentSet is Map && p.sets.containsKey('')) {
           _applySets(absentSet.cast<String, dynamic>(), p);
@@ -2130,26 +2130,26 @@ final class _Run {
       }
     }
 
-    // Служебная запись массива в тело не едет: она только считает.
+
     if (p.onLenGt.isNotEmpty && p.mapsToPresent && p.mapsTo == null) return;
 
     var value = raw;
 
-    // `on_invalid.action: "default_from"` — значение ЕСТЬ, но не годится как
-    // источник, и запись обязана вести себя так, будто его не было: дальше
-    // сработает её же `default_from`.
-    //
-    // Это НЕ суждение о значении (его судит санитайзер), а выбор ИСТОЧНИКА:
-    // предикат смотрит на написание, а не на смысл. Так эвристика SNI
-    // («имя без точки и двоеточия адресом быть не может») перестаёт быть
-    // веткой в коде и становится строкой таблицы — причём только у тех схем,
-    // которые её объявили.
-    //
-    // Контракт 1.1.80 (MAPPER_ENGINE §10.5): негодное значение уступает
-    // сперва СЛЕДУЮЩЕМУ звену цепочки `source` с непустым годным значением
-    // (`sni=Germany&servername=real.host` → `real.host`), и только без
-    // такого звена — `default_from`. Код `on_invalid`, если объявлен, — в
-    // обоих случаях.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     if (p.onInvalid['action'] == 'default_from' && value is String) {
       final cond = (p.onInvalid['when'] as Map?)?.cast<String, dynamic>();
       final probe = cond == null ? null : cond['value'];
@@ -2166,7 +2166,7 @@ final class _Run {
       }
     }
 
-    // `decode_extra` — поверх первого прохода декодера формы.
+
     final de = p.decodeExtra;
     if (de != null && value is String) {
       value = decodeExtra(
@@ -2177,13 +2177,13 @@ final class _Run {
       );
     }
 
-    // `normalize` — общие нормализаторы (форма записи, не смысл).
-    //
-    // Скалярные применяются здесь, над строкой. Списочные
-    // (`port_range_spec`, `cidr_prefix`) — ПОСЛЕ `_coerceType`, когда список
-    // уже разрезан: до него значение ещё одна строка с разделителями.
-    // `range_order` меняет и ТИП значения (`"5"` → 5), поэтому идёт мимо
-    // строкового [_normalize].
+
+
+
+
+
+
+
     final norm = p.normalize;
     if (norm != null && value is String) {
       if (norm.startsWith('range_order')) {
@@ -2198,14 +2198,14 @@ final class _Run {
       }
     }
 
-    // `maps_to: null` — значение ОБЪЯВЛЕННО никуда не едет (ECH, padding).
-    // Проверяется до `extract`: у такой записи регулярка не раскладывает
-    // значение по телу, а вырезает из него ту часть, которую показывают
-    // человеку в коде ([_applyOnPresent]).
+
+
+
+
     if (p.mapsToPresent && p.mapsTo == null && p.sets.isEmpty) {
-      // `value_map` сюда всё же заглядывает: значение-выключатель
-      // (`none`, пусто) переведено в «ничего нет», и кода за него быть не
-      // должно — человек ничего не терял, он ничего и не просил.
+
+
+
       final off = value is String && p.valueMap.isNotEmpty
           ? _mapValue(p.valueMap, value,
               caseSensitive: p.valueMapCase == 'sensitive')
@@ -2217,14 +2217,14 @@ final class _Run {
       return;
     }
 
-    // `extract` ПО ЭЛЕМЕНТАМ списка с группами `$key`/`$value` — объект
-    // произвольной формы (заголовки).
-    //
-    // Отдельного примитива под заголовки нет намеренно: пара «имя: значение»
-    // выражается той же регуляркой, что и всякая другая раскладка, а
-    // `list.sep` говорит, чем элементы разделены. Ключи объекта задаёт сам
-    // источник, поэтому перечислить их в `into` нельзя — их называют
-    // служебные имена групп `$key` и `$value`.
+
+
+
+
+
+
+
+
     if (p.extract != null &&
         p.list != null &&
         p.type == 'object' &&
@@ -2233,21 +2233,21 @@ final class _Run {
       return;
     }
 
-    // `extract` — одно значение по нескольким путям.
+
     if (p.extract != null && value is String) {
       _applyExtract(p, value);
       return;
     }
 
 
-    // `value_map` — перевод значений диалекта. `null` = «ключа нет».
+
     if (p.valueMap.isNotEmpty && value is String) {
       final mapped = _mapValue(p.valueMap, value,
           caseSensitive: p.valueMapCase == 'sensitive');
       if (mapped.matched) {
         if (mapped.value == null) {
-          // Значение переведено в «ключа нет»: `sets` того же значения при
-          // этом ОСТАЁТСЯ в силе (у `flow` так и устроено).
+
+
           _applyValueSets(p, value);
           _applyImplies(p);
           return;
@@ -2255,38 +2255,38 @@ final class _Run {
         value = mapped.value;
       } else if (p.allow.isNotEmpty &&
           p.allow.any((a) => a.trim().toLowerCase() == value.toString().trim().toLowerCase())) {
-        // `allow` (контракт 1.1.50) — написание, СОВПАДАЮЩЕЕ с каноном ядра:
-        // перевод ему не нужен, и промахом таблицы оно не является. Значение
-        // едет дословно, дальше по конвейеру записи.
+
+
+
       } else if (p.sets.isEmpty && p.onNoMatch.isNotEmpty) {
-        // Значение не попало ни в одно написание таблицы. У записи БЕЗ `sets`
-        // (там `on_no_match` уже занят, см. ниже) это «мусор»: закрытый набор
-        // написаний тем и отличается от свободного значения, что всё вне его —
-        // ошибка автора ссылки, и молчать о ней нельзя.
+
+
+
+
         if (p.onNoMatch['action'] == 'drop_node') return;
         _applyOnNoMatch(p, value);
         _applyImplies(p);
         return;
       } else if (p.sets.isEmpty && p.onInvalid['action'] == 'drop') {
-        // §514 / контракт 1.1.50–1.1.52 — ПРОМАХ ЗАКРЫТОЙ ТАБЛИЦЫ ПРИ
-        // `on_invalid: drop`. Прежде промах означал «вези как пришло», и
-        // объявление `{action: drop, code: transport_unsupported}` у
-        // `$selector.network` МОЛЧАЛО: `network: "kcp"` уезжал в
-        // `transport.type` дословно, санитайзер снимал транспорт правилом enum
-        // без кода, и узел выходил РАБОЧИМ plain-TCP — сервер, который ждёт
-        // mKCP, такое соединение не примет, а человек не получал ни кода, ни
-        // причины (Q133-17/M-01, D133-49). У `quic` тот же промах кончался
-        // хуже: тип доезжал до тела и ронял бы ВЕСЬ конфиг на unknown field.
-        //
-        // `drop` у СЕЛЕКТОРА снимает УЗЕЛ целиком, у обычной записи — только
-        // её поле: селектор объявляет транспорт, которого у ядра нет вовсе, и
-        // узел без своего транспорта не «хуже» — он не работает, и оставить
-        // его в списке значило бы предложить человеку заведомо мёртвый сервер.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         final w = _applyOnInvalid(p, value.toString());
         if (p.selector) {
           _dropNode = true;
-          // Отбраковка обязана быть НАЗВАННОЙ: имя кода и его `value` едут в
-          // вердикт, иначе узел исчезает молча — тот же дефект, что правится.
+
+
           if (w is RegistryWarning && _dropped != null) {
             _dropped.explicit = true;
             _dropped.reason = w;
@@ -2296,29 +2296,29 @@ final class _Run {
       }
     }
 
-    // `sets` по значению — набор присваиваний вместо/вместе с `maps_to`.
+
     final hadSets = _applyValueSets(p, raw is String ? raw : '$raw');
 
-    // §514 — ВЕТКА, СНИМАЮЩАЯ СВОЙ ЖЕ ПУТЬ, означает ОТСУТСТВИЕ значения.
-    //
-    // `sets: {"-1": {"multiplex": null}}` у записи `multiplex.max_streams`
-    // говорит: это значение не «число вне границ», а «блока нет вовсе». Прежде
-    // ветка стирала блок, а запись тут же писала в него своё число обратно —
-    // блок возвращался, а санитайзер вдобавок ругался `type_invalid` на
-    // отрицательное значение. То есть элемент, ЯВНО отключивший мультиплексор,
-    // получал его включённым и с кодом впридачу.
-    //
-    // Судится ровно перекрытие: ветка сняла путь, В КОТОРЫЙ пишет эта же
-    // запись (его самого или его хозяина-контейнер). Ветка, стирающая ЧУЖОЙ
-    // путь, к записи отношения не имеет и её значение не отменяет.
+
+
+
+
+
+
+
+
+
+
+
+
     if (hadSets && _setsErasedOwnPath(p, raw is String ? raw : '$raw')) {
       _applyImplies(p);
       return;
     }
 
-    // `on_no_match` — значение не попало ни в один ключ `sets`. У селектора
-    // рода записи (`version` у форка Xray) это «узла нет»: своего Spec для
-    // другого значения у нас не существует.
+
+
+
     if (!hadSets && p.sets.isNotEmpty && p.onNoMatch.isNotEmpty) {
       if (p.onNoMatch['action'] == 'drop_node') {
         _dropNode = true;
@@ -2326,17 +2326,17 @@ final class _Run {
       }
     }
 
-    // Приведение типа (`type`) — форма, а не суждение.
+
     var typed = _coerceType(p, value);
 
-    // `list.item: "int"`, а разрез числами не стал — ВТОРАЯ ФОРМА записи того
-    // же списка: байты в base64. Так WARP пишет `client_id` (три байта), а наш
-    // round-trip — десятичной тройкой; тело у обеих форм одно.
-    //
-    // Проверяется ДО отказа по `null`: у второй формы первый разрез не даёт
-    // ничего, и ранний выход съел бы её молча. Это разбор ФОРМЫ, а не
-    // суждение — длину списка и границы байтов судит санитайзер по `len` и
-    // `format` поля.
+
+
+
+
+
+
+
+
     final lspec = p.list;
     if (lspec != null && lspec.item == 'int' && raw is String) {
       final gotInts = typed is List && typed.isNotEmpty;
@@ -2347,12 +2347,12 @@ final class _Run {
     }
 
     if (typed == null) {
-      // `on_invalid.action: "keep"` — значение к объявленной форме не
-      // приводится, и запись ПРОСИТ пропустить его в тело КАК ПРИШЛО.
-      // Снять его здесь значило бы судить: годность («неотрицательное целое»)
-      // объявлена у поля тела своим `on_invalid` с кодом, и санитайзер
-      // отбракует значение сам, назвав причину. Молчаливое снятие в маппере
-      // лишило бы узел и значения, и объяснения.
+
+
+
+
+
+
       if (p.onInvalid['action'] == 'keep') {
         typed = value;
       } else {
@@ -2362,17 +2362,17 @@ final class _Run {
       }
     }
 
-    // Списочные нормализаторы — над уже разрезанным списком.
+
     if (norm != null && _kListNormalizers.contains(norm) && typed is List) {
       typed = _normalizeList(typed, norm);
     }
 
 
-    // `split_into` — один список РАЗБРАСЫВАЕТСЯ по нескольким путям по
-    // предикату на элементе: ядро держит адреса туннеля двумя отдельными
-    // полями, по одному на семейство, а ссылка пишет их одним списком.
-    // `maps_to` у такой записи может не быть вовсе — целевые пути называет
-    // сам `split_into`.
+
+
+
+
+
     if (p.splitInto.isNotEmpty && typed is List) {
       _applySplitInto(p, typed);
       _applyImplies(p);
@@ -2388,11 +2388,11 @@ final class _Run {
     _applyImplies(p);
   }
 
-  /// Ветка `sets` этого значения СНЯЛА путь, в который пишет сама запись.
-  ///
-  /// Снятым считается и сам `maps_to`, и любой его РОДИТЕЛЬ: `{"multiplex":
-  /// null}` у записи `multiplex.max_streams` убирает контейнер вместе с полем,
-  /// и писать в него после этого значило бы вернуть то, что ветка сняла.
+
+
+
+
+
   bool _setsErasedOwnPath(MapperParam p, String value) {
     final target = p.mapsTo;
     if (target == null || p.sets.isEmpty) return false;
@@ -2407,7 +2407,7 @@ final class _Run {
     return false;
   }
 
-  /// `sets` по значению параметра; `true` — набор нашёлся и применён.
+
   bool _applyValueSets(MapperParam p, String value) {
     if (p.sets.isEmpty) return false;
     final set = _lookupFold(p.sets, value);
@@ -2418,11 +2418,11 @@ final class _Run {
 
   void _applyImplies(MapperParam p) {
     if (p.implies.isEmpty) return;
-    // `on_implies_written` — код за то, что `implies` И ВПРАВДУ дописал
-    // значение, которого во входе не было. Это не то же, что «у записи есть
-    // implies»: при занятом пути присваивание проигрывает владельцу, и
-    // сообщать не о чем. Поэтому смотрим на тело ДО и ПОСЛЕ, а не на факт
-    // вызова.
+
+
+
+
+
     final code = p.onImpliesWritten['code'] as String?;
     final before = code == null
         ? null
@@ -2440,22 +2440,22 @@ final class _Run {
     if (p.implicit) _wsEarlyDataHeaderImplicit = true;
   }
 
-  /// Присваивания из `sets`/`implies`/`scheme_sets`.
-  ///
-  /// **G2 (FROZEN): `null` в присваивании СНИМАЕТ путь.** Это не то же, что
-  /// «не писать»: флаг «не отправлять SNI» обязан УБРАТЬ уже поставленное
-  /// имя сервера, а не промолчать.
+
+
+
+
+
   void _applySets(Map<String, dynamic> sets, MapperParam? p) {
     for (final e in sets.entries) {
-      // `$default_port` — СЛУЖЕБНЫЙ ключ `scheme_sets`: телом он не является,
-      // а называет порт по умолчанию для ЭТОГО написания схемы (у одной схемы
-      // их бывает несколько, и дефолт у них разный). Поэтому он и не может
-      // лежать в `defaults` секции — та одна на все написания.
-      //
-      // Применяется НЕ здесь, а вместе с `defaults` (норма §10.1): после
-      // обоих проходов и только в путь, который никто не занял. Напиши его
-      // сразу — он победил бы явный порт из ссылки, потому что `scheme_sets`
-      // исполняется первым.
+
+
+
+
+
+
+
+
+
       if (e.key == r'$default_port') {
         if (e.value != null) _schemeDefaultPort = e.value;
         continue;
@@ -2468,12 +2468,12 @@ final class _Run {
     }
   }
 
-  /// Служебные подстановки в значениях `sets`/`scheme_sets`.
-  ///
-  /// `$host` — адрес из источника. Нужен там, где присваивание схемы обязано
-  /// сослаться на значение, которого в момент записи ещё нет в теле: имя
-  /// сервера для TLS у схем, где TLS включает сама схема, а не параметр.
-  /// Без подстановки `"$host"` уехал бы в тело литералом.
+
+
+
+
+
+
   Object? _substituteServiceValue(Object? v) {
     if (v is! String) return v;
     switch (v) {
@@ -2484,15 +2484,15 @@ final class _Run {
     }
   }
 
-  /// `extract` ПО ЭЛЕМЕНТАМ списка: объект, ключи которого называет источник.
-  ///
-  /// `list.sep` режет значение на элементы, регулярка раскладывает каждый на
-  /// группы, а служебные имена `$key` и `$value` в `into` говорят, какая
-  /// группа даёт имя ключа, а какая — его значение. Перечислить такие ключи в
-  /// `into` нельзя: их не знает никто, кроме самой ссылки.
-  ///
-  /// Негодный элемент пропускается, остальные живут (`on_item_invalid`), а
-  /// код ставится ОДИН раз на узел — о первом отброшенном.
+
+
+
+
+
+
+
+
+
   void _applyExtractItems(MapperParam p, String value) {
     final spec = p.extract!;
     final re = _regex(spec.re);
@@ -2524,11 +2524,11 @@ final class _Run {
       out[k] = valueGroup == null ? '' : (m.namedGroup(valueGroup) ?? '');
     }
     if (out.isEmpty) return;
-    // **G4 (`sort_keys`)** — порядок ключей входит в тело, то есть в
-    // identity. `_coerceType` здесь не зовётся: у записи объявлен `list`, и
-    // он увёл бы готовый объект в списочную ветку — `list` в такой записи
-    // говорит лишь, ЧЕМ разделены элементы источника, а формой результата
-    // распоряжается `type: object`.
+
+
+
+
+
     final result = p.sortKeys
         ? <String, dynamic>{
             for (final k in out.keys.toList()..sort()) k: out[k],
@@ -2542,11 +2542,11 @@ final class _Run {
     final spec = p.extract!;
     final m = _regex(spec.re).firstMatch(value);
     if (m == null) {
-      // `on_no_match: {action: take_all}` — регулярка не разложила значение, и
-      // объявленный ответ на это «взять его ЦЕЛИКОМ в названный путь», а не
-      // потерять. G7: `Endpoint = 2001:db8::1:51820` — голый IPv6, где порт
-      // от адреса неотличим (§219), и адресом становится вся строка, а порт
-      // берётся из `defaults` той же ветки.
+
+
+
+
+
       if (p.onNoMatch['action'] != 'take_all') return;
       final into = p.onNoMatch['into'] as String?;
       if (into == null) return;
@@ -2561,10 +2561,10 @@ final class _Run {
       return;
     }
 
-    // `on_present` у записи с `extract` — код о том, что значение уехало в
-    // тело НЕ буквально. Ставится только когда регулярка действительно
-    // что-то разложила сверх первой группы: иначе путь без хвоста получал бы
-    // код о преобразовании, которого не было.
+
+
+
+
     var converted = false;
     for (final e in spec.into.entries) {
       String? group;
@@ -2583,20 +2583,20 @@ final class _Run {
         if (path == null) continue;
         dynamic typed = t['type'] == 'int' ? int.tryParse(group.trim()) : group;
         if (typed == null) continue;
-        // `int` с неположительным значением — это «ed не задан», а не ноль:
-        // режим включает только `max_early_data > 0`.
+
+
         if (typed is int && typed <= 0) continue;
-        // `normalize` у ЧЛЕНА `into`: одна группа регулярки бывает списком со
-        // своей формой записи (хвост multi-port `,20000-30000` — это список
-        // диапазонов, а не скаляр). Без этого запись пришлось бы дробить на
-        // две, и порядок слияния списка стал бы неуправляемым.
-        // `prepend_group` — член `into` склеивается с ДРУГОЙ группой той же
-        // регулярки. Нужен там, где одно значение источника читается дважды в
-        // разной нарезке: первый порт multi-port спецификации едет числом в
-        // `server_port`, а ВСЯ спецификация вместе с ним — списком диапазонов
-        // в `server_ports`. Без склейки пришлось бы либо дублировать группу в
-        // регулярке, либо заводить вторую запись с тем же источником, и
-        // порядок слияния списка стал бы неуправляемым.
+
+
+
+
+
+
+
+
+
+
+
         final prependFrom = t['prepend_group'] as String?;
         if (prependFrom != null && typed is String) {
           String? head;
@@ -2624,22 +2624,22 @@ final class _Run {
           }
         }
         _write(path, typed, p);
-        // Разложилось не только в первую группу — значение уехало в тело не
-        // буквально, и это и есть «преобразование».
+
+
         converted = true;
         _convertedValue = '$typed';
-        // `code` у ЧЛЕНА `into` — код именно за этот разбор, а не за запись
-        // целиком: хвост пути разложился по двум полям, и сказать об этом
-        // может только тот член, который его поймал. Записи с `on_present`
-        // здесь не нужно: путь без хвоста кода не получает.
+
+
+
+
         _memberCode ??= t['code'] as String?;
         final implies = (t['implies'] as Map?)?.cast<String, dynamic>();
         if (implies != null) {
           for (final i in implies.entries) {
             final iv = i.value;
             if (iv is Map && iv['implicit'] == true) {
-              // §103 D-008 — значение подставлено КОНВЕНЦИЕЙ, а не ссылкой:
-              // в теле оно есть, а в ссылку при эмите не пишется.
+
+
               _wsEarlyDataHeaderImplicit = true;
               _writeIfAbsent(i.key, iv['value'], p);
             } else {
@@ -2662,23 +2662,23 @@ final class _Run {
     }
   }
 
-  /// Код, объявленный ЧЛЕНОМ `extract.into` текущего разбора.
+
   String? _memberCode;
 
 
-  /// Значение для кода преобразования: то, ЧТО получилось, а не что пришло.
+
   String _convertedValue = '';
 
-  /// `on_present` — код о том, что ОБЪЯВЛЕННОЕ значение никуда не поехало.
-  ///
-  /// Отличается от `unknown_key` тем, что параметр реестру известен: человек
-  /// написал его сознательно, и молчание тут — потеря. В теле этого значения
-  /// уже нет, поэтому сказать о нём может только маппер.
-  ///
-  /// [value] несёт ту часть значения, которую показывают человеку. Чем она
-  /// отличается от сырой, говорит `extract` записи: правило «до первого `+`»
-  /// это форма значения, и держать его в коде значило бы завести первую
-  /// схемную функцию в общем движке.
+
+
+
+
+
+
+
+
+
+
   void _applyOnPresent(MapperParam p, String raw) {
     final code = p.onPresent['code'] as String? ?? p.onInvalid['code'] as String?;
     if (code == null) return;
@@ -2694,12 +2694,12 @@ final class _Run {
     warnings.add(NodeWarning.byCode(code, path: p.name, value: shown));
   }
 
-  /// `split_into` — разбросать элементы списка по путям тела.
-  ///
-  /// Ключ — путь тела, значение — `{when: {item: <предикат>}, take: "first"}`.
-  /// `take: "first"` берёт первый подошедший элемент, иначе в путь едет весь
-  /// подсписок. Предикат смотрит на ЭЛЕМЕНТ, а не на тело: семейство адреса
-  /// видно по самому адресу.
+
+
+
+
+
+
   void _applySplitInto(MapperParam p, List<dynamic> items) {
     for (final e in p.splitInto.entries) {
       final spec = (e.value as Map?)?.cast<String, dynamic>();
@@ -2715,21 +2715,21 @@ final class _Run {
     }
   }
 
-  /// `on_no_match` — значение не нашлось в закрытом наборе написаний.
+
   void _applyOnNoMatch(MapperParam p, String raw) {
     final code = p.onNoMatch['code'] as String?;
     if (code == null) return;
     warnings.add(NodeWarning.byCode(code, path: p.name, value: raw.trim()));
   }
 
-  /// `on_invalid` — значение не приводится к объявленной форме.
-  ///
-  /// Само СНЯТИЕ уже случилось (значение не записано); здесь только код, и
-  /// только когда запись его назвала. Молчание — не умолчание движка, а
-  /// объявленное решение: эталон второй стороны на части полей молчит, и
-  /// поставь движок код сам, узел получил бы его там, где корпус ждёт тишины.
-  /// Возвращает поставленное предупреждение — оно нужно вызывающему, когда за
-  /// `on_invalid` следует отбраковка УЗЛА: вердикт обязан нести тот же код.
+
+
+
+
+
+
+
+
   NodeWarning? _applyOnInvalid(MapperParam p, String raw) {
     final code = p.onInvalid['code'] as String?;
     if (code == null) return null;
@@ -2738,23 +2738,23 @@ final class _Run {
     return w;
   }
 
-  /// `on_empty` — код за пустое значение записи; узел ОСТАЁТСЯ.
-  ///
-  /// `value` пуст по существу: показывать нечего, и подставить сюда написание
-  /// входа значило бы соврать — у двух написаний отсутствия оно разное, а
-  /// событие одно. Адрес несёт `path`, его и читает текст реестра.
+
+
+
+
+
   void _applyOnEmpty(MapperParam p) {
     final code = p.onEmpty['code'] as String?;
     if (code == null) return;
     warnings.add(NodeWarning.byCode(code, path: p.name, value: ''));
   }
 
-  /// `on_len_gt` — у источника-массива больше `n` элементов.
-  ///
-  /// Источники перебираются с `continue`, не `return`: цепочка `source` —
-  /// альтернативы, и первый существующий, но короткий (или вовсе не массив)
-  /// не гасит код на следующем имени. Сам проход по записям узла отсюда
-  /// не выходит.
+
+
+
+
+
+
   void _applyOnLenGt(MapperParam p) {
     if (p.onLenGt.isEmpty) return;
     if ((p.onLenGt['action'] as String?) != 'note') return;
@@ -2774,9 +2774,9 @@ final class _Run {
     }
   }
 
-  // ─────────────────────────── источники ───────────────────────────
 
-  /// Значение записи по её `source`. `null` — ни один источник не ответил.
+
+
   dynamic _valueOf(MapperParam p) {
     final sources = p.sourceByForm.isNotEmpty
         ? (p.sourceByForm[space.formId] ?? const <String>[])
@@ -2790,9 +2790,9 @@ final class _Run {
     return null;
   }
 
-  /// Следующее за ответившим звено цепочки `source` с непустым значением,
-  /// на котором условие [probe] `on_invalid.when` НЕ выполнено (§10.5);
-  /// `null` — такого звена нет.
+
+
+
   dynamic _nextValidSource(MapperParam p, Object probe) {
     final sources = p.sourceByForm.isNotEmpty
         ? (p.sourceByForm[space.formId] ?? const <String>[])
@@ -2815,9 +2815,9 @@ final class _Run {
   dynamic _readSource(String src, MapperParam p) {
     if (src.startsWith('query.')) {
       final name = src.substring('query.'.length);
-      // Написания: имя записи плюс `aliases`. Регистронезависимо, канон в
-      // приоритете (§0.6 FROZEN). Отмечаем ПРОЧИТАННЫМ любое написание,
-      // которое в ссылке есть, — иначе алиас уехал бы в `unknown_key`.
+
+
+
       final names = name == p.name ? p.spellings : [name];
       String? found;
       for (final n in names) {
@@ -2834,9 +2834,9 @@ final class _Run {
         return space.scheme;
       case 'authority':
         return space.authority;
-      // userinfo percent-декодируется ПО ПРАВИЛАМ ЗАПИСИ, как и query: у поля
-      // base64-формата `+` обязан остаться собой. Иначе `%2F`-энкоденный ключ
-      // с плюсом внутри терял плюс, а ключ — 32 байта, и узел пропадал.
+
+
+
       case 'userinfo':
         return _decodeQueryValue(space.userinfo, p);
       case 'userinfo.user':
@@ -2866,8 +2866,8 @@ final class _Run {
     if (src.startsWith('ini.')) {
       return space.ini?[src.substring('ini.'.length).toLowerCase()];
     }
-    // Наложенный слой: `<имя слоя>.<ключ>`. Значение слоя уже разобрано и
-    // декодировано, второй percent-декод ему не нужен.
+
+
     final dot = src.indexOf('.');
     if (dot > 0) {
       final layer = _overlays[src.substring(0, dot)];
@@ -2876,24 +2876,24 @@ final class _Run {
     return null;
   }
 
-  /// Подставить якорь формы: `$base.address` → `settings.vnext.0.address`.
-  ///
-  /// Форма без `base` оставляет путь как есть — запись в такой секции
-  /// адресует документ от корня.
+
+
+
+
   String _resolveBase(String path) {
     if (!path.contains(DraftNames.baseAnchor)) return path;
     final base = space.jsonBase ?? '';
     final out = path.replaceAll(DraftNames.baseAnchor, base);
-    // Пустой якорь оставил бы ведущую точку (`.address`).
+
     return out.startsWith('.') ? out.substring(1) : out;
   }
 
-  /// Отметить путь ПРОЧИТАННЫМ: верхний сегмент и полный путь.
-  ///
-  /// Верхний нужен, потому что `json_field_unknown` судит ключи ВЕРХНЕГО
-  /// уровня элемента: запись, читающая `settings.vnext.0.address`, объявляет
-  /// весь `settings` прочитанным — перечислять каждый лист диалекта значило
-  /// бы держать вторую копию схемы входа.
+
+
+
+
+
+
   void _consumeJson(String path) {
     _consumed.add('json.$path'.toLowerCase());
     final dot = path.indexOf('.');
@@ -2901,28 +2901,28 @@ final class _Run {
         .toLowerCase());
   }
 
-  /// Первый percent-декод query-значения (декодер формы `url`).
-  ///
-  /// `+` = пробел, кроме двух объявленных случаев (§0.4/§0.6 FROZEN):
-  ///
-  /// - поле `format: base64*` либо явный `decode_extra.plus_literal` —
-  ///   «исключение из реестра, а не из списка имён»: четыре точечные заплаты
-  ///   заплаты на ключах-секретах заменяются свойством поля;
-  /// - запись с `decode_extra.mode: path` — path-семантика обязана
-  ///   действовать на ОБОИХ проходах, а первый проход и есть этот. Иначе
-  ///   `/ws+v2` стал бы `/ws v2` ещё до `decode_extra`, и второй проход
-  ///   чинить было бы уже нечего (D133-14).
+
+
+
+
+
+
+
+
+
+
+
   String _decodeQueryValue(String raw, MapperParam p) {
     final pathMode = p.decodeExtra?.mode == 'path';
-    // `format: "pem"` (§0.4a, D133-15) — «+» читается ПО-РАЗНОМУ в разных
-    // частях одного значения, и одним режимом это не выражается.
-    //
-    // В теле ключа «+» — данные base64, и пробел там ломает ключ. В строках
-    // `-----BEGIN …-----` / `-----END …-----` он, наоборот, кодирует ПРОБЕЛ:
-    // слова заголовка разделены им, и литеральный «+» сделал бы заголовок
-    // невалидным. Поэтому percent снимается один раз path-семантикой (весь
-    // «+» литерален), а потом «+» возвращается пробелом ровно внутри
-    // заголовочных строк.
+
+
+
+
+
+
+
+
+
     if (p.format == 'pem') {
       final decoded = percentDecodeOnce(raw, mode: DecodeMode.path);
       return decoded
@@ -2943,31 +2943,31 @@ final class _Run {
     _consumed.add(name.toLowerCase());
   }
 
-  // ─────────────────────────── дефолты ───────────────────────────
+
 
   void _applyDefaults(MapperParam p) {
     final path = p.mapsTo;
     if (path == null) return;
     final present = _read(path) != null;
 
-    // `default_from` — эвристика источника (SNI → server). Срабатывает, когда
-    // поле пусто, и только если `when` записи держится.
+
+
     if (!present && p.defaultFrom.isNotEmpty && _whenHolds(p.when)) {
       for (final src in p.defaultFrom) {
-        // `body.<путь>` — дефолт из УЖЕ ПОСТРОЕННОГО тела. Нужен там, где
-        // источника у поля нет вовсе: у объектного входа адрес лежит под
-        // якорем формы, и общий блок (tls) его пути не знает — знать его
-        // значило бы завести в общем блоке запись про конкретный диалект.
+
+
+
+
         var v = src.startsWith('body.')
             ? _read(src.substring('body.'.length))
             : _readSource(src, p);
-        // Имя без префикса, не давшее значения как ИСТОЧНИК, читается как
-        // ПУТЬ ТЕЛА (MAPPER_ENGINE, норма `default_from` у Go-движка:
-        // `space.Lookup`, затем `getPath(body, name)`). Адрес у разных форм
-        // приезжает из разных источников, а путь `server` к этому моменту
-        // уже заполнила запись, чей источник объявлен по формам; назвать
-        // источник значило бы назвать одну форму, и у другой откат молча
-        // не срабатывал.
+
+
+
+
+
+
+
         if ((v == null || (v is String && v.isEmpty)) &&
             !src.startsWith('body.')) {
           final bv = _read(src);
@@ -2975,16 +2975,16 @@ final class _Run {
         }
         if (v == null) continue;
         if (v is String && v.isEmpty) continue;
-        // ФОРМА значения у отката та же, что у самого поля: путь, куда едет
-        // список, списком и заполняется. Без этого откат клал бы в него
-        // скаляр, и одно и то же поле приезжало разной формы в зависимости
-        // от того, назвал его автор ссылки или оно взялось умолчанием.
+
+
+
+
         _write(path, p.coerceScalarToList && v is! List ? [v] : v, p);
         break;
       }
     }
 
-    // `default_when` — конвенционный дефолт по условию.
+
     if (p.defaultWhen.isNotEmpty && _whenHolds(p.when)) {
       final absent = p.defaultWhen['absent'] == true;
       if ((absent && _read(path) == null) ||
@@ -2994,25 +2994,25 @@ final class _Run {
       }
     }
 
-    // `materialize_default` — маппер ОБЯЗАН записать дефолт, даже когда
-    // источник молчал (отличается от дефолта санитайзера: тот дефолты не
-    // материализует вовсе).
+
+
+
     if (p.materializeDefault && _read(path) == null) {
-      // Третий источник дефолта — `value_map[""]`: «пусто» и «не сказано»
-      // диалект называет одним значением, и объявлять его дважды (в
-      // `value_map` для пустой строки и ещё раз в `defaults`) значило бы
-      // завести два места, которые разъедутся.
+
+
+
+
       final v = p.defaultWhen['value'] ??
           section.defaults[path] ??
           p.valueMap[''];
       if (v != null) _write(path, v, p);
     }
 
-    // §560 — `omit_default` записи на входе: значение, РАВНОЕ объявленному,
-    // в тело не пишется (числовой ноль или `false`, объявленные секцией как
-    // «не сказано»). Тот же атрибут эмиттер читает на обратном ходе; на
-    // прямом его не исполнял никто, и ноль доезжал до тела. Сравнение по
-    // написанию: `"0"` из JSON-строки и `0` числом — одно значение.
+
+
+
+
+
     final omit = p.raw['omit_default'];
     if (omit != null && omit is! List && omit is! Map) {
       final v = _read(path);
@@ -3022,23 +3022,23 @@ final class _Run {
     }
   }
 
-  // ─────────────────────────── условия ───────────────────────────
 
-  /// `when` — по УЖЕ ПОСТРОЕННОМУ телу, по типу тела (`$type`), по форме
-  /// (`$form`) и **по ИСТОЧНИКУ** (`query.X` — это G1, FROZEN).
+
+
+
   bool _whenHolds(Map<String, dynamic> when) {
     if (when.isEmpty) return true;
     for (final e in when.entries) {
       final key = e.key;
-      // `any_set` — ДИЗЪЮНКЦИЯ по источникам: держится, если ХОТЯ БЫ ОДИН из
-      // перечисленных адресов что-то несёт. Имя взято у существующего
-      // атрибута реестра (`when.any_set` в правилах тела), чтобы у одного
-      // смысла не завелось второго написания; остальные ключи `when`
-      // по-прежнему конъюнкция.
-      // `$impl` и прочая проза с `$`-префиксом — не предикат, а пояснение
-      // рядом с условием (DRAFT-соглашение §0.7: `$` помечает запись, которая
-      // в исполнение не идёт). `$type` и `$form` — исключения, они разобраны
-      // ниже по именам.
+
+
+
+
+
+
+
+
+
       if (key.startsWith(r'$') && key != r'$type' && key != r'$form') continue;
       if (key == 'any_set') {
         final names = (e.value as List?)?.cast<String>() ?? const <String>[];
@@ -3065,11 +3065,11 @@ final class _Run {
     return true;
   }
 
-  /// Значение записи по её `source`, БЕЗ отметки «прочитано».
-  ///
-  /// Нужно ровно там, где значение спрашивают ради КОДА, а не ради тела:
-  /// запись, подавленная условием, параметр не потребляет, и множество §8 от
-  /// такого вопроса меняться не должно (§10.2).
+
+
+
+
+
   dynamic _valueOfBare(MapperParam p) {
     final sources = p.sourceByForm.isNotEmpty
         ? (p.sourceByForm[space.formId] ?? const <String>[])
@@ -3083,9 +3083,9 @@ final class _Run {
     return null;
   }
 
-  /// Чтение источника для условия: без записи в `_consumed` и без декода по
-  /// правилам конкретной записи — условие не «читает» параметр, оно о нём
-  /// спрашивает.
+
+
+
   dynamic _readSourceBare(String src) {
     if (src.startsWith('query.')) {
       final raw = space.query.get(src.substring('query.'.length));
@@ -3106,8 +3106,8 @@ final class _Run {
         return space.fragment;
       case 'userinfo':
         return space.userinfo;
-      // Имя, предложенное вызывающим: источника в документе у него нет, но
-      // МЕСТО его в цепочке объявляет секция, как у всякого источника.
+
+
       case 'hint':
         return nameHint;
     }
@@ -3128,9 +3128,9 @@ final class _Run {
     return null;
   }
 
-  /// Источники вне документа (контракт 1.1.63): `context.<путь>` — значение
-  /// от вызывающего, `ref.<as>.<путь>` — сосед, положенный `deref`. `hit` —
-  /// адрес принадлежит одному из них (значение при этом может быть `null`).
+
+
+
   ({bool hit, Object? value}) _readContextOrRef(String src) {
     if (src.startsWith('context.')) {
       final ctx = context;
@@ -3155,10 +3155,10 @@ final class _Run {
     return (hit: false, value: null);
   }
 
-  /// `deref {key, as}` (контракт 1.1.63): значение записи — ссылка на соседа
-  /// по документу. Элемент, у которого значение по пути `key` дословно равно
-  /// значению записи, кладётся слоем `ref.<as>` ДО `when`. Документа нет,
-  /// значения нет или сосед не нашёлся — слой пуст, условия по нему ложны.
+
+
+
+
   void _applyDeref(MapperParam p) {
     final d = p.deref;
     if (d == null) return;
@@ -3182,10 +3182,10 @@ final class _Run {
     }
   }
 
-  /// `substitute {sep, join, tokens}` (контракт 1.1.63): значение режется по
-  /// `sep`, элемент, дословно равный плейсхолдеру из `tokens`, заменяется
-  /// значением своего источника, неразрешённый снимается, остаток склеивается
-  /// `join`. Значение без плейсхолдеров не трогается; пустой итог = `null`.
+
+
+
+
   Object? _applySubstitute(MapperParam p, Object? raw) {
     final sub = p.substitute;
     if (sub == null || raw is! String) return raw;
@@ -3232,36 +3232,36 @@ final class _Run {
         final list = (m['in'] as List).map(_fold).toSet();
         return list.contains(_fold(actual ?? ''));
       }
-      // `not_in` — НЕ синоним `not: {in: […]}`: по НЕСУЩЕСТВУЮЩЕМУ адресу он
-      // ИСТИНЕН (PRIMITIVES §0.9). Условие «значение не из набора» обязано
-      // держаться и когда значения нет вовсе — иначе запись, зависящая от
-      // отсутствия чужого параметра, молча не применялась бы.
+
+
+
+
       if (m.containsKey('not_in')) {
         if (actual == null) return true;
         final list = (m['not_in'] as List).map(_fold).toSet();
         return !list.contains(_fold(actual));
       }
       if (m.containsKey('not')) return !_matches(actual, m['not']);
-      // Контракт 1.1.63 — `type_of`: тип значения источника (как одноимённый
-      // предикат detect). Значения нет — условие ложно.
+
+
       if (m.containsKey('type_of')) {
         return actual != null && _isJsonType(actual, '${m['type_of']}');
       }
       if (m.containsKey('present')) {
         return (actual != null) == (m['present'] == true);
       }
-      // `absent` — зеркало `present` (эталон `linkmap/exec.go:2159-2161`:
-      // `present != v`). Контракт 1.1.53 объявил им гейт «выключение
-      // keep-alive отрицательным ИНТЕРВАЛОМ считается только тогда, когда
-      // idle не задан вовсе» (`registry/dialer.json`,
-      // `disable_tcp_keep_alive_by_interval`), и без предиката запись не
-      // исполнялась НИ РАЗУ: неизвестный ключ уходил в `return false`.
+
+
+
+
+
+
       if (m.containsKey('absent')) {
         return (actual == null) == (m['absent'] == true);
       }
-      // Через общий [_regex]: перевод Go-группы и кэш — условие исполняется
-      // на каждом узле, а реестр пишется в Go-написании (ревью после
-      // v2.25.1, m2).
+
+
+
       if (m.containsKey('matches')) {
         return actual is String &&
             _regex(m['matches'] as String).hasMatch(actual);
@@ -3270,9 +3270,9 @@ final class _Run {
         return actual is! String ||
             !_regex(m['not_matches'] as String).hasMatch(actual);
       }
-      // Числовое сравнение: диалект, где ЗНАК значения несёт смысл
-      // («любое отрицательное = выключено совсем»), выразить набором
-      // значений нельзя — их бесконечно много.
+
+
+
       if (m.containsKey('lt') || m.containsKey('gt')) {
         final n = actual is num
             ? actual.toDouble()
@@ -3293,15 +3293,15 @@ final class _Run {
 
   static String _fold(dynamic v) => '$v'.trim().toLowerCase();
 
-  // ─────────────────────────── значения ───────────────────────────
+
 
   ({bool matched, dynamic value}) _mapValue(
     Map<String, dynamic> map,
     String value, {
     bool caseSensitive = false,
   }) {
-    // `prefix`/`strip` — режим перевода по началу имени (uTLS-идентификаторы
-    // Xray: `HelloChrome_120` → `chrome`).
+
+
     final prefix = map['prefix'];
     if (prefix is Map) {
       var probe = value.toLowerCase();
@@ -3309,8 +3309,8 @@ final class _Run {
       for (final s in strip) {
         probe = probe.replaceAll(s, '');
       }
-      // Длинный префикс проверяется раньше короткого: иначе `hellorandom`
-      // перехватил бы `hellorandomized`.
+
+
       final keys = prefix.keys.cast<String>().toList()
         ..sort((a, b) => b.length.compareTo(a.length));
       for (final k in keys) {
@@ -3321,11 +3321,11 @@ final class _Run {
       return (matched: false, value: value);
     }
     if (map.containsKey(value)) return (matched: true, value: map[value]);
-    // `value_map_case: "sensitive"` — регистр ЗНАЧИМ. Общее правило обратное
-    // (живые списки шлют `NONE`), но там, где ядро сравнивает свой литерал
-    // точно, регистронезависимое попадание проглатывало бы негодное значение
-    // как «ключа нет» и молча понижало защиту: значение обязано доехать до
-    // тела и быть отвергнутым санитайзером.
+
+
+
+
+
     if (caseSensitive) return (matched: false, value: value);
     final folded = value.toLowerCase();
     for (final e in map.entries) {
@@ -3334,8 +3334,8 @@ final class _Run {
     return (matched: false, value: value);
   }
 
-  /// Приведение ФОРМЫ значения по `type`/`list`/`coerce`. Годность значения
-  /// здесь не решается — это работа санитайзера.
+
+
   dynamic _coerceType(MapperParam p, dynamic value) {
     if (p.list != null) {
       final spec = p.list!;
@@ -3365,30 +3365,30 @@ final class _Run {
     switch (p.type) {
       case 'int':
         return _asInt(value);
-      // Длительность ГОЛЫМИ СЕКУНДАМИ (`30`→`30s`) объявляется не типом, а
-      // нормализатором `duration_bare_seconds` (§0.3): вторым именем для той
-      // же операции грамматика не обзаводится (GRAMMAR_SYNC §1 №8). Разница
-      // была только в месте объявления — `type` против `normalize`, — и две
-      // дороги к одному результату расходятся на первой же схеме.
+
+
+
+
+
       case 'bool':
       case 'bool_spelled':
-        // Общий набор написаний истины (§4 FROZEN): 1 | true | yes. Одно
-        // правило на все булевы параметры всех схем — у лаунчера сегодня их
-        // три, и `yes` работает не везде.
+
+
+
         final s = '$value'.trim().toLowerCase();
         final truthy = s == '1' || s == 'true' || s == 'yes';
-        // Ложь = «не просили»: ключ не появляется вовсе.
+
         return truthy ? true : null;
       case 'duration':
-        // Форму значения (`30s`, `1m30s`) судит санитайзер по реестру, как и
-        // у всех прочих полей: маппер её только переносит.
+
+
         return '$value'.trim();
       case 'object':
         if (value is Map) {
           final m = value.cast<String, dynamic>();
           if (!p.sortKeys) return m;
-          // **G4 (FROZEN `sort_keys`)** — порядок ключей объекта входит в
-          // тело, и оставлять его свойством реализации нельзя.
+
+
           final keys = m.keys.toList()..sort();
           return {for (final k in keys) k: m[k]};
         }
@@ -3402,9 +3402,9 @@ final class _Run {
     }
   }
 
-  /// `num` как целое — только если значение математически целое и конечное.
-  /// `443.9.toInt()` дало бы 443 и молча сменило бы endpoint; строка
-  /// `"443.9"` и так не парсится, JSON-double этот путь обходил.
+
+
+
   static int? _asInt(dynamic value) {
     if (value is int) return value;
     if (value is num) {
@@ -3421,14 +3421,14 @@ final class _Run {
         return value.trim();
       case 'trim_lower':
         return value.trim().toLowerCase();
-      // Любой из четырёх вариантов base64 (std/url-safe × с паддингом и без)
-      // приводится к КАНОНУ — std с паддингом.
-      //
-      // Это нормализация, а не суждение, и снять её нельзя: `…ccC=` и `…ccA=`
-      // декодируют в одни и те же байты, но уезжают в конфиг по-разному, то
-      // есть одна нода даёт два identity-хеша (D-030). Годность (длину) судит
-      // санитайзер по `format` поля, поэтому здесь не проверяется ничего:
-      // не-base64 возвращается как пришёл и снимается правилом реестра.
+
+
+
+
+
+
+
+
       case 'base64_std':
         final swapped = value.trim().replaceAll('-', '+').replaceAll('_', '/');
         final decoded = _RunDecode.bytes(swapped);
@@ -3436,15 +3436,15 @@ final class _Run {
       case 'duration_bare_seconds':
         final n = int.tryParse(value.trim());
         return n == null ? value : '${n}s';
-      // §506 — полоса с ЕДИНИЦЕЙ (`100mbps`, `1 Gbps`, `50 m`) → целое в
-      // мегабитах, как ждёт ядро (`up_mbps`/`down_mbps`). Панели пишут
-      // единицу как придётся, а `type: int` на такой строке давал отсутствие
-      // значения — узел приезжал без полосы МОЛЧА.
-      //
-      // Нормализатор, а не `extract`-регулярка (как у v1): единица здесь не
-      // отбрасывается, а ЧИТАЕТСЯ — `1gbps` это 1000, а не 1, и регулярка
-      // «ведущие цифры» дала бы неверное число. Суждение о годности остаётся
-      // санитайзеру: нечисловое значение возвращается как пришло.
+
+
+
+
+
+
+
+
+
       case 'bandwidth_mbps':
         return normalizeBandwidthMbps(value)?.toString() ?? value;
       default:
@@ -3452,27 +3452,27 @@ final class _Run {
     }
   }
 
-  /// Нормализаторы, работающие над СПИСКОМ, а не над скаляром: их результат —
-  /// список, и применяются они после [_coerceType].
-  ///
-  /// Оба — форма записи, не суждение: негодные значения уезжают в карту и
-  /// судятся санитайзером.
+
+
+
+
+
   static List<dynamic> _normalizeList(List<dynamic> items, String name) {
     switch (name) {
-      // `"1000-2000"` → `"1000:2000"`, одиночный порт → пара `"N:N"`. Ядру
-      // нужно ДВОЕТОЧИЕ: дефис даёт фатал «bad port range».
-      //
-      // Элемент, который парой чисел НЕ является, остаётся КАК ПРИШЁЛ: в
-      // списке бывает восстановленная authority (`host:443` — её порт
-      // принадлежит `server_port`, а не диапазонам) и просто мусор. Ядро на
-      // таком элементе отвечает фаталом «bad port range» и роняет ВЕСЬ
-      // конфиг, но выбрасывать его здесь нельзя — потеря была бы МОЛЧАЛИВОЙ.
-      //
-      // Контракт 1.1.40 отдал суд реестру: `item_pattern` +
-      // `on_item_invalid` у поля-списка выбрасывают негодный элемент С КОДОМ
-      // (путь кода — сам элемент) и действуют на ВСЕХ входах, а не только на
-      // ссылке. Здесь остаётся ровно форма записи: дефис → двоеточие,
-      // одиночный порт → пара. Имени схемы здесь по-прежнему нет.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       case 'port_range_spec':
         return [
           for (final raw in items)
@@ -3489,7 +3489,7 @@ final class _Run {
                 return '$lo:$hi';
               }(),
         ];
-      // Голый адрес получает префикс: `/32` у v4, `/128` у v6.
+
       case 'cidr_prefix':
         return [
           for (final raw in items)
@@ -3505,19 +3505,19 @@ final class _Run {
     }
   }
 
-  /// Пара `N-M`: `swap` переставляет перевёрнутые границы, `strict` оставляет
-  /// как есть. Одиночное число возвращается числом (type-fidelity).
-  ///
-  /// Два режима у одного нормализатора, потому что смысл у диапазонов разный:
-  /// magic headers — та же пара в другом написании (без нормализации одна нода
-  /// даёт два identity-хеша), а перевёрнутый тайминг — опечатка, которую
-  /// человек должен увидеть.
+
+
+
+
+
+
+
   static dynamic _normalizeRange(String value, {required bool swap}) {
     final v = value.trim();
     if (v.isEmpty) return null;
-    // Только цифры: знака у этих полей не бывает, а `int.tryParse` принял бы
-    // `-5` числом, и отрицательное значение уехало бы в тело — там его снял бы
-    // санитайзер, но уже ОБЩИМ кодом, потеряв имя поля.
+
+
+
     if (!_kUintRe.hasMatch(v)) {
       final dash = v.indexOf('-');
       if (dash <= 0) return null;
@@ -3542,27 +3542,27 @@ final class _Run {
     return '$lo-$hi';
   }
 
-  /// `merge: append`/`prepend` — слияние со значением в пути, не замена.
-  ///
-  /// Сливаются только списки: путь-скаляр списком не становится (это была бы
-  /// смена типа тела), и у него побеждает пришедшее значение, как при
-  /// `overwrite`.
+
+
+
+
+
   static dynamic _mergeInto(dynamic prev, dynamic val, String merge) {
     if (merge != 'append' && merge != 'prepend') return val;
     if (prev is! List || val is! List) return val;
     return merge == 'prepend' ? [...val, ...prev] : [...prev, ...val];
   }
 
-  // ─────────────────────────── тело ───────────────────────────
 
-  /// Записать значение по пути тела с учётом `priority`/`merge` (G3).
+
+
   void _write(String path, dynamic value, MapperParam? p) {
     if (value == null) return;
     final prio = p?.priority ?? 0;
     final occupied = _writtenBy[path];
     final merge = p?.merge ?? 'keep_first';
     if (occupied != null) {
-      // Запись с МЕНЬШИМ priority уже победила — она раньше по норме.
+
       if (merge == 'keep_first' && occupied <= prio) {
         _trace?.add(
           stage: TraceStage.field,
@@ -3575,7 +3575,7 @@ final class _Run {
         );
         return;
       }
-      // `append`/`prepend` — слияние со значением в пути, не замена.
+
       value = _mergeInto(_read(path), value, merge);
     }
     final was = occupied != null;
@@ -3592,7 +3592,7 @@ final class _Run {
     );
   }
 
-  /// Кто занял путь — для `why: lower_priority:<entry>` в трассе.
+
   final Map<String, String> _writtenByName = {};
 
   void _writeIfAbsent(String path, dynamic value, MapperParam? p) {
@@ -3600,7 +3600,7 @@ final class _Run {
     _write(path, value, p);
   }
 
-  /// **G2** — снять путь целиком (`sets: {path: null}`).
+
   void _erase(String path) {
     _trace?.add(
       stage: TraceStage.sets,
@@ -3613,7 +3613,7 @@ final class _Run {
     Map<String, dynamic>? cur = body;
     for (var i = 0; i < segs.length - 1; i++) {
       final seg = segs[i];
-      // `имя[]` — первый элемент массива (см. [_put]).
+
       if (seg.endsWith('[]')) {
         final list = cur![seg.substring(0, seg.length - 2)];
         if (list is! List || list.isEmpty || list.first is! Map) return;
@@ -3628,20 +3628,20 @@ final class _Run {
     _writtenBy.remove(path);
   }
 
-  /// Положить значение по точечному пути, заводя недостающие уровни.
-  ///
-  /// Вложенная карта НЕ пересобирается: `tls.enabled` и `tls.server_name` —
-  /// две записи в один блок, и вторая обязана дописаться к первой.
+
+
+
+
   void _put(String path, dynamic value) {
     final segs = _segments(path);
     var cur = body;
     for (var i = 0; i < segs.length - 1; i++) {
       final seg = segs[i];
-      // Сегмент `имя[]` — ЭЛЕМЕНТ МАССИВА: так запись адресует поле вложенной
-      // записи у схем уровня `endpoint`, где адреса сервера в корне тела нет
-      // вовсе. Ссылка несёт строго один такой элемент (это свойство ФОРМЫ
-      // источника, а не схемы), поэтому массив заводится из одной карты и
-      // дальше наполняется ею же.
+
+
+
+
+
       if (seg.endsWith('[]')) {
         final key = seg.substring(0, seg.length - 2);
         final existing = cur[key];
@@ -3671,7 +3671,7 @@ final class _Run {
     dynamic cur = body;
     for (final seg in _segments(path)) {
       if (cur is! Map) return null;
-      // `имя[]` — первый элемент массива (см. [_put]).
+
       if (seg.endsWith('[]')) {
         final list = cur[seg.substring(0, seg.length - 2)];
         if (list is! List || list.isEmpty) return null;
@@ -3684,73 +3684,73 @@ final class _Run {
     return cur;
   }
 
-  // ─────────────────────────── метка ───────────────────────────
 
-  /// Метка из объявленных источников с объявленной нормализацией (G8).
-  ///
-  /// Метка ВХОДИТ В IDENTITY (тег и есть identity, `node_hash.dart`), поэтому
-  /// её обработка объявлена, а не остаётся свойством кода.
+
+
+
+
+
   String _label() {
-    // Источники метки: карта по формам сильнее плоского списка (§480 — у
-    // входа с двумя формами имя лежит в разных местах). Формы, которой в
-    // карте нет, метка не положена вовсе, и это не умолчание, а объявление:
-    // фрагмент у контейнерной формы не читается ни одной записью.
+
+
+
+
     final byForm = section.label.sourceByForm;
     final sources = byForm.isNotEmpty
         ? (byForm[space.formId] ?? const <String>[])
         : section.label.source;
 
-    // Звено цепочки считается ответившим по ПОСЛЕ-нормализационному значению.
-    // Иначе пробельное имя (`nameHint: "  "`) занимало бы место в цепочке и
-    // глушило следующие звенья: `trim` превратил бы его в пустую строку уже
-    // после выбора, и узел остался бы вовсе без имени.
+
+
+
+
     for (final src in sources) {
       final v = _readSourceBare(src) ?? _readLabelBodyPath(src);
-      // Метка бывает НЕ СТРОКОЙ: в контейнере чужого диалекта `ps` приезжает
-      // числом ровно так же, как `port`. Отбрасывать её за это значило бы
-      // переименовать живой узел в фолбэк.
+
+
+
       final s = v is String ? v : (v == null ? '' : '$v');
       if (s.isEmpty) continue;
-      // Одинокий `/` — это ПУСТОЙ путь, а не имя. Ссылка, где за хостом сразу
-      // идёт строка запроса (`…@host/?a=1`), несёт этот разделитель и больше
-      // ничего: назвать им узел значит выдать пунктуацию за имя, которого
-      // автор не давал. Звено цепочки при этом не отвечает, и метку отдаёт
-      // следующее звено или фолбэк, а не сам символ.
+
+
+
+
+
       if (src == 'path' && s == '/') continue;
       final label = _normalizeLabel(s, fromFragment: src == 'fragment');
       if (label.isNotEmpty) return label;
     }
-    // Шаблон фолбэка БЕЗ подстановок — готовое имя, а не форма адреса. Такой
-    // шаблон исполняется ЗДЕСЬ: он ни от тела, ни от схемы не зависит, а общий
-    // тег-фолбэк вызывающего построил бы `<тип>-<адрес>-<порт>` и переименовал
-    // бы живые узлы. Шаблон С подстановками остаётся вызывающему: адрес он
-    // берёт из тела.
+
+
+
+
+
     final tpl = section.label.fallbackTemplate;
     if (tpl != null && !tpl.contains('{')) return tpl;
     return '';
   }
 
-  /// Звено метки — ПУТЬ ТЕЛА (`peers[].address`: хост Endpoint у ссылки
-  /// `<схема>://<base64 .conf>` без фрагмента, корпус
-  /// `awg_conf_base64_no_label`). Путь тела отличается от адреса пространства
-  /// маркером массива `[]`: у источников документа его нет.
-  ///
-  /// Читается только у входа со схемой (ссылка). У голого `.conf` то же
-  /// звено объявлено, но LxBox называет безымянный файл литералом фолбэка —
-  /// открытый пункт DELTAS реестра; прочитать звено там значило бы сменить
-  /// тег, а с ним identity уже сохранённых узлов.
+
+
+
+
+
+
+
+
+
   Object? _readLabelBodyPath(String src) {
     if (space.scheme.isEmpty || !src.contains('[]')) return null;
     return _read(src);
   }
 
-  /// Объявленная нормализация метки (G8), одна на все звенья цепочки.
-  ///
-  /// Percent снимается ТОЛЬКО с фрагмента: экранирование — свойство ссылки, а
-  /// не значения. В контейнере `ps` лежит готовой строкой, и лишний проход
-  /// съел бы у имени законный `%` (`50%25` стал бы `50%`). Во фрагменте же
-  /// декод идёт с path-семантикой: `+` там литерален (form-encoding во
-  /// фрагменте не действует).
+
+
+
+
+
+
+
   String _normalizeLabel(String raw, {bool fromFragment = true}) {
     var label =
         fromFragment ? percentDecodeOnce(raw, mode: DecodeMode.path) : raw;
@@ -3762,9 +3762,9 @@ final class _Run {
           label = label.trim();
       }
     }
-    // Замены подстрокой не независимы: длинный ключ раньше короткого,
-    // равные длины — по алфавиту, иначе исход зависел бы от порядка
-    // объявления в таблице.
+
+
+
     final froms = section.label.valueMap.keys.toList()
       ..sort((a, b) {
         final byLen = b.length.compareTo(a.length);
@@ -3776,8 +3776,8 @@ final class _Run {
     return label;
   }
 
-  /// Управляющие символы вон, кроме `\t`/`\n`/`\r` — их норма сохраняет в
-  /// середине строки (`sanitizeForDisplay`, зеркало Go).
+
+
   static String _stripControl(String s) {
     if (s.isEmpty) return s;
     final buf = StringBuffer();
@@ -3792,32 +3792,32 @@ final class _Run {
     return buf.toString();
   }
 
-  // ─────────────────────── неизвестные параметры ───────────────────────
 
-  /// `unknown_key` — параметр источника, которого не объявила ни одна запись.
-  ///
-  /// Объявленными считаются и параметры ОБЩИХ секций (tls, transports,
-  /// dialer): они вмонтированы в `params` загрузчиком через `include`, и
-  /// отдельного списка исключений заводить не нужно.
+
+
+
+
+
+
   void _reportUnknown() {
     final code = section.unknownKeyCode;
     if (code == null) return;
     for (final name in space.query.names) {
       if (_declared.contains(name.toLowerCase())) continue;
-      // Тот же ключ, объявленный ПУТЁМ ОБЪЕКТА. Контейнерная форма
-      // раскладывается лексером плоским слоем имён, и эта ветка обходит его
-      // наравне со строкой запроса — а объявлен такой ключ записью вида
-      // `json.<имя>`, до которой плоский набор `_declared` не достаёт.
-      // Без этих двух строк неизвестными объявлялись адрес, порт,
-      // идентификатор и имя узла контейнера, то есть ровно те ключи, из
-      // которых узел и собран (корпус rich_v0).
+
+
+
+
+
+
+
       if (_declaredJson.contains(name.toLowerCase())) continue;
       if (_labelKeys.contains(name.toLowerCase())) continue;
-      // `unknown_key.ignore` — объявление секции, а не свойство одного входа:
-      // ключ, названный там, молчит с какой бы стороны его ни судили. Ветка
-      // объектного входа сверялась с ним всегда, эта — нет, и у контейнерной
-      // формы, которая раскладывается плоским слоем имён, тот же самый ключ
-      // получал разный приговор в зависимости от ветки.
+
+
+
+
+
       if (section.ignoredKeys.contains(name)) continue;
       warnings.add(_unknownWarning(code, name));
       _trace?.add(
@@ -3832,34 +3832,34 @@ final class _Run {
 
     _reportUnknownIni(code);
 
-    // Объектный вход: судятся ключи ВЕРХНЕГО уровня элемента. Их конечное
-    // число, они и есть диалект, а перечислять каждый лист значило бы
-    // держать вторую копию схемы входа рядом с `body.fields`.
-    //
-    // `action: keep` (sing-box) кладёт неопознанный ключ в тело: чужой ключ
-    // может быть расширением форка, выбрасывать его нельзя. `drop` (xray)
-    // не кладёт — диалект Xray в тело ядра не едет ни одним именем.
+
+
+
+
+
+
+
     final json = space.json;
     if (json == null) return;
     for (final e in json.entries) {
       if (_consumed.contains('json.${e.key}'.toLowerCase())) continue;
       if (section.ignoredKeys.contains(e.key)) continue;
-      // Тот же ключ, ПРОЧИТАННЫЙ ПЛОСКИМ ИМЕНЕМ. Контейнерная форма
-      // раскладывается лексером плоским слоем имён, и запись, объявленная
-      // как `query.<имя>`, читает его оттуда: отметка о чтении ложится
-      // плоским написанием (`_consumeSpelling`), а не путём `json.<имя>`.
-      // Без этой строки ветка судила ключ по одному лишь `json.`-написанию и
-      // объявляла неизвестными ровно те ключи, значения которых уже стоят в
-      // теле, — у корпуса rich_v0 это путь и заголовок Host ws-транспорта.
-      // При `action: keep` они вдобавок уезжали в тело вторым, чужим полем.
+
+
+
+
+
+
+
+
       if (_consumed.contains(e.key.toLowerCase())) continue;
-      // Ключ, ОБЪЯВЛЕННЫЙ источником МЕТКИ. Метка читается позже этой ветки
-      // (`_label()` зовётся после `_reportUnknown()`), поэтому отметкой о
-      // чтении её ключ закрыть нельзя — только объявлением. Так и правильнее:
-      // норма §8 считает объявленным то, что объявила секция, а не то, что
-      // удалось прочитать, — иначе пустое имя делало бы свой ключ
-      // неизвестным. Без этой строки ключ имени узла у контейнерной формы
-      // попадал в неизвестные и при `action: keep` уезжал в тело (rich_v0).
+
+
+
+
+
+
+
       if (_labelKeys.contains(e.key.toLowerCase())) continue;
       warnings.add(_unknownWarning(code, e.key));
       if (section.unknownKeyAction == 'keep' && !body.containsKey(e.key)) {
@@ -3870,38 +3870,38 @@ final class _Run {
     _reportUnknownNested(code, json);
   }
 
-  /// §514 / контракт 1.1.52 (D133-59) — НЕИЗВЕСТНЫЙ КЛЮЧ ВНУТРИ объявленных
-  /// контейнеров.
-  ///
-  /// `json_field_unknown` судил лишь ВЕРХНИЙ уровень, а контейнеры
-  /// (`settings`/`streamSettings`/`mux`/…) стоят в `ignore`, потому что их
-  /// листья читают записи таблицы. Следствие оказалось хуже болезни: всё, что
-  /// лежало внутри контейнера и не названо ни одним `source`, терялось
-  /// АБСОЛЮТНО МОЛЧА — ни кода, ни ноты, ни деградации. Норма: тот же info-код
-  /// с ПОЛНЫМ путём, БЕЗ отбраковки — непрочитанный лист узел не ломает, он
-  /// лишь не доезжает.
-  ///
-  /// Роль контейнеров в `ignore` становится ДВОЙНОЙ: наверху молчат, внутрь
-  /// идёт обход. Молчание ВНУТРИ объявляется путями `source` плюс тремя
-  /// правилами: объявленный путь (включая чтение-без-записи `maps_to: null`),
-  /// путь-РОДИТЕЛЬ (запись, читающая объект целиком, читает и каждый его лист,
-  /// а перечислить листья она не может — их имена принадлежат подписке) и
-  /// `nested_quiet`.
-  ///
-  /// ЛИСТОМ считается только скаляр (контракт 1.1.83: пустой объект/массив
-  /// листом не является): путь внутреннего объекта — лишь дорога к
-  /// листьям, и звать неизвестным `streamSettings.wsSettings` значило бы ругаться на контейнер, чьи листья секция как раз
-  /// читает. Индекс массива входит в путь ЧИСЛОМ — тем же написанием, каким
-  /// его адресует `source`, иначе объявленность не сверить.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   void _reportUnknownNested(String code, Map<String, dynamic> json) {
     if (section.ignoredKeys.isEmpty) return;
-    // Обход идёт ТОЛЬКО внутрь объявленных контейнеров: ключ верхнего уровня
-    // судит ветка выше, и повторять её приговор здесь нельзя.
-    // Найденное собирается и ставится ОТСОРТИРОВАННЫМ по пути. Порядок обхода
-    // объекта — порядок ключей подписки, то есть произвольный: он сделал бы
-    // набор кодов зависящим от того, как панель разложила JSON, и сверку с
-    // эталоном второй стороны — невоспроизводимой. Путь здесь и есть имя
-    // события, по нему и упорядочиваем.
+
+
+
+
+
+
+
     final found = <String>[];
     for (final e in json.entries) {
       if (!section.ignoredKeys.contains(e.key)) continue;
@@ -3915,9 +3915,9 @@ final class _Run {
     }
   }
 
-  /// Глубина обхода ограничена: путь из данных провайдера не должен уводить
-  /// рекурсию в стек, а 12 сегментов покрывают самую глубокую живую форму с
-  /// запасом.
+
+
+
   static const int _kNestedUnknownMaxDepth = 12;
 
   void _walkNested(
@@ -3931,9 +3931,9 @@ final class _Run {
     if (_nestedQuiet(path)) return;
 
     if (node is Map) {
-      // Контракт 1.1.83 (MAPPER_ENGINE §8): ПУСТОЙ объект листом не является
-      // — значения в нём нет, и потерять при разборе нечего
-      // (`tcpSettings: {}`).
+
+
+
       if (node.isEmpty) return;
       for (final e in node.cast<String, dynamic>().entries) {
         _walkNested(code, '$path.${e.key}', e.value, depth + 1, found);
@@ -3941,18 +3941,18 @@ final class _Run {
       return;
     }
     if (node is List) {
-      // То же для пустого массива (`tcp: []`).
+
       if (node.isEmpty) return;
       for (var i = 0; i < node.length; i++) {
         _walkNested(code, '$path.$i', node[i], depth + 1, found);
       }
       return;
     }
-    // Скаляр — лист. Судится он и только он.
+
     _noteNestedUnknown(path, found);
   }
 
-  /// Путь лежит внутри поддерева, объявленного `nested_quiet`.
+
   bool _nestedQuiet(String path) {
     final low = path.toLowerCase();
     for (final q in section.nestedQuiet) {
@@ -3964,30 +3964,30 @@ final class _Run {
 
   void _noteNestedUnknown(String path, List<String> found) {
     final low = path.toLowerCase();
-    // Сам путь объявлен записью — включая чтение-без-записи (`maps_to: null`).
+
     if (_declaredJsonPaths.contains(low)) return;
-    // Путь-РОДИТЕЛЬ: запись, читающая объект целиком (`wsSettings.headers` с
-    // `type: object`), читает и каждый его лист; перечислить листья она не
-    // может — их имена принадлежат подписке.
+
+
+
     for (final d in _declaredJsonPaths) {
       if (low.startsWith('$d.')) return;
     }
     found.add(path);
   }
 
-  /// ПОЛНЫЕ пути `source`, объявленные секцией, с разрешённым якорем формы.
-  ///
-  /// Объявленность считается НА ИСПОЛНЕНИИ, а не при сборке плана: якорь формы
-  /// (`$base`) известен только здесь — одна и та же запись у формы `vnext` и у
-  /// формы `servers` адресует РАЗНЫЕ пути.
+
+
+
+
+
   late final Set<String> _declaredJsonPaths = () {
     final out = <String>{};
     void add(String src) {
       if (!src.startsWith('json.')) return;
       final path = _resolveBase(src.substring('json.'.length));
-      // Селектор элемента объявляет КАЖДЫЙ подходящий элемент его числовым
-      // путём (контракт 1.1.83, MAPPER_ENGINE §8); элемент другого типа
-      // остаётся необъявленным.
+
+
+
       for (final p in expandSelectorPaths(space.json, path)) {
         out.add(p.toLowerCase());
       }
@@ -4019,18 +4019,18 @@ final class _Run {
     return out;
   }();
 
-  /// Предупреждение о НЕОБЪЯВЛЕННОМ имени: `uri_param_unknown`,
-  /// `json_field_unknown`, `wgconf_param_unknown`.
-  ///
-  /// Имя едет ДВАЖДЫ и намеренно. В `path` — потому что дедуп идёт по паре
-  /// «код, путь» (PARSING_PRINCIPLES §6), и без него второй незнакомый параметр той же
-  /// ссылки исчезал бы молча. В `params.query_name` — потому что текст
-  /// реестра у всех трёх кодов называет именно этот параметр
-  /// (`{query_name}`), а подстановка `{path}` его не закрывает: незаполненный
-  /// плейсхолдер остаётся в строке как есть, и человек видел бы
-  /// «параметр {query_name}» вместо имени.
-  ///
-  /// `value` пуст: код про САМО наличие имени, а не про написанное значение.
+
+
+
+
+
+
+
+
+
+
+
+
   static RegistryWarning _unknownWarning(String code, String name) =>
       RegistryWarning(
         code: code,
@@ -4039,28 +4039,28 @@ final class _Run {
         params: {'query_name': name},
       );
 
-  /// Ключи ini-ДОКУМЕНТА, которых не объявила ни одна запись (контракт 1.1.32).
-  ///
-  /// Предмет у `.conf` другой, чем у ссылки: там имена query, здесь ключи
-  /// секций. Запись `unknown_key` стояла у `mappers.conf` и раньше, но не
-  /// срабатывала никогда — проверка спрашивала только `space.query`, а у
-  /// документа он пуст. Незнакомый ключ до тела не доходит по построению
-  /// (тело строят только объявленные записи) и потому исчезал МОЛЧА: человек
-  /// не узнавал, что часть его файла не прочитана.
-  ///
-  /// `action` здесь не при чём: класть нечего, код — единственное действие.
+
+
+
+
+
+
+
+
+
+
   void _reportUnknownIni(String code) {
     final ini = space.ini;
     if (ini == null || ini.isEmpty) return;
     final keys = ini.keys.toList()..sort();
     for (final key in keys) {
-      // `$comment.<секция>` — не ключ файла, а источник МЕТКИ, который
-      // построил сам разбор. Судить его нечем и незачем.
+
+
       if (key.startsWith(r'$')) continue;
       if (_declaredIni.contains(key)) continue;
-      // Игнор-список сверяется и с полным «секция.ключ», и с голым ключом:
-      // не-узловые ключи wg-quick (PostUp, Table) осмысленны независимо от
-      // секции, а перечислять их дважды — лишний повод разойтись.
+
+
+
       final dot = key.indexOf('.');
       final short = dot < 0 ? key : key.substring(dot + 1);
       if (section.ignoredKeys.contains(key) ||
@@ -4079,59 +4079,59 @@ final class _Run {
     }
   }
 
-  /// То же, что [_declared], но для ini-ДОКУМЕНТА: источники вида
-  /// `ini.<Секция>.<Ключ>`, обе части в нижнем регистре.
-  ///
-  /// Держится отдельным набором, потому что объявленность считается по
-  /// ИСТОЧНИКУ, а не по имени записи: запись `keepalive` читает ключ
-  /// `ini.Peer.PersistentKeepalive`, и по имени записи объявленным не
-  /// выглядел бы ни один ключ файла. Секция в имени значима: `MTU` у
-  /// `[Interface]` и `MTU` у `[Peer]` — разные ключи.
+
+
+
+
+
+
+
+
   Set<String> get _declaredIni => _plan.declaredIni;
 
-  /// Все написания, ОБЪЯВЛЕННЫЕ таблицей: имя записи, её `aliases` и имена в
-  /// `source` (`query.<имя>`).
-  ///
-  /// Считается по таблице, а не по факту чтения (норма §8): запись,
-  /// не применившаяся по `when`, объявленной быть не перестаёт. Иначе
-  /// `eh=` без `ed=` и любой параметр чужого транспорта давали бы info о
-  /// «неизвестном параметре» на ровном месте — а это ровно то молчание
-  /// наоборот, ради которого затеяна кампания.
+
+
+
+
+
+
+
+
   Set<String> get _declared => _plan.declared;
 
-  /// То же, что [_declared], но для ОБЪЕКТНОГО входа: имена верхнего уровня,
-  /// объявленные таблицей через `json.<имя>`.
-  ///
-  /// Держится отдельным набором, а не общим с query: пространства имён у
-  /// входов разные, и ключ, объявленный только в строке запроса, не делает
-  /// одноимённый ключ объекта прочитанным. Учитываются и `source` по ФОРМАМ:
-  /// у входа с двумя формами запись живёт в одной из них, а судить ключ
-  /// приходится до выбора формы.
-  ///
-  /// Путь режется до верхнего сегмента (`json.foo`, но не `json.foo.bar`):
-  /// ветка судит ровно верхний уровень, а вложенный лист ключом верхнего
-  /// уровня не является — иначе запись, читающая лист, молча признавала бы
-  /// объявленной всю ветку документа над ним.
+
+
+
+
+
+
+
+
+
+
+
+
+
   Set<String> get _declaredJson => _plan.declaredJson;
 
-  /// Ключи ВЕРХНЕГО уровня объектного входа, объявленные источником МЕТКИ.
-  ///
-  /// Берутся все формы, а не только текущая: набор считается по секции, и
-  /// ключ, из которого имя берёт соседняя форма, чужим диалектом не
-  /// становится. Путь режется до верхнего сегмента — ветка судит ровно
-  /// верхний уровень.
+
+
+
+
+
+
   Set<String> get _labelKeys => _plan.labelKeys;
 
-  /// Регулярка реестра, скомпилированная и закэшированная.
-  ///
-  /// Диалект нормы — RE2 ∩ ECMAScript, и именованная группа в нём пишется
-  /// по-разному: Go принимает только `(?P<name>…)`, Dart — только
-  /// `(?<name>…)`. Реестр пишется у лаунчера, то есть в Go-написании; перевод
-  /// делается здесь, один раз на регулярку, а не правкой данных — иначе одна
-  /// и та же запись не читалась бы двумя сторонами.
-  ///
-  /// Кэш — потому что записи исполняются на КАЖДОМ узле подписки: на 2000
-  /// узлах это 2000 одинаковых компиляций одного выражения.
+
+
+
+
+
+
+
+
+
+
   static RegExp _regex(String re) => _regexCache.putIfAbsent(
         re,
         () => RegExp(re.replaceAll('(?P<', '(?<')),

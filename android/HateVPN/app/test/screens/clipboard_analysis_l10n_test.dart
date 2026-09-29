@@ -6,9 +6,9 @@ import 'package:lxbox/services/l10n/locale_controller.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §511 m3 — карточка буфера обмена на экране Servers идёт через словарь:
-// заголовок подставляется в «Detected: %s», и английский литерал модели
-// показывался русскоязычному пользователю как есть.
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(loadEngineSections);

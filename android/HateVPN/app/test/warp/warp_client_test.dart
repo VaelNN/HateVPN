@@ -11,10 +11,10 @@ import 'package:lxbox/services/warp/warp_client.dart';
 import '../parser/engine_test_setup.dart';
 import '../parser/parse_link_as.dart';
 
-/// §025 — WarpClient: keygen, register, license. HTTP замокан.
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   Map<String, dynamic> regResponse({String? clientId}) => {
@@ -43,7 +43,7 @@ void main() {
     final b = await WarpClient.genKeypair();
     expect(base64.decode(a.priv).length, 32);
     expect(base64.decode(a.pub).length, 32);
-    expect(a.priv, isNot(b.priv)); // не детерминирован
+    expect(a.priv, isNot(b.priv));
   });
 
   test('register: 200 → корректный WarpAccount; в /reg уходит pub, не priv',
@@ -68,7 +68,7 @@ void main() {
     expect(acc.reserved, [12, 34, 56]);
     expect(acc.warpPlus, isFalse);
 
-    // Главное правило: наружу ушёл публичный ключ, не приватный.
+
     expect(sentKey, isNotNull);
     expect(sentKey, isNot(acc.privKey));
     expect(base64.decode(sentKey!).length, 32);
@@ -79,8 +79,8 @@ void main() {
     final client = MockClient(
         (req) async => http.Response(jsonEncode(regResponse()), 200));
 
-    // Юзер вписал свой IP:port (Advanced). Ответ API несёт host
-    // engage.cloudflareclient.com:2408 — но он НЕ должен победить.
+
+
     final acc = await WarpClient(client: client).register(
       endpoint: '188.114.97.6:988',
       nowIso8601: '2026-06-14T00:00:00Z',
@@ -94,7 +94,7 @@ void main() {
     final client = MockClient(
         (req) async => http.Response(jsonEncode(regResponse()), 200));
 
-    // Юзер оставил дефолт → берём host из ответа Cloudflare (старое поведение).
+
     final acc = await WarpClient(client: client).register(
       endpoint: WarpAccount.defaultEndpoint,
       nowIso8601: '2026-06-14T00:00:00Z',
@@ -125,7 +125,7 @@ void main() {
       if (req.method == 'POST') {
         return http.Response(jsonEncode(regResponse()), 200);
       }
-      // PATCH account
+
       expect(req.headers['Authorization'], 'Bearer tok-abc');
       return http.Response(jsonEncode({'warp_plus': true}), 200);
     });
@@ -145,7 +145,7 @@ void main() {
     final acc = await WarpClient(client: client)
         .register(licenseKey: 'BAD', nowIso8601: 'now');
     expect(acc.warpPlus, isFalse);
-    expect(acc.peerPub, 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbA='); // регистрация всё равно прошла
+    expect(acc.peerPub, 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbA=');
   });
 
   test('toWireguardUri несёт reserved и парсится; §137 тег Cloudflare WARP',
@@ -156,15 +156,15 @@ void main() {
         await WarpClient(client: client).register(nowIso8601: 'now');
     final uri = acc.toWireguardUri();
     expect(uri, startsWith('wireguard://'));
-    // §137 — тег с эмодзи (plain = облако), URL-энкодится во фрагменте.
+
     final parsed = Uri.parse(uri);
     expect(Uri.decodeComponent(parsed.fragment), '🔥☁️ WARP');
-    // Запятые URL-энкодятся (%2C) — parser декодит обратно. Проверяем по
-    // декодированному query, не по сырой строке.
+
+
     expect(parsed.queryParameters['reserved'], '12,34,56');
   });
 
-  // §304 — persistent keepalive для ручной регистрации WARP.
+
   group('§304 persistent keepalive', () {
     Future<WarpAccount> account() async {
       final client = MockClient(
@@ -197,9 +197,9 @@ void main() {
       expect(spec!.peers.first.persistentKeepalive, 25);
     });
 
-    // §313 — «генератор без keepalive» здесь БОЛЬШЕ не проверяется: генератор
-    // теперь передаёт значение из пула явно (scan_node_builder_test). Тест про
-    // дефолт самого `toWireguardConf` остаётся — сигнатура не менялась.
+
+
+
     test('toWireguardConf: без параметра → нет PersistentKeepalive', () async {
       final acc = await account();
       final conf = acc.toWireguardConf();

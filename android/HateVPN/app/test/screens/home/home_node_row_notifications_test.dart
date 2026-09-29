@@ -7,7 +7,7 @@ import 'package:lxbox/services/contract/registry.dart';
 import 'package:lxbox/widgets/node_row.dart';
 import 'package:lxbox/widgets/node_view_item.dart';
 
-/// §502 — значок уведомлений в строке протокола на главном экране.
+
 void main() {
   setUpAll(() async {
     await ContractRegistry.I.loadFromDirectory('assets/contract');

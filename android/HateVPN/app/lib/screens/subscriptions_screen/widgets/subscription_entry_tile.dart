@@ -7,9 +7,9 @@ import '../../../widgets/reorder_grab_strip.dart';
 import '../entry_warnings.dart';
 import 'subscription_entry_subtitle.dart';
 
-/// Одна строка списка подписок/серверов. §098 — слева grab-strip для
-/// drag-reorder (как в routing rules), снизу divider (раньше был
-/// `separatorBuilder` у `ListView.separated`).
+
+
+
 class SubscriptionEntryTile extends StatelessWidget {
   const SubscriptionEntryTile({
     super.key,
@@ -26,10 +26,10 @@ class SubscriptionEntryTile extends StatelessWidget {
   final SubscriptionEntry entry;
   final SubscriptionController subController;
 
-  /// §504 — метка «New» у свежедобавленной записи (локальная подсветка экрана).
+
   final bool showNewBadge;
 
-  /// Индекс в `ReorderableListView` для drag-старта (§098).
+
   final int dragIndex;
   final VoidCallback onToggle;
   final void Function(String url) onLaunchUrl;
@@ -37,8 +37,8 @@ class SubscriptionEntryTile extends StatelessWidget {
   final void Function(BuildContext context) onTap;
 
   Widget? _buildTrailing(BuildContext context, SubscriptionEntry entry) {
-    // §499 — счётчик только у подписки/папки. У одиночного сервера значок
-    // живёт в [NodeWarningRow] подписи, иначе он задвоился бы в trailing.
+
+
     final summary =
         entry.list is UserServer ? null : entryWarningSummary(entry);
     final typeIcon = entry.list is FolderServers

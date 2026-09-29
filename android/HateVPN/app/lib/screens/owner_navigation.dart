@@ -15,23 +15,23 @@ import 'node_settings_screen.dart';
 import 'routing_screen.dart';
 import 'subscription_detail_screen.dart';
 
-/// §258 — общий переход «config-тег → экран владельца». Вынесен из
-/// `home_screen._goToCulpritOwner` (§255) и расширен Направлениями §125:
-///   Направление (tag/autoTag)  → Routing, таб Directions, подсветка Направления;
-///   папка                → FolderDetailScreen + подсветка члена;
-///   подписка             → SubscriptionDetailScreen (Settings-таб);
-///   одиночный сервер     → NodeSettingsScreen;
-///   цепочка (§558)       → редактор цепочки, после правки — пересборка;
-///   не найден            → [onOwnerNotFound] (fallback вызывающего:
-///                          detour-cycle sheet — список Servers, View-экран
-///                          ноды — SnackBar).
-///
-/// Направление-ветка идёт ПЕРВОЙ: config-тег, равный тегу Направления, и есть Направление
-/// (билдер дедуплицирует коллизии `allocateTag`-суффиксом; tradeoff-патологию
-/// «нода с именем vpn-N при выключенном Направлении» см. spec 258).
-///
-/// [directions] — предзагруженный список (View-экран уже держит его для
-/// цепочки); null → грузим из storage. [chains] — так же.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<void> openTagOwner(
   BuildContext context,
   String tag, {
@@ -59,8 +59,8 @@ Future<void> openTagOwner(
     return;
   }
 
-  // §558 — цепочка не живёт в `entries` (отдельные записи `kind: chain`),
-  // а в конфиге выходит outbound'ом ровно с тегом `SourceChain.tag`.
+
+
   final allChains = chains ?? await SettingsStorage.getChains();
   if (!context.mounted) return;
   final chain = allChains.where((c) => c.tag == tag).firstOrNull;
@@ -104,8 +104,8 @@ Future<void> openTagOwner(
   );
 }
 
-/// §558 — правка цепочки вне Servers: записать, сообщить о снятых позициях,
-/// пересобрать конфиг (правка маршрута обязана доехать до сборки).
+
+
 Future<void> _editChainFromOwnerLink(
   BuildContext context,
   SourceChain chain, {

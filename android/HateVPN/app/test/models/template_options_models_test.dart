@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/parser_config.dart';
 
-/// §279 Phase 2 (§3.3 hardening) — typed-модели трёх raw-секций шаблона
-/// (dns_options.servers / ping_options.presets / speed_test_options.servers)
-/// парсятся из уже-оверлеенного JSON; display-поля читаются только через них.
+
+
+
 void main() {
   final template = WizardTemplate.fromJson({
     'dns_options': {
@@ -25,7 +25,7 @@ void main() {
             },
           ],
         },
-        // malformed: без server.tag — пропускается.
+
         {'description': 'Broken'},
       ],
       'rules': [
@@ -67,7 +67,7 @@ void main() {
     expect(m.servers.first.description, 'System DNS');
     expect(m.servers.first.enabled, isTrue);
     expect(m.servers[1].vars.single.title, 'Address');
-    // Обёртка сохранена для machine-уровня (резолвер body / редактор).
+
     expect(m.wrappersByTag['google_udp']?['server'],
         containsPair('type', 'udp'));
   });
@@ -87,7 +87,7 @@ void main() {
     expect(m.servers.first.uploadMethod, 'POST');
     expect(m.servers.first.uploadUrl, 'https://cf/up');
     expect(m.servers.first.pingUrl, 'https://cf/ping');
-    // Отсутствующие поля — дефолты (fallback-цепочки экрана).
+
     expect(m.servers[1].uploadUrl, isNull);
     expect(m.servers[1].uploadMethod, 'PUT');
     expect(m.servers[1].pingUrl, isEmpty);

@@ -8,15 +8,15 @@ import '../contract/errors.dart';
 import '../transport/request.dart';
 import '../transport/response.dart';
 
-/// `/nodes/*` — Фича 478. Узел глазами ЭМИТТЕРА, а не хранения.
-///
-/// Почему отдельно от `/subs/{id}`: там узел виден так, как лежит (`raw`,
-/// секции, поля записи), а проверять надо ещё и обратную сторону — что
-/// приложение отдаст наружу по этому узлу. Между ними стоит эмиттер, и
-/// расхождение видно только когда обе стороны читаются рядом.
-///
-/// Routes:
-/// - `GET /nodes/link?tag=<tag>` → ссылка узла (тот же emit, что у Copy link)
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> nodesHandler(DebugRequest req, DebugContext ctx) async {
   if (req.path != '/nodes/link') throw NotFound('nodes path: ${req.path}');
   if (req.method != 'GET') {
@@ -25,23 +25,23 @@ Future<DebugResponse> nodesHandler(DebugRequest req, DebugContext ctx) async {
   return _link(req, ctx);
 }
 
-/// `GET /nodes/link?tag=<tag>` — экспорт узла ссылкой: ровно то, что кладёт в
-/// буфер `Copy link` (`NodeSpec.toUri()`), без экрана и без буфера обмена.
-///
-/// [tag] принимается и «как в конфиге» (с префиксом подписки), и голым: экран
-/// адресует узлы первым, хранение — вторым, и заставлять проверяющего
-/// угадывать, какой из них взял этот путь, незачем.
-///
-/// `uri` несёт credentials → только с `?reveal=true`. Без флага ответ
-/// `{error:"reveal required"}` без ссылки (как `raw` члена папки).
-///
-/// Диалога про приватный ключ здесь нет — спрашивать некого. Вместо него в
-/// ответе едет `private_key: true`: тот же признак, по которому экран решает
-/// спросить (§466), так что предупреждение не теряется, а становится данными.
-///
-/// `{error}` вместо `{uri}` — когда узел найден, но ссылкой не выражается
-/// (группы §208 и прочие узлы, собранные приложением без текста): это не 404,
-/// узел есть, и ответ обязан отличать «нет узла» от «нет ссылки».
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> _link(DebugRequest req, DebugContext ctx) async {
   final sub = ctx.requireSub();
   final tag = (req.q('tag') ?? '').trim();
@@ -71,14 +71,14 @@ Future<DebugResponse> _link(DebugRequest req, DebugContext ctx) async {
     'tag': hit.tag,
     'protocol': hit.protocol,
     'uri': uri,
-    // §466 — ссылка несёт приватный ключ владельца.
+
     'private_key': carriesPrivateKeyByRegistry(hit.emit(TemplateVars.empty).map),
   });
 }
 
-/// Поиск узла по тегу — та же логика, что у экрана (`node_actions.dart`):
-/// снимаем префикс подписки и идём по узлам, включая звенья цепочки (§404).
-/// Дополнительно принимаем уже голый тег: снаружи адресуют и так.
+
+
+
 NodeSpec? _findByTag(String tag, SubscriptionController sub) {
   for (final e in sub.entries) {
     final base = TagResolver.stripPrefix(tag, e.tagPrefix);

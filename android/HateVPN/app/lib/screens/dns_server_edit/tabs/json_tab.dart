@@ -11,15 +11,15 @@ import '../../dns_settings_screen/resolved_server.dart';
 import '../edit_controller.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §117 задача 4 — JSON tab редактора DNS-сервера (locked decision №9):
-///
-/// - `inline` → **редактируемое** тело (sing-box JSON без tag/description/
-///   enabled — они на ref-level). Тело — источник правды inline-сервера;
-///   парс/strip на каждый edit живёт в контроллере, невалидный JSON
-///   блокирует save;
-/// - `template`/`preset` → **read-only** превью отрезолвленного тела
-///   (с текущими varValues, detour нормализован — display = emit) +
-///   storage-shape ref-записи + Copy (паттерн `ViewTab`).
+
+
+
+
+
+
+
+
+
 class DnsServerJsonTab extends StatelessWidget {
   const DnsServerJsonTab({super.key});
 
@@ -79,8 +79,8 @@ class _ReadOnlyPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Отрезолвленное тело с ТЕКУЩИМИ значениями формы (live: поменял var в
-    // Params → превью обновилось). Display = emit-форма (detour normalized).
+
+
     String resolvedJson;
     final wrapper = c.templateWrapper;
     if (c.kind == ServerKind.template && wrapper != null) {
@@ -97,9 +97,9 @@ class _ReadOnlyPreview extends StatelessWidget {
           .convert(c.resolved?.body ?? const {});
     }
 
-    // Запись хранения — кодеком (§439: у DnsServerRef нет toJson; модель в
-    // JsonEncoder напрямую — «Converting object to an encodable object
-    // failed», #143).
+
+
+
     final storageJson = const JsonEncoder.withIndent('  ')
         .convert(dnsServerToRecord(c.snapshot()));
 
@@ -109,7 +109,7 @@ class _ReadOnlyPreview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ─── Storage shape ───
+
           Row(
             children: [
               Expanded(
@@ -137,7 +137,7 @@ class _ReadOnlyPreview extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          // ─── Resolved sing-box body ───
+
           Row(
             children: [
               Expanded(

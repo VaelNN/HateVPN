@@ -6,13 +6,13 @@ import 'package:lxbox/services/traffic_profiler.dart';
 import 'package:lxbox/vpn/cc_channel.dart';
 import 'package:lxbox/widgets/detour_target_picker.dart';
 
-/// §251 — схлопывание «селектор + его выбор» в `селектор (выбор)`:
-/// pure-fold, обе routingLine-модели (TrafficEvent / CcConnection), строка
-/// Detour общей Routing-секции, подпись Направления в пикере. Chain НЕ фолдится.
-///
-/// Реальный эталон с устройства (WARP-MASQUE через detour-Направление vpn-4):
-///   outbound_chain = [WARP out, vpn-1]
-///   detour_chain   = [vpn-4, 🇳🇱 Нидерланды, WARP in]
+
+
+
+
+
+
+
 void main() {
   setUp(() => SelectorInfo.I.resetForTesting());
   tearDown(() => SelectorInfo.I.resetForTesting());
@@ -53,8 +53,8 @@ void main() {
     });
 
     test('Направление в AUTO: серия селекторов вкладывается, узел не теряется', () {
-      // Ядро для Направления в режиме AUTO отдаёт [Направление, его двойник, узел, …]
-      // (SPEC 017 — разворот вложенных групп в detour-хвосте).
+
+
       SelectorInfo.I.setFallbackTags(['vpn-4', 'vpn-4-auto']);
       expect(
         foldSelectorPairs(['vpn-4', 'vpn-4-auto', '🇳🇱 Нидерланды', 'WARP in']),
@@ -78,7 +78,7 @@ void main() {
       expect(SelectorInfo.I.selectedOf('vpn-4'), '🇳🇱');
 
       SelectorInfo.I.clearSelected();
-      expect(SelectorInfo.I.isSelector('vpn-4'), true); // история фолдится
+      expect(SelectorInfo.I.isSelector('vpn-4'), true);
       expect(SelectorInfo.I.selectedOf('vpn-4'), null);
     });
 
@@ -86,8 +86,8 @@ void main() {
       SelectorInfo.I.setFallbackTags(['vpn-2', 'vpn-2-auto']);
       expect(SelectorInfo.I.isSelector('vpn-2-auto'), true);
       expect(SelectorInfo.I.selectedOf('vpn-2'), null);
-      // Удалённое Направление уходит при следующем refresh — нода-омоним не
-      // фолдится ложно.
+
+
       SelectorInfo.I.setFallbackTags(['vpn-1']);
       expect(SelectorInfo.I.isSelector('vpn-2'), false);
     });
@@ -96,15 +96,15 @@ void main() {
       SelectorInfo.I.setGroups({'vpn-4': 'старый'});
       SelectorInfo.I.setGroups({'vpn-1': 'WARP out'});
       expect(SelectorInfo.I.selectedOf('vpn-4'), null);
-      expect(SelectorInfo.I.isSelector('vpn-4'), false); // прошлый конфиг ушёл
+      expect(SelectorInfo.I.isSelector('vpn-4'), false);
       expect(SelectorInfo.I.isSelector('vpn-1'), true);
     });
 
     test('kernel- и fallback-наборы независимы (union в isSelector)', () {
       SelectorInfo.I.setFallbackTags(['vpn-2']);
       SelectorInfo.I.setGroups({'vpn-1': 'X'});
-      expect(SelectorInfo.I.isSelector('vpn-2'), true); // из fallback
-      expect(SelectorInfo.I.isSelector('vpn-1'), true); // из kernel
+      expect(SelectorInfo.I.isSelector('vpn-2'), true);
+      expect(SelectorInfo.I.isSelector('vpn-1'), true);
     });
   });
 
@@ -175,7 +175,7 @@ void main() {
       );
       final byLabel = {for (final r in rows) r.label: r.value};
       expect(byLabel['Detour'], 'WARP in → vpn-4 (🇳🇱 Нидерланды)');
-      // Chain: [node, …selectors] — выбор ПЕРЕД селектором, пары нет.
+
       expect(byLabel['Chain'], 'WARP out / vpn-1');
     });
   });

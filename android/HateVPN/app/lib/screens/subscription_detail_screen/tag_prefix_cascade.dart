@@ -1,14 +1,14 @@
-// §393 A6 — каскад смены `tag_prefix` на regex-фильтры Направлений: общий
-// обработчик для экрана подписки и экрана папки.
-//
-// Оба экрана рисуют один и тот же `SubscriptionSettingsTab` и до §393 A6
-// одинаково писали префикс в обход всего остального (`entry.tagPrefix = v`).
-// Каскад живёт ЗДЕСЬ, а не в двух копиях: расхождение обработчиков — ровно
-// тот класс, что породил §275 (см. `DirectionMutations`).
-//
-// Модель разбора — `models/direction_tag_prefix.dart`; запись Направлений —
-// только через `DirectionMutations.update` (§275: голый
-// `SettingsStorage.updateDirection` мимо ресинка контроллера запрещён).
+
+
+
+
+
+
+
+
+
+
+
 
 import 'package:flutter/material.dart';
 
@@ -18,7 +18,7 @@ import '../../models/direction_tag_prefix.dart';
 import '../../services/direction_mutations.dart';
 import '../../services/l10n/locale_controller.dart';
 
-/// Итог каскада — для тестов и для строки уведомления.
+
 class TagPrefixCascadeOutcome {
   const TagPrefixCascadeOutcome({
     required this.healed,
@@ -27,24 +27,24 @@ class TagPrefixCascadeOutcome {
 
   static const none = TagPrefixCascadeOutcome(healed: [], ambiguous: []);
 
-  /// Направления, чьи фильтры переписаны (уже записаны в storage).
+
   final List<Direction> healed;
 
-  /// Направления, где старый префикс виден внутри regex-конструкции —
-  /// НЕ тронуты, пользователь правит руками.
+
+
   final List<Direction> ambiguous;
 
   bool get isEmpty => healed.isEmpty && ambiguous.isEmpty;
 }
 
-/// Пересчитать Направления под смену префикса [oldPrefix] → [newPrefix].
-///
-/// Однозначные (литеральные) вхождения переписываются и СРАЗУ уезжают в
-/// storage через [DirectionMutations.update]; неоднозначные только
-/// возвращаются вызывающему. [sub] — контроллер для зеркального ресинка
-/// (§275), может быть null в тестах/до готовности UI.
-///
-/// Возвращает [TagPrefixCascadeOutcome.none], когда трогать нечего.
+
+
+
+
+
+
+
+
 Future<TagPrefixCascadeOutcome> applyTagPrefixCascade({
   required List<Direction> directions,
   required String oldPrefix,
@@ -66,16 +66,16 @@ Future<TagPrefixCascadeOutcome> applyTagPrefixCascade({
       await DirectionMutations.update(next, sub);
       healed.add(next);
     }
-    // Направление может быть в обоих списках сразу: один фильтр переписан
-    // литералом, второй остался конструкцией — обе половины правды нужны.
+
+
     if (impact.ambiguous) ambiguous.add(impact.direction);
   }
   return TagPrefixCascadeOutcome(healed: healed, ambiguous: ambiguous);
 }
 
-/// EN-текст уведомления (AGENTS.md L8 — UI только на английском; строки
-/// проходят через каталог `getLocalText`). Пустой итог → null: call-site
-/// ничего не показывает.
+
+
+
 String? tagPrefixCascadeMessage(TagPrefixCascadeOutcome outcome) {
   if (outcome.isEmpty) return null;
   String names(List<Direction> ds) => ds.map((d) => d.displayLabel).join(', ');
@@ -92,8 +92,8 @@ String? tagPrefixCascadeMessage(TagPrefixCascadeOutcome outcome) {
   return parts.join(' ');
 }
 
-/// Показать итог каскада транзиентным SnackBar'ом. Ничего не показывает,
-/// когда каскад пуст.
+
+
 void showTagPrefixCascadeSnackBar(
     BuildContext context, TagPrefixCascadeOutcome outcome) {
   final msg = tagPrefixCascadeMessage(outcome);

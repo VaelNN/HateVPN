@@ -6,11 +6,11 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lxbox/services/warp/warp_client.dart';
 
-/// §418 — перебор хостов API регистрации WARP. HTTP замокан.
-///
-/// Правила: сетевая ошибка/таймаут на хосте → следующий; любой HTTP-ответ —
-/// итог (дальше не идём); хост-победитель держится на весь поток
-/// (PATCH enroll / license уходят туда же, куда ушёл POST /reg).
+
+
+
+
+
 void main() {
   const devices = 'https://api.devices.cloudflare.com';
   const legacy = 'https://api.cloudflareclient.com';
@@ -148,7 +148,7 @@ void main() {
       return http.Response(jsonEncode(regResponse()), 200);
     });
 
-    // В unit-тесте rootBundle недоступен → picker без пула → зашитый список.
+
     await WarpClient(client: client)
         .register(nowIso8601: '2026-09-04T00:00:00Z');
     expect(hosts, ['api.devices.cloudflare.com']);

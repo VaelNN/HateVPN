@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/vpn_settings/vpn_settings_facade.dart';
 
-/// §293 — VpnSettingsFacade.applyVpnMode: три инварианта, которые раньше нёс
-/// только UI, а Debug пропускал (реальная дивергенция stale has_tun).
+
+
 void main() {
   late Directory tmp;
   const pathChannel = MethodChannel('plugins.flutter.io/path_provider');
@@ -26,14 +26,14 @@ void main() {
         .setMockMethodCallHandler(methodsChannel, (call) async {
       if (call.method == 'setHasTun') {
         hasTunCalls.add((call.arguments as Map)['enabled'] as bool);
-        return true; // BoxVpnClient.setHasTun ожидает bool-ответ
+        return true;
       }
       return null;
     });
     SettingsStorage.resetCacheForTesting();
-    // База: vpn-режим (hasTun=true).
+
     await SettingsStorage.setVpnMode(const VpnModeConfig.defaults());
-    hasTunCalls.clear(); // сбросить шум базового setup
+    hasTunCalls.clear();
   });
 
   tearDown(() {
@@ -44,15 +44,15 @@ void main() {
   });
 
   test('mode → proxy: зеркалит setHasTun(false) (ЧИНИТ дивергенцию Debug)', () async {
-    // vpn (hasTun=true) → proxy (hasTun=false): native has_tun обязан флипнуть.
+
     final result = await VpnSettingsFacade.applyVpnMode(
         const VpnModeConfig.defaults().copyWith(mode: 'proxy'));
     expect(result.mode, 'proxy');
-    expect(hasTunCalls, [false]); // раньше Debug этого НЕ делал
+    expect(hasTunCalls, [false]);
   });
 
   test('mode не сменился: setHasTun НЕ зовётся', () async {
-    // vpn→vpn: hasTun не меняется → без native-пуша.
+
     await VpnSettingsFacade.applyVpnMode(
         const VpnModeConfig.defaults().copyWith(proxyPort: 3000));
     expect(hasTunCalls, isEmpty);
@@ -76,7 +76,7 @@ void main() {
       ),
     );
     expect(result.proxyPassword, isNotEmpty);
-    // Персистнулся с паролем.
+
     final saved = await SettingsStorage.getVpnMode();
     expect(saved.proxyPassword, result.proxyPassword);
   });
@@ -97,7 +97,7 @@ void main() {
       const VpnModeConfig.defaults().copyWith(
         mode: 'proxy',
         proxyListen: '0.0.0.0',
-        proxyAuthEnabled: false, // но effectiveAuth форсит on
+        proxyAuthEnabled: false,
         proxyPassword: '',
       ),
     );

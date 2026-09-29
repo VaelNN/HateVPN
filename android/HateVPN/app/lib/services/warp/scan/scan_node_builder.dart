@@ -1,11 +1,11 @@
-// §284 — сборка узла-кандидата (URI) из WARP-аккаунта. Одна регистрация →
-// множество узлов на разных IP:port/SNI/протоколе/приманке. Креды (ключи,
-// client_id, server-pubkey) переиспользуются: у Cloudflare они привязаны к
-// аккаунту устройства, а не к конкретному data-plane IP.
-//
-// Тег узла (заголовок в списке) = [ScanCandidate.nodeTitle], проносится через
-// фрагмент URI: для MASQUE — `#<label>` напрямую; для WG (.conf/INI) — через
-// `nameHint` парсера, который кладёт его во фрагмент.
+
+
+
+
+
+
+
+
 
 import '../../parser/ini_parser.dart';
 import '../masque_account.dart';
@@ -14,17 +14,17 @@ import '../warp_account.dart';
 import '../warp_client.dart';
 import 'scan_models.dart';
 
-/// Строит `wireguard://`/`masque://` URI (с тегом-заголовком) для кандидата.
-/// Возвращает null, если для протокола нет аккаунта или сборка/парс не удались.
+
+
 class ScanNodeBuilder {
   ScanNodeBuilder({this.warp, this.masque, this.wgKeepalive = 0});
 
   final WarpAccount? warp;
   final MasqueAccount? masque;
 
-  /// §313 — keepalive (сек) для WG/AWG-узлов, значение из пула
-  /// (`wireguard.keepalive`). `0` = не писать. Берём одно число, а не весь
-  /// [ScanPool]: билдеру от пула больше ничего не нужно.
+
+
+
   final int wgKeepalive;
 
   String? uriFor(ScanCandidate c) {
@@ -37,9 +37,9 @@ class ScanNodeBuilder {
     }
   }
 
-  /// AWG-узел: аккаунт с подменённым endpoint + обфускация (masquerade `ip`
-  /// приманки + `id`=SNI). `.conf` → `parseWireguardIni(nameHint: nodeTitle)`
-  /// → канонический `wireguard://…#nodeTitle`.
+
+
+
   String? _wgUri(ScanCandidate c) {
     final acc = warp;
     if (acc == null) return null;
@@ -52,9 +52,9 @@ class ScanNodeBuilder {
       jmax: p?.jmax ?? 70,
     ));
     final tuned = acc.copyWith(endpoint: c.endpoint, awg: awg);
-    // reserved опускаем: рабочие AWG-конфиги идут без client_id (§142).
-    // §313 — keepalive из пула: без него пир молчит при простое, NAT-маппинг
-    // оператора закрывается и узел деградирует до `err` (гейт `> 0` внутри).
+
+
+
     final spec = parseWireguardIni(
       tuned.toWireguardConf(
         includeReserved: false,
@@ -65,15 +65,15 @@ class ScanNodeBuilder {
     return spec?.toUri();
   }
 
-  /// MASQUE-узел: те же креды, версия HTTP (h3/h2) + IP:port + SNI кандидата.
-  ///
-  /// §305 — h3 И h2 берут IP:port кандидата (разнообразие endpoint). Прошлый
-  /// форсинг h3 на `acc.server` снят: вывод «h3 привязан к server» был артефактом
-  /// headless-probe (probe при остановленном VPN не поднимает QUIC). Боевой тест
-  /// (reconnect + urltest) показал: h3 живёт на 4 адресах блока (.198.1/.2,
-  /// .199.1/.2) на всех 7 портах, h2 — по всему блоку. Узкий h3-источник задаёт
-  /// генератор (`masqueV4CidrFor`), сюда приходит уже готовый кандидат.
-  /// server/port нет в copyWith — пересобираем аккаунт.
+
+
+
+
+
+
+
+
+
   String? _masqueUri(ScanCandidate c) {
     final acc = masque;
     if (acc == null) return null;
@@ -92,7 +92,7 @@ class ScanNodeBuilder {
       idleTimeout: acc.idleTimeout,
       keepAlive: acc.keepAlive,
     );
-    // §393 — версия HTTP задаётся при сборке URI (в аккаунте её больше нет).
+
     final uri = tuned.toMasqueUri(vhttp: isH3 ? 'h3' : 'h2');
     final hash = uri.lastIndexOf('#');
     final base = hash < 0 ? uri : uri.substring(0, hash);

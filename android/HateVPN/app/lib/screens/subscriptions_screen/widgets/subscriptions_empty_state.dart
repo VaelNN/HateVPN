@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../services/l10n/locale_controller.dart';
 import '../../../widgets/safe_bottom.dart';
 
-/// Onboarding card (night T5-1): вместо голого "No subscriptions yet"
-/// показываем карточку с 3-step start — пользователь сразу видит что
-/// делать. ListView+AlwaysScrollable чтобы pull-to-refresh (T3-2)
-/// продолжал работать на пустом экране.
+
+
+
+
 class SubscriptionsEmptyState extends StatelessWidget {
   const SubscriptionsEmptyState({
     super.key,
@@ -15,7 +15,7 @@ class SubscriptionsEmptyState extends StatelessWidget {
   });
 
   final bool busy;
-  /// null — блок «No provider yet?» не показывается (§587).
+
   final VoidCallback? onPickPublicTestServer;
 
   @override

@@ -4,12 +4,12 @@ import '../../models/custom_rule.dart';
 import '../../services/ui_helpers.dart';
 import '../../services/l10n/locale_controller.dart';
 
-/// Popup-меню экрана Routing. Чистая презентация: показывают `showMenu` /
-/// `showDialog` и возвращают выбор. Вся state-мутация остаётся в экране.
 
-/// Long-press меню у ☁ для preset-rule: Refresh / Clear. Возвращает
-/// `'refresh'`, `'clear'` или null (dismiss). `pos` — глобальные координаты
-/// точки long-press.
+
+
+
+
+
 Future<String?> showPresetCloudMenu(
   BuildContext context,
   Offset pos,
@@ -48,8 +48,8 @@ Future<String?> showPresetCloudMenu(
   );
 }
 
-/// Контекстное меню по long-press на tile — только Delete. Возвращает
-/// `'delete'` или null. `pos` — глобальные координаты точки long-press.
+
+
 Future<String?> showRuleContextMenu(
   BuildContext context,
   Offset pos,
@@ -79,10 +79,10 @@ Future<String?> showRuleContextMenu(
   );
 }
 
-/// Confirm-dialog удаления custom-rule. §219 — тонкая обёртка над общим
-/// showDeleteConfirmDialog (ui_helpers). Возвращает true если юзер подтвердил.
-/// §279 — [displayName] — live display-имя (label пресета из локализованного
-/// шаблона); null → сохранённое `rule.name`.
+
+
+
+
 Future<bool?> showDeleteCustomRuleDialog(
   BuildContext context,
   CustomRule rule, {

@@ -3,19 +3,19 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/screens/node_settings/node_document.dart';
 
-/// §435 — подготовка текста JSON-вкладки редактора узла. §576 — в источник
-/// уходит только тело узла: голое тело как набрано, из документа — первый
-/// узел (не служебный и не группа), из массива — первый элемент; об остатке
-/// флаг `droppedExtras` для одного сообщения.
+
+
+
+
 void main() {
   Map<String, dynamic> ready(NodeDocumentPrep p) {
     expect(p, isA<NodeDocumentReady>());
     return jsonDecode((p as NodeDocumentReady).text) as Map<String, dynamic>;
   }
 
-  // §576 п.1 — строки таблицы: голое тело, документ, массив здесь; ссылка и
-  // INI через эту функцию не идут (экран решает по первому символу и пишет
-  // их как раньше), группа `ссылка и INI` ниже фиксирует это.
+
+
+
   group('голое тело', () {
     test('объект с type → тег подмешан в корень, isDocument=false', () {
       final p = prepareNodeDocumentForSave(
@@ -160,7 +160,7 @@ void main() {
       final body = (m['outbounds'] as List).single as Map;
       expect(body['tag'], 'a');
       expect(body.containsKey('detour'), isFalse);
-      expect(body['foo'], 1); // ключ вне модели — ядро проверит его само
+      expect(body['foo'], 1);
       expect(m.containsKey('endpoints'), isFalse);
     });
 

@@ -1,32 +1,32 @@
-/// §441 (SPEC 129 контракта) — значения переменных, которые живут в записи:
-/// `dns.servers[kind=template].vars` и `rules[kind=preset].vars`.
-///
-/// Слой 5 (§439 §2.5): чистые функции над моделями и объявлениями шаблона
-/// СВОЕЙ стороны. Кодек записей шаблона не знает и значения не трогает;
-/// нормализацию зовут писатели — репозиторий на записи, миграция хранения,
-/// импорт и экспорт LX Backup, редакторы.
-///
-/// Нормы (решения владельца 15.09.2026):
-///
-///  * **Н2** — законны только имена, объявленные носителем в шаблоне: сервер
-///    с тем же тегом (`dns_options.servers[].vars[].name`), пресет с тем же
-///    `preset_id` (`selectable_rules[].vars[].name`). Необъявленное имя
-///    снимается: на импорте — с предупреждением (его зовёт вызывающий через
-///    `onUndeclared`), в хранении — молча. Носитель, которого в шаблоне нет
-///    вовсе, не нормализуется: объявлений нет — сравнивать не с чем.
-///  * **Н3** — значение хранится подрезанным (`trim`), пустое после подрезки
-///    равно отсутствию ключа.
-///  * **Н4** — значение, равное `default_value` объявления, не пишется:
-///    отсутствие ключа значит «следовать шаблону».
-///
-/// Переменная пресета со ссылкой на глобальную (`ref`, §265) не
-/// нормализуется: её значение живёт в глобальных `vars`.
-///
-/// Расширение LxBox (отклонение от буквы Н2): у любого пресета имя `outbound`
-/// законно — это универсальная замена цели пресета (`preset_expand.dart`,
-/// «Universal outbound override»), сборка читает её и у пресета, который
-/// переменную не объявил (Block Ads). Объявил — умолчание снимается по Н4;
-/// не объявил — значение остаётся.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../models/custom_rule.dart';
@@ -35,10 +35,10 @@ import '../models/parser_config.dart';
 import 'app_log.dart';
 import 'template_loader.dart';
 
-/// Имя, законное у любого пресета LxBox (универсальная замена цели).
+
 const String kPresetOutboundVar = 'outbound';
 
-/// Объявление переменной записи в шаблоне.
+
 class RecordVarDecl {
   const RecordVarDecl({
     required this.name,
@@ -49,33 +49,33 @@ class RecordVarDecl {
 
   final String name;
 
-  /// `default_value` так, как его подставляет сборка (строкой).
+
   final String defaultValue;
 
-  /// Тип языка шаблонов (`outbound`, `enum`, `dns_servers`, …).
+
   final String type;
 
-  /// §265 — ссылка на глобальную переменную: значение не в записи.
+
   final bool isRef;
 }
 
-/// Объявления переменных носителей из шаблона своей стороны.
+
 class RecordVarDecls {
   const RecordVarDecls({this.dnsServers = const {}, this.presets = const {}});
 
-  /// Шаблона нет — нормализации нет.
+
   static const none = RecordVarDecls();
 
-  /// Тег template-сервера DNS → его переменные. Сервер без `vars` — пустой
-  /// список: сервер объявлен, законных имён у него нет.
+
+
   final Map<String, List<RecordVarDecl>> dnsServers;
 
-  /// `preset_id` → переменные пресета.
+
   final Map<String, List<RecordVarDecl>> presets;
 
   bool get isEmpty => dnsServers.isEmpty && presets.isEmpty;
 
-  /// Из загруженного шаблона приложения.
+
   factory RecordVarDecls.fromTemplate(WizardTemplate template) =>
       RecordVarDecls(
         dnsServers: dnsServerVarDecls(template.dnsOptions),
@@ -95,10 +95,10 @@ class RecordVarDecls {
         },
       );
 
-  /// Из JSON-объявлений: `dns_options.servers[]` (обёртка
-  /// `{vars?, server{tag}}` или плоская запись с `tag`) и `presets[]` /
-  /// `selectable_rules[]` (`id` или `preset_id`; умолчание — `default_value`
-  /// или алиас лаунчера `default`). Форма фикстуры корпуса SPEC 129 §9.1.
+
+
+
+
   factory RecordVarDecls.fromJson(Map<String, dynamic> j) {
     final dnsOptions = j['dns_options'];
     final presets = <String, List<RecordVarDecl>>{};
@@ -121,8 +121,8 @@ class RecordVarDecls {
   }
 }
 
-/// Объявления template-серверов DNS: тег → переменные (`dns_options.servers`
-/// шаблона, обёртка §117 `{description, enabled, vars?, server}`).
+
+
 Map<String, List<RecordVarDecl>> dnsServerVarDecls(
     Map<String, dynamic> dnsOptions) {
   final out = <String, List<RecordVarDecl>>{};
@@ -151,7 +151,7 @@ RecordVarDecl? _declOf(Map d) {
   }
   final name = d['name'];
   if (name is! String || name.isEmpty) return null;
-  // Как подставляет сборка (`resolveTemplateDnsServerBody`): строкой.
+
   final def = d.containsKey('default_value') ? d['default_value'] : d['default'];
   final type = d['type'];
   return RecordVarDecl(
@@ -161,8 +161,8 @@ RecordVarDecl? _declOf(Map d) {
   );
 }
 
-/// Объявления из шаблона приложения. Шаблон не загрузился — [RecordVarDecls.none]:
-/// нормализации нет, записи пишутся как есть.
+
+
 Future<RecordVarDecls> loadRecordVarDecls() async {
   try {
     return RecordVarDecls.fromTemplate(await TemplateLoader.load());
@@ -173,17 +173,17 @@ Future<RecordVarDecls> loadRecordVarDecls() async {
   }
 }
 
-/// Итог нормализации одной карты значений: законные значения и снятые
-/// необъявленные имена (в порядке входа).
+
+
 typedef RecordVarsNormalized = ({
   Map<String, String> vars,
   List<String> undeclared,
 });
 
-/// Н2/Н3/Н4 над картой значений [values] против объявлений [decls].
-///
-/// [implicit] — имена, законные без объявления (у пресета — [kPresetOutboundVar]);
-/// умолчания у них нет, Н4 к ним не применяется.
+
+
+
+
 RecordVarsNormalized normalizeRecordVarValues(
   Map<String, String> values,
   List<RecordVarDecl> decls, {
@@ -204,7 +204,7 @@ RecordVarsNormalized normalizeRecordVarValues(
       continue;
     }
     if (decl.isRef) {
-      vars[e.key] = e.value; // §265 — не трогается
+      vars[e.key] = e.value;
       continue;
     }
     final v = e.value.trim();
@@ -214,10 +214,10 @@ RecordVarsNormalized normalizeRecordVarValues(
   return (vars: vars, undeclared: undeclared);
 }
 
-/// Значение переменной записи, которое пишет редактор: [value] подрезано;
-/// пустое или равное умолчанию объявления [decl] — `null`, ключ снимается
-/// (выбор умолчания — сброс, Н4). [decl] `null` — имя без объявления
-/// (у пресета — универсальная замена цели): Н4 не применяется.
+
+
+
+
 String? recordVarValueToStore(String value, RecordVarDecl? decl) {
   if (decl != null && decl.isRef) return value;
   final v = value.trim();
@@ -234,8 +234,8 @@ bool _sameVars(Map<String, String> a, Map<String, String> b) {
   return true;
 }
 
-/// Н2–Н4 у template-сервера DNS. Сервер другого вида или не объявленный
-/// шаблоном — как есть. [onUndeclared] получает снятые необъявленные имена.
+
+
 DnsServerRef normalizeDnsServerVars(
   DnsServerRef server,
   RecordVarDecls decls, {
@@ -250,7 +250,7 @@ DnsServerRef normalizeDnsServerVars(
   return server.copyWith(varValues: n.vars);
 }
 
-/// [normalizeDnsServerVars] по списку; [onUndeclared] — `(тег, имя)`.
+
 List<DnsServerRef> normalizeDnsServersVars(
   List<DnsServerRef> servers,
   RecordVarDecls decls, {
@@ -268,8 +268,8 @@ List<DnsServerRef> normalizeDnsServersVars(
   ];
 }
 
-/// Н2–Н4 у правила-пресета. Правило другого вида или пресет, которого нет в
-/// шаблоне (`backup_unknown_preset`), — как есть.
+
+
 CustomRule normalizePresetRuleVars(
   CustomRule rule,
   RecordVarDecls decls, {
@@ -285,7 +285,7 @@ CustomRule normalizePresetRuleVars(
   return rule.copyWith(varsValues: n.vars);
 }
 
-/// [normalizePresetRuleVars] по списку; [onUndeclared] — `(preset_id, имя)`.
+
 List<CustomRule> normalizePresetRulesVars(
   List<CustomRule> rules,
   RecordVarDecls decls, {
@@ -304,10 +304,10 @@ List<CustomRule> normalizePresetRulesVars(
   ];
 }
 
-/// Н8 — корневое имя `dns_<tag>_<var>` против объявлений шаблона: кандидаты —
-/// объявленные пары `(tag, var)`, у которых склейка совпала с [name]; из
-/// нескольких выигрывает самый длинный тег (`google_doh` / `google_doh_vpn`).
-/// `null` — кандидата нет.
+
+
+
+
 ({String tag, String varName})? rootDnsVarTarget(
   String name,
   RecordVarDecls decls,
@@ -326,13 +326,13 @@ List<CustomRule> normalizePresetRulesVars(
   return best;
 }
 
-// ─── Ссылки на Направление в значениях (SPEC 129 §6, D-113/D-114) ───────────
 
-/// Карта перенацеливания ссылок на Направление [tag]: сам тег и его
-/// auto-двойник `<tag>-auto`. Удаление и выключение — оба на [to] (`vpn-1`,
-/// как цель правила). [rename] — тег на [to], двойник на `<to>-auto`
-/// (D-113: переименование переписывает; у LxBox тег Направления неизменяем,
-/// операции переименования нет).
+
+
+
+
+
+
 Map<String, String> directionRefRetarget(
   String tag,
   String to, {
@@ -340,8 +340,8 @@ Map<String, String> directionRefRetarget(
 }) =>
     {tag: to, '$tag-auto': rename ? '$to-auto' : to};
 
-/// Имена переменных типа `outbound` у template-сервера DNS [tag] — по
-/// объявлению шаблона. Сервер шаблоном не объявлен — `outbound` по имени.
+
+
 Set<String> dnsServerOutboundVarNames(String tag, RecordVarDecls decls) {
   final declared = decls.dnsServers[tag];
   if (declared == null) return const {kPresetOutboundVar};
@@ -351,17 +351,17 @@ Set<String> dnsServerOutboundVarNames(String tag, RecordVarDecls decls) {
   };
 }
 
-/// Имена переменных типа `outbound` у пресета [presetId]: универсальная
-/// замена цели [kPresetOutboundVar] плюс объявленные шаблоном.
+
+
 Set<String> presetOutboundVarNames(String presetId, RecordVarDecls decls) => {
       kPresetOutboundVar,
       for (final d in decls.presets[presetId] ?? const <RecordVarDecl>[])
         if (!d.isRef && d.type == 'outbound') d.name,
     };
 
-/// Значения [values] с переписанными целями: имя из [names], значение —
-/// ключ [retarget]. После переписи — Н4 по объявлению из [decls] (новое имя
-/// равно умолчанию — ключ снимается). `null` — ничего не совпало.
+
+
+
 Map<String, String>? _retargetValues(
   Map<String, String> values,
   Set<String> names,
@@ -384,9 +384,9 @@ Map<String, String>? _retargetValues(
   return out;
 }
 
-/// Цели по имени в переменных типа `outbound` template-сервера DNS
-/// ([dnsServerOutboundVarNames]) переписаны по [retarget]. Не совпало или
-/// сервер другого вида — тот же экземпляр.
+
+
+
 DnsServerRef retargetDnsServerOutboundVars(
   DnsServerRef server,
   RecordVarDecls decls,
@@ -402,10 +402,10 @@ DnsServerRef retargetDnsServerOutboundVars(
   return next == null ? server : server.copyWith(varValues: next);
 }
 
-/// Цели по имени в записи DNS-сервера по [retarget]: у template — переменные
-/// типа `outbound` ([retargetDnsServerOutboundVars]), у пользовательского —
-/// `body.detour` ([retargetDnsServerDetour]). Не совпало или preset — тот же
-/// экземпляр.
+
+
+
+
 DnsServerRef retargetDnsServerDirectionRefs(
   DnsServerRef server,
   RecordVarDecls decls,
@@ -418,8 +418,8 @@ DnsServerRef retargetDnsServerDirectionRefs(
       DnsServerPreset() => server,
     };
 
-/// То же у правила-пресета ([presetOutboundVarNames]). Правило другого вида —
-/// тот же экземпляр.
+
+
 CustomRule retargetPresetOutboundVars(
   CustomRule rule,
   RecordVarDecls decls,

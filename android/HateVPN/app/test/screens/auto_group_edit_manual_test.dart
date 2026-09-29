@@ -6,9 +6,9 @@ import 'package:lxbox/models/node_spec.dart';
 import 'package:lxbox/screens/auto_group_edit_screen.dart';
 import 'package:lxbox/services/contract/group_genus.dart';
 
-// §565 — группа ручного рода (selector): редактор показывает членов пула с
-// отметкой выбранного, выбор члена меняет `default`. Проверяется поведение,
-// не текст (AGENTS.md).
+
+
+
 
 const _a = NodeLink(folderId: 'f1', tag: 'A');
 const _b = NodeLink(folderId: 'f1', tag: 'B');

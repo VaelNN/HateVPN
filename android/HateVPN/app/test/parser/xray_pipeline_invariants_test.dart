@@ -11,38 +11,38 @@ import 'package:lxbox/services/node_hash.dart';
 import 'package:lxbox/services/parser/body_decoder.dart';
 import 'package:lxbox/services/parser/parse_all.dart';
 
-/// §472 шаг 8, раздел 3 спеки — инварианты переезда Xray-JSON на конвейер.
-///
-/// Снимок `pipeline_identity_before.json` снят СТАРЫМ путём ДО правки
-/// (19.09.2026): на каждый вход — тело `emit()`, тег, имя, `rawSource`,
-/// identity-хеш, звено цепочки и число отбраковок. Расхождений быть не должно
-/// нигде, кроме двух объявленных ниже (см. [_expectedChanges]) — и оба
-/// требует КОРПУС либо реестр.
+
+
+
+
+
+
+
 const _identityFixture = 'test/fixtures/xray/pipeline_identity_before.json';
 
-/// Единственные два расхождения со снимком, оба — исправление дефекта.
-///
-/// Всё остальное обязано совпасть побуквенно: тег И ЕСТЬ identity
-/// (`node_hash.dart`), и сдвиг у живого узла означает слетевшие выбор узла,
-/// отключения и цепочки.
-/// §561 — число отбраковок входа, изменённое решением владельца 26.09.2026:
-/// отбраковка записи элемента едет в `dropped[]` подписки ВСЕГДА (прежде при
-/// живом соседе она висела на нём предупреждением, а при пустом вердикте
-/// секции пропадала молча). Узлы, теги и тела этих входов не меняются.
+
+
+
+
+
+
+
+
+
 const Map<String, int> _droppedCountChanges = {
   'hysteria_v1_skipped': 1,
   'malformed_stream': 1,
   'unsupported_protocol': 1,
 };
 
-/// §565 — тело узла-группы по контракту (PARSING_PRINCIPLES §5, корпус
-/// `body/xray/balancer_group`): состав назван сразу при разборе, параметры
-/// замера — только объявленные источником (полные дописывает сборка,
-/// `AutoSelectSpec.coreEntry`). Отпечаток тела группы сдвигается вместе с
-/// телом; тег и имя — прежние (идентичность узла — тег). Было:
-/// `{"tag":"bal","type":"urltest","outbounds":[],"url":"http://example.com",`
-/// `"interval":"30s","tolerance":50,"idle_timeout":"30m",`
-/// `"interrupt_exist_connections":false}`.
+
+
+
+
+
+
+
+
 const Map<String, String> _genusBodyDeltas = {
   'balancer_group[1]':
       '{"tag":"bal","type":"urltest","outbounds":["bal proxy"],'
@@ -50,35 +50,35 @@ const Map<String, String> _genusBodyDeltas = {
 };
 
 const Map<String, String> _expectedChanges = {
-  // Битый percent-путь транспорта (`/bad%zz`) ТЕПЕРЬ СНИМАЕТСЯ С ТЕЛА, как
-  // требует корпус (`uri/trojan/ws_path_broken_percent_kept`: поле снято,
-  // код `type_invalid`, узел жив). Ядро на таком пути роняет ВЕСЬ
-  // config.json («ws: parse path: invalid URL escape»), то есть прежнее тело
-  // Xray-узла уносило с собой весь VPN. На входе ссылки правило работало с
-  // шага 2, на Xray-входе — не работало вовсе: судьи там не было.
+
+
+
+
+
+
   'vless_ws_path_junk': 'битый путь снят с тела (format url_path), узел жив',
-  // §477 — негодная форма `vless.encryption` ТЕПЕРЬ ОТБРАКОВЫВАЕТ УЗЕЛ при
-  // разборе, а не только на сборке. Ровно то, что заметка шага 8 и обещала:
-  // правило `on_invalid: drop_node` уже было в реестре, но исполнял его
-  // проход по дословной карте, которой у Xray-узла не существовало.
+
+
+
+
   'vless_encryption_junk': 'узел отбракован при разборе (drop_node §477)',
-  // §480 — дефолт порта 443 на Xray-входе СНЯТ по арбитру, исходникам
-  // XTLS/Xray-core (решение владельца 19.09.2026). Дефолта порта у Xray нет
-  // ни у одного outbound-протокола: trojan и shadowsocks отбраковывают
-  // элемент явно («Invalid Trojan port.», infra/conf/trojan.go:67-69), а
-  // vless/vmess/socks/http порт не проверяют вовсе (infra/conf/vless.go:
-  // 274-283) и собирают узел с нулём, падающий при первом дозвоне. Рабочего
-  // узла из элемента без порта Xray не делает ни в одной ветке — наш дефолт
-  // был единственным поведением, придумывавшим узел, которого провайдер не
-  // присылал. Теперь работает `required: true` записи `port` реестра, и
-  // элемент отбраковывается той же записью и с тем же текстом, что у
-  // лаунчера.
+
+
+
+
+
+
+
+
+
+
+
   'vless_default_port': 'delta480: дефолт 443 снят по арбитру Xray — было: '
       'узел на 443; стало: ноль узлов и одна отбраковка '
       '(server port is missing or out of range)',
-  // §533 / контракт 1.1.53 (§49 п.5, 6 TASKS_LXBOX) — ЧЕТЫРЕ ИСПРАВЛЕНИЯ,
-  // где корпус объявил наше прежнее поведение ошибочным. Оверлеи, которые
-  // его держали, сняты; каждый кейс корпуса тел теперь зелёный.
+
+
+
   'vless_ws_ed_fields': 'delta533: плоские wsSettings.ed/eh больше НЕ '
       'читаются — Xray таких полей у wsSettings не объявляет, и корпус ждёт '
       'json_field_unknown (body/xray/vless_ws_ed_fields). Было: '
@@ -92,8 +92,8 @@ const Map<String, String> _expectedChanges = {
       'delta533: пара idle: 30 + interval: -5 даёт tcp_keep_alive: 30s БЕЗ '
       'флага disable_tcp_keep_alive — наш флаг на этой паре был ошибкой '
       '(body/xray/sockopt_keepalive_negative_interval)',
-  // §560 — тело Xray-узла больше не получает от МОДЕЛИ того, чего провайдер
-  // не присылал, и не теряет того, что прислал. Тег у всех пяти прежний.
+
+
   'dialer_chain_vless_relay': 'delta560: tls.server_name больше не '
       'дописывается адресом — Xray-блок tls отката не объявляет '
       '(body/xray/dialer_chain_vless_relay)',
@@ -112,10 +112,10 @@ Map<String, dynamic> _fixture() =>
 List<NodeSpec> _parse(Object? input, List<NodeWarning> dropped) =>
     parseAll(decode(jsonEncode(input)), dropped: dropped);
 
-/// Вход снимка — ТЕКСТ, а не разобранный объект: порядок ключей входа
-/// нормативен, он уезжает в `rawSource` узла байт в байт (§454). Пройди он
-/// через `Map`, ключи пересобрались бы, и сверка `rawSource` ловила бы
-/// артефакт теста, а не расхождение кода.
+
+
+
+
 List<NodeSpec> _parseText(String body, List<NodeWarning> dropped) =>
     parseAll(decode(body), dropped: dropped);
 
@@ -163,13 +163,13 @@ void main() {
           }
           expect(n.tag, w['tag'], reason: 'тег $name[$i]');
           expect(n.label, w['label'], reason: 'имя $name[$i]');
-          // §454 — `rawSource` Xray-узла остаётся pretty-print ИСХОДНОГО
-          // объекта Xray байт в байт; карта sing-box это рабочая форма
-          // конвейера, а не то, что прислал провайдер.
+
+
+
           expect(n.rawSource, w['rawSource'], reason: 'rawSource $name[$i]');
-          // Тело сверяется ТЕКСТОМ: порядок ключей нормативен, golden
-          // сравнивается байт в байт (13.7), и пересборка через `Map`
-          // спрятала бы сдвиг.
+
+
+
           expect(jsonEncode(n.emit(TemplateVars.empty).map),
               genusDelta ?? w['body_json'],
               reason: 'тело $name[$i] (порядок ключей нормативен — golden '
@@ -194,7 +194,7 @@ void main() {
     test('оба объявленных расхождения — ровно те, что описаны', () {
       final before = _fixture();
 
-      // 1. Битый путь снят с тела; узел ЖИВ и назван тем же тегом.
+
       final pathCase =
           (before['vless_ws_path_junk'] as Map).cast<String, dynamic>();
       final pathNodes = _parseText(pathCase['input_json'] as String, []);
@@ -209,8 +209,8 @@ void main() {
           ((pathCase['nodes'] as List).first as Map)['tag'],
           reason: 'тег не сдвинулся — сменилось только тело');
 
-      // 2. §477 — негодный `encryption` снимает УЗЕЛ при разборе, и причина
-      //    уезжает в `dropped[]` кодом реестра.
+
+
       final encCase =
           (before['vless_encryption_junk'] as Map).cast<String, dynamic>();
       final encDropped = <NodeWarning>[];
@@ -291,8 +291,8 @@ void main() {
     });
 
     test('сосед по элементу переживает отбраковку негодного', () {
-      // Узел с негодным `encryption` снимается, годный сосед остаётся: одна
-      // строка подписки не должна уносить остальные.
+
+
       final dropped = <NodeWarning>[];
       final nodes = _parse([
         {
@@ -336,7 +336,7 @@ void main() {
       ], dropped);
       expect(nodes, hasLength(1));
       expect(nodes.first.emit(TemplateVars.empty).map['server'], 'b.example');
-      // §561 — причина только в `dropped[]` подписки, сосед чист.
+
       expect(_codeOf(nodes.single, 'vless_encryption_invalid'), isNull,
           reason: 'чужая отбраковка на рабочем соседе не висит');
       final w = dropped.whereType<RegistryWarning>().single;
@@ -483,9 +483,9 @@ void main() {
         },
       ], []);
       expect(_codeOf(nodes.single, 'vision_with_transport'), isNotNull);
-      // §472 шаг 9 — `VisionWithTransportWarning` снят совсем (последний
-      // производитель ушёл с переездом Xray-входа), и проверять его
-      // отсутствие больше нечем: он не компилируется.
+
+
+
     });
 
     test('битый pbk объясняется кодом, а не молчаливой деградацией', () {
@@ -563,8 +563,8 @@ void main() {
     });
 
     test('vmess без security получает обязательный ключ, а не отбраковку', () {
-      // `security` у схемы `required` с дефолтом `auto`, а `default` реестра
-      // тело не наполняет: опущенный ключ снял бы узел кодом `field_missing`.
+
+
       final nodes = _parse([
         {
           'remarks': 'sec empty',
@@ -597,16 +597,16 @@ void main() {
 
   group('§472 шаг 8 — границы переезда', () {
     test('hysteria2 не получает utls: у QUIC нет TLS-рукопожатия', () {
-      // Блок utls снимается, узел живёт — это нормативно и не менялось.
-      //
-      // Контракт 1.1.28: снимает его САНИТАЙЗЕР по правилу реестра
-      // (`tls.json`: `body.fields.utls.forbidden_for` с четырьмя
-      // QUIC-схемами), а не маппер, и делает это ОДИНАКОВО на трёх входах —
-      // ссылке, JSON-теле и Xray-объекте. Отсюда и код: `tls_not_applicable_quic`
-      // уровня info, то есть «поле было, мы его сняли и говорим об этом».
-      // Прежняя рукописная ветка молчала, потому что отпечаток читала, но
-      // эмитить его было некому; молчание было свойством реализации, а не
-      // правилом. Судится ТЕЛО (блока нет) и наличие кода — оба нормативны.
+
+
+
+
+
+
+
+
+
+
       final nodes = _parse([
         {
           'remarks': 'hy2',
@@ -631,9 +631,9 @@ void main() {
     });
 
     test('битый ТИП streamSettings пропускает узел, а не оживляет его', () {
-      // `streamSettings: "none"` обязан бросить внутри маппера: вызывающий
-      // пропускает такой outbound и называет протокол в P5-warning. Мягкое
-      // чтение сделало бы из битой записи РАБОЧИЙ узел без транспорта.
+
+
+
       final dropped = <NodeWarning>[];
       final nodes = _parse([
         {
@@ -676,7 +676,7 @@ void main() {
       ], dropped);
       expect(nodes, hasLength(1));
       expect(nodes.single.emit(TemplateVars.empty).map['server'], 'b.example');
-      // §561 — пропажа не молчаливая: запись в `dropped[]`, сосед чист.
+
       expect(nodes.single.warnings, isEmpty);
       expect(
           dropped.whereType<RegistryWarning>().map((w) => w.ownerTag), ['bad']);
@@ -808,8 +808,8 @@ void main() {
       expect(nodes.single.rawSource,
           const JsonEncoder.withIndent('  ').convert(outbound),
           reason: 'карта sing-box — рабочая форма конвейера, а не источник');
-      // Ключ `type` в нём отсутствует — по нему проход шага 1 и опознаёт
-      // СВОЮ карту, и Xray-узел он по-прежнему не трогает.
+
+
       expect(jsonDecode(nodes.single.rawSource) is Map, isTrue);
       expect((jsonDecode(nodes.single.rawSource) as Map).containsKey('type'),
           isFalse);
@@ -851,15 +851,15 @@ void main() {
       annotateAllWithRegistry(nodes);
       expect(nodes.single.warnings, hasLength(before),
           reason: 'узел помечен isPipelineParsed — источник кодов один');
-      // `value` называет написанное автором, а не канонизированное.
+
       expect(_codeOf(nodes.single, 'utls_fp_unknown')?.value, 'bogus-fp');
     });
   });
 
   group('§472 инвариант 5 — цена разбора 2000 Xray-узлов', () {
     test('конвейер не дороже ×1,5 к старой полной воронке', () {
-      // Замер «лучший из трёх»: `flutter test -j 2` гоняет перф-тесты
-      // параллельно, и первый замер под соседом растягивается (шаг 3).
+
+
       final element = {
         'remarks': 'perf',
         'outbounds': [
@@ -902,12 +902,12 @@ void main() {
         expect(nodes, hasLength(2000));
         if (sw.elapsed < best) best = sw.elapsed;
       }
-      // Потолок щедрый и намеренно не привязан к железу: тест ловит
-      // ПОРЯДОК величины, а не микросекунды. Шаг 3 мерил ту же форму на
-      // ссылке: старая полная воронка vless ~222 мс, конвейер ~216 мс.
+
+
+
       expect(best.inMilliseconds, lessThan(3000),
           reason: 'разбор 2000 Xray-узлов занял ${best.inMilliseconds} мс');
-      // ignore: avoid_print
+
       print('§472 шаг 8: 2000 Xray-узлов — ${best.inMilliseconds} мс '
           '(лучший из трёх)');
     });

@@ -6,15 +6,15 @@ import 'package:lxbox/models/source_chain.dart';
 import 'package:lxbox/screens/chain_edit/chain_form_validation.dart';
 import 'package:lxbox/screens/chain_edit/chain_hop_candidate.dart';
 
-// §393 C6 — валидация формы цепочки. ФОРМА — ЕДИНСТВЕННЫЙ РУБЕЖ (§393 L4):
-// `sing-box check` ошибки старта не ловит, ядро отвергает конфиг ЦЕЛИКОМ, и
-// пользователь остаётся без VPN, а не без одного маршрута.
-//
-// Тесты сверяют КОДЫ и УРОВНИ находок, не тексты: подпись меняется, инвариант
-// нет (AGENTS.md — тестов на формат UI-строк не писать).
 
-/// Тело vless-узла с REALITY: реестр (`tls.reality.enabled` requires
-/// `tls.utls.enabled` с `set`) требует у него путь `tls.utls`.
+
+
+
+
+
+
+
+
 Map<String, dynamic> _realityBody(String tag) => {
       'type': 'vless',
       'tag': tag,
@@ -135,8 +135,8 @@ void main() {
     });
 
     test('вложенная цепочка позицией 0 законна', () {
-      // Звено — это «узел через предыдущую позицию»; первая позиция звеном не
-      // является, и цепочка там пересобираться не должна.
+
+
       final issues = validateChainForm(
         const ChainFormState(tag: 'outer', hops: ['inner', 'de-exit']),
         _ctx([_chain('inner'), _node('de-exit')], originalTag: 'outer'),
@@ -182,9 +182,9 @@ void main() {
     });
   });
 
-  // §57 (контракт 1.1.61) — REALITY × снятый uTLS больше не ошибка формы:
-  // `on_hop_required` реестра снимает ключ с патча, цепочка собирается,
-  // находка — предупреждение с кодом реестра.
+
+
+
   group('reality + strip tls.utls — on_hop_required реестра', () {
     setUpAll(loadTestRegistry);
 
@@ -240,8 +240,8 @@ void main() {
 
   group('detour (T7) — зависит от позиции', () {
     test('детур позиции 0 — ПРЕДУПРЕЖДЕНИЕ, сохранять не мешает', () {
-      // Узел идёт в сеть как есть, вместе со своим детуром: реальный путь
-      // ДЛИННЕЕ показанного. Это работает, и запрещать нечего.
+
+
       final issues = validateChainForm(
         const ChainFormState(tag: 'via-de', hops: ['home', 'de-exit']),
         _ctx([_node('home', detour: true), _node('de-exit')]),
@@ -266,7 +266,7 @@ void main() {
     });
 
     test('детур и на входе, и на звене — две РАЗНЫЕ находки', () {
-      // Сказать про обе одно и то же значило бы соврать про одну из них.
+
       final issues = validateChainForm(
         const ChainFormState(tag: 'via-de', hops: ['home', 'de-exit']),
         _ctx([_node('home', detour: true), _node('de-exit', detour: true)]),
@@ -281,8 +281,8 @@ void main() {
 
   group('потерянные позиции', () {
     test('исчезнувший тег — предупреждение с перечнем, сохранять не мешает', () {
-      // Запереть форму значило бы не дать починить ровно ту цепочку, которую
-      // пользователь пришёл чинить.
+
+
       final issues = validateChainForm(
         const ChainFormState(tag: 'via-de', hops: ['home', 'gone', 'de-exit']),
         _ctx([_node('home'), _node('de-exit')]),
@@ -295,8 +295,8 @@ void main() {
     });
 
     test('снимок целей не готов — о потере молчим', () {
-      // Объявить позиции потерянными до загрузки конфига значило бы покрасить
-      // красным рабочую цепочку.
+
+
       final issues = validateChainForm(
         const ChainFormState(tag: 'via-de', hops: ['home', 'de-exit']),
         _ctx(const [], targetsKnown: false),

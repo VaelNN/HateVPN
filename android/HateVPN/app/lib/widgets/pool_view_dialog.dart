@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import '../vpn/cc_channel.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// §208 (SPEC 019 V2) — попап с текущим составом пула round_robin-группы.
-/// Открывается из контекстного меню auto-ноды («View pool»). Снапшот тянется
-/// через `getPool` (unary RPC ядра); пустой → «Pool not available».
-///
-/// Слоты фиксированы по `slot`; нода в слоте может меняться при дотесте.
-/// `delay`==0 → нода мёртвая/не измерена («—»).
-/// §208 — цвет delay-бейджа: те же пороги, что у node_row (200/500 мс).
-/// `delay <= 0` — мёртвая/не измеренная нода.
+
+
+
+
+
+
+
+
 Color poolDelayColor(BuildContext context, int delay) {
   final cs = Theme.of(context).colorScheme;
   if (delay <= 0) return cs.onSurfaceVariant;
@@ -19,12 +19,12 @@ Color poolDelayColor(BuildContext context, int delay) {
   return cs.error;
 }
 
-/// §208/§344 — строка слота пула (`slot N · тег · delay`). Общий рендер для
-/// попапа «View pool» и раздела Members/Route экрана деталей (§344): формат
-/// слотов один, второй копии не заводим.
-///
-/// [onTap] — §344: в списке экрана слот кликабелен (→ экран владельца);
-/// в попапе навигации нет, там null.
+
+
+
+
+
+
 Widget poolSlotRow(
   BuildContext context,
   CcPoolSlot slot, {
@@ -36,7 +36,7 @@ Widget poolSlotRow(
     padding: const EdgeInsets.symmetric(vertical: 5),
     child: Row(
       children: [
-        // фиксированный номер слота
+
         SizedBox(
           width: 48,
           child: Text(getLocalText.s("slot %d", slot.slot),
@@ -139,8 +139,8 @@ class _PoolDialogState extends State<_PoolDialog> {
                         child: CircularProgressIndicator(strokeWidth: 2))),
               );
             }
-            // §209 — null = CC-клиент недоступен (сервис/туннель down). НЕ
-            // путать с пустым пулом ([] = пул пуст / не round_robin).
+
+
             final slots = snap.data;
             if (slots == null) {
               return Padding(

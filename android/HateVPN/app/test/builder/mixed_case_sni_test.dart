@@ -58,8 +58,8 @@ void main() {
 
     test('produces mixed case (not all-lower / not all-upper) over many trials',
         () {
-      // Probabilistic: 13 letters в "www.example.com" (без точек)
-      // → шанс получить полностью lower или upper ничтожен
+
+
       var hadVariation = false;
       for (var i = 0; i < 5; i++) {
         final cfg = _config([_outbound(serverName: 'www.example.com')]);
@@ -85,7 +85,7 @@ void main() {
     });
 
     test('punycode label preserved (xn-- prefix)', () {
-      // xn--e1aybc.xn--p1ai = "тест.рф" в ACE
+
       final cfg = _config([_outbound(serverName: 'xn--e1aybc.xn--p1ai')]);
       applyMixedCaseSni(cfg, {'tls_mixed_case_sni': 'true'});
       expect(
@@ -96,7 +96,7 @@ void main() {
     });
 
     test('mixed punycode + ASCII: only ASCII labels randomized', () {
-      // sub.xn--e1aybc.com — punycode label не трогаем, остальные — да
+
       final cfg = _config([_outbound(serverName: 'sub.xn--e1aybc.com')]);
       applyMixedCaseSni(cfg, {'tls_mixed_case_sni': 'true'});
       final after = ((cfg['outbounds'] as List)[0] as Map)['tls']['server_name']
@@ -120,16 +120,16 @@ void main() {
 
     test('outbound without tls.server_name skipped', () {
       final cfg = _config([
-        {'tag': 'a', 'type': 'shadowsocks'}, // нет tls
-        _outbound(serverName: ''), // пустой server_name
+        {'tag': 'a', 'type': 'shadowsocks'},
+        _outbound(serverName: ''),
       ]);
       applyMixedCaseSni(cfg, {'tls_mixed_case_sni': 'true'});
-      // Не должно быть исключений
+
       expect(((cfg['outbounds'] as List)[1] as Map)['tls']['server_name'], '');
     });
 
     test('two outbounds get independent randomization', () {
-      // Очень малый шанс что две независимые рандомизации одного хоста совпадут
+
       var foundDifferent = false;
       for (var i = 0; i < 5; i++) {
         final cfg = _config([
@@ -149,8 +149,8 @@ void main() {
               'randomization 5 times — likely shared RNG state bug');
     });
 
-    // §363 — REALITY: SNI входит в AAD хендшейка, сервер матчит имя по map с
-    // точным ключом без нормализации регистра. Рандомизация = мёртвый узел.
+
+
     group('§363 REALITY', () {
       test('reality outbound NOT touched', () {
         final cfg = _config([
@@ -165,7 +165,7 @@ void main() {
       });
 
       test('reality disabled → randomized as plain TLS', () {
-        // Гейт по флагу reality.enabled, а не по наличию ключа reality.
+
         var hadVariation = false;
         for (var i = 0; i < 5; i++) {
           final cfg = _config([

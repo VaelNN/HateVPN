@@ -4,12 +4,12 @@ import '../../models/app_info.dart';
 import '../../services/app_info_cache.dart';
 import '../../services/l10n/locale_controller.dart';
 
-/// §044/new-profiler — **встраиваемый** мульти-select пикер приложений для
-/// фильтр-окна профайлера (Profiler-таб). Это виджет внутри фильтр-листа:
-/// чекбоксы + накопление в [selected], без навигации.
-///
-/// Источник списка и icon-cache те же (`AppInfoCache.loadAllApps` + `ensure`),
-/// чтобы не грузить иконки дважды.
+
+
+
+
+
+
 class AppMultiPicker extends StatefulWidget {
   const AppMultiPicker({
     super.key,
@@ -17,8 +17,8 @@ class AppMultiPicker extends StatefulWidget {
     required this.onToggle,
   });
 
-  /// Текущий набор выбранных пакетов (пустой = фильтра нет). Управляется
-  /// родителем (фильтр-окно) — пикер только тоглит через [onToggle].
+
+
   final Set<String> selected;
   final void Function(String packageName, bool selected) onToggle;
 
@@ -61,7 +61,7 @@ class _AppMultiPickerState extends State<AppMultiPicker> {
               a.packageName.toLowerCase().contains(q))
           .toList();
     }
-    // Выбранные — наверх (чтобы видеть активный фильтр без скролла).
+
     list.sort((a, b) {
       final sa = widget.selected.contains(a.packageName) ? 0 : 1;
       final sb = widget.selected.contains(b.packageName) ? 0 : 1;
@@ -107,9 +107,9 @@ class _AppMultiPickerState extends State<AppMultiPicker> {
         const SizedBox(height: 4),
         Flexible(
           child: _loading
-              // Грузим весь список установленных приложений (loadAllApps) — на
-              // устройстве с 200+ apps это пара секунд. Текст вместо голого
-              // спиннера, чтобы не выглядело зависшим. Иконки догрузятся лениво.
+
+
+
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),

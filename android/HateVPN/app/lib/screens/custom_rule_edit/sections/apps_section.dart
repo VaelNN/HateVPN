@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/section_header.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §053 Stage 2 — APPS section: tap → AppPicker. Кнопка Clear.
+
 class AppsSection extends StatelessWidget {
   const AppsSection({
     super.key,

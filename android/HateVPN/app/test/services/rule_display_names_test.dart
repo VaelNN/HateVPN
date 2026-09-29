@@ -4,9 +4,9 @@ import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/screens/routing_screen/routing_screen_helpers.dart';
 import 'package:lxbox/services/rule_display_names.dart';
 
-/// §279 Phase 2 (§3.5.1) — live display-имена preset-правил: label из
-/// локализованного шаблона, порядковая дизамбигуация копий, дедуп новых
-/// имён по видимым (display-резолвнутым) именам.
+
+
+
 void main() {
   WizardTemplate template({String label = 'Block Ads'}) =>
       WizardTemplate.fromJson({
@@ -74,18 +74,18 @@ void main() {
   group('visibleRuleNames / uniqueCustomRuleName (display-дедуп)', () {
     test('новое inline-правило не может взять видимый label пресета', () {
       final rules = <CustomRule>[presetRule(name: 'Snapshot')];
-      // Видимое имя — live-label 'Block Ads': запрошенное имя коллизит.
+
       expect(
         RoutingHelpers.uniqueCustomRuleName(
             'Block Ads', '', rules, template()),
         'Block Ads (2)',
       );
-      // Снапшот тоже защищён (коллизия всплыла бы при смене локали назад).
+
       expect(
         RoutingHelpers.uniqueCustomRuleName('Snapshot', '', rules, template()),
         'Snapshot (2)',
       );
-      // Свободное имя проходит как есть.
+
       expect(
         RoutingHelpers.uniqueCustomRuleName('Free', '', rules, template()),
         'Free',
@@ -106,7 +106,7 @@ void main() {
         RoutingHelpers.uniqueCustomRuleName('Snapshot', '', rules, null),
         'Snapshot (2)',
       );
-      // Live-label неизвестен без шаблона — не участвует.
+
       expect(
         RoutingHelpers.uniqueCustomRuleName('Block Ads', '', rules, null),
         'Block Ads',

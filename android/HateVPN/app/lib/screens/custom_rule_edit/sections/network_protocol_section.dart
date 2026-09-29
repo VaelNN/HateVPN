@@ -5,15 +5,15 @@ import '../../../models/custom_rule.dart'
 import '../../../services/l10n/locale_controller.dart';
 import '../../../widgets/app_bottom_sheet.dart';
 
-/// §240 — NETWORK & PROTOCOL section.
-///
-/// Collapsed view for the rule form: a header plus up to two rows of selected
-/// chips — `Network` (L4 transport: tcp/udp/icmp) and `Protocol` (L7 sniff) —
-/// and an `Edit` button opening a bottom-sheet picker. Empty → placeholder.
-///
-/// Both axes are routing-rule level (headless rule expresses neither), AND with
-/// the rest of the rule; OR within each list. Between Network and Protocol —
-/// AND (a packet must be on a selected transport AND match a selected L7).
+
+
+
+
+
+
+
+
+
 class NetworkProtocolSection extends StatelessWidget {
   const NetworkProtocolSection({
     super.key,
@@ -49,7 +49,7 @@ class NetworkProtocolSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final hasAny = networks.isNotEmpty || protocols.isNotEmpty;
-    // Ordered subsets so chips render in a stable, catalog order.
+
     final netChips =
         kKnownNetworks.where(networks.contains).toList(growable: false);
     final protoChips =
@@ -113,7 +113,7 @@ class NetworkProtocolSection extends StatelessWidget {
   }
 }
 
-/// One labelled row of read-only chips in the collapsed view.
+
 class _ChipRow extends StatelessWidget {
   const _ChipRow({required this.label, required this.values});
 
@@ -165,9 +165,9 @@ class _ChipRow extends StatelessWidget {
   }
 }
 
-/// §240 — bottom-sheet picker with two chip sections: Network (L4) and
-/// Protocol (L7). Selection is live (each tap toggles the underlying set via
-/// the callbacks); Done just closes the sheet.
+
+
+
 class NetworkProtocolSheet extends StatefulWidget {
   const NetworkProtocolSheet({
     super.key,
@@ -308,7 +308,7 @@ class _SheetSectionTitle extends StatelessWidget {
   }
 }
 
-/// A wrap of selectable [FilterChip]s over [values].
+
 class _ChipPicker extends StatelessWidget {
   const _ChipPicker({
     required this.values,

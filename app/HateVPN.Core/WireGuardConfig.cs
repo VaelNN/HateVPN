@@ -40,7 +40,7 @@ public sealed record WireGuardConfig(string Text, string Endpoint, bool FullTunn
         CheckNumber(iface,"MTU", 576, 9000); CheckNumber(iface,"ListenPort",0,65535); CheckNumber(peer,"PersistentKeepalive",0,65535);
         var routes = peer["AllowedIPs"].Split(',').Select(x=>x.Trim()).ToList();
         var full = routes.Contains("0.0.0.0/0");
-        // A full IPv4 tunnel must not silently leave IPv6 outside the VPN.
+
         if (full && !routes.Contains("::/0")) { routes.Add("::/0"); peer["AllowedIPs"] = string.Join(", ",routes); }
         if (!peer.ContainsKey("PersistentKeepalive")) peer["PersistentKeepalive"] = "25";
         var normalized = new StringBuilder("[Interface]\n");

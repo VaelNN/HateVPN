@@ -11,15 +11,15 @@ import 'routing_section.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// §160 — детальный bottom-sheet по одному [TrafficEvent] (Live-лента
-/// per-app trace, в перспективе — и Stats→Live).
-///
-/// Аналог §152 `connection_detail_sheet.dart`, но для `TrafficEvent`
-/// (исторический снимок события, не активный conn): сгруппированные
-/// `label : value`, только непустые поля. Строки domain/IP/process —
-/// кликабельны и зовут [onSearchKey] (значение уходит в общий поиск
-/// родителя, sheet закрывается). Остальные строки — copy по тапу.
-/// Footer — Copy JSON. Кнопки «Close connection» нет (событие историческое).
+
+
+
+
+
+
+
+
+
 Future<void> showTrafficEventDetailSheet(
   BuildContext context,
   TrafficEvent event, {
@@ -60,7 +60,7 @@ class _TrafficEventDetailSheet extends StatelessWidget {
       expand: false,
       builder: (ctx, scrollController) => Column(
         children: [
-          // Grabber
+
           Container(
             width: 36,
             height: 4,
@@ -70,7 +70,7 @@ class _TrafficEventDetailSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          // Header
+
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
@@ -107,24 +107,24 @@ class _TrafficEventDetailSheet extends StatelessWidget {
     final e = event;
     final out = <Widget>[];
 
-    // Destination — host/IP/port кликабельны → поиск.
+
     out.addAll(_group(context, 'Destination', [
       _searchRow(context, 'Host', e.domain ?? ''),
       _searchRow(context, 'Dest IP', e.ip ?? ''),
       _copyRow(context, 'Dest port', e.port?.toString() ?? ''),
     ]));
 
-    // DNS
-    // rc.10 — DNS-сервер (какой сервер резолвил) + тип (udp/tls/https/…).
+
+
     final dnsServer = e.extra?['dns_server']?.toString() ?? '';
     final dnsServerType = e.extra?['dns_server_type']?.toString() ?? '';
     final dnsServerLabel = dnsServer.isEmpty
         ? ''
         : (dnsServerType.isEmpty ? dnsServer : '$dnsServer ($dnsServerType)');
-    // §315 — трасса DNS-группы (kernel SPEC 035). Строки пустые на не-групповых
-    // путях → `_copyRow` их не рисует. `Group mode` собирает флаги: fanned =
-    // в запросе был веер (цель сбоила и группа спаслась / выборы fastest),
-    // survival = чистых членов не осталось (красный флаг здоровья группы).
+
+
+
+
     final groupMode = [
       if (e.extra?['dns_fanned'] == 'true') 'fanned',
       if (e.extra?['dns_survival'] == 'true') 'survival',
@@ -132,25 +132,25 @@ class _TrafficEventDetailSheet extends StatelessWidget {
     out.addAll(_group(context, 'DNS', [
       _copyRow(context, 'Record', e.dnsRecordType ?? ''),
       _copyRow(context, 'CNAME', e.cnameChain.join(' → ')),
-      // rc.10 — какой DNS-сервер обработал запрос (на всех путях вкл. провалы).
+
       _copyRow(context, 'DNS server', dnsServerLabel),
-      // §315 — через какую группу шёл запрос (при вложенности: inner → outer).
+
       _copyRow(context, 'Group', e.extra?['dns_group_path']?.toString() ?? ''),
-      // §315 — хронология проб: кто опрошен, исход, RTT.
+
       _copyRow(context, 'Attempts', e.extra?['dns_attempts']?.toString() ?? ''),
       _copyRow(context, 'Group mode', groupMode),
-      // источник ответа: exchanged (сетевой запрос) / cached (из кэша) / …
+
       _copyRow(context, 'Source', e.extra?['source']?.toString() ?? ''),
     ]));
 
-    // Network
+
     out.addAll(_group(context, 'Network', [
       _copyRow(context, 'Network', e.network ?? ''),
       _copyRow(context, 'Kind', e.kind.name),
     ]));
 
-    // §044 — App: иконка + имя приложения + package, плюс атрибуция.
-    // (бывш. Process — теперь с человекочитаемым именем и иконкой).
+
+
     out.addAll(_group(context, 'App', [
       _appRow(context, e.process ?? ''),
       _confidenceRow(context, e),
@@ -158,9 +158,9 @@ class _TrafficEventDetailSheet extends StatelessWidget {
       _copyRow(context, 'Shown because', e.shownBecause ?? ''),
     ]));
 
-    // Routing (§181/§204) — единый набор строк (routingRows), общий с Conns.
-    // Outbound = outboundChain.first (для event нет отдельного поля); type из
-    // §204-протаскивания. Пустые строки скрывает _copyRow.
+
+
+
     out.addAll(_group(
       context,
       'Routing',
@@ -174,7 +174,7 @@ class _TrafficEventDetailSheet extends StatelessWidget {
       ).map((r) => _copyRow(context, r.label, r.value)).toList(),
     ));
 
-    // Traffic — показываем только если есть байты.
+
     if (e.upBytes != null || e.downBytes != null) {
       out.addAll(_group(context, 'Traffic', [
         _copyRow(context, 'Upload',
@@ -184,7 +184,7 @@ class _TrafficEventDetailSheet extends StatelessWidget {
       ]));
     }
 
-    // Timing
+
     final local = e.ts.toLocal();
     final started = formatDateTime(local);
     out.addAll(_group(context, 'Timing', [
@@ -198,14 +198,14 @@ class _TrafficEventDetailSheet extends StatelessWidget {
       ),
     ]));
 
-    // Issues — ⚠ error-цвет.
+
     if (e.issues.isNotEmpty) {
       out.addAll(_group(context, 'Issues', [
         for (final a in e.issues) _issueRow(context, a),
       ]));
     }
 
-    // Raw log line
+
     out.addAll(_group(context, 'Raw', [
       _copyRow(context, 'Log', e.rawLogLine ?? ''),
     ]));
@@ -213,9 +213,9 @@ class _TrafficEventDetailSheet extends StatelessWidget {
     return out;
   }
 
-  /// §160/§177 — kind-badge (цвет как в live_view: DNS tertiary / DNS-fail
-  /// error / TCP primary / TCP· outline / UDP secondary). §177 — DNS = один
-  /// бейдж, успех/сбой различаются ЦВЕТОМ (как TCP open/close).
+
+
+
   Widget _kindBadge(BuildContext context, TrafficEvent e) {
     final cs = Theme.of(context).colorScheme;
     final (Color color, String label) = switch (e.kind) {
@@ -240,7 +240,7 @@ class _TrafficEventDetailSheet extends StatelessWidget {
     );
   }
 
-  /// §154 — launcher-иконка приложения по package, 20×20.
+
   Widget _appIcon(BuildContext context, String pkg) {
     const double size = 20;
     final cs = Theme.of(context).colorScheme;
@@ -261,9 +261,9 @@ class _TrafficEventDetailSheet extends StatelessWidget {
     );
   }
 
-  /// §044 — строка App: иконка приложения + человекочитаемое имя (из
-  /// AppInfoCache) + package мелким моноширинным. Тап → поиск по package.
-  /// `null` если package пуст.
+
+
+
   Widget? _appRow(BuildContext context, String pkg) {
     if (pkg.isEmpty) return null;
     final cs = Theme.of(context).colorScheme;
@@ -311,7 +311,7 @@ class _TrafficEventDetailSheet extends StatelessWidget {
     );
   }
 
-  /// Заголовок группы + непустые строки, либо `[]` если все пусты.
+
   List<Widget> _group(BuildContext context, String title, List<Widget?> rows) {
     final visible = rows.whereType<Widget>().toList();
     if (visible.isEmpty) return const [];
@@ -333,14 +333,14 @@ class _TrafficEventDetailSheet extends StatelessWidget {
     ];
   }
 
-  /// `label : value`, тап копирует value. `null` если пусто.
+
   Widget? _copyRow(BuildContext context, String label, String value) {
     if (value.isEmpty) return null;
     return _baseRow(context, label, value, onTap: () => _copy(context, value));
   }
 
-  /// `label : value`, тап кладёт value в общий поиск + закрывает sheet.
-  /// `null` если пусто.
+
+
   Widget? _searchRow(BuildContext context, String label, String value) {
     final v = value.trim();
     if (v.isEmpty) return null;
@@ -388,8 +388,8 @@ class _TrafficEventDetailSheet extends StatelessWidget {
     );
   }
 
-  /// Базовая строка `label : value` с опц. цветом/иконкой/тапом.
-  /// Non-null всегда (callers с пустым value отсекают раньше).
+
+
   Widget? _baseRow(
     BuildContext context,
     String label,

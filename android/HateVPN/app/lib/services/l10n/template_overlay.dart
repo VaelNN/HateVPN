@@ -1,31 +1,31 @@
-// §279 — pre-parse overlay display-текста wizard_template.json.
-//
-// Локализация шаблона = мутация декодированной JSON-map ДО WizardTemplate.fromJson
-// и ДО preset_expand-снапшотов: каждый downstream-потребитель (парсенные модели
-// и raw-map dns/ping/speed) локализуется бесплатно, call-site'ы не меняются.
-//
-// Схема адресов — жёсткий whitelist (§3.2 спеки 279): только display-поля.
-// Machine-поля (config/parser_config, name/tag/value/default_value/preset_id,
-// dns_options.rules[].name — identity-ключ) не адресуются by construction:
-// walker их просто не посещает.
-//
-// Файл — pure Dart (без flutter-импортов): его использует и runtime-loader,
-// и CLI-checkers (tool/l10n).
 
-/// Callback walker'а: (address, map-узел, имя display-поля в узле). `address` —
-/// имя маршрута обхода (whitelist-скоуп); apply/extract ключуются САМИМ
-/// английским значением node[field], не адресом, поэтому address тут только для
-/// трассировки/симметрии обхода. Оставлен, чтобы не трогать 20+ visit-точек.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 typedef _Visit = void Function(String address, Map node, String field);
 
 class TemplateOverlay {
   TemplateOverlay._();
 
-  /// Применить [overlay] (английский текст → перевод) к декодированному
-  /// шаблону. Мутирует [templateJson] in-place. Ключ overlay — САМО английское
-  /// значение display-поля (принцип ui/-словаря), не адрес: walker держит
-  /// прямую (node, field)-ссылку, адрес — лишь имя обхода. Отсутствующий в
-  /// overlay текст — тихий английский fallback (by design).
+
+
+
+
+
   static void apply(
       Map<String, dynamic> templateJson, Map<String, String> overlay) {
     if (overlay.isEmpty) return;
@@ -33,18 +33,18 @@ class TemplateOverlay {
       final english = node[field] as String;
       final v = overlay[english];
       if (v == null || v.isEmpty) return;
-      // Load-bearing (не гигиена): overlay применяется ДО preset_expand, т.е.
-      // строка с '@'-префиксом стала бы var-ссылкой, а '{' — ICU/подстановкой.
-      // Checker (tool/l10n) режет такие значения в CI; тут — вторая линия.
+
+
+
       if (v.startsWith('@') || v.contains('{')) return;
       node[field] = v;
     });
   }
 
-  /// Извлечь плоское зеркало английский→английский из декодированного шаблона.
-  /// Ключ = само display-значение (совпадает по форме с ui/-словарём). Повторы
-  /// одного текста схлопываются в один ключ — это фича, не конфликт (ключ ЕСТЬ
-  /// значение, поэтому расхождение по построению невозможно).
+
+
+
+
   static Map<String, String> extract(Map<String, dynamic> templateJson) {
     final out = <String, String>{};
     _walk(templateJson, (address, node, field) {
@@ -54,10 +54,10 @@ class TemplateOverlay {
     return out;
   }
 
-  /// Парсит содержимое locale-overlay файла (`assets/l10n/<tag>/template.json`)
-  /// в плоскую Map английский→перевод. Формат зеркалит ui/-словарь: записи —
-  /// объектные `{"value": "<перевод>"}`; плоские строковые значения тоже
-  /// принимаются (плоский формат английский→английский).
+
+
+
+
   static Map<String, String> parseLocaleFile(Map<String, dynamic> json) {
     final out = <String, String>{};
     json.forEach((key, value) {
@@ -70,17 +70,17 @@ class TemplateOverlay {
     return out;
   }
 
-  // ---------------------------------------------------------------------------
-  // Schema-driven walker — единственное знание о том, ГДЕ живёт display-текст.
-  // apply и extract ходят одним маршрутом → их whitelist'ы совпадают всегда.
-  // Посещаются только существующие непустые String-поля: apply не добавляет
-  // полей, которых в английском шаблоне нет.
-  // ---------------------------------------------------------------------------
 
-  /// §578 — ветки элемента массива тела пресета: плоский объект — он сам;
-  /// условная обёртка `{"#if": {..., "#value": X, "#else": Y}}` — `X` и,
-  /// если есть, `Y` (каждая ветка разворачивается так же: вложенный `#if`
-  /// и ветка-массив допустимы). Ветки — те же объекты шаблона, не копии: apply пишет в них.
+
+
+
+
+
+
+
+
+
+
   static List<Map> conditionalBranches(dynamic item) {
     if (item is List) return [for (final x in item) ...conditionalBranches(x)];
     if (item is! Map) return const [];
@@ -99,9 +99,9 @@ class TemplateOverlay {
       if (v is String && v.isNotEmpty) visit(address, node, field);
     }
 
-    // Var-узел: title/tooltip + object-form enum-опции (`{title, value}`).
-    // Bare-string опции не адресуются (wire-значения). Ref-vars (`{"ref": n}`)
-    // display-полей не несут — резолвятся против пропатченной декларации.
+
+
+
     void varNode(dynamic v, String base) {
       if (v is! Map || v['name'] is! String) return;
       str(v, '$base.title', 'title');
@@ -116,8 +116,8 @@ class TemplateOverlay {
       }
     }
 
-    // sections[] — id (новое поле §279 Phase 0) скоупит name/description;
-    // глобальные vars — плоский `var.<name>.*` (name = machine-id).
+
+
     final sections = t['sections'];
     if (sections is List) {
       for (final s in sections) {
@@ -137,9 +137,9 @@ class TemplateOverlay {
       }
     }
 
-    // selectable_rules[] — rule-локальные vars скоупятся preset_id (P0 ревью:
-    // одноимённые vars разных пресетов несут разный текст, плоский неймспейс
-    // молча схлопывал их last-wins). dns_servers тела пресета — по tag.
+
+
+
     final rules = t['selectable_rules'];
     if (rules is List) {
       for (final r in rules) {
@@ -159,11 +159,11 @@ class TemplateOverlay {
         final ds = r['dns_servers'];
         if (ds is List) {
           for (var i = 0; i < ds.length; i++) {
-            // §578 — элемент может быть условной обёрткой `#if`: отображаемые
-            // поля живут в ветках `#value`/`#else`. Тег пресета с `for_each`
-            // — конструкция `#tpl`, не строка: адрес тогда по индексу
-            // элемента (ключ перевода — сам английский текст, адрес только
-            // имя обхода).
+
+
+
+
+
             for (final d in conditionalBranches(ds[i])) {
               final tag = d['tag'];
               str(
@@ -178,7 +178,7 @@ class TemplateOverlay {
       }
     }
 
-    // group_templates.magic_nodes — титулы magic-нод (auto/direct/block).
+
     final gt = t['group_templates'];
     if (gt is Map) {
       final magic = gt['magic_nodes'];
@@ -189,7 +189,7 @@ class TemplateOverlay {
       }
     }
 
-    // default_directions[] — seed-метки Направлений (после seed'а — user data).
+
     final directions = t['default_directions'];
     if (directions is List) {
       for (final c in directions) {
@@ -199,9 +199,9 @@ class TemplateOverlay {
       }
     }
 
-    // dns_options.servers[] — tag живёт во вложенном server-объекте; description
-    // и vars — на уровне entry. dns_options.rules[].name НЕ адресуется —
-    // латентный identity-ключ (dns_rules.dart), никогда не локализуется.
+
+
+
     final dnsOptions = t['dns_options'];
     if (dnsOptions is Map) {
       final servers = dnsOptions['servers'];
@@ -224,8 +224,8 @@ class TemplateOverlay {
       }
     }
 
-    // ping_options.presets[] / speed_test_options.servers[] — по id (§279
-    // Phase 0: новые поля; runtime-выбор speed-сервера переведён на id).
+
+
     final ping = t['ping_options'];
     if (ping is Map) {
       final presets = ping['presets'];

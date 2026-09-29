@@ -14,10 +14,10 @@ import '../../services/l10n/locale_controller.dart';
 import '../../services/file_import.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// Long-press bottom-sheet для записи подписки/сервера. Поведение 1:1 с
-/// прежним `_showContextMenu` — копировать URL, share, update,
-/// reset fail-count, delete-with-confirm. §234 — у папки своё меню
-/// (rename/delete), у одиночного сервера + «Move to folder…».
+
+
+
+
 void showEntryContextMenu(
   BuildContext context,
   int index,
@@ -53,9 +53,9 @@ void showEntryContextMenu(
               Navigator.pop(ctx);
             },
           ),
-          // §347 — сразу системный share-sheet с полным URL, без
-          // промежуточного диалога masked/full. Для file-подписки (§129)
-          // пункт скрыт: `file:<uuid>` — локальный ключ кэша, шарить нечего.
+
+
+
           if (entry.url.isNotEmpty && !isFileSubscription(entry.url))
             ListTile(
               leading: const Icon(Icons.ios_share),
@@ -74,10 +74,10 @@ void showEntryContextMenu(
               unawaited(subController.updateAt(index));
             },
           ),
-          // §129 — сменить источник подписки (online URL ↔ локальный файл).
-          // Транзакционно: старый источник сбрасывается только после успеха
-          // нового (см. updateSourceAt). Для file-подписки это ещё и «обновить»
-          // (выбрать файл заново).
+
+
+
+
           ListTile(
             leading: const Icon(Icons.edit_outlined),
             title: Text(getLocalText.s("Edit source…")),
@@ -86,9 +86,9 @@ void showEntryContextMenu(
               await showEditSourceDialog(context, index, entry, subController);
             },
           ),
-          // Reset fail-count (night T8-1). Если провайдер вернулся в строй
-          // после фриза (5 фейлов подряд → заморожено до app-restart),
-          // юзер может руками разморозить без перезапуска.
+
+
+
           if (entry.url.isNotEmpty)
             ListTile(
               leading: const Icon(Icons.restart_alt),
@@ -103,8 +103,8 @@ void showEntryContextMenu(
                 );
               },
             ),
-          // §234 — одиночный сервер можно перенести в папку (личные
-          // prefix/detour при этом заменяются папочными).
+
+
           if (entry.list is UserServer)
             ListTile(
               leading: const Icon(Icons.drive_file_move_outline),
@@ -114,8 +114,8 @@ void showEntryContextMenu(
                 final folderIndex =
                     await showFolderPicker(context, subController);
                 if (folderIndex == null || !context.mounted) return;
-                // Индекс сервера по ссылке — создание новой папки в пикере
-                // добавляет entry, а reorder мог сместить исходный index.
+
+
                 final serverIndex = subController.entries.indexOf(entry);
                 if (serverIndex < 0) return;
                 final err = await subController.moveServerToFolder(
@@ -157,7 +157,7 @@ void showEntryContextMenu(
   );
 }
 
-/// §234 — long-press меню папки: rename / delete (с выбором судьбы серверов).
+
 void _showFolderContextMenu(
   BuildContext context,
   int index,
@@ -203,9 +203,9 @@ void _showFolderContextMenu(
   );
 }
 
-/// §129 — диалог смены источника подписки: online URL ↔ локальный файл.
-/// Переключатель режима; online → текст-поле URL, file → picker. Save зовёт
-/// `updateSourceAt` (транзакционно: старый источник живёт, пока новый не удался).
+
+
+
 Future<void> showEditSourceDialog(
   BuildContext context,
   int index,
@@ -215,7 +215,7 @@ Future<void> showEditSourceDialog(
   final wasFile = isFileSubscription(entry.url);
   var fileMode = wasFile;
   final urlCtl = TextEditingController(text: wasFile ? '' : entry.url);
-  String? pickedBody; // тело выбранного файла (file-режим)
+  String? pickedBody;
   String pickedName = wasFile ? entry.displayName : '';
   var busy = false;
 
@@ -253,7 +253,7 @@ Future<void> showEditSourceDialog(
                 controller: urlCtl,
                 decoration: InputDecoration(
                   labelText: getLocalText.s("Subscription URL"),
-                  // l10n-exempt: URL scheme hint, locale-invariant
+
                   hintText: 'https://…',
                 ),
                 keyboardType: TextInputType.url,
@@ -274,8 +274,8 @@ Future<void> showEditSourceDialog(
                   ),
                   TextButton(
                     onPressed: () async {
-                      // §372 — нет пикера (Android TV): подсказываем перейти
-                      // в режим «Online URL», он тут же в диалоге.
+
+
                       final outcome = await pickFileSafely();
                       if (outcome is! PickedFiles) {
                         final problem = pickProblemText(outcome);
@@ -310,15 +310,15 @@ Future<void> showEditSourceDialog(
                     UiMsg? err;
                     if (fileMode) {
                       if (pickedBody == null) {
-                        // file-режим без нового файла: если и было file — просто
-                        // переоткрыть текущий кэш нельзя, требуем выбор.
+
+
                         setLocal(() => busy = false);
                         ScaffoldMessenger.of(dCtx).showSnackBar(
                           SnackBar(content: Text(getLocalText.s("Choose a file first"))),
                         );
                         return;
                       }
-                      // file: контроллер сам сгенерит свежий file:<uuid>.
+
                       err = await subController.updateSourceAt(
                         index,
                         fileBody: pickedBody,

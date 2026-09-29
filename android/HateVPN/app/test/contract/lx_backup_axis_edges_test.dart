@@ -8,10 +8,10 @@ import 'package:lxbox/services/l10n/locale_controller.dart';
 import 'package:lxbox/services/lx_backup.dart';
 import 'package:lxbox/services/template_loader.dart';
 
-/// BACKUP.md §9 п. 7 — крайние случаи оси порядка импорта (форма лаунчера
-/// `5cbcc436`): файл без номеров размечает загрузка (`markRuleOrder`) — пресеты
-/// по шаблону, голова `traffic-processing` первой; частично размеченный файл
-/// ставит неразмеченные корневые в хвост, но не ниже `kUserRuleNumStart`.
+
+
+
+
 
 String _file10(List<Map<String, dynamic>> rules) => jsonEncode({
       'lx_backup': 2,

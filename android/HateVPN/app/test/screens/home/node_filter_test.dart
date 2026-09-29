@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:lxbox/screens/home/node_filter.dart';
 
-/// §048 — unit tests для `NodeFilter` predicate + `extractEmojis`.
-/// Тестируется PURE predicate (без UI). Detour exclusion здесь не
-/// проверяется — это pool filter в caller (locked decision #13).
+
+
+
 void main() {
   NodeFilter makeFilter({
     RegExp? regex,
@@ -57,9 +57,9 @@ void main() {
 
     test('frequency sort (most frequent first)', () {
       final result = NodeFilter.extractEmojis([
-        '🇷🇺 N1', '🇷🇺 N2', '🇷🇺 N3', // 3x
-        '🇺🇸 N1', '🇺🇸 N2', //              2x
-        '🇩🇪 N1', //                          1x
+        '🇷🇺 N1', '🇷🇺 N2', '🇷🇺 N3',
+        '🇺🇸 N1', '🇺🇸 N2',
+        '🇩🇪 N1',
       ]);
       expect(result, ['🇷🇺', '🇺🇸', '🇩🇪']);
     });
@@ -233,7 +233,7 @@ void main() {
     });
 
     test('§077 multi-chip {sub-a, sub-c} ∩ candidates {sub-a, sub-b} → true (any-match)', () {
-      // Audit finding #4 — symmetric intersection: с multi-chip side.
+
       final f = makeFilter(
         subscriptions: {'sub-a', 'sub-c'},
         sub: {'🇷🇺 M1': {'sub-a', 'sub-b'}},
@@ -250,7 +250,7 @@ void main() {
     });
 
     test('custom chip + node с known sub → false (UserServer-only filter)', () {
-      // Audit finding #5: custom branch + non-empty candidates inversion check.
+
       final f = makeFilter(
         subscriptions: {'custom'},
         sub: {'🇷🇺 M1': {'sub-1'}},
@@ -275,7 +275,7 @@ void main() {
     });
 
     test('subscription filter off (empty Set) + non-empty candidates → true', () {
-      // Audit finding #16: контракт «filter off ignores whatever lookup returns».
+
       final f = makeFilter(
         sub: {'🇷🇺 M1': {'sub-a', 'sub-b'}},
       );
@@ -373,7 +373,7 @@ void main() {
     test('unknown нода (пустой Set) при active фильтре → non-matching', () {
       final f = makeFilter(variants: {'TLS'}, vari: vari);
       expect(f.passes('unknown'), isFalse);
-      // под invert наоборот — проходит («не TLS»)
+
       final fi =
           makeFilter(variants: {'TLS'}, variantsInvert: true, vari: vari);
       expect(fi.passes('unknown'), isTrue);

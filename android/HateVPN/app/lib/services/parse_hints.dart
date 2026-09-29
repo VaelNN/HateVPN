@@ -1,9 +1,9 @@
-/// Эвристики для типичных причин, почему подписка распарсилась в 0 узлов
-/// (night T3-3). Пробегаем по raw body и возвращаем короткую подсказку
-/// юзеру ("это HTML страница, не подписка", "похоже на Clash YAML").
-///
-/// Возвращает `null` если эвристики не сработали — caller показывает
-/// generic-месседж.
+
+
+
+
+
+
 String? diagnoseEmptyParse(String rawBody) {
   if (rawBody.isEmpty) {
     return 'Empty response from server';
@@ -11,7 +11,7 @@ String? diagnoseEmptyParse(String rawBody) {
   final sample = rawBody.length > 512 ? rawBody.substring(0, 512) : rawBody;
   final lowered = sample.toLowerCase().trimLeft();
 
-  // HTML-страница (провайдер вернул landing/login).
+
   if (lowered.startsWith('<!doctype html') ||
       lowered.startsWith('<html') ||
       lowered.contains('<body')) {
@@ -19,7 +19,7 @@ String? diagnoseEmptyParse(String rawBody) {
         'URL may be wrong or requires login';
   }
 
-  // Clash YAML (очень частый кейс у провайдеров).
+
   if (sample.contains('proxies:') ||
       sample.contains('proxy-groups:') ||
       sample.contains('port: 7890')) {
@@ -27,7 +27,7 @@ String? diagnoseEmptyParse(String rawBody) {
         'Ask provider for URI-list subscription URL';
   }
 
-  // JSON конфиг sing-box/V2Ray целиком (не outbound-only).
+
   final t = sample.trimLeft();
   if ((t.startsWith('{') || t.startsWith('[')) &&
       (sample.contains('"inbounds"') || sample.contains('"routing"'))) {
@@ -35,9 +35,9 @@ String? diagnoseEmptyParse(String rawBody) {
         'Use only the outbounds array';
   }
 
-  // Plain-text error from provider. Должно быть message-like (буквы+пробелы+
-  // простая пунктуация), без следов config-синтаксиса (фигурные/квадратные
-  // скобки, двоеточия, знак "=", угловые скобки — признаки YAML/JSON/INI/HTML).
+
+
+
   if (sample.length < 200 && _looksLikePlainMessage(sample)) {
     return 'Server returned a plain message (not a subscription): '
         '"${sample.replaceAll("\n", " ").trim()}"';
@@ -46,11 +46,11 @@ String? diagnoseEmptyParse(String rawBody) {
   return null;
 }
 
-/// `true`, если `sample` похож на prose/error-сообщение, а не на огрызок
-/// config-файла. Критерии (все должны совпадать):
-///  - в первых 100 символах нет ни одного из `{` `[` `:` `=` `<`
-///  - ≥60% непробельных символов — буквы (латиница или кириллица)
-///    или разрешённая message-пунктуация (`.`, `,`, `!`, `?`, `-`, `'`, `"`)
+
+
+
+
+
 bool _looksLikePlainMessage(String sample) {
   final head = sample.length > 100 ? sample.substring(0, 100) : sample;
   for (final ch in const ['{', '[', ':', '=', '<']) {

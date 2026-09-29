@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 import 'dart:typed_data';
@@ -22,9 +22,9 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => root;
 }
 
-/// §316 — доступ к краш-репортам ядра (Go-паники) через Debug API.
-/// Файлы физически лежали в `filesDir` (ядро пишет их само), но не были
-/// ни в whitelist `/files/local`, ни доступны из архивной подпапки.
+
+
+
 void main() {
   late Directory tempDir;
 
@@ -91,7 +91,7 @@ void main() {
     test('list: новые первыми, поля name/size/mtime', () async {
       final older = await writeFile('crash_reports/old.log', 'aa');
       final newer = await writeFile('crash_reports/new.log', 'bbbb');
-      // Явные mtime — порядок обхода FS не гарантирован.
+
       await older.setLastModified(DateTime.utc(2026, 1, 1));
       await newer.setLastModified(DateTime.utc(2026, 6, 1));
 
@@ -118,9 +118,9 @@ void main() {
           contains('goroutine 1'));
     });
 
-    // Реальная схема ядра: репорт — КАТАЛОГ с go.log/metadata/configuration.
-    // Прежний обход брал только файлы и отдавал [] при полном архиве
-    // (device-verified 27.07.2026).
+
+
+
     test('репорт-каталог ядра виден в list и отдаётся по name', () async {
       await writeFile('crash_reports/2026-07-26T22-26-00/go.log',
           'goroutine 711 gp=0x4000 [running]:');
@@ -134,13 +134,13 @@ void main() {
       expect((body.first as Map)['core_version'], '1.14.0-lx.16-rc.3');
       expect((body.first as Map)['kind'], 'dir');
 
-      // По умолчанию отдаётся трейс.
+
       final trace = await filesHandler(
           get('/files/crash?name=2026-07-26T22-26-00'), ctx());
       expect(String.fromCharCodes((trace as BytesResponse).bytes),
           contains('goroutine 711'));
 
-      // Конкретный файл каталога — через &file=.
+
       final meta = await filesHandler(
           get('/files/crash?name=2026-07-26T22-26-00&file=metadata.json'),
           ctx());
@@ -167,8 +167,8 @@ void main() {
   });
 
   group('§316 — path traversal', () {
-    // Подпапка задаётся сервером; клиент передаёт только basename. Гейт
-    // общий с /files/local — ослаблять его ради «удобных путей» нельзя.
+
+
     for (final bad in ['../cache.db', 'a/b.log', r'a\b.log', '.hidden']) {
       test('«$bad» отвергается на /files/crash', () async {
         await expectLater(

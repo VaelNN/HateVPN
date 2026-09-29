@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/vpn/cc_channel.dart';
 import 'package:lxbox/services/traffic_profiler.dart';
 
-/// §204 — `CcConnection.routingLineOf` обязан давать строку, ИДЕНТИЧНУЮ
-/// `TrafficEvent.routingLineOf` на тех же данных (один источник chains/detours
-/// из ядра, нотация §181). Это гарантия унификации Conns ↔ Profiler.
+
+
+
 void main() {
   CcConnection conn({
     String network = 'tcp',
@@ -46,8 +46,8 @@ void main() {
         rule: rule,
         outboundChain: outboundChain,
         detourChain: detourChain,
-        // duration НЕ задаём — TrafficEvent добавляет `· dur` только при наличии;
-        // CcConnection его не пишет вовсе (§204 D). Сравниваем без duration.
+
+
       );
 
   group('§204 — routingLineOf 1:1 Conn ↔ Event', () {
@@ -107,7 +107,7 @@ void main() {
     });
 
     test('пустой rule → final; chains[0]=node; selectors reversed', () {
-      // chains [node, urltest, selector] → selectors сверху-вниз = [urltest, selector].reversed
+
       final c = conn(
         domain: 'a.b',
         chains: ['node-x', 'urltest-1', 'sel-1'],
@@ -139,7 +139,7 @@ void main() {
       );
       expect(c.routingLineOf(compact: true, ruleLabel: 'My YouTube Rule'),
           'My YouTube Rule ⇒ vpn-1 : vpn-1 (node) → x.com');
-      // Пустой ruleLabel → берётся сырой rule.
+
       expect(c.routingLineOf(compact: true, ruleLabel: ''),
           'rule_42 ⇒ vpn-1 : vpn-1 (node) → x.com');
     });

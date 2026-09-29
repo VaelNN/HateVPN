@@ -1,8 +1,8 @@
-// §048 — header с recording control для Live system-wide tab.
-//
-// Extracted из `live_events_tab.dart` (behavior-preserving). ▶ START / ⏹ STOP
-// + duration badge. Аналогичен Per-app trace header'у, но без target picker'а
-// — Live это system-wide recording, фокусируется через filter chips.
+
+
+
+
+
 
 import 'package:flutter/material.dart';
 
@@ -21,8 +21,8 @@ class LiveRecordingHeader extends StatelessWidget {
   final int eventCount;
   final VoidCallback onToggle;
 
-  /// §044 — экспорт записанных событий. Кнопка справа от START/STOP; null =
-  /// скрыта (нечего экспортировать).
+
+
   final VoidCallback? onExport;
 
   @override
@@ -79,7 +79,7 @@ class LiveRecordingHeader extends StatelessWidget {
               foregroundColor: isRec ? cs.onError : cs.onPrimary,
             ),
           ),
-          // §044 — экспорт записанного, справа от большой кнопки.
+
           if (onExport != null)
             IconButton(
               tooltip: getLocalText.s("Export events"),

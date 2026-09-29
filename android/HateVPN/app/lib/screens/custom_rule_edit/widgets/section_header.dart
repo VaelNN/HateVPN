@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// §053 Stage 2 — section header (title + hint) для CustomRuleEditScreen
-/// секций. Раньше был `_sectionHeader(t, title, hint)` метод на State.
+
+
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,

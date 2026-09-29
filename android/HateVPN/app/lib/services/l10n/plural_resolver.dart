@@ -1,21 +1,21 @@
-// §285 — plural-resolver'ы для getLocalText. Выбирают строку-форму из
-// plural-объекта словаря по числу. Набор форм (`forms`) диктует, какие ключи
-// value-объект обязан содержать (CI-гейт ui_check сверяет по нему).
 
-/// Стратегия выбора plural-формы по числу. Регистрируется per-язык в
-/// LocaleController._buildGetLocalText (ru → RuPluralResolver,
-/// zh → ZhPluralResolver, иначе En).
+
+
+
+
+
+
 abstract class PluralResolver {
-  /// Ключи plural-форм, которые resolver ждёт в value-объекте.
+
   Set<String> get forms;
 
-  /// Выбор строки-формы по числу из plural-объекта. `n` — num: для целочисленных
-  /// работают CLDR-правила по разрядам, дробные уходят в `other` (там где язык
-  /// это различает).
+
+
+
   String select(Map<String, String> forms, num n);
 }
 
-/// Английский: `one` (n==1) / `other`. Тривиальный, служит fallback-контролем.
+
 class EnPluralResolver implements PluralResolver {
   const EnPluralResolver();
 
@@ -27,12 +27,12 @@ class EnPluralResolver implements PluralResolver {
       forms[n == 1 ? 'one' : 'other'] ?? forms['other'] ?? '';
 }
 
-/// Русский по CLDR: one/few/many/other. Дробные → other.
-///
-///   n%10==1 && n%100!=11          → one   (1, 21, 31, ... но не 11)
-///   n%10 in 2..4 && n%100 not 12..14 → few (2..4, 22..24, ... но не 12..14)
-///   иначе                          → many  (0, 5..20, 25..30, ...)
-///   не целое                       → other (1.5)
+
+
+
+
+
+
 class RuPluralResolver implements PluralResolver {
   const RuPluralResolver();
 
@@ -42,7 +42,7 @@ class RuPluralResolver implements PluralResolver {
   @override
   String select(Map<String, String> forms, num n) {
     String pick;
-    // Дробные (n != целое) → other: у русского нет разрядной формы для дробей.
+
     if (n is! int && n != n.truncate()) {
       pick = 'other';
     } else {
@@ -57,16 +57,16 @@ class RuPluralResolver implements PluralResolver {
         pick = 'many';
       }
     }
-    // Дефолт-цепочка на случай неполного plural-объекта (не должно при зелёном
-    // CI, но resolver никогда не бросает).
+
+
     return forms[pick] ?? forms['other'] ?? forms['many'] ?? '';
   }
 }
 
-/// Китайский по CLDR: одна форма `other` — в китайском число не согласуется.
-///
-/// Словарь zh/ поэтому хранит единственную форму `other`; select всегда берёт
-/// её (с безопасной деградацией на любую присутствующую форму).
+
+
+
+
 class ZhPluralResolver implements PluralResolver {
   const ZhPluralResolver();
 

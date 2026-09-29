@@ -5,11 +5,11 @@ import '../../models/server_list.dart';
 import '../../services/format_utils.dart' as fmt;
 import '../../services/l10n/locale_controller.dart';
 
-/// Pure formatting/status helpers for [SubscriptionDetailScreen].
-///
-/// Extracted verbatim from the screen — no behaviour change. Grouped here as
-/// top-level pure functions to keep the screen file focused on widgets/state.
-/// Словесные хелперы рендерят через getLocalText (по локали в момент показа).
+
+
+
+
+
 String statusLabel(SubscriptionServers list) {
   switch (list.lastUpdateStatus) {
     case UpdateStatus.ok:
@@ -67,7 +67,7 @@ String subscriptionStatusSubtitle(SubscriptionServers list) {
 }
 
 String intervalHuman(int hours) {
-  // Суффиксы h/d — латиница в обеих локалях (граница единиц, спека §5).
+
   if (hours < 24) return '${hours}h';
   final d = hours ~/ 24;
   final rem = hours % 24;
@@ -75,10 +75,10 @@ String intervalHuman(int hours) {
   return '${d}d ${rem}h';
 }
 
-/// §090 A2 — делегирует канону (`format_utils.formatBytes`, spaced:true).
-/// Прежний локальный вариант был внутренне непоследователен (`500B` без
-/// пробела, но `1.5 KB` с пробелом, `0` вместо `0 B`) — теперь консистентно
-/// `0 B` / `500 B` / `1.5 KB` / `2.34 GB`.
+
+
+
+
 String formatBytes(int bytes) => fmt.formatBytes(bytes, spaced: true);
 
 String formatExpire(int timestamp) {

@@ -6,22 +6,22 @@ import '../../../services/dns/tailscale_endpoint_options.dart'
 import '../edit_controller.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §117 задача 4b — структурная форма inline-DNS-сервера: режимы
-/// **UDP / DoT / DoH** (sing-box `udp`/`tls`/`https`) + адрес/порт,
-/// для DoH — path, для DoT/DoH — TLS SNI, для hostname-адреса —
-/// Domain resolver (решение №4: чем резолвить имя самого DNS-сервера).
-/// §312 — режим **Group** (kernel SPEC 033): члены + режим
-/// выбора + TTL; транспортных полей у группы нет.
-/// §411 — **DoQ** (`quic`, порт 853, как DoT) и **DoH3** (`h3`, порт 443
-/// + path, как DoH): ядро их знает давно, форма не давала выбрать.
-/// §435 — режим **Tailscale** (NODE_SECTIONS.md §6): MagicDNS через узел
-/// tailnet — `endpoint` выбором из узлов Tailscale + чекбокс
-/// `accept_default_resolvers`; адреса и detour нет.
-///
-/// Поля пишут в канонический `body` контроллера — JSON-вкладка показывает
-/// то же тело live (и наоборот: валидный JSON-edit обновляет форму).
-/// `body.type` вне режимов формы (local, dhcp, …) не выражается —
-/// показываем пометку «use JSON tab».
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ServerFormSection extends StatelessWidget {
   const ServerFormSection({super.key, required this.c});
 
@@ -64,9 +64,9 @@ class ServerFormSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 4),
-        // §312 — режимы в сегментах. На узких экранах сегменты не влезают —
-        // дропдаун (решение юзера №1). §411 — сегментов стало шесть, порог
-        // поднят: на телефоне (< 520dp) всегда дропдаун, сегменты — планшет.
+
+
+
         LayoutBuilder(
           builder: (context, constraints) {
             if (constraints.maxWidth < 520) {
@@ -80,15 +80,15 @@ class ServerFormSection extends StatelessWidget {
                   isDense: true,
                 ),
                 items: [
-                  // l10n-exempt: protocol name
+
                   const DropdownMenuItem(value: 'udp', child: Text('UDP')),
-                  // l10n-exempt: protocol name
+
                   const DropdownMenuItem(value: 'tls', child: Text('DoT')),
-                  // l10n-exempt: protocol name
+
                   const DropdownMenuItem(value: 'https', child: Text('DoH')),
-                  // l10n-exempt: protocol name
+
                   const DropdownMenuItem(value: 'quic', child: Text('DoQ')),
-                  // l10n-exempt: protocol name
+
                   const DropdownMenuItem(value: 'h3', child: Text('DoH3')),
                   DropdownMenuItem(
                     value: 'group',
@@ -96,7 +96,7 @@ class ServerFormSection extends StatelessWidget {
                   ),
                   const DropdownMenuItem(
                     value: 'tailscale',
-                    child: Text('Tailscale'), // l10n-exempt: protocol name
+                    child: Text('Tailscale'),
                   ),
                 ],
                 onChanged: (v) {
@@ -106,15 +106,15 @@ class ServerFormSection extends StatelessWidget {
             }
             return SegmentedButton<String>(
               segments: [
-                // l10n-exempt: protocol name
+
                 const ButtonSegment(value: 'udp', label: Text('UDP')),
-                // l10n-exempt: protocol name
+
                 const ButtonSegment(value: 'tls', label: Text('DoT')),
-                // l10n-exempt: protocol name
+
                 const ButtonSegment(value: 'https', label: Text('DoH')),
-                // l10n-exempt: protocol name
+
                 const ButtonSegment(value: 'quic', label: Text('DoQ')),
-                // l10n-exempt: protocol name
+
                 const ButtonSegment(value: 'h3', label: Text('DoH3')),
                 ButtonSegment(
                   value: 'group',
@@ -122,7 +122,7 @@ class ServerFormSection extends StatelessWidget {
                 ),
                 const ButtonSegment(
                   value: 'tailscale',
-                  label: Text('Tailscale'), // l10n-exempt: protocol name
+                  label: Text('Tailscale'),
                 ),
               ],
               selected: {mode},
@@ -199,7 +199,7 @@ class ServerFormSection extends StatelessWidget {
               controller: c.pathCtrl,
               decoration: InputDecoration(
                 labelText: getLocalText.s("Path"),
-                // l10n-exempt: URL path example
+
                 hintText: '/dns-query',
                 border: const OutlineInputBorder(),
                 isDense: true,
@@ -232,7 +232,7 @@ class ServerFormSection extends StatelessWidget {
   }
 }
 
-/// §312 — секция формы DNS-группы (kernel SPEC 033): члены + режим + TTL.
+
 class _GroupSection extends StatelessWidget {
   const _GroupSection({required this.c});
   final DnsServerEditController c;
@@ -246,8 +246,8 @@ class _GroupSection extends StatelessWidget {
       for (final o in c.dnsMemberOptions)
         if (o.tag != self) o,
     ];
-    // Члены, которых нет среди известных опций (введены JSON-вкладкой /
-    // сервер удалён) — показываем строкой, чтобы юзер мог снять.
+
+
     final unknownMembers = [
       for (final m in members)
         if (!options.any((o) => o.tag == m)) m,
@@ -280,7 +280,7 @@ class _GroupSection extends StatelessWidget {
               style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
             ),
             subtitle: o.enabled
-                // l10n-exempt: wire type as-is
+
                 ? Text(o.type, style: const TextStyle(fontSize: 11))
                 : Text(
                     getLocalText.s("%s · disabled — will be skipped", o.type),
@@ -344,7 +344,7 @@ class _GroupSection extends StatelessWidget {
                 controller: c.errorTtlCtrl,
                 decoration: InputDecoration(
                   labelText: getLocalText.s("Error TTL"),
-                  // l10n-exempt: duration example
+
                   hintText: '2m',
                   errorText: c.groupErrorTtlInvalid
                       ? getLocalText.s("Invalid duration (e.g. 2m, 90s)")
@@ -362,7 +362,7 @@ class _GroupSection extends StatelessWidget {
                   controller: c.winTtlCtrl,
                   decoration: InputDecoration(
                     labelText: getLocalText.s("Win TTL"),
-                    // l10n-exempt: duration example
+
                     hintText: '5m',
                     errorText: c.groupWinTtlInvalid
                         ? getLocalText.s("Invalid duration (e.g. 2m, 90s)")
@@ -381,11 +381,11 @@ class _GroupSection extends StatelessWidget {
   }
 }
 
-/// §435 — секция формы DNS-сервера `tailscale` (NODE_SECTIONS.md §6, спека
-/// §9.4): `endpoint` выбором из узлов Tailscale + чекбокс
-/// `accept_default_resolvers`. Пикер — по образцу [_DomainResolverPicker]:
-/// текущее значение вне списка (JSON-вкладка / узел удалён) — в начало,
-/// чтобы дропдаун не падал на неизвестном value; нет узлов — подсказка.
+
+
+
+
+
 class _TailscaleSection extends StatelessWidget {
   const _TailscaleSection({required this.c});
   final DnsServerEditController c;
@@ -413,8 +413,8 @@ class _TailscaleSection extends StatelessWidget {
           )
         else
           DropdownButtonFormField<String>(
-            // endpoint меняется и из JSON-вкладки — key пересоздаёт FormField
-            // с новым initialValue.
+
+
             key: ValueKey('dns-ts-endpoint-$current'),
             initialValue: current.isEmpty ? null : current,
             isExpanded: true,
@@ -431,8 +431,8 @@ class _TailscaleSection extends StatelessWidget {
                   child: Text(
                     o.enabled
                         ? o.tag
-                        // Выключенный узел не эмитится — сервер на него
-                        // санитайзер сборки выбросит (как члена группы).
+
+
                         : getLocalText.s("%s · disabled — will be skipped", o.tag),
                     style: TextStyle(
                       fontSize: 13,
@@ -463,8 +463,8 @@ class _TailscaleSection extends StatelessWidget {
   }
 }
 
-/// Доменный адрес → нужен DNS-сервер, который отрезолвит само имя
-/// (chicken-egg; решение №4 — как `dom_resolver` у Safe DNS).
+
+
 class _DomainResolverPicker extends StatelessWidget {
   const _DomainResolverPicker({required this.c});
   final DnsServerEditController c;
@@ -476,8 +476,8 @@ class _DomainResolverPicker extends StatelessWidget {
         ? c.dnsServerTags
         : [current, ...c.dnsServerTags];
     return DropdownButtonFormField<String>(
-      // domain_resolver может смениться программно (авто-дефолт при вводе
-      // hostname) — key пересоздаёт FormField с новым initialValue.
+
+
       key: ValueKey('dns-domres-$current'),
       initialValue: tags.contains(current) ? current : null,
       isExpanded: true,

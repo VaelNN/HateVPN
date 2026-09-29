@@ -11,13 +11,13 @@ import 'package:lxbox/services/node_hash.dart';
 import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §472 шаг 6, раздел 3 спеки — инварианты переезда naive на конвейер.
-///
-/// Инварианты 1 и 2 (корпус и golden) держат свои тесты: корпус URI —
-/// `test/contract/`, эталоны конфигов — `test/builder/` и
-/// `test/storage_migration/`.
 
-/// Снимок identity, снятый СТАРЫМ путём ДО правки (18.09.2026).
+
+
+
+
+
+
 const _identityFixture = 'test/fixtures/naive/pipeline_identity_before.json';
 
 Map<String, Map<String, dynamic>> _identityBefore() {
@@ -48,8 +48,8 @@ List<String> _corpusUris() {
 List<RegistryWarning> _registry(NodeSpec n) =>
     n.warnings.whereType<RegistryWarning>().toList();
 
-/// Коды узла: текст предупреждения живёт в реестре, и проверять тут нужно
-/// код, а не класс.
+
+
 List<String> _codes(NodeSpec n) => [for (final w in _registry(n)) w.code];
 
 void main() {
@@ -100,23 +100,23 @@ void main() {
             reason: 'круг изменил identity: $u');
         checked++;
       }
-      // 15 разбираемых кейсов, включая QUIC.
+
       expect(checked, greaterThan(13));
     }, skip: corpusSkip);
 
     test('naive+quic переживает круг: написание схемы несёт QUIC', () {
-      // ПОЧИНКА ПОТЕРИ, а не смена нормы. Рукописный `toUriNaive` ВСЕГДА
-      // писал `naive+https://` (ветки QUIC у него не было вовсе), и узел
-      // `naive+quic://` на круге ронял и `quic`, и congestion control —
-      // человек получал по Copy link ссылку на ДРУГОЙ транспорт.
-      //
-      // Реестр это написание объявляет сам:
-      // `emit.form_from: {quic: {true: "naive+quic", "*": "naive+https"}}`,
-      // зеркально `scheme_sets`. Движок исполняет объявленное, и круг
-      // сходится. Кейс корпуса — `quic_userpass`; снимок `emit_before480`
-      // держит там СТАРУЮ ссылку (`naive+https://`), поэтому страж вида
-      // ссылки на этот кейс не срабатывает: он кормится старой ссылкой, в
-      // которой QUIC уже потерян.
+
+
+
+
+
+
+
+
+
+
+
+
       final a = parseUri('naive+quic://u:p@quic.example:443#q')!;
       expect(a.emit(TemplateVars.empty).map['quic'], isTrue);
       expect(a.toUri(), startsWith('naive+quic://'));
@@ -167,13 +167,13 @@ void main() {
       expect(body['password'], 'secret');
       expect(body.containsKey('username'), isFalse);
 
-      // `user:` — двоеточие есть, пароль пуст: это форма «только имя».
+
       final userOnly = parseUri('naive+https://alice:@h.example#n')!;
       final ub = userOnly.emit(TemplateVars.empty).map;
       expect(ub['username'], 'alice');
       expect(ub.containsKey('password'), isFalse);
-      // И она возвращается в ссылку С двоеточием — иначе круг прочёл бы имя
-      // как пароль (`toUriNaive`, §465).
+
+
       expect(userOnly.toUri(), contains('alice:@'));
     });
 
@@ -188,8 +188,8 @@ void main() {
     });
 
     test('extra-headers: битая пара пропускается, остальные живут', () {
-      // `broken_header_pair_skipped` — одна битая пара не стоит узлу
-      // остальных заголовков. Код один на узел.
+
+
       final spec = parseUri('naive+https://u:p@h.example'
           '?extra-headers=X%20User%3Abad%0D%0AX-Good%3Aok#n')!;
       expect(spec.emit(TemplateVars.empty).map['extra_headers'],
@@ -199,8 +199,8 @@ void main() {
     });
 
     test('padding отбрасывается с кодом маппера', () {
-      // Эквивалента в sing-box нет; значения в теле не будет, поэтому код
-      // ставит МАППЕР — санитайзеру сказать о нём нечего.
+
+
       final spec =
           parseUri('naive+https://u:p@h.example?padding=true#n')!;
       expect(_codes(spec), contains('naive_padding_ignored'));
@@ -208,9 +208,9 @@ void main() {
     });
 
     test('TLS у naive всегда минимален: enabled + server_name', () {
-      // Диалект ссылки naive TLS-параметров не знает вовсе (`uri.query`
-      // реестра: только extra-headers и padding), поэтому писать в блок
-      // нечего, и allowlist §454/§270 на этом входе не срабатывает.
+
+
+
       final spec = parseUri('naive+https://u:p@h.example:443#n')!;
       expect(spec.emit(TemplateVars.empty).map['tls'],
           {'enabled': true, 'server_name': 'h.example'});
@@ -219,8 +219,8 @@ void main() {
     });
 
     test('пустой host отбраковывается (§463)', () {
-      // Ядро на пустом адресе валит ВЕСЬ конфиг, то есть один такой узел из
-      // подписки оставлял человека без VPN.
+
+
       expect(parseUri('naive+https://'), isNull);
     });
 
@@ -234,10 +234,10 @@ void main() {
 
   group('§472 — дефект: QUIC терялся на входе тела', () {
     test('quic читается из тела обратно в модель', () {
-      // `emitNaive` поле пишет, а `parseSingboxEntry` не читал вовсе: узел
-      // `naive+quic://`, пересохранённый через JSON или отредактированный во
-      // вкладке JSON, молча возвращался к HTTP/2 и соединения не поднимал.
-      // Тот же класс, что `encryption` у vless и `plugin` у shadowsocks.
+
+
+
+
       final node = parseSingboxEntry({
         'type': 'naive',
         'tag': 'n',
@@ -250,7 +250,7 @@ void main() {
         'tls': {'enabled': true, 'server_name': 'h.example'},
       })!;
       expect((node as NaiveSpec).quic, isTrue);
-      // Круг через тело сохраняет транспорт.
+
       final body = node.emit(TemplateVars.empty).map;
       expect(body['quic'], isTrue);
       expect(body['quic_congestion_control'], 'bbr');

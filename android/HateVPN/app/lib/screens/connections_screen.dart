@@ -9,14 +9,14 @@ import '../vpn/cc_channel.dart';
 import 'connections_screen/connection_detail_sheet.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// §153 — «однобокое» (зависшее) соединение: TCP, прожившее ≥
-/// [oneWayMinAge], где трафик идёт строго в одну сторону (up>0/down=0 или
-/// up=0/down>0). Сигнатура зависшего потока (напр. WhatsApp ↑517 ↓0 —
-/// ClientHello ушёл, ответа нет). Порог по возрасту отсекает свежие conns
-/// в процессе handshake. Закрытые соединения не маркируются.
-///
-/// Чистая функция (без BuildContext) — покрыта юнит-тестом на живой
-/// фикстуре. [now] инъектируется для детерминизма в тестах.
+
+
+
+
+
+
+
+
 const Duration oneWayMinAge = Duration(seconds: 3);
 
 bool isOneWayStuck({
@@ -35,20 +35,20 @@ bool isOneWayStuck({
   return (upload > 0 && download == 0) || (upload == 0 && download > 0);
 }
 
-/// §165 — человекочитаемое имя правила для Conns/Stats. Делегирует в
-/// [RuleNameResolver]: справочник из `custom_rules` (нормализация + indexOf +
-/// кэш), т.к. `rule.String()` ядра не несёт имени и обрезает списки >3. Кэш по
-/// `c.rule` (вкл. промахи) — `ruleName` зовётся в цикле ×10/сек (FAST), без
-/// кэша = фриз (§166).
+
+
+
+
+
 String ruleName(String rule) => RuleNameResolver.I.resolve(rule);
 
-/// Embeddable view: toolbar + список соединений. Без Scaffold, без AppBar —
-/// сидит во вкладке StatsScreen.
-///
-/// §122 — источник = `CcChannel.instance.connections` (libbox CommandClient
-/// push-стрим), а не Clash HTTP-pull. Native-аккумулятор отдаёт АКТИВНЫЕ
-/// соединения; closed-историю (режим «закрытые не исчезают») ведёт ЭТОТ виджет
-/// (`_accumulate`/`_closedIds`/`_closedAt`) — точно как раньше с Clash-pull.
+
+
+
+
+
+
+
 class ConnectionsView extends StatefulWidget {
   const ConnectionsView({super.key});
 
@@ -60,17 +60,17 @@ class _ConnectionsViewState extends State<ConnectionsView> {
   final _cc = CcChannel.instance;
   StreamSubscription<List<CcConnection>>? _sub;
 
-  /// Последний снапшот живых соединений (id → conn), плюс — в режиме accumulate
-  /// — недавно закрытые (помечены через [_closedIds]).
+
+
   final Map<String, CcConnection> _byId = {};
   final Set<String> _closedIds = {};
   final Map<String, DateTime> _closedAt = {};
   bool _accumulate = false;
   bool _loading = true;
 
-  /// §122 — закрытые соединения держим [_closedWindow] (видно недавнюю историю,
-  /// иначе при закрытии всё мгновенно исчезает и «ничего не ясно»). В режиме
-  /// accumulate — без срока (до ручной очистки toggle'ом).
+
+
+
   static const _closedWindow = Duration(seconds: 30);
 
   @override
@@ -81,10 +81,10 @@ class _ConnectionsViewState extends State<ConnectionsView> {
 
   void _onConnections(List<CcConnection> conns) {
     if (!mounted) return;
-    // §176 — ядро отдаёт FilterState(All): живые + closed (closedAt>0) до 5 мин.
-    // liveIds строим ТОЛЬКО из живых (closedAt==0) — иначе closed-conn попал бы в
-    // liveIds и «пропал из снапшота»-детект ниже его не закрыл бы (завис как
-    // живой). Закрытие теперь и явное (closedAt>0), и по исчезновению (diff).
+
+
+
+
     final liveIds = conns
         .where((c) => c.closedAt == 0)
         .map((c) => c.id)
@@ -92,25 +92,25 @@ class _ConnectionsViewState extends State<ConnectionsView> {
         .toSet();
     final now = DateTime.now();
 
-    // §176 — явная closed-дельта от ядра: closedAt>0 → метим closed сразу.
+
     for (final c in conns) {
       if (c.closedAt > 0 && c.id.isNotEmpty && _closedIds.add(c.id)) {
         _closedAt[c.id] = now;
       }
     }
-    // Соединения, пропавшие из снапшота вообще (без closed-дельты) → тоже
-    // закрыты (подстраховка: ядро могло эвиктнуть до того как мы увидели close).
+
+
     for (final id in _byId.keys.toList()) {
       if (id.isNotEmpty && !liveIds.contains(id) && _closedIds.add(id)) {
         _closedAt[id] = now;
       }
     }
-    // Свежие данные поверх (живые перетирают; закрытые остаются с прежними
-    // байтами — у CcConnection.closedAt>0 они и так помечены).
+
+
     for (final c in conns) {
       if (c.id.isNotEmpty) _byId[c.id] = c;
     }
-    // Истечение закрытых: в обычном режиме — старше окна; в accumulate — никогда.
+
     if (!_accumulate) {
       _closedIds.removeWhere((id) {
         final at = _closedAt[id];
@@ -123,9 +123,9 @@ class _ConnectionsViewState extends State<ConnectionsView> {
       });
     }
 
-    // §166 — аккумуляция (closed-tracking выше) идёт КАЖДЫЙ тик (иначе пропустим
-    // закрытие), но ребилд (setState + ruleName/_appIcon по всему списку) —
-    // троттлим: снапшоты на FAST 0.1с=10/сек, без троттла вкладка ВИСЛА.
+
+
+
     if (!_loading &&
         _rebuildAt != null &&
         now.difference(_rebuildAt!) < _rebuildThrottle) {
@@ -135,11 +135,11 @@ class _ConnectionsViewState extends State<ConnectionsView> {
     setState(() => _loading = false);
   }
 
-  // §166 — троттл ребилда (см. _onConnections).
+
   static const _rebuildThrottle = Duration(milliseconds: 700);
   DateTime? _rebuildAt;
 
-  /// Отсортированный список: новейшие сверху (по createdAt epoch ms).
+
   List<CcConnection> get _sorted {
     final list = _byId.values.toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -158,7 +158,7 @@ class _ConnectionsViewState extends State<ConnectionsView> {
   }
 
   Future<void> _closeAll() async {
-    // Число живых ДО закрытия (closedAt==0) — для snackbar и мгновенной пометки.
+
     final liveNow = _byId.values
         .where((c) => c.closedAt == 0 && c.id.isNotEmpty)
         .map((c) => c.id)
@@ -166,10 +166,10 @@ class _ConnectionsViewState extends State<ConnectionsView> {
     final ok = await _cc.closeConnections();
     if (!mounted) return;
     if (ok) {
-      // §044 — мгновенный отклик: помечаем живые как закрытые локально, не ждём
-      // снапшота (иначе «старые висят» до 700мс-троттла + тика стрима). Следующий
-      // снапшот от ядра подтвердит (closedAt>0). В обычном режиме закрытые
-      // доживут _closedWindow и уйдут; в accumulate — останутся серыми.
+
+
+
+
       final now = DateTime.now();
       setState(() {
         for (final id in liveNow) {
@@ -208,7 +208,7 @@ class _ConnectionsViewState extends State<ConnectionsView> {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
             children: [
-              // Toggle: 30s-история (закрытые серым ~30с) ↔ Accumulate (навсегда).
+
               IconButton(
                 tooltip: _accumulate
                     ? getLocalText.s("Keeping all closed (tap for 30s window)")
@@ -220,7 +220,7 @@ class _ConnectionsViewState extends State<ConnectionsView> {
                   setState(() {
                     _accumulate = !_accumulate;
                     if (!_accumulate) {
-                      // Выключили accumulate → убираем закрытые из набора.
+
                       _byId.removeWhere((id, _) => _closedIds.contains(id));
                       _closedIds.clear();
                       _closedAt.clear();
@@ -229,9 +229,9 @@ class _ConnectionsViewState extends State<ConnectionsView> {
                 },
               ),
               const Spacer(),
-              // §194 — «N активных / M всего»: активные = живые (closedAt==0, не
-              // в _closedIds), всего = весь набор (живые + закрытая история).
-              // Снимает путаницу разных счётчиков между экранами.
+
+
+
               Text(
                 getLocalText.s("%1\$d active / %2\$d total", list
                         .where((c) =>
@@ -263,12 +263,12 @@ class _ConnectionsViewState extends State<ConnectionsView> {
     );
   }
 
-  // §219 — _portOf/_hostOf вынесены в format_utils (portOf/hostOf).
+
 
   Widget _buildTile(CcConnection conn) {
     final network = conn.network;
     final destPort = portOf(conn.destination);
-    // host: domain, иначе host-часть destination (IP-соединения без домена).
+
     final host = conn.domain.isNotEmpty ? conn.domain : hostOf(conn.destination);
     final display = destPort.isNotEmpty ? '$host:$destPort' : host;
 
@@ -299,7 +299,7 @@ class _ConnectionsViewState extends State<ConnectionsView> {
     final rule = ruleName(conn.rule);
 
     return Container(
-      // §153 — розовый фон у однобоких (зависших) TCP; закрытые — без подсветки.
+
       color: oneWay && !closed
           ? Color.alphaBlend(Colors.pink.withValues(alpha: 0.16), cs.surface)
           : null,
@@ -318,9 +318,9 @@ class _ConnectionsViewState extends State<ConnectionsView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Row 1: app-иконка (по getProcessInfo.package) + host:port +
-                // traffic + close. §122 — иконка вернулась (ProcessInfo есть в
-                // Connection); fallback на стрелку tcp/udp если pkg нет.
+
+
+
                 Row(
                   children: [
                     _appIcon(conn.packageName, network: network, closed: closed),
@@ -352,10 +352,10 @@ class _ConnectionsViewState extends State<ConnectionsView> {
                     ),
                   ],
                 ),
-                // §204 — Row 2: единая routing-строка (как ряд профайлера):
-                // `rule ⇒ группы : вход → … → выход → dest` (§252, compact). Слева в
-                // Expanded (ellipsis), duration/closed — ОТДЕЛЬНО справа, фикс.
-                // (решение D: таймер важен и не должен дёргаться внутри строки).
+
+
+
+
                 Padding(
                   padding: const EdgeInsets.only(left: 22, top: 2),
                   child: Row(
@@ -390,10 +390,10 @@ class _ConnectionsViewState extends State<ConnectionsView> {
     );
   }
 
-  /// §154/§122 — launcher-иконка приложения по package name (из `getProcessInfo`).
-  /// 16×16, перерисовывается через `AppInfoCache.revision` когда иконка
-  /// дотянулась из native асинхронно. Fallback (нет pkg/иконки) — стрелка
-  /// tcp/udp (как до §154), а для закрытых — галочка.
+
+
+
+
   Widget _appIcon(String pkg, {required String network, required bool closed}) {
     const double size = 16;
     final cs = Theme.of(context).colorScheme;
@@ -420,5 +420,5 @@ class _ConnectionsViewState extends State<ConnectionsView> {
     );
   }
 
-  // §279 Phase 5 — _formatDuration слит в format_utils.formatDurationCoarse.
+
 }

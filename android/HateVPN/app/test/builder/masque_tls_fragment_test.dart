@@ -4,11 +4,11 @@ import 'package:lxbox/services/builder/post_steps.dart';
 
 import '../contract_paths.dart';
 
-/// §393 — глобальный `tls_fragment` и masque-outbound'ы.
-///
-/// До миграции схемы у masque не было блока `tls{}`, и post-step проходил мимо.
-/// Новая схема даёт `tls.fragment`, но фрагментация осмысленна только на
-/// `vhttp: h2` (TCP+TLS); при h3 ядро её игнорирует с предупреждением.
+
+
+
+
+
 Map<String, dynamic> _masque({String? vhttp, Map<String, dynamic>? tls}) => {
       'tag': 'masque-out',
       'type': 'masque',
@@ -27,7 +27,7 @@ const _on = {
 };
 
 void main() {
-  // Контракт 1.1.64 — годность поля судит реестр по телу (fieldAllowedOn).
+
   setUpAll(loadTestRegistry);
 
   test('h2 получает fragment во вложенном tls{}', () {
@@ -40,7 +40,7 @@ void main() {
   });
 
   test('h2 с уже заданным SNI не теряет server_name', () {
-    // Map строим явно изменяемым: post-step дописывает в него на месте.
+
     final ob = _masque(
       vhttp: 'h2',
       tls: <String, dynamic>{'server_name': 'www.cloudflare.com'},
@@ -68,8 +68,8 @@ void main() {
   });
 
   test('vhttp не задан → у ядра auto (есть h2-плечо) → фрагментируется', () {
-    // Контракт 1.1.64: связь masque_tls_fragment_h3 действует только при
-    // vhttp = h3; пустой vhttp у ядра — auto.
+
+
     final ob = _masque();
     applyTlsFragment(_config([ob]), _on);
     expect((ob['tls'] as Map)['fragment'], isTrue);

@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -24,10 +24,10 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §585 — узел sing-box незнакомого приложению типа принимается своей
-/// записью; тело уходит в ядро как написано. С §586 `openvpn-client` —
-/// тип реестра (`endpoint_types_from_registry_test.dart`), поэтому здесь
-/// незнакомый тип выдуманный: `future-proto`.
+
+
+
+
 class _FakePathProvider extends PathProviderPlatform
     with MockPlatformInterfaceMixin {
   final String tempRoot;
@@ -89,11 +89,11 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // Файлы кэша могут быть ещё открыты — не мешает тесту.
+
     }
   });
 
-  // Учётка и адрес — заглушки, не данные владельца.
+
   const body = '''
 {
   "type": "future-proto",
@@ -137,7 +137,7 @@ void main() {
     expect(node.warnings.whereType<UnknownNodeTypeWarning>(), hasLength(1));
     expect(node.warnings.whereType<UnknownNodeTypeWarning>().single.severity,
         WarningSeverity.info);
-    // Знак по умолчанию дописан в тег, как у прочих узлов.
+
     expect(node.tag, isNot('ovpn-out'));
     expect(node.tag, endsWith('ovpn-out'));
   });
@@ -243,7 +243,7 @@ void main() {
     final nodes = parseAll(decode(body), dropped: dropped);
     expect(nodes, isEmpty);
     expect(dropped, isNotEmpty);
-    // Документ подписки из двух узлов: незнакомый отброшен, известный жив.
+
     const doc = '{"outbounds": ['
         '{"type": "future-proto", "tag": "o", "server": "a.example",'
         ' "server_port": 1},'

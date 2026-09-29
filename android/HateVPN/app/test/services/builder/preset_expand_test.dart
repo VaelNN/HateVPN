@@ -44,7 +44,7 @@ void main() {
       final rule = CustomRulePreset(
         name: 'Russian domains direct',
         presetId: 'ru-direct',
-        varsValues: {'outbound': 'direct-out'}, // dns_server не трогал
+        varsValues: {'outbound': 'direct-out'},
       );
 
       final f = expandPreset(rule, preset);
@@ -62,7 +62,7 @@ void main() {
       final rule = CustomRulePreset(
         name: 'X',
         presetId: 'ru-direct',
-        // '' = explicit "— (default DNS)" из UI dropdown'а
+
         varsValues: {'outbound': 'direct-out', 'dns_server': ''},
       );
 
@@ -94,7 +94,7 @@ void main() {
       final rule = CustomRulePreset(
         name: 'Russian domains direct',
         presetId: 'ru-direct',
-        varsValues: {}, // out required, default_value='direct-out' → direct
+        varsValues: {},
       );
 
       final f = expandPreset(rule, preset);
@@ -111,7 +111,7 @@ void main() {
           WizardVar(
             name: 'outbound',
             type: 'outbound',
-            defaultValue: '', // no default, but required
+            defaultValue: '',
           ),
         ],
         ruleSets: const [],
@@ -143,10 +143,10 @@ void main() {
       expect(f.dnsServers.first['tag'], 'ru-direct:yandex_safe');
     });
 
-    // §354 — ru-direct БЕЗ var'а `dns_server`: группа зашита литералом в
-    // правилах, выбора нет. Эмитим все объявленные серверы — недоэмиссия
-    // оставила бы правило со ссылкой в пустоту, а пустая группа = EmptyDnsGroup
-    // (fatal до старта ядра).
+
+
+
+
     group('§354 пресет без var dns_server → эмитим все', () {
       test('группа + три члена, порядок шаблона', () {
         final f = expandPreset(
@@ -164,7 +164,7 @@ void main() {
         expect(grp['type'], 'group');
         expect(grp['servers'], ['ru-direct:yandex_udp', 'ru-direct:yandex_dot', 'ru-direct:yandex_doh']);
         expect(grp['mode'], 'fastest');
-        // §319: у группы не бывает detour'а.
+
         expect(grp.containsKey('detour'), isFalse);
       });
 
@@ -180,11 +180,11 @@ void main() {
         Map<String, dynamic> byTag(String t) =>
             f.dnsServers.firstWhere((s) => s['tag'] == t);
 
-        // UDP — по Направлению пресета (ровно тот путь, что висел на мёртвой ноде).
+
         expect(byTag('ru-direct:yandex_udp')['detour'], 'vpn-2');
-        // DoT — через vpn-1, НЕ @outbound: шифрован, утечки нет.
+
         expect(byTag('ru-direct:yandex_dot')['detour'], 'vpn-1');
-        // DoH — напрямую: detour снят как direct-out (§117).
+
         expect(byTag('ru-direct:yandex_doh').containsKey('detour'), isFalse);
       });
 
@@ -202,8 +202,8 @@ void main() {
       });
     });
 
-    // Контракт §033 для пресетов, у которых var остался (fakeip и пр.):
-    // эмитится только выбранный + члены, если выбрана группа.
+
+
     group('§354 пресет С var dns_server → только выбранный', () {
       test('одиночный сервер едет один', () {
         final f = expandPreset(
@@ -291,15 +291,15 @@ void main() {
 
       final tw = TemplateWarnings();
       final f = collectTemplateWarnings(
-          tw, () => expandPreset(rule, preset)); // srsPaths: {}
+          tw, () => expandPreset(rule, preset));
 
       expect(f.ruleSets, isEmpty,
           reason: 'без кэша remote rule_set не попадает в конфиг');
       expect(f.routingRules, isEmpty,
           reason: 'rule без своего rule_set → drop, иначе sing-box падает '
               'с "rule-set not found"');
-      // §570 — строка одна (набор без кэша, с подсказкой скачать); выпавшее
-      // правило называется кодом, без второй строки.
+
+
       expect(f.warnings, hasLength(1));
       expect(f.warnings.single, contains('no cached file'));
       expect([for (final w in tw.items) (w.code, w.params['reason'])],
@@ -343,20 +343,20 @@ void main() {
       ]);
       expect([for (final w in tw.items) (w.params['kind'], w.params['reason'])], [
         ('dns.rules', 'rule_set'),
-        // Два выпавших route-правила дают одинаковые параметры — накопитель
-        // схлопывает повтор в одну запись.
+
+
         ('route.rules', 'rule_set'),
       ]);
       expect(tw.items.map((w) => w.code).toSet(), {templateWarnFragmentDropped});
     });
 
-    // ─── §045: GeoIP fallback layer ────────────────────────────────────
-    //
-    // `rule_set: ["a", "b"]` (массивная форма) + `enabled: "@var"` гейтинг
-    // на rule_set entry. 4 матрицы — geoip on/off × .srs cached/missing.
-    //
-    // Преsett-фабрика — `_ruDirectWithGeoip()` ниже, реплицирует
-    // расширенный `ru-direct` из template'а v1.6.2.
+
+
+
+
+
+
+
 
     test('§045: geoip on + .srs cached → оба rule_set + array routing rule', () {
       final preset = _ruDirectWithGeoip();
@@ -377,13 +377,13 @@ void main() {
       expect(f.ruleSets.length, 2);
       expect(f.ruleSets.map((rs) => rs['tag']).toSet(),
           {'ru-direct:ru-domains', 'ru-direct:geoip-ru'});
-      // geoip-ru: type конвертирован в local (spec §011)
+
       final geoip = f.ruleSets.firstWhere((rs) => rs['tag'] == 'ru-direct:geoip-ru');
       expect(geoip['type'], 'local');
       expect(geoip['path'], '/cache/preset__ru-direct__geoip-ru.srs');
       expect(geoip.containsKey('enabled'), isFalse,
           reason: 'enabled — наша мета-конвенция, sing-box не знает');
-      // routing rule: массив остался (оба tag'а expanded)
+
       expect(f.routingRules.single['rule_set'], ['ru-direct:ru-domains', 'ru-direct:geoip-ru']);
       expect(f.routingRules.single['outbound'], 'direct-out');
     });
@@ -401,14 +401,14 @@ void main() {
         },
       );
 
-      final f = expandPreset(rule, preset); // srsPaths: {}
+      final f = expandPreset(rule, preset);
 
       expect(f.ruleSets.length, 1, reason: 'только ru-domains expanded');
       expect(f.ruleSets.first['tag'], 'ru-direct:ru-domains');
-      // routing rule даунгрейдился до single string
+
       expect(f.routingRules.single['rule_set'], 'ru-direct:ru-domains');
       expect(f.routingRules.single['outbound'], 'direct-out');
-      // warning про missing geoip-ru
+
       expect(f.warnings.any((w) => w.contains('geoip-ru') && w.contains('no cached')),
           isTrue);
     });
@@ -433,7 +433,7 @@ void main() {
           reason: 'enabled=false — это намеренная конфигурация, не warning');
       expect(f.ruleSets.length, 1, reason: 'geoip-ru gated за enabled var');
       expect(f.ruleSets.first['tag'], 'ru-direct:ru-domains');
-      // routing rule даунгрейдился до single string (geoip-ru не в expandedTags)
+
       expect(f.routingRules.single['rule_set'], 'ru-direct:ru-domains');
     });
 
@@ -450,7 +450,7 @@ void main() {
         },
       );
 
-      final f = expandPreset(rule, preset); // srsPaths: {}
+      final f = expandPreset(rule, preset);
 
       expect(f.warnings, isEmpty,
           reason: 'gated rule_set не доходит до cache-check warning');
@@ -503,15 +503,15 @@ void main() {
           tw, () => expandPreset(CustomRulePreset(name: 'X', presetId: 'x'), preset));
       expect(f.ruleSets, isEmpty);
       expect(f.routingRules, isEmpty);
-      // §570 — выпавшее правило называется кодом; строки — у наборов без кэша.
+
       expect(tw.items.single.params['reason'], 'rule_set');
       expect(f.warnings.where((w) => w.contains('no cached file')), hasLength(2));
     });
 
-    // Universal outbound override (spec §033 §5 / task 011) — `varsValues['outbound']`
-    // всегда побеждает template-решение. Ветки: empty → as-is, "reject" → action,
-    // иначе → outbound. Ниже три теста на эти ветки + кейс «template hardcoded
-    // action: reject, юзер override'нул в vpn-tag».
+
+
+
+
 
     test('outbound override == "reject" → action:reject, outbound удаляется', () {
       final preset = _ruDirect();
@@ -528,7 +528,7 @@ void main() {
 
     test('outbound override == vpn-tag → outbound set, action удаляется '
         '(даже если template был action:reject)', () {
-      // Block Ads-like preset: `rule: {rule_set, action: reject}` без `@outbound`.
+
       final preset = SelectableRule(
         label: 'Block ads',
         presetId: 'block-ads',
@@ -541,7 +541,7 @@ void main() {
       final rule = CustomRulePreset(
         name: 'Ads via vpn',
         presetId: 'block-ads',
-        varsValues: {'outbound': 'vpn-1'}, // override — pipe ads через vpn
+        varsValues: {'outbound': 'vpn-1'},
       );
 
       final f = expandPreset(rule, preset);
@@ -550,7 +550,7 @@ void main() {
     });
 
     test('outbound override пустой → template-решение остаётся', () {
-      // Block Ads без override — template'ный action:reject должен дойти.
+
       final preset = SelectableRule(
         label: 'Block ads',
         presetId: 'block-ads',
@@ -563,21 +563,21 @@ void main() {
       final rule = CustomRulePreset(
         name: 'Block ads',
         presetId: 'block-ads',
-        varsValues: {}, // outbound не задан вообще
+        varsValues: {},
       );
 
       final f = expandPreset(rule, preset);
       expect(f.routingRules.single, {'rule_set': 'block-ads:ads', 'action': 'reject'});
     });
 
-    // §162 регресс — `@outbound`-форма + var.default_value: "reject".
-    // unknown-traffic (§033) задаёт `rule.outbound: "@outbound"` и дефолт
-    // "reject". Если юзер ВКЛЮЧИЛ пресет, но не открывал OutboundPicker,
-    // ключа в varsValues нет → override-ветка пропускается, а substitute уже
-    // подставил @outbound → "reject" в поле `outbound`. До фикса литерал
-    // `outbound: "reject"` уезжал в route.rules → fatal (DanglingOutboundRef).
-    // Backstop в expandPreset нормализует reject→action независимо от того,
-    // пришло оно override'ом или дефолтом.
+
+
+
+
+
+
+
+
     test('§162 default_value=="reject" в @outbound (пикер не трогали) → '
         'action:reject, НЕ outbound:reject', () {
       final preset = SelectableRule(
@@ -587,7 +587,7 @@ void main() {
           WizardVar(
             name: 'outbound',
             type: 'outbound',
-            defaultValue: 'reject', // дефолт = drop
+            defaultValue: 'reject',
           ),
         ],
         ruleSets: [
@@ -604,7 +604,7 @@ void main() {
       final rule = CustomRulePreset(
         name: 'Unknown traffic',
         presetId: 'unknown-traffic',
-        varsValues: {}, // ВКЛючён, но пикер не открывали → ключа outbound нет
+        varsValues: {},
       );
 
       final f = expandPreset(rule, preset);
@@ -614,8 +614,8 @@ void main() {
     });
 
     test('unknown @name (не объявлен в vars) → остаётся как литерал', () {
-      // Legacy / typo: шаблон ссылается на @foo, в `vars` такого нет.
-      // _substitute должен вернуть строку как есть (не крашить).
+
+
       final preset = SelectableRule(
         label: 'Legacy',
         presetId: 'legacy',
@@ -632,8 +632,8 @@ void main() {
       );
 
       final f = expandPreset(rule, preset);
-      // Правило проходит валидацию (outbound is String), значение не
-      // разрезолвлено — это осознанный pass-through (см. _substitute docstring).
+
+
       expect(f.routingRules.single, {'rule_set': 'legacy:x', 'outbound': '@foo'});
     });
 
@@ -782,10 +782,10 @@ void main() {
     });
   });
 
-  // §228 — FakeIP: DNS-only пресет. Сервер вливается через hidden-var
-  // `dns_server` (магическая переменная), правило ссылается на него через
-  // @dns_server. Регрессия: без var сервер не эмитился, правило висло в
-  // пустоту и молча дропалось.
+
+
+
+
   group('expandPreset — FakeIP (§228)', () {
     test('сервер fakeip эмитится через hidden-var default; правило ссылается '
         'на него (юзер var не трогает)', () {
@@ -793,22 +793,22 @@ void main() {
       final rule = CustomRulePreset(
         name: 'FakeIP',
         presetId: 'fakeip',
-        varsValues: const {}, // hidden-var → значение из default_value
+        varsValues: const {},
       );
 
       final f = expandPreset(rule, preset);
 
       expect(f.warnings, isEmpty);
-      // Сервер вливается — не пустой список (регрессия #228).
+
       expect(f.dnsServers.length, 1);
       expect(f.dnsServers.first['tag'], 'fakeip:fakeip');
       expect(f.dnsServers.first['type'], 'fakeip');
-      // Правило ссылается на реально эмитнутый сервер (не dangling).
+
       expect(f.dnsRules.single, {
         'query_type': ['A', 'AAAA'],
         'server': 'fakeip:fakeip',
       });
-      // DNS-only: routing rule нет.
+
       expect(f.routingRules, isEmpty);
     });
 
@@ -816,10 +816,10 @@ void main() {
       expect(_fakeip().hasOutboundAffordance, isFalse);
     });
 
-    // §266 — РЕАЛЬНЫЙ шаблон (не реплика): регрессия «rule_enable без
-    // default_value = required-var unset → expandPreset прерывал весь пресет,
-    // fakeip-DNS не эмитился». Синтетический _fakeip() это не ловил (нет
-    // rule_enable). Гоняем настоящий wizard_template.json.
+
+
+
+
     test('РЕАЛЬНЫЙ fakeip: dns_servers + dns_rules эмитятся (rule_enable не '
         'ломает развёртку)', () {
       final raw = File('assets/wizard_template.json').readAsStringSync();
@@ -840,7 +840,7 @@ void main() {
       expect(_ruDirect().hasOutboundAffordance, isTrue);
     });
 
-    // §231 — touchesDns: чип «DNS» в списке правил.
+
     test('touchesDns: fakeip (dns_rule+dns_server) и ru-direct → true', () {
       expect(_fakeip().touchesDns, isTrue);
       expect(_ruDirect().touchesDns, isTrue);
@@ -856,11 +856,11 @@ void main() {
     });
   });
 
-  // §246 — `rule` как массив route-правил: пресет эмитит несколько правил
-  // в порядке шаблона. Мотивация: ru-direct эмитит пару
-  // `[resolve ipv4_only (#if @outbound==direct-out), route]` — IPv4-only
-  // резолв только для direct-ветки (устройства без глобального IPv6),
-  // туннельный IPv6 не режется.
+
+
+
+
+
   group('expandPreset — rule массив (§246)', () {
     test('дефолт (direct-out) → resolve+route, порядок сохранён', () {
       final f = expandPreset(
@@ -899,8 +899,8 @@ void main() {
 
     test('override reject → терминальный action:reject, промежуточный '
         'resolve не тронут override\'ом', () {
-      // Без #if-гейта: resolve эмитится всегда — override его не подменяет
-      // (иначе `action: resolve` стал бы outbound'ом юзера и убил семантику).
+
+
       final preset = SelectableRule(
         label: 'X',
         presetId: 'x',
@@ -1033,10 +1033,10 @@ void main() {
     });
   });
 
-  // §246 e2e — НАСТОЯЩИЙ wizard_template.json (не синтетическая реплика).
-  // Регрессия первого прогона: движок читал ключ `rule`, шаблон использовал
-  // `rules` → пресет молча терял все правила (ни warning, ни route.rules),
-  // синтетические тесты этого не ловили.
+
+
+
+
   group('§246 e2e — реальный wizard_template.json', () {
     SelectableRule realPreset(String presetId) {
       final raw = File('assets/wizard_template.json').readAsStringSync();
@@ -1050,7 +1050,7 @@ void main() {
       return SelectableRule.fromJson(found);
     }
 
-    // §371 — VoWiFi: домен ePDG + опциональные IKE-порты.
+
     test('vowifi (дефолты: ike_ports=true) → route по домену + route по портам',
         () {
       final preset = realPreset('vowifi');
@@ -1062,7 +1062,7 @@ void main() {
       expect(f.routingRules.length, 2,
           reason: 'домен + IKE-порты; 1 = #if-ветка портов потеряна');
       final byDomain = f.routingRules[0];
-      // Одноэлементный rule_set движок сворачивает в строку.
+
       expect(byDomain['rule_set'], 'vowifi:vowifi-epdg');
       expect(byDomain['outbound'], 'direct-out');
 
@@ -1071,8 +1071,8 @@ void main() {
       expect(byPort['port'], [500, 4500]);
       expect(byPort['outbound'], 'direct-out');
 
-      // Домен ePDG — весь 3GPP-суффикс, не только РФ: иностранная SIM
-      // тоже должна звонить мимо туннеля.
+
+
       final rs = f.ruleSets.single;
       expect(rs['tag'], 'vowifi:vowifi-epdg');
       expect((rs['rules'] as List).first['domain_suffix'],
@@ -1112,8 +1112,8 @@ void main() {
         preset,
       );
 
-      // geoip-ru — remote без кэша: терминальное правило даунгрейдится до
-      // inline-набора, warning про geoip-ru ожидаем; правил всё равно ДВА.
+
+
       expect(f.routingRules.length, 2,
           reason: 'resolve + route; 0 или 1 = движок потерял правило '
               '(регрессия rule/rules-ключа)');
@@ -1129,10 +1129,10 @@ void main() {
       expect(route['outbound'], 'direct-out');
       expect(route.containsKey('action'), isFalse);
 
-      // ⚠ Легаси-опция strategy в dns rule deprecated (ядро 1.14,
-      // resolveLegacyDNSMode fatal при query_type/ip_version в конфиге) —
-      // её нет нигде. §253: DNS-слой Force IPv4 = пара правил:
-      // [AAAA-гейт predefined NOERROR (ip_version: 6), маршрут].
+
+
+
+
       expect(f.dnsRules.length, 2,
           reason: 'AAAA-гейт + маршрут; 1 = #if-гейт потерян '
               '(регрессия dns_rule/dns_rules-ключа)');
@@ -1153,9 +1153,9 @@ void main() {
           reason: 'strategy в dns rule = fatal при включённом FakeIP');
     });
 
-    // §354 — на РЕАЛЬНОМ шаблоне: дефолтная группа приезжает с членами.
-    // Пустая группа = EmptyDnsGroup (fatal), поэтому проверяем на живом JSON,
-    // а не только на фикстуре.
+
+
+
     test('ru-direct (дефолты) → dns_ru + три члена по разным путям', () {
       final f = expandPreset(
         CustomRulePreset(
@@ -1176,20 +1176,20 @@ void main() {
       expect(grp['mode'], 'fastest');
       expect(grp.containsKey('detour'), isFalse, reason: '§319');
 
-      // Три НЕзависимых пути отказа — иначе одна мёртвая нода вешает ru-DNS.
-      // UDP — по Направлению пресета (открытый, но идёт туда же, куда трафик);
-      // DoT — через vpn-1; DoH — напрямую. Оба шифрованных пути не зависят
-      // от @outbound, поэтому мёртвая нода в нём их не трогает.
+
+
+
+
       expect(byTag('ru-direct:yandex_udp')['detour'], 'vpn-2');
       expect(byTag('ru-direct:yandex_dot')['detour'], 'vpn-1');
       expect(byTag('ru-direct:yandex_doh').containsKey('detour'), isFalse,
           reason: 'direct-out → detour снят (§117)');
     });
 
-    // §354 — сквозь ОБА слоя: expandPreset → эмиссионный фильтр §312. Именно
-    // здесь группа могла приехать пустой (члены выброшены как unknown →
-    // EmptyDnsGroup, fatal до старта ядра), а expandPreset в одиночку это не
-    // ловит.
+
+
+
+
     test('ru-direct → эмиссия: группа доезжает с членами, без дропов', () {
       final f = expandPreset(
         CustomRulePreset(
@@ -1232,10 +1232,10 @@ void main() {
         ),
         preset,
       );
-      // Галка off → resolve-элемент выпал, остался только терминальный route.
+
       expect(f.routingRules.length, 1);
       expect(f.routingRules.single['outbound'], 'direct-out');
-      // §253: AAAA-гейт выпал целиком (array-element #if), маршрут остался.
+
       expect(f.dnsRules.length, 1);
       expect(f.dnsRules.single['server'], 'ru-direct:dns_ru');
       expect(f.dnsRules.single.containsKey('ip_version'), isFalse);
@@ -1271,18 +1271,18 @@ void main() {
       expect(f.routingRules[1]['outbound'], 'direct-out');
     });
 
-    // §364 — FCM bypass. Внешний `and` + вложенный `or` из четырёх ветвей
-    // (точные хосты / суффиксы googleapis / alt-регэксп / порты 5228-5230) —
-    // это ветви одного механизма, а не опции.
-    //
-    // ⚠ Инвариант формы, НЕ косметика. `package_name` рядом с `mode`/`rules`
-    // в logical-правиле — `unknown field` для strict-декодера ядра
-    // (badjson.UnmarshallExcluded → UnmarshalContextDisallowUnknownFields):
-    // конфиг не декодируется ЦЕЛИКОМ, ядро не стартует. Проверено на ядре:
-    // верхнеуровневый вариант даёт
-    // `package_name: json: unknown field "package_name"`.
-    // Сужение (И) в sing-box выражается ТОЛЬКО вложенностью — поэтому
-    // `gms_only` добавляет ВЕТВЬ во внешний `and`, а не поле в правило.
+
+
+
+
+
+
+
+
+
+
+
+
     test('fcm-push (дефолты) → and из одной ветви, без package_name', () {
       final f = expandPreset(
         CustomRulePreset(name: 'FCM', presetId: 'fcm-push'),
@@ -1300,8 +1300,8 @@ void main() {
           reason: 'gms_only=false → ветвь выпала целиком (Dropped), '
               'пустого {} в rules не остаётся');
 
-      // Одна ветвь: `and` по одному элементу = результат этого элемента
-      // (rule_abstract.go:205) — вырождения в «матчит всё» нет.
+
+
       final branches = (r['rules'] as List).cast<Map<String, dynamic>>();
       expect(branches.length, 1);
 
@@ -1316,11 +1316,11 @@ void main() {
       expect(or[0]['domain'], contains('mtalk.google.com'));
       expect(or[1]['domain_suffix'],
           contains('firebaseinstallations.googleapis.com'));
-      // alt1..alt8 (и будущие alt9+) — регэкспом, а не перечислением.
+
       expect(or[2]['domain_regex'], [r'^alt\d+-mtalk\.google\.com$']);
       expect(or[3]['port_range'], ['5228:5230']);
 
-      // Пресет чисто маршрутный: ни rule_set, ни DNS-слоя.
+
       expect(f.ruleSets, isEmpty);
       expect(f.dnsRules, isEmpty);
       expect(f.dnsServers, isEmpty);
@@ -1365,7 +1365,7 @@ void main() {
     });
   });
 
-  // §253 — механика dns_rules-массива: валидность элементов + guards.
+
   group('expandPreset — dns_rules array (§253)', () {
     test('элемент без server, но с serverless-action (predefined) выживает; '
         'без server и без action — дропается', () {
@@ -1385,9 +1385,9 @@ void main() {
         ],
         dnsRule: const [
           {'rule_set': 'rs', 'action': 'predefined', 'rcode': 'NOERROR'},
-          {'rule_set': 'rs'}, // ни server, ни action → drop
-          // action вне закрытого serverless-списка (у ядра evaluate без
-          // server = fatal, опечатка = decode error) → drop.
+          {'rule_set': 'rs'},
+
+
           {'rule_set': 'rs', 'action': 'evaluate'},
         ],
       );
@@ -1439,7 +1439,7 @@ void main() {
         ],
         dnsRule: const [
           {'rule_set': 'missing-srs', 'action': 'predefined'},
-          // массив-форма: выживший один tag даунгрейдится до String
+
           {
             'rule_set': ['cached', 'missing-srs'],
             'action': 'predefined',
@@ -1456,7 +1456,7 @@ void main() {
       );
       expect(f.dnsRules.length, 1);
       expect(f.dnsRules.single['rule_set'], 'x:cached');
-      // §570 — код вместо второй строки.
+
       expect(tw.items.single.params,
           {'owner': 'x', 'kind': 'dns.rules', 'reason': 'rule_set'});
     });
@@ -1500,8 +1500,8 @@ void main() {
   });
 }
 
-/// §246: реплика `ru-direct` с гейтом resolve по bool-var `force_ipv4`
-/// (default true). Галка off → resolve-элемент выпадает.
+
+
 SelectableRule _ruDirectForceIpv4() => SelectableRule(
       label: 'Russian domains & IPs',
       presetId: 'ru-direct',
@@ -1545,8 +1545,8 @@ SelectableRule _ruDirectForceIpv4() => SelectableRule(
       ],
     );
 
-/// §246: реплика `ru-direct` из шаблона с rule-массивом —
-/// `[resolve ipv4_only под #if-гейтом, терминальный route]`.
+
+
 SelectableRule _ruDirectArray() => SelectableRule(
       label: 'Russian domains & IPs',
       presetId: 'ru-direct',
@@ -1586,7 +1586,7 @@ SelectableRule _ruDirectArray() => SelectableRule(
       ],
     );
 
-/// Фабрика — реплика `FakeIP` пресета из шаблона (§228).
+
 SelectableRule _fakeip() => SelectableRule(
       label: 'FakeIP',
       description: 'Instant DNS via placeholder IPs.',
@@ -1615,7 +1615,7 @@ SelectableRule _fakeip() => SelectableRule(
       ],
     );
 
-/// Фабрика — сокращённая реплика `Russian domains direct` из шаблона.
+
 SelectableRule _ruDirect() => SelectableRule(
       label: 'Russian domains direct',
       description: 'Route Russian & Cyrillic TLDs directly.',
@@ -1668,10 +1668,10 @@ SelectableRule _ruDirect() => SelectableRule(
       ],
     );
 
-/// §354: реплика `ru-direct` из шаблона — DNS-группа `dns_ru` зашита
-/// ЛИТЕРАЛОМ в правиле (var'а `dns_server` нет: выбор одиночного сервера
-/// вернул бы единственную точку отказа). Три члена по независимым путям:
-/// UDP через Направление пресета, DoT через vpn-1, DoH напрямую.
+
+
+
+
 SelectableRule _ruDirectWithDnsGroup() => SelectableRule(
       label: 'Russian domains & IPs',
       presetId: 'ru-direct',
@@ -1705,8 +1705,8 @@ SelectableRule _ruDirectWithDnsGroup() => SelectableRule(
       dnsServers: _ruDnsServers(),
     );
 
-/// §354: та же реплика, но с var'ом `dns_server` — контракт §033 для
-/// пресетов, где выбор сервера остался (fakeip и пр.).
+
+
 SelectableRule _ruDirectWithDnsServerVar() => SelectableRule(
       label: 'Russian domains & IPs',
       presetId: 'ru-direct',
@@ -1747,7 +1747,7 @@ SelectableRule _ruDirectWithDnsServerVar() => SelectableRule(
       dnsServers: _ruDnsServers(),
     );
 
-/// §354: `dns_servers` пресета ru-direct — группа объявлена перед членами.
+
 List<Map<String, dynamic>> _ruDnsServers() => [
       {
         'type': 'group',
@@ -1774,10 +1774,10 @@ List<Map<String, dynamic>> _ruDnsServers() => [
         'detour': 'vpn-1',
         'description': 'Yandex Safe DoT (via vpn-1)',
       },
-      // §354: у прямого сервера ключа `detour` нет вовсе — конвенция шаблона
-      // (ср. opendns_udp / local_dns_resolver). `direct-out` дал бы тот же
-      // результат (normalizeDnsDetour его снимает), но лишний ключ в шаблоне
-      // не пишем.
+
+
+
+
       {
         'type': 'https',
         'tag': 'yandex_doh',
@@ -1788,10 +1788,10 @@ List<Map<String, dynamic>> _ruDnsServers() => [
       },
     ];
 
-/// §045: фабрика — расширенный `ru-direct` с GeoIP fallback layer.
-/// Реплицирует template'ный shape v1.6.2: `geoip_enabled` bool var,
-/// второй rule_set entry с `enabled: "@geoip_enabled"`, и
-/// `rule.rule_set` как List.
+
+
+
+
 SelectableRule _ruDirectWithGeoip() => SelectableRule(
       label: 'Russian domains & IPs direct',
       description: 'Route Russian TLDs and Russian IP ranges directly.',

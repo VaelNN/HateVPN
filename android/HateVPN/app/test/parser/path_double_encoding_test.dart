@@ -6,12 +6,12 @@ import 'package:lxbox/models/template_vars.dart';
 import 'package:lxbox/services/parser/transport.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §320 — двойное percent-кодирование пути. Агрегаторы отдают
-/// `path=%2F%252Fassignment`: `Uri.queryParameters` декодит ровно один раз, и в
-/// конфиг уезжало `/%2Fassignment` вместо `//assignment` → 404.
-///
-/// Тот же корень, что у §151 (ALPN `http%252F1.1`), но валидность здесь НЕ
-/// проверяется: путь может содержать что угодно — эмодзи, `//`, `@`.
+
+
+
+
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -39,7 +39,7 @@ void main() {
     });
 
     test('глубина ограничена 2 проходами', () {
-      // %25252F = тройное кодирование `/`; после 2 проходов остаётся %2F.
+
       expect(decodeResidualPercent('/%25252F'), '/%2F');
     });
   });

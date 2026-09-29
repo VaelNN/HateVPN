@@ -1,14 +1,14 @@
-/// Кодек записи цепочки `sources[]` контракта 1.0 (§439 §1.2): настройки
-/// маршрута в `body` (канон `source_chain.schema.json` без позиций), позиции —
-/// ссылками в `hops[]`, `label` — поле LxBox рядом.
-///
-/// Места в списке у записи нет: порядок записей `sources[]` и есть порядок
-/// источников, цепочки стоят среди них (§509).
-///
-/// Чтение терпимо, как у `source_record.dart`: позиция строкой читается
-/// корневой ссылкой, незнакомые ключи — в [RecordRead.unknownKeys] путями
-/// (`body.detour`, `body.strip.tls.foo`), прочитанное не дословно — в `notes`.
-/// Пустая позиция и дубль не «чинятся»: их ловит `chainEmitError`.
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../services/contract/chain_strip.dart'
@@ -31,7 +31,7 @@ const Set<String> _chainBodyKeys = {
   'rewrite',
 };
 
-/// Цепочка LxBox → запись `sources[]`.
+
 Map<String, dynamic> chainToRecord(SourceChain c) => {
       'kind': kSourceKindChain,
       'tag': c.tag,
@@ -40,7 +40,7 @@ Map<String, dynamic> chainToRecord(SourceChain c) => {
       'body': {
         'type': kChainOutboundType,
         if (c.idleTimeout.isNotEmpty) 'idle_timeout': c.idleTimeout,
-        // Трёхзначность: null = умолчание ядра, ключа нет.
+
         if (c.stripEvasion != null) 'strip_evasion': c.stripEvasion,
         if (c.strip.isNotEmpty) 'strip': orderedChainStrip(c.strip),
         if (c.rewrite.isNotEmpty) 'rewrite': deepCloneJson(c.rewrite),
@@ -48,8 +48,8 @@ Map<String, dynamic> chainToRecord(SourceChain c) => {
       'hops': [for (final h in c.hops) nodeLinkToRecord(h)],
     };
 
-/// Запись `sources[]` вида `chain` → цепочка LxBox. Без тега цепочка не
-/// адресуема — отброс с причиной.
+
+
 RecordRead<SourceChain> chainFromRecord(
   Map<String, dynamic> j, {
   List<String>? notes,
@@ -59,7 +59,7 @@ RecordRead<SourceChain> chainFromRecord(
     return RecordRead.drop('record kind "$kind" is not a chain');
   }
   final rawTag = j['tag'];
-  // Тег — id цепочки: подрезается, как у legacy-чтения.
+
   final tag = rawTag is String ? rawTag.trim() : '';
   if (tag.isEmpty) return const RecordRead.drop('chain without tag');
   final where = 'chain "$tag"';
@@ -121,7 +121,7 @@ RecordRead<SourceChain> chainFromRecord(
       hops: hops,
       idleTimeout: idleTimeout is String ? idleTimeout : '',
       stripEvasion: stripEvasion is bool ? stripEvasion : null,
-      // Каталожный порядок ключей, как у записи.
+
       strip: orderedChainStrip(strip),
       rewrite: rawRewrite is Map
           ? (deepCloneJson(rawRewrite) as Map).cast<String, dynamic>()

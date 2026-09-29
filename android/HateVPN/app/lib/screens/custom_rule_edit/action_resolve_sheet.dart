@@ -6,17 +6,17 @@ import 'edit_controller.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// §247 — модальное окно «Action & Resolve» (за ⚙ рядом с Action-пикером).
-///
-/// Три режима одного правила:
-/// - Route to outbound (дефолт) — терминальный route, как раньше;
-/// - Route + Resolve first (флагман) — нетерминальный resolve ПЕРЕД route
-///   (билдер эмитит два правила с одним матчем);
-/// - Resolve only (advanced) — только resolve; трафик проваливается к
-///   следующим правилам / Final (оранжевое предупреждение, осознанный выбор).
-///
-/// Единая панель Resolve options внизу — видна когда resolve активен в любом
-/// из режимов. Advanced-поля (cache/ttl/timeout/subnet) — в раскрывашке.
+
+
+
+
+
+
+
+
+
+
+
 Future<void> showActionResolveSheet(
   BuildContext context, {
   required CustomRuleEditController controller,
@@ -47,7 +47,7 @@ class _ActionResolveSheet extends StatefulWidget {
 }
 
 class _ActionResolveSheetState extends State<_ActionResolveSheet> {
-  // Локальное состояние — коммит в controller только по Done.
+
   late bool _resolveOnly;
   late bool _resolveFirst;
   late String _outbound;
@@ -60,7 +60,7 @@ class _ActionResolveSheetState extends State<_ActionResolveSheet> {
   late final TextEditingController _subnetCtrl;
 
   static const _strategies = [
-    '', // inherit dns.strategy
+    '',
     'prefer_ipv4',
     'prefer_ipv6',
     'ipv4_only',
@@ -93,7 +93,7 @@ class _ActionResolveSheetState extends State<_ActionResolveSheet> {
 
   bool get _resolveActive => _resolveOnly || _resolveFirst;
 
-  // ─── Advanced-поля: советующая валидация (битое = Done заблокирован) ──
+
 
   String? get _ttlError {
     final t = _ttlCtrl.text.trim();
@@ -139,7 +139,7 @@ class _ActionResolveSheetState extends State<_ActionResolveSheet> {
     final c = widget.controller;
     if (_resolveOnly) {
       c.setResolve(_collectResolve(only: true));
-      // outbound в модели сохраняется (переключение назад не теряет выбор).
+
     } else if (_resolveFirst) {
       c.setResolve(_collectResolve(only: false));
       c.setOutbound(_outbound);
@@ -150,7 +150,7 @@ class _ActionResolveSheetState extends State<_ActionResolveSheet> {
     Navigator.pop(context);
   }
 
-  // ─── Preview: те же 1-2 записи, что эмитит билдер ─────────────────────
+
 
   String _previewText() {
     final name = widget.controller.nameCtrl.text.trim();
@@ -213,7 +213,7 @@ class _ActionResolveSheetState extends State<_ActionResolveSheet> {
           ),
           const SizedBox(height: 16),
 
-          // ─── Режим: Route to outbound ────────────────────────────────
+
           RadioGroup<bool>(
             groupValue: _resolveOnly,
             onChanged: (v) => setState(() => _resolveOnly = v ?? false),
@@ -255,7 +255,7 @@ class _ActionResolveSheetState extends State<_ActionResolveSheet> {
                   ),
                 const Divider(),
 
-                // ─── Режим: Resolve only ─────────────────────────────────
+
                 RadioListTile<bool>(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -293,7 +293,7 @@ class _ActionResolveSheetState extends State<_ActionResolveSheet> {
             ),
           ),
 
-          // ─── Единая панель Resolve options ───────────────────────────
+
           if (_resolveActive) ...[
             const SizedBox(height: 8),
             Text(getLocalText.s("Resolve options"),
@@ -310,16 +310,16 @@ class _ActionResolveSheetState extends State<_ActionResolveSheet> {
                 DropdownMenuItem(
                     value: '', child: Text(getLocalText.s("(inherit DNS strategy)"))),
                 const DropdownMenuItem(
-                    // l10n-exempt: wire strategy value shown as-is
+
                     value: 'prefer_ipv4', child: Text('prefer_ipv4')),
                 const DropdownMenuItem(
-                    // l10n-exempt: wire strategy value shown as-is
+
                     value: 'prefer_ipv6', child: Text('prefer_ipv6')),
                 const DropdownMenuItem(
-                    // l10n-exempt: wire strategy value shown as-is
+
                     value: 'ipv4_only', child: Text('ipv4_only')),
                 const DropdownMenuItem(
-                    // l10n-exempt: wire strategy value shown as-is
+
                     value: 'ipv6_only', child: Text('ipv6_only')),
               ],
               onChanged: (v) => setState(() => _strategy = v ?? ''),
@@ -337,9 +337,9 @@ class _ActionResolveSheetState extends State<_ActionResolveSheet> {
                     value: '', child: Text(getLocalText.s("(auto — route DNS)"))),
                 for (final tag in widget.controller.dnsServerTags)
                   DropdownMenuItem(value: tag, child: Text(tag)),
-                // Сохранённый tag, которого нет в текущем списке (сервер
-                // удалили/переименовали) — показываем честно, не маскируем
-                // под «(auto)». Билдер-heal снимет его, если не доживёт.
+
+
+
                 if (_serverTag.isNotEmpty &&
                     !widget.controller.dnsServerTags.contains(_serverTag))
                   DropdownMenuItem(
@@ -411,7 +411,7 @@ class _ActionResolveSheetState extends State<_ActionResolveSheet> {
             ),
           ],
 
-          // ─── Preview ────────────────────────────────────────────────
+
           const SizedBox(height: 12),
           Text(getLocalText.s("Preview (route.rules)"),
               style: theme.textTheme.titleSmall),

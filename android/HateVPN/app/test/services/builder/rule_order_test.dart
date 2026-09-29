@@ -19,10 +19,10 @@ void main() {
       final changed = markRuleOrder(rules, _catalog());
 
       expect(changed, isTrue);
-      expect(rules[0].orderNum, 970); // fcm-push из шаблона
-      expect(rules[1].orderNum, 1000); // первое пользовательское
-      expect(rules[2].orderNum, 0); // traffic-processing из шаблона
-      expect(rules[3].orderNum, 1001); // второе пользовательское
+      expect(rules[0].orderNum, 970);
+      expect(rules[1].orderNum, 1000);
+      expect(rules[2].orderNum, 0);
+      expect(rules[3].orderNum, 1001);
     });
 
     test('уже размеченные не трогаются', () {
@@ -76,7 +76,7 @@ void main() {
       final c = _inline('c')..orderNum = 1020;
       final rules = [a, moved, c];
 
-      // встать за `a` (1000) → want=1001, свободен
+
       placeRuleAfter(rules, moved, a, isSortable: (_) => true);
 
       expect(moved.orderNum, 1001);
@@ -87,7 +87,7 @@ void main() {
     test('занятый want — сдвигаются только те, кто >= want', () {
       final head = _inline('head')..orderNum = 950;
       final a = _inline('a')..orderNum = 1000;
-      final b = _inline('b')..orderNum = 1001; // занимает want
+      final b = _inline('b')..orderNum = 1001;
       final c = _inline('c')..orderNum = 1002;
       final moved = _inline('moved')..orderNum = 1080;
       final rules = [head, a, b, c, moved];
@@ -117,9 +117,9 @@ void main() {
     test('каскад останавливается на первой дырке — якорь за ней не двигается',
         () {
       final a = _inline('a')..orderNum = 1000;
-      final b = _inline('b')..orderNum = 1001; // занимает want
-      final c = _inline('c')..orderNum = 1002; // сплошной блок
-      final gap = _preset('ru-direct')..orderNum = 1120; // за дыркой
+      final b = _inline('b')..orderNum = 1001;
+      final c = _inline('c')..orderNum = 1002;
+      final gap = _preset('ru-direct')..orderNum = 1120;
       final moved = _inline('moved')..orderNum = 1090;
       final rules = [a, b, c, gap, moved];
 
@@ -140,11 +140,11 @@ void main() {
       final rules = [head, a, moved];
       bool sortable(CustomRule r) => r.presetId != 'traffic-processing';
 
-      // попытка подвинуть саму шапку — no-op
+
       placeRuleAfter(rules, head, a, isSortable: sortable);
       expect(head.orderNum, 0);
 
-      // сдвиг остальных шапку не задевает
+
       placeRuleAfter(rules, moved, a, isSortable: sortable);
       expect(head.orderNum, 0);
       expect(moved.orderNum, 1001);
@@ -173,7 +173,7 @@ void main() {
         _preset('traffic-processing')..orderNum = 0,
         _inline('a')..orderNum = 1000,
         _inline('b')..orderNum = 1005,
-        _preset('ru-direct')..orderNum = 1120, // вне зоны — не влияет
+        _preset('ru-direct')..orderNum = 1120,
       ];
 
       expect(nextUserRuleNum(rules), 1006);
@@ -189,7 +189,7 @@ void main() {
   group('D-117 голова оси на номере шаблона (BACKUP.md §9 п. 7)', () {
     test('загрузка: сдвинутая голова встаёт на номер шаблона, сортируемый '
         'пресет и правило пользователя держат свои номера', () {
-      // Хранение после импорта лаунчера 1.5.3–1.5.6: сплошная нумерация.
+
       final rules = [
         _preset('traffic-processing')..orderNum = 1000,
         _preset('block-ads')..orderNum = 1001,
@@ -268,8 +268,8 @@ void main() {
     });
 
     test('§398: задвоенный пресет схлопывается, остаётся ПОСЛЕДНИЙ', () {
-      // Storage после импорта v2.20.11: две копии traffic-processing. Первая
-      // с дефолтными vars, вторая (приехавшая из файла) — с изменённым.
+
+
       final rules = [
         CustomRulePreset(
           name: 'Traffic Processing',
@@ -305,7 +305,7 @@ void main() {
     });
 
     test('регресс §369: пресет с direct-out не встаёт выше шапки', () {
-      // fcm-push (970) добавлен в пустой список — шапка засевается на 0.
+
       final out =
           normalizeRuleOrder([_preset('fcm-push')], _catalog(), _template());
 
@@ -315,7 +315,7 @@ void main() {
 
   group('§370 регресс: drag не двигает шаблонные якоря', () {
     test('перетаскивание в занятую точку не сдвигает якоря ниже', () {
-      // Раскладка как на устройстве после разметки.
+
       final head = _preset('traffic-processing')..orderNum = 0;
       final priv = _preset('private-ip')..orderNum = 950;
       final ads = _preset('block-ads')..orderNum = 960;
@@ -326,7 +326,7 @@ void main() {
       final rules = [head, priv, ads, fcm, bt, home, ruDirect];
       bool sortable(CustomRule r) => r.presetId != 'traffic-processing';
 
-      // fcm тащим за bt (980) → want=981, свободен → сдвига быть не должно
+
       placeRuleAfter(rules, fcm, bt, isSortable: sortable);
 
       expect(fcm.orderNum, 981);
@@ -364,7 +364,7 @@ CustomRulePreset _preset(String id) =>
 
 CustomRuleInline _inline(String name) => CustomRuleInline(name: name);
 
-/// Каталог по раскладке §370 §2 (подмножество, достаточное для тестов).
+
 List<SelectableRule> _catalog() => [
       _spec('traffic-processing', 0, sortable: false),
       _spec('private-ip', 950),

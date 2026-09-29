@@ -18,8 +18,8 @@ void main() {
     expect(map['b'], [2, 3]);
   });
 
-  // §333 — json5 SyntaxException (не-FormatException, private в пакете)
-  // нормализуется в FormatException с тем же message (координаты ошибки).
+
+
   test('canonicalJsonForSingbox normalizes json5 SyntaxException', () {
     expect(
       () => canonicalJsonForSingbox('{broken'),
@@ -28,7 +28,7 @@ void main() {
     );
   });
 
-  // §333 — изолятные обёртки: контракт идентичен sync-версиям.
+
   test('canonicalJsonForSingboxAsync matches sync on valid input', () async {
     const input = '{"a": 1, /* c */ "b": [2,],}';
     expect(await canonicalJsonForSingboxAsync(input),
@@ -48,7 +48,7 @@ void main() {
     const input = '{"a":1}';
     expect(await prettyJsonForDisplayAsync(input),
         prettyJsonForDisplay(input));
-    // Невалидный вход возвращается as-is (контракт sync-версии).
+
     expect(await prettyJsonForDisplayAsync('{oops'), '{oops');
   });
 }

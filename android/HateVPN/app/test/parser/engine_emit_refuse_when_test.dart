@@ -5,10 +5,10 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 
 import 'engine_test_setup.dart';
 
-/// Тело WireGuard, как его отдаёт готовый sing-box JSON: несколько `peers`.
-///
-/// Ссылка выражает одного пира; реестр объявляет `emit.refuse_when` на
-/// `peers.length > 1`. Эмиттер обязан отказать, а не отдать первого.
+
+
+
+
 const _priv = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
 const _pub1 = 'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=';
 const _pub2 = 'AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=';
@@ -57,7 +57,7 @@ void main() {
     expect(r.uri, isNotEmpty);
     expect(r.uri, startsWith('wireguard://'));
     expect(r.lost, isEmpty);
-    // Повторный эмит того же тела — байт в байт.
+
     expect(emitViaSection(section(), one, 'wg')!.uri, r.uri);
   });
 }

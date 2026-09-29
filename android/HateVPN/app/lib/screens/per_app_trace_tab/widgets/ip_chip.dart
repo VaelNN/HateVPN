@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// `IP ↗` chip — текст IP'а + clickable иконка. §160: используется в
-/// `aggregate_detail_sheet` (IPs домена → тап кладёт IP в общий поиск).
-/// [onTap] null → просто текст без иконки.
+
+
+
 Widget ipChip(BuildContext context, String ip, ValueChanged<String>? onTap) {
   final cs = Theme.of(context).colorScheme;
   final content = Row(
@@ -27,8 +27,8 @@ Widget ipChip(BuildContext context, String ip, ValueChanged<String>? onTap) {
   );
 }
 
-/// Wrap из [ipChip] для рендера множества IP'ов (Domains/Connections
-/// expanded views).
+
+
 Widget ipChipList(
     BuildContext context, Iterable<String> ips, ValueChanged<String>? onTap) {
   return Wrap(

@@ -9,8 +9,8 @@ import 'package:lxbox/models/template_vars.dart';
 import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §453 — TCP keep-alive dial-поля sing-box на узле: sing-box JSON, share-URI,
-/// Xray sockopt.
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -232,8 +232,8 @@ void main() {
     });
 
     test('vmess cleartext — поля в query-хвосте', () {
-      // Cleartext-форма тоже приезжает base64 (парсер декодирует тело до
-      // разбора), поэтому кодируем строку целиком.
+
+
       const body = 'auto:11111111-2222-3333-4444-555555555555'
           '@h.example:443?tcp_keep_alive=30s';
       final uri =
@@ -243,7 +243,7 @@ void main() {
     });
 
     test('naive — dial-поля в known-списке, без «unknown query param»', () {
-      // Аллоулист naive логирует незнакомые ключи; наши три в нём есть.
+
       final a = parseUri('naive+https://u:pw@h.example:443'
           '?tcp_keep_alive=30s&tcp_keep_alive_interval=15s'
           '&disable_tcp_keep_alive=1#N')!;
@@ -291,8 +291,8 @@ void main() {
                 }
               ]
             };
-      // parseXrayOutbound ждёт ЭЛЕМЕНТ подписки (с массивом outbounds),
-      // а не голый outbound.
+
+
       return parseXrayOutbound(<String, dynamic>{
         'outbounds': [
           <String, dynamic>{

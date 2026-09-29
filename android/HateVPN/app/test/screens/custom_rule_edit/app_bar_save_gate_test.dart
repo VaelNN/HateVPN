@@ -3,10 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/screens/custom_rule_edit_screen.dart';
 
-// §447 — Save в AppBar редактора правила идёт через ту же проверку, что Save
-// формы: массив или невалидный JSON не сохраняются, набранный текст остаётся
-// в поле. Проверяется поведение (нет результата, текст на месте), не текст
-// сообщения (AGENTS.md).
+
+
+
+
 
 class _Host {
   CustomRuleEditResult? result;
@@ -92,7 +92,7 @@ void main() {
         matching: find.byIcon(Icons.arrow_back),
       ));
       await tester.pumpAndSettle();
-      // Диалог «Save / Keep editing / Discard» — кнопка сохранения.
+
       await tester.tap(find.descendant(
         of: find.byType(AlertDialog),
         matching: find.text('Save'),

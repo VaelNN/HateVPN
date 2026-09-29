@@ -4,9 +4,9 @@ import 'package:lxbox/screens/home/support_message_screen.dart';
 import 'package:lxbox/services/support/support_message.dart';
 import 'package:lxbox/services/support/support_nav.dart';
 
-/// §357 — полноэкранный показ сообщения ленты: таймер «Got it», видимость
-/// кнопок (https / незнакомое действие / route с гейтом), навигация route.
-/// Все тесты в dryRun — state/IO не трогаются.
+
+
+
 void main() {
   SupportMessage msg({
     int delay = 0,
@@ -80,7 +80,7 @@ void main() {
     await pumpScreen(
       tester,
       m,
-      // dns резолвится, stats — нет (гейт «туннель опущен» вернул null).
+
       build: (a) => routeSegments(a).first == 'dns' ? const SizedBox() : null,
     );
     expect(find.text('ext-btn'), findsOneWidget);

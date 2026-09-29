@@ -21,18 +21,18 @@ import 'if_engine.dart' show Dropped, walk;
 import 'preset_expand.dart';
 import 'rule_set_registry.dart';
 
-// Barrel stitching the post-step part files into one library via `part`/`part of`.
-// Каждый part = один шаг sing-box config post-processing'а.
-//
-//   - tls_transforms.dart — applyMixedCaseSni / applyTlsFragment (§028)
-//   - tun_packages.dart   — applyTunPackages (§046)
-//   - dns_rules.dart      — applyCustomDns / resolveDnsRulesList (§061+§033)
-//   - custom_rules.dart   — applyPresetBundles / applyCustomRules /
-//                           applyAllCustomRules / _outboundToRoute (§030+§062)
-//   - dns_servers.dart    — resolveDnsServersList / resolveDnsServersBodies
-//                           (§043+§044)
-//   - heal_detour_dropped_dns.dart — ссылки на DNS-серверы, выпавшие из-за
-//                           висячего detour (§441/§443, SPEC 129 Н10)
+
+
+
+
+
+
+
+
+
+
+
+
 part 'post_steps/tls_transforms.dart';
 part 'post_steps/tun_packages.dart';
 part 'post_steps/dns_rules.dart';

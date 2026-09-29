@@ -5,11 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/workspaces/workspace_store.dart';
 
-/// §417 — Workspaces: справочник, копирование состава слота в обе стороны,
-/// журнал незавершённой загрузки, управление слотами.
-///
-/// Pattern: mocked path_provider (ОБА корня — Documents и Support, у слота
-/// позиции в обоих) + уникальный temp на тест.
+
+
+
+
+
 void main() {
   late Directory docs;
   late Directory support;
@@ -22,7 +22,7 @@ void main() {
   Directory subCache() => Directory('${support.path}/sub_cache');
   File manifest() => File('${docs.path}/workspaces.json');
 
-  /// Сцена в состоянии [tag]: настройки, один .srs, одно тело подписки.
+
   Future<void> putScene(String tag, {bool withDirs = true}) async {
     await settings().writeAsString('{"vars":{"scene":"$tag"}}');
     if (withDirs) {
@@ -78,7 +78,7 @@ void main() {
       try {
         if (d.existsSync()) await d.delete(recursive: true);
       } on FileSystemException {
-        // AppLog пишет persistent-лог в docs async — race с delete.
+
       }
     }
   });
@@ -138,7 +138,7 @@ void main() {
   group('saveAs', () {
     test('копирует все три позиции, current = имя, дата записана', () async {
       await putScene('a');
-      // Сироты атомарных писателей не копируются.
+
       await File('${subCache().path}/body-a.3.tmp').writeAsString('junk');
       await File('${ruleSets().path}/x.srs.tmp').writeAsString('junk');
 
@@ -163,7 +163,7 @@ void main() {
     test('повторный saveAs в то же имя перезаписывает слот целиком', () async {
       await putScene('a');
       await store.saveAs('Home');
-      // Сцена изменилась: другой набор файлов, меньше папок.
+
       await ruleSets().delete(recursive: true);
       await subCache().delete(recursive: true);
       await putScene('b', withDirs: false);
@@ -186,7 +186,7 @@ void main() {
       await store.saveAs('Home');
       await putScene('b');
       await store.saveAs('Work');
-      // Правки поверх Work, ещё не сохранённые.
+
       await putScene('c');
       await settingsBak().writeAsString('stale');
       final beforeMtime = settings().lastModifiedSync();
@@ -219,10 +219,10 @@ void main() {
 
     test('первая загрузка без папки у current создаёт «Default»', () async {
       await putScene('a');
-      // Слот Work появился не через saveAs текущего: справочник без Default.
+
       await store.saveAs('Work');
       await putScene('b');
-      // Эмуляция «фичей не пользовались, но слот есть» — current сброшен.
+
       final raw = await readManifestRaw();
       raw['current'] = 'Default';
       await manifest().writeAsString(jsonEncode(raw));
@@ -257,7 +257,7 @@ void main() {
       await store.saveAs('Home');
       await putScene('b');
       await store.saveAs('Work');
-      // Убили посреди загрузки Home: журнал есть, сцена — смесь.
+
       final raw = await readManifestRaw();
       raw['pending'] = {'op': 'load', 'target': 'Home'};
       await manifest().writeAsString(jsonEncode(raw));

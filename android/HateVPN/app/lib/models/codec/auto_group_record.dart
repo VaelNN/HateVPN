@@ -1,33 +1,33 @@
-/// Кодек члена папки `kind: auto` (§439, трек N2): узел автовыбора
-/// [AutoSelectSpec] ↔ запись `sources[].nodes[]` контракта 1.0
-/// (`$defs/node` + `$defs/autoGroup`). Хранение и LX Backup пишут одну форму.
-///
-/// ```json
-/// { "kind": "auto", "tag": "Auto", "enabled": true,
-///   "group": {
-///     "group_type": "urltest",
-///     "members": [ { "folder_id": "<id папки>", "tag": "de-1" } ],
-///     "strategy": { "mode": "least_test", "url": "…", "interval": "15m",
-///                   "tolerance": 50, "idle_timeout": "30m",
-///                   "interrupt_exist_connections": false },
-///     "members_rule": { "include": "^DE", "exclude": "" },
-///     "pool_badge": "…" } }
-/// ```
-///
-/// К — `kind`, `tag`, `enabled`, `group{group_type, members, strategy}`.
-/// Поля стороны LxBox внутри `group` (контракт 1.0.1, BACKUP.md §2 «Поля
-/// стороны LxBox»): `members_rule` (членство правилом: регулярки не ссылки,
-/// NODE_LINK §9.1) и `pool_badge` (значки строки списка, в конфиг не уходят).
-/// У группы-правила `members` нет: состав считает сборка.
-///
-/// Писатель: `group_type` всегда `urltest`, члены — только парами (NODE_LINK
-/// §2 п. 1). Читатель терпим (решение 15.09): член `{tag}` → пара с `id` своей
-/// папки (S1); `default` строкой → пара, если член с этим тегом ровно один
-/// (S2); у urltest-группы LxBox `default` нет, он называется потерей;
-/// `selector` читается urltest'ом с предупреждением. `members_rule` и
-/// `pool_badge` уровня узла — форма dev-сборок до контракта 1.0.1 — читаются
-/// молча; `group` сильнее. Непустой `members[]` сильнее `members_rule`: по
-/// схеме группа-правило явного состава не несёт.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import 'package:collection/collection.dart';
@@ -43,17 +43,17 @@ import '../node_spec.dart';
 import '../server_list.dart';
 import 'node_link_record.dart';
 
-/// Вид члена папки — узел автовыбора.
+
 const String kNodeKindAuto = 'auto';
 
 
-/// Тег записи без тега (так же называл безымянную группу прежний разбор).
+
 const String _kUntaggedAuto = 'Auto';
 
-/// `members_rule` и `pool_badge` на уровне узла — dev-форма до 1.0.1.
+
 const Set<String> _autoKeys = {
   'kind', 'tag', 'enabled', 'group', 'members_rule', 'pool_badge',
-  // Контракт 1.1.66 — записи узла-группы едут как есть (тела нет).
+
   'warnings',
 };
 
@@ -63,17 +63,17 @@ const Set<String> _groupKeys = {
 
 const Set<String> _ruleKeys = {'include', 'exclude'};
 
-/// `$defs/directionAuto` — форма `strategy`.
+
 const Set<String> _strategyKeys = {
   'mode', 'url', 'interval', 'tolerance', 'idle_timeout',
   'interrupt_exist_connections', 'pool', 'pool_tolerance', 'sticky_hash',
 };
 
-// ─── запись ─────────────────────────────────────────────────────────────────
 
-/// Член-группа [m] папки [folderId] → запись `kind: auto`. Корневая ссылка
-/// члена (группа, приехавшая без адреса контейнера) пишется парой с
-/// [folderId].
+
+
+
+
 Map<String, dynamic> autoGroupMemberToRecord(
   FolderMember m,
   AutoSelectSpec group,
@@ -86,7 +86,7 @@ Map<String, dynamic> autoGroupMemberToRecord(
     'enabled': m.enabled,
     if (m.warnings.isNotEmpty) 'warnings': storedWarningsToJson(m.warnings),
     'group': {
-      // §565 — род группы как есть (`genus.values`).
+
       'group_type': group.genus,
       if (membership is ExplicitMembers)
         'members': [
@@ -94,31 +94,31 @@ Map<String, dynamic> autoGroupMemberToRecord(
             nodeLinkToRecord(
                 l.isRoot ? NodeLink(folderId: folderId, tag: l.tag) : l),
         ],
-      // Параметры замера — у автовыбора; у ручного рода их нет.
+
       if (!group.isManual) 'strategy': autoSelectParamsToStrategy(group.params),
-      // Поля стороны LxBox (контракт 1.0.1).
+
       if (membership is RuleMembers)
         'members_rule': {
           'include': membership.include,
           'exclude': membership.exclude,
         },
       if (group.poolBadge != kDefaultPoolBadge) 'pool_badge': group.poolBadge,
-      // §565 — `default` ручного рода: ссылка NodeLink на члена (писатель
-      // пишет объект, BACKUP `autoGroup.default`).
+
+
       if (group.isManual && group.manualDefault.isNotEmpty)
         'default': nodeLinkToRecord(
             _memberLink(membership, group.manualDefault, folderId)),
-      // Контракт 1.1.50 (`preserve_unexecuted`) — у автовыбора поле чужое:
-      // запись старого вида, где selector был сведён к urltest, несёт его
-      // сквозным, строкой как пришло.
+
+
+
       if (!group.isManual && group.manualDefault.isNotEmpty)
         'default': group.manualDefault,
     },
   };
 }
 
-/// Ссылка на члена с сырым тегом [tag]: член явного состава, иначе пара
-/// со своей папкой.
+
+
 NodeLink _memberLink(
     AutoSelectMembership membership, String tag, String folderId) {
   if (membership is ExplicitMembers) {
@@ -131,12 +131,12 @@ NodeLink _memberLink(
   return NodeLink(folderId: folderId, tag: tag);
 }
 
-/// [AutoSelectParams] → `strategy` формы `$defs/directionAuto`.
-///
-/// Поля пула значат что-то только у `round_robin`; у `least_test` они
-/// пишутся, лишь когда отличаются от умолчания, — это настройка редактора,
-/// которая вернётся при обратном переключении режима. Выключенная липкость —
-/// явный `["none"]`: пустой список ядро схлопывает в умолчание.
+
+
+
+
+
+
 Map<String, dynamic> autoSelectParamsToStrategy(AutoSelectParams p) {
   const d = AutoSelectParams();
   final rr = p.mode == UrltestMode.roundRobin;
@@ -158,16 +158,16 @@ Map<String, dynamic> autoSelectParamsToStrategy(AutoSelectParams p) {
   };
 }
 
-// ─── чтение ─────────────────────────────────────────────────────────────────
 
-/// Итог чтения записи `kind: auto`: член папки. §565 — род selector
-/// исполняется, признака «приехала selector'ом» больше нет.
+
+
+
 typedef AutoGroupRead = ({FolderMember member});
 
-/// Запись `kind: auto` папки [folderId] → член-группа. Не бросает.
-///
-/// Что прочитано не дословно — строкой в [notes] с [where]; незнакомые ключи
-/// — путями в [unknown] от [path] (`nodes[3].group.fold`).
+
+
+
+
 AutoGroupRead autoGroupMemberFromRecord(
   Map<String, dynamic> j, {
   required String folderId,
@@ -194,8 +194,8 @@ AutoGroupRead autoGroupMemberFromRecord(
   }
   _collectUnknown(group, _groupKeys, '${path}group.', unknown);
 
-  // §565 — род как записан; незнакомый — автовыбор с нотой. Запись без
-  // рода (старые файлы) — автовыбор молча.
+
+
   final type = group['group_type'];
   final String genus;
   if (type is String && GroupGenus.isKnown(type)) {
@@ -216,14 +216,14 @@ AutoGroupRead autoGroupMemberFromRecord(
         notes?.add('$where: group.members[$i] is not a link, dropped');
         continue;
       }
-      // S1 — член без контейнера адресует свою папку.
+
       links.add(link.isRoot ? NodeLink(folderId: folderId, tag: link.tag) : link);
     }
   }
 
-  // §565 — `default` ручного рода: выбранный член, ссылкой (объект) или
-  // сырым тегом (dev-форма), сводится к тегу члена. У автовыбора поле чужое
-  // и доживает сквозным (контракт 1.1.50, `preserve_unexecuted`).
+
+
+
   final rawDefault = group['default'];
   var manualDefault = '';
   if (rawDefault != null) {
@@ -231,7 +231,7 @@ AutoGroupRead autoGroupMemberFromRecord(
     manualDefault = def?.tag ?? (rawDefault is String ? rawDefault : '');
   }
 
-  // Поле стороны LxBox — в `group`; уровень узла — dev-форма до 1.0.1.
+
   final inGroup = group.containsKey('members_rule');
   final rule = inGroup ? group['members_rule'] : j['members_rule'];
   final AutoSelectMembership membership;
@@ -275,8 +275,8 @@ AutoGroupRead autoGroupMemberFromRecord(
   );
 }
 
-/// `strategy` формы `$defs/directionAuto` → [AutoSelectParams]. Поле не того
-/// типа — умолчание; `["none"]` в `sticky_hash` — липкость выключена.
+
+
 AutoSelectParams autoSelectParamsFromStrategy(Object? raw) {
   const d = AutoSelectParams();
   if (raw is! Map) return d;
@@ -315,8 +315,8 @@ AutoSelectParams autoSelectParamsFromStrategy(Object? raw) {
   );
 }
 
-/// S2 — `default` группы → ссылка: строка становится парой, если член с этим
-/// тегом ровно один, иначе остаётся корневой; объект читается ссылкой с S1.
+
+
 NodeLink? _defaultLink(Object? raw, List<NodeLink> members, String folderId) {
   if (raw is String) {
     if (raw.isEmpty) return null;

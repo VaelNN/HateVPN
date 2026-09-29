@@ -8,8 +8,8 @@ import 'package:lxbox/services/builder/if_engine.dart';
 import 'package:lxbox/services/builder/preset_expand.dart';
 import 'package:lxbox/services/template_loader.dart';
 
-/// §578 — язык шаблона: `for_each` пресета, доступ `@node`, `#tpl`.
-/// JSON-литерал в форму разобранного JSON: движок правит дерево на месте.
+
+
 dynamic j(Object v) => jsonDecode(jsonEncode(v));
 
 void main() {
@@ -85,7 +85,7 @@ void main() {
           ['home-ts-dns', 'work-ts-dns']);
       expect([for (final r in f.dnsRules) r['server']],
           ['home-ts-dns', 'work-ts-dns']);
-      // В DNS-правиле preferred_by называет DNS-сервер, не узел.
+
       expect([for (final r in f.dnsRules) r['preferred_by']], [
         ['home-ts-dns'],
         ['work-ts-dns'],
@@ -269,8 +269,8 @@ void main() {
       final dropped =
           validateTemplateConstructs(json, WizardTemplate.fromJson(json));
       expect(dropped, ['bad']);
-      // Запись вырезана из raw — перечень пресетов вернулся к исходному
-      // размеру, остальной шаблон (в т.ч. боевой tailscale) не пострадал.
+
+
       expect(rules.length, before);
       expect(rules.any((r) => r['preset_id'] == 'bad'), isFalse);
       expect(WizardTemplate.fromJson(json).selectableRules

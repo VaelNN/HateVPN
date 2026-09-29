@@ -32,7 +32,7 @@ void main() {
           {'tag': 'vpn-1', 'type': 'selector', 'outbounds': ['a']},
           {'tag': 'a', 'type': 'vless'},
         ],
-        'route': {'final': 'vpn-1-auto'}, // auto-двойник не эмитирован
+        'route': {'final': 'vpn-1-auto'},
       });
       expect(r.hasFatal, true);
       expect(r.fatal.single, isA<DanglingOutboundRef>());
@@ -122,7 +122,7 @@ void main() {
       expect(r.isOk, true);
     });
 
-    // Edge cases (night T7-3)
+
 
     test('rule с action:reject без outbound-string → не ошибка', () {
       final r = validateConfig({
@@ -200,7 +200,7 @@ void main() {
           true);
     });
 
-    // §121 — DNS resolver refs.
+
 
     test('§121 — dns.final на отсутствующий сервер → fatal', () {
       final r = validateConfig({
@@ -208,7 +208,7 @@ void main() {
           'servers': [
             {'tag': 'cloudflare_udp', 'type': 'udp'},
           ],
-          'final': 'yandex_dot', // исчез (пресет выключен)
+          'final': 'yandex_dot',
         },
       });
       expect(r.hasFatal, true);
@@ -243,7 +243,7 @@ void main() {
     });
 
     test('§121 — пустой/отсутствующий resolver-ref → ok (не fatal)', () {
-      // dns без final, route без default_domain_resolver — проверка скипается.
+
       final r = validateConfig({
         'dns': {
           'servers': [
@@ -263,7 +263,7 @@ void main() {
       expect(r.isOk, true);
     });
 
-    // §141 P1.8a — detour cycle detection.
+
 
     test('§141 — detour self-reference (A→A) → fatal DetourCycle', () {
       final r = validateConfig({
@@ -285,8 +285,8 @@ void main() {
       expect(r.hasFatal, true);
       final cycles = r.fatal.whereType<DetourCycle>().toList();
       expect(cycles.length, 1);
-      // §219 — проверяем СОДЕРЖИМОЕ cycle, не только факт наличия: оба узла
-      // цикла должны быть в нём (§254 — детектор в _detectDetourCycles).
+
+
       expect(cycles.single.cycle, containsAll(<String>['a', 'b']));
       expect(cycles.single.cycle, hasLength(2));
     });
@@ -326,11 +326,11 @@ void main() {
       expect(r.fatal.whereType<DetourCycle>().length, 1);
     });
 
-    // §254 — цикл через selector-группу (граф включает группа→члены) +
-    // структурные кольца + минимальный набор виновников.
+
+
 
     test('§254 — цикл через selector: node→group→node → 1 culprit', () {
-      // A ∈ vpn-2 (selector); A детурит в vpn-2 → group-fan-out → A. Цикл.
+
       final r = validateConfig({
         'outbounds': [
           {'tag': 'A', 'type': 'vless', 'detour': 'vpn-2'},
@@ -342,8 +342,8 @@ void main() {
     });
 
     test('§254 — node-цикл НЕ теряется при structural-кольце (находка №1)', () {
-      // structural S↔T (selector'ы друг на друга, неустранимы) + node a↔b.
-      // Ранний return выбросил бы culprit a — регрессия-guard.
+
+
       final r = validateConfig({
         'outbounds': [
           {'tag': 'a', 'type': 'vless', 'detour': 'b'},
@@ -360,8 +360,8 @@ void main() {
     });
 
     test('§254 — group-only кольцо → issue с пустыми culprits', () {
-      // S↔T без устранимых detour-рёбер: виновников-нод нет, но issue есть
-      // (иначе silent no-op → ядро отвергнет конфиг на старте).
+
+
       final r = validateConfig({
         'outbounds': [
           {'tag': 'S', 'type': 'selector', 'outbounds': ['T'], 'default': 'T'},
@@ -385,7 +385,7 @@ void main() {
       expect(total, lessThanOrEqualTo(kMaxDetourCulprits));
     });
 
-    // §141 P1.8b — non-string selector default.
+
 
     test('§141 — non-string selector default (число) → fatal InvalidDefault', () {
       final r = validateConfig({
@@ -394,7 +394,7 @@ void main() {
             'tag': 'vpn-1',
             'type': 'selector',
             'outbounds': ['a'],
-            'default': 123, // не строка-тег
+            'default': 123,
           },
           {'tag': 'a', 'type': 'direct'},
         ],
@@ -419,11 +419,11 @@ void main() {
     });
   });
 
-  // §141 P0.1 — контракт FatalValidationException (бросается в
-  // SubscriptionController._generate при hasFatal; ловится generateConfig →
-  // humanizeError → _lastError; null возврат блокирует save).
-  // §279 — пользовательский рендер живёт в ValidationFatalMsg (через
-  // humanizeError), не в toString.
+
+
+
+
+
   group('FatalValidationException', () {
     test('humanizeError перечисляет сообщения issues, полный список', () {
       final e = FatalValidationException([

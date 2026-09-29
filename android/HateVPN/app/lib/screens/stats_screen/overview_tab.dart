@@ -6,12 +6,12 @@ import 'overview_models.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/safe_bottom.dart';
 
-/// Overview tab of StatsScreen; receives data via props on each parent refresh.
-/// `_expanded` is local state of this widget.
-///
-/// §122 — источник = `CcConnection` (libbox CommandClient). Группировка по
-/// `rule` (chains нет). Карточка «Top apps» убрана: ядро по CommandClient не
-/// отдаёт processPath, per-app разбивки нет.
+
+
+
+
+
+
 class OverviewTab extends StatefulWidget {
   const OverviewTab({
     super.key,
@@ -51,8 +51,8 @@ class _OverviewTabState extends State<OverviewTab> {
 
   @override
   Widget build(BuildContext context) {
-    // §219 — loading-guard ДО сортировки (не сортируем впустую при спиннере);
-    // Theme.of(context) один раз (было 5 обходов дерева за build).
+
+
     if (widget.loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -71,14 +71,14 @@ class _OverviewTabState extends State<OverviewTab> {
               children: [
                 _totalChip(context, 'Upload', formatBytes(widget.totalUp, spaced: true), Icons.arrow_upward, cs.primary),
                 _totalChip(context, 'Download', formatBytes(widget.totalDown, spaced: true), Icons.arrow_downward, cs.tertiary),
-                // Тап → вкладка Conns (индекс 1 в DefaultTabController родителя).
+
                 _totalChip(
                   context, 'Connections', '${widget.totalConns}', Icons.link, cs.secondary,
                   onTap: () => DefaultTabController.of(context).animateTo(1),
                 ),
-                // Подпись — LxBox, а не sing-box: это RSS всего процесса
-                // приложения (ядро в том же процессе), не только ядра. Тап →
-                // попап с разбивкой памяти.
+
+
+
                 _totalChip(
                   context, 'LxBox', formatBytes(widget.memory, spaced: true), Icons.memory, cs.secondary,
                   onTap: () => showMemoryDetailSheet(
@@ -127,7 +127,7 @@ class _OverviewTabState extends State<OverviewTab> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(label, style: const TextStyle(fontSize: 11)),
-            // Affordance: интерактивные чипы помечаем стрелкой.
+
             if (onTap != null) ...[
               const SizedBox(width: 2),
               Icon(Icons.chevron_right, size: 12,
@@ -152,8 +152,8 @@ class _OverviewTabState extends State<OverviewTab> {
     final isExpanded = _expanded.contains(group.name);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    // §219 — chain один раз (было 2 вызова _detourChain на итерацию цикла,
-    // каждый обходит дерево конфига byTag).
+
+
     final chain = _detourChain(group.name);
 
     return Card(
@@ -324,8 +324,8 @@ class _OverviewTabState extends State<OverviewTab> {
     );
   }
 
-  // §122 — `start` теперь epoch ms (`CcConnection.createdAt`), не ISO-строка.
-  // delta от now → compact duration через format_utils.
+
+
   String _formatDuration(int startEpochMs) {
     if (startEpochMs <= 0) return '';
     final diff = DateTime.now().difference(

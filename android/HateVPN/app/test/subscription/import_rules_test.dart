@@ -8,20 +8,20 @@ import 'package:lxbox/services/subscription/import_rules.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §302 — правила работают над готовым JSON узла (`NodeSpec.emit`), а не над
-/// текстом тела: `emit` одинаков для всех форматов подписки, поэтому одно
-/// правило работает и для URI-строк, и для Xray-JSON, и для INI.
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   NodeSpec node(String uri) => parseUri(uri)!;
 
-  // Узел с TLS-fingerprint. ВАЖНО: парсер канонизирует fp на входе (§281,
-  // `hellochrome_*` → `chrome`), поэтому для проверок «правило меняет fp»
-  // берём значение, которое нормализация не трогает, и правим уже готовый
-  // JSON — правила работают именно над ним.
+
+
+
+
   NodeSpec fpNode(String fp, {String name = 'NL'}) =>
       node('vless://u@h.com:443?security=tls&sni=h.com&fp=$fp&type=ws#$name');
 
@@ -102,7 +102,7 @@ void main() {
       );
       expect(applyRulesToNode(fpNode('chrome', name: 'NL-01'), [rule]).disabled,
           isTrue);
-      // §332 — тристейт: «не тронут» = null (false зарезервирован за Enable).
+
       expect(applyRulesToNode(fpNode('chrome', name: 'DE-01'), [rule]).disabled,
           isNull);
     });
@@ -139,11 +139,11 @@ void main() {
         ],
         action: ImportRuleAction.disable,
       );
-      // fp=chrome → условие с negate ложно, узел не трогаем.
+
       expect(applyRulesToNode(fpNode('chrome'), [rule]).disabled, isNull);
-      // fp=firefox → negate истинно.
+
       expect(applyRulesToNode(fpNode('firefox'), [rule]).disabled, isTrue);
-      // поля нет вовсе (без TLS) → negate тоже истинно.
+
       expect(applyRulesToNode(node('vless://u@h.com:443#A'), [rule]).disabled,
           isTrue);
     });
@@ -169,21 +169,21 @@ void main() {
     });
 
     test('пустой путь = поиск по всему JSON узла', () {
-      // Не знаем, в каком поле лежит значение — ищем везде сразу.
+
       final rule = ImportRule(
         conditions: [cond('', ImportRuleOperator.contains, 'h.com')],
         action: ImportRuleAction.disable,
       );
       expect(rule.isUsable, isTrue, reason: 'пустой путь допустим в условии');
-      // server = h.com → найдётся в сериализованном узле.
+
       expect(applyRulesToNode(fpNode('chrome'), [rule]).disabled, isTrue);
-      // Значения нет нигде в узле.
+
       final other = node('vless://u@other.net:443#A');
       expect(applyRulesToNode(other, [rule]).disabled, isNull);
     });
 
     test('пустой путь ловит значение в глубоком поле', () {
-      // fingerprint лежит в tls.utls.fingerprint — путь не указываем.
+
       final rule = ImportRule(
         conditions: [cond('', ImportRuleOperator.contains, 'firefox')],
         action: ImportRuleAction.disable,
@@ -242,7 +242,7 @@ void main() {
     });
 
     test('substitute вырезает фрагмент, остальное значение сохраняется', () {
-      // Убрать ⚡ из имени: tag matches ^(.*)⚡(.*)$ → tag = $1$2.
+
       final rule = ImportRule(
         conditions: [
           cond('tag', ImportRuleOperator.matches, r'^(.*)⚡(.*)$'),
@@ -290,10 +290,10 @@ void main() {
       expect(out.changed, isFalse);
     });
 
-    // §307 — накопление префикса (4PDA #1263): правила должны стартовать с
-    // канонического вида узла (emitRaw), а не с прошлого патча. Иначе
-    // повторное применение (рестарт, refresh) читает собственный прошлый
-    // результат как исходник и substitute накапливается.
+
+
+
+
     test('§307: повторное применение стартует с чистого узла', () {
       final n = fpNode('chrome', name: 'NL-Ams');
       final rule = ImportRule(
@@ -307,7 +307,7 @@ void main() {
       final first = applyRulesToNode(n, [rule]);
       expect(readJsonPath(first.patchedJson!, 'tag'), 'XX NL-Ams');
 
-      // Контроллер сохранил патч; правила применяются снова (refresh).
+
       n.patchedJson = first.patchedJson;
       n.ruleTrail = first.replacements;
       final second = applyRulesToNode(n, [rule]);
@@ -329,12 +329,12 @@ void main() {
       );
       n.patchedJson = applyRulesToNode(n, [rule]).patchedJson;
 
-      // Билдер (server_list_build) и probe_config пишут tag/detour прямо в
-      // map результата emit — сохранённый патч страдать не должен.
+
+
       final e1 = n.emit(TemplateVars.empty);
       e1.map['tag'] = 'prefix ${e1.map['tag']}';
       e1.map['detour'] = 'hop';
-      // И вглубь: вложенные map тоже должны быть копией.
+
       (e1.map['tls'] as Map<String, dynamic>)['server_name'] = 'evil.com';
 
       expect(n.patchedJson!['tag'], 'NL');
@@ -365,8 +365,8 @@ void main() {
     });
   });
 
-  // §307 — пустая цель Replace = substitute по всему узлу (симметрия с
-  // пустым путём условия «ищи везде»).
+
+
   group('§307 Replace по всему узлу (пустая цель)', () {
     test('явный substitutePattern меняет все листья с совпадением', () {
       final rule = ImportRule(
@@ -380,17 +380,17 @@ void main() {
       expect(rule.isUsable, isTrue);
       final out = applyRulesToNode(fpNode('chrome'), [rule]);
       expect(out.patchedJson, isNotNull);
-      // server и tls.server_name оба были h.com — заменены оба.
+
       expect(readJsonPath(out.patchedJson!, 'server'), 'proxy.net');
       expect(readJsonPath(out.patchedJson!, 'tls.server_name'), 'proxy.net');
-      // Следы несут реальные пути listьев.
+
       expect(out.replacements.any((t) => t.startsWith('server:')), isTrue);
       expect(out.replacements.any((t) => t.startsWith('tls.server_name:')),
           isTrue);
     });
 
     test('без явного паттерна берётся условие с пустым путём', () {
-      // Классика: вычистить ⚡ из имени, не зная где он ещё всплывёт.
+
       final rule = ImportRule(
         conditions: [cond('', ImportRuleOperator.contains, '⚡')],
         action: ImportRuleAction.replace,
@@ -454,9 +454,9 @@ void main() {
     });
   });
 
-  // §307/§283 — tag не входит в nodeIdentityHash, поэтому правило,
-  // меняющее только имя, не сдвигает identity: DISABLE-пометки юзера
-  // (disabled_hashes) переживают такой патч.
+
+
+
   group('§307 identity-хеш и патч', () {
     test('патч только тега не меняет nodeIdentityHash', () {
       final n = fpNode('chrome', name: 'NL');
@@ -549,8 +549,8 @@ void main() {
   });
 
   group('§332 Enable', () {
-    // Идиома «match all»: пустой путь сериализует весь JSON узла (всегда
-    // непустой) + matches .* — правило срабатывает на каждом узле.
+
+
     final matchAll = cond('', ImportRuleOperator.matches, '.*');
 
     test('enable даёт disabled=false, узел «затронут»', () {
@@ -568,7 +568,7 @@ void main() {
 
     test('последнее сработавшее правило побеждает: enable-all → disable FI',
         () {
-      // Сценарий 4PDA: сброс прошлых отключений + новый фильтр.
+
       final rules = [
         ImportRule(conditions: [matchAll], action: ImportRuleAction.enable),
         ImportRule(
@@ -651,7 +651,7 @@ void main() {
     });
 
     test('миграция старого плоского правила → условие по tag', () {
-      // v1: {action, pattern, is_regex, case_sensitive} по тексту строки.
+
       final migrated = ImportRule.fromJson({
         'action': 'disable',
         'pattern': '⚡',
@@ -660,7 +660,7 @@ void main() {
       expect(migrated.conditions.single.op, ImportRuleOperator.contains);
       expect(migrated.conditions.single.pattern, '⚡');
       expect(migrated.action, ImportRuleAction.disable);
-      // И сразу работает: узел с ⚡ в имени гасится.
+
       expect(
           applyRulesToNode(fpNode('chrome', name: 'HU⚡Budapest'), [migrated])
               .disabled,

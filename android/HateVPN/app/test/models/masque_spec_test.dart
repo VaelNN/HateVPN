@@ -8,14 +8,14 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 import '../parser/engine_test_setup.dart';
 import '../parser/parse_link_as.dart';
 
-/// §130 — MasqueSpec emit (Outbound-схема ядра) + URI round-trip.
-///
-/// §472 шаг 7 — masque разбирается конвейером, и значения судит реестр.
-/// §480 W7 — эмит ссылки тоже идёт секциями: рукописного `toUri` не осталось.
-///
-/// Грузим ЗЕРКАЛО `assets/contract` (оно в git), а не вендоренную копию
-/// `app/contract`: второй на CI нет, и под его гейтом файл молча пропускался
-/// бы целиком — ровно те проверки, что ловят регрессии эмита.
+
+
+
+
+
+
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -37,25 +37,25 @@ void main() {
 
   test('emitMasque даёт Outbound со схемой ядра lx.25-rc.4 (§393)', () {
     final entry = spec().emit(TemplateVars.empty);
-    expect(entry, isA<Outbound>()); // НЕ Endpoint!
+    expect(entry, isA<Outbound>());
     final m = entry.map;
     expect(m['type'], 'masque');
     expect(m['server'], '162.159.198.1');
     expect(m['server_port'], 443);
     expect(m['profile'], 'cloudflare');
     expect(m['vhttp'], 'h3');
-    // §393 — старые имена не пишем: они дают deprecation-варнинг, а вместе с
-    // новым именем и другим значением роняют старт ядра.
+
+
     expect(m.containsKey('network'), isFalse);
     expect(m.containsKey('sni'), isFalse);
     expect(m['private_key'], 'PRIVDER==');
     expect(m['public_key'], 'PUBDER==');
-    expect(m['ip'], '172.16.0.2/32'); // v4 из localAddresses
-    expect(m['ipv6'], '2606:4700:110::2/128'); // v6 из localAddresses
+    expect(m['ip'], '172.16.0.2/32');
+    expect(m['ipv6'], '2606:4700:110::2/128');
     expect(m['mtu'], 1280);
     expect(m['idle_timeout'], '10m');
-    expect(m['keep_alive_period'], '45s'); // ключ ядра, не 'keep_alive'
-    // нет полей WireGuard
+    expect(m['keep_alive_period'], '45s');
+
     expect(m.containsKey('peers'), isFalse);
     expect(m.containsKey('address'), isFalse);
     expect(m.containsKey('certificate'), isFalse);
@@ -113,13 +113,13 @@ void main() {
     expect(uri, contains('vhttp=h3'));
     expect(uri, isNot(contains('network=')));
 
-    // Директива оператора 25.08: legacy-имя больше не читается — URI,
-    // выпущенный до миграции, парсится, но параметр игнорируется (узел
-    // живёт на дефолте, а не на значении из ссылки).
+
+
+
     final legacy = uri.replaceAll('vhttp=h3', 'network=h2');
     expect(parseLinkAs<MasqueSpec>(legacy)!.vhttp, 'h3');
 
-    // Оба имени сразу: vhttp читается, network не влияет ни на что.
+
     final both = '$uri&network=h2';
     expect(parseLinkAs<MasqueSpec>(both)!.vhttp, 'h3');
   });
@@ -138,18 +138,18 @@ void main() {
       disableSni: true,
     );
     expect(parseLinkAs<MasqueSpec>(s.toUri())!.disableSni, isTrue);
-    // Параметр снимается ПО ИМЕНИ, а не по написанию значения: написание
-    // булева на выходе — дело записи реестра (§532 дефект 4, умолчание —
-    // слово `true`), и `replaceAll('disable_sni=1')` молча превращался в
-    // no-op, как только оно сменилось, — проверка вырождалась в «то же самое
-    // ещё раз».
+
+
+
+
+
     final stripped = s.toUri().replaceAll(RegExp(r'[?&]disable_sni=[^&#]*'), '');
     expect(stripped, isNot(contains('disable_sni')));
     expect(parseLinkAs<MasqueSpec>(stripped)!.disableSni, isFalse);
   });
 
-  // §402 / контракт 0.11.1 — `vhttp=auto` (h3 с откатом на h2). Ядро понимает
-  // его с lx.27; до этого значение было бы мусором и форсилось в h3.
+
+
   group('§402 vhttp=auto', () {
     test('auto принимается и доезжает до эмиссии', () {
       final parsed = parseLinkAs<MasqueSpec>(
@@ -161,17 +161,17 @@ void main() {
     });
 
     test('без параметра дефолт остаётся ЯВНЫЙ h3, а не auto', () {
-      // «Параметра нет» и «оператор выбрал auto» — не одно и то же:
-      // auto разрешает откат на h2, и подставлять его молча нельзя.
+
+
       final noParam = spec().toUri().replaceAll('&vhttp=h3', '');
       expect(parseLinkAs<MasqueSpec>(noParam)!.vhttp, 'h3');
     });
 
     test('мусорное значение → форс h3 + код реестра (SPEC 103 п.5)', () {
-      // §472 шаг 7 — форс делает САНИТАЙЗЕР по правилу
-      // `masque.body.fields.vhttp` (enum + `on_invalid: coerce h3`), и код
-      // приходит из реестра — с путём и значением, которых у рукописного
-      // `MasqueVhttpInvalidWarning` не было.
+
+
+
+
       final parsed = parseLinkAs<MasqueSpec>(
           spec().toUri().replaceAll('vhttp=h3', 'vhttp=h9'))!;
       expect(parsed.vhttp, 'h3', reason: 'форсится дефолт, а не едет как есть');

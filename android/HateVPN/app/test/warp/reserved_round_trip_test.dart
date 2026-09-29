@@ -8,11 +8,11 @@ import 'package:lxbox/services/parser/uri_utils.dart';
 import '../parser/engine_test_setup.dart';
 import '../parser/parse_link_as.dart';
 
-/// §025 — WireGuard `reserved` (Cloudflare WARP client_id): parse, emit, и
-/// round-trip URI ⇄ spec ⇄ endpoint-JSON.
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('parseReserved', () {
@@ -32,7 +32,7 @@ void main() {
       expect(parseReserved('1,2,300'), isNull);
       expect(parseReserved('a,b,c'), isNull);
       expect(parseReserved(''), isNull);
-      expect(parseReserved(base64.encode([1, 2, 3, 4])), isNull); // 4 байта
+      expect(parseReserved(base64.encode([1, 2, 3, 4])), isNull);
     });
   });
 

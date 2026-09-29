@@ -1,8 +1,8 @@
-// ignore_for_file: depend_on_referenced_packages
 
-// Фича 478 / Д-1а — пути, которых не хватало для проверки страховки без
-// экрана: `GET /nodes/link`, `GET /subs/{id}?warnings=true` и `raw` одиночного
-// узла под `reveal=true`.
+
+
+
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -36,7 +36,7 @@ class _FakePathProvider extends PathProviderPlatform
 }
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе.
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
@@ -81,7 +81,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -98,7 +98,7 @@ void main() {
       expect(body['protocol'], 'vless');
       expect(body['uri'], startsWith('vless://'));
       expect(body['private_key'], isFalse);
-      // Тот же текст, что кладёт в буфер экран.
+
       expect(body['uri'], controller.entries.single.list.nodes.single.toUri());
     });
 
@@ -114,7 +114,7 @@ void main() {
     test('тег с префиксом подписки тоже находится', () async {
       await controller.addFromInput(uri);
       final id = controller.entries.single.id;
-      // Префикс ставим тем же путём, что и снаружи — через PATCH.
+
       await subsHandler(
         DebugRequest.forTest(
           method: 'PATCH',
@@ -127,7 +127,7 @@ void main() {
       final e = controller.entries.single;
       final node = e.list.nodes.single;
       expect(e.tagPrefix, 'vpn-1');
-      // TagResolver склеивает префикс ПРОБЕЛОМ.
+
       final prefixed = '${e.tagPrefix} ${node.tag}';
 
       final body = asMap(await nodesHandler(
@@ -202,17 +202,17 @@ void main() {
 
   });
 
-  // §520 — карта `warnings` ключевалась СЫРЫМ `NodeSpec.tag`, и у
-  // узлов-тёзок (§310 — провайдер зовёт все узлы `proxy`; дубль
-  // `vpn://`↔`amneziawg://` под одним именем) записи затирали друг друга
-  // last-write-wins: предупреждения ранних дублей молча пропадали, ответ
-  // отдавал меньше ключей, чем `nodes_count`. Ключ — сырой тег узла в
-  // контейнере (`containerRawTags`, NODE_LINK §2.2): тот же адрес, что у
-  // `nodes[]`, `/nodes/link?tag=` и `switch-node`.
+
+
+
+
+
+
+
   group('serializeEntryWarnings — тёзки не затирают друг друга (§520)', () {
-    // Синтетика, а не URI-конвейер: через какой ввод разбор выдаст ИМЕННО
-    // трёх тёзок с разными кодами — вопрос конвейера, а пиним мы здесь
-    // ключевание ответа.
+
+
+
     VlessSpec node(String id, String tag, List<NodeWarning> warnings) =>
         VlessSpec(
           id: id,
@@ -252,10 +252,10 @@ void main() {
 
       final map = serializeEntryWarnings(entry);
 
-      // Раньше здесь был ОДИН ключ `proxy` с предупреждениями последнего узла.
+
       expect(map.length, 3);
-      // Первый тёзка держит дословный тег, следующие — уникализация источника
-      // (`X`, `X-2`, `X-3`), ровно как в `nodes[]` и у `switch-node`.
+
+
       expect(map.keys.toList(), ['proxy', 'proxy-2', 'proxy-3']);
 
       List<Map<String, Object?>> at(String key) =>
@@ -263,13 +263,13 @@ void main() {
 
       expect(at('proxy').single['code'], 'reality_fp_not_chrome');
       expect(at('proxy-2').single['code'], 'awg_header_invalid');
-      // Класс приложения: кода нет, текст есть.
+
       expect(at('proxy-3').single['code'], isNull);
       expect(at('proxy-3').single['text_en'], contains('Duplicate'));
     });
 
     test('nodes_count == warnings.length при тёзках (вход с 2 тёзками)', () {
-      // Вход с двумя тёзками: 4 узла, из них двое зовутся одинаково.
+
       final entry = SubscriptionEntry(
         list: SubscriptionServers(
           id: 'sub-520-d',
@@ -287,9 +287,9 @@ void main() {
             node('d4', 'Amsterdam', const []),
           ],
         ),
-        // Как его ставит контроллер на разборе выдачи
-        // (`entry.nodeCount = nodes.length`): по умолчанию у подписки
-        // счётчик берётся из `lastNodeCount` хранения, а не из тела.
+
+
+
         nodeCount: 4,
       );
 
@@ -299,15 +299,15 @@ void main() {
       };
       final map = body['warnings'] as Map<String, Object?>;
 
-      // Счётчик и список больше не расходятся — это и был симптом §520.
+
       expect(body['nodes_count'], 4);
       expect(map.length, 4);
       expect(map.keys.toList(),
           ['Frankfurt', 'Tokyo', 'Tokyo-2', 'Amsterdam']);
-      // Узел без предупреждений всё ещё присутствует пустым списком.
+
       expect(map['Frankfurt'], isEmpty);
       expect(map['Amsterdam'], isEmpty);
-      // Оба тёзки сохранили СВОИ предупреждения.
+
       expect((map['Tokyo'] as List).single, isA<Map<String, Object?>>());
       expect(((map['Tokyo'] as List).single as Map)['code'],
           'awg_header_invalid');
@@ -329,16 +329,16 @@ void main() {
           ],
         ),
       );
-      // Обратная совместимость формы: без тёзок ответ не двигается вовсе.
+
       expect(serializeEntryWarnings(entry).keys.toList(),
           ['🇩🇪 Frankfurt', 'Tokyo']);
     });
   });
 
-  // Форма записи пинится прямо на сериализаторе: через какой URI разбор
-  // выдаст предупреждение — вопрос конвейера, а проверяем мы здесь ответ.
-  // Оба вида идут через общий интерфейс NodeWarning, поэтому перевод классов
-  // на RegistryWarning форму не двигает.
+
+
+
+
   group('serializeNodeWarning — форма ответа', () {
     test('код реестра: code, path, value и оба текста', () {
       final j = serializeNodeWarning(const RegistryWarning(
@@ -356,7 +356,7 @@ void main() {
       expect(j['applied'], isTrue);
     });
 
-    // §577 — признак «не применено» у кода авторского тела.
+
     test('applied: false у неприменённого правила', () {
       final j = serializeNodeWarning(const RegistryWarning(
         code: 'unknown_key',
@@ -368,8 +368,8 @@ void main() {
       expect(j['code'], 'unknown_key');
     });
 
-    // Д-2 (эмулятор 19.09.2026) — заголовок зовёт `{path}`, а сериализатор
-    // передавал одни `params`: в ответ уезжал сам плейсхолдер.
+
+
     test('awg_header_invalid: в title_en подставлен path, {…} не осталось',
         () {
       final j = serializeNodeWarning(const RegistryWarning(
@@ -389,7 +389,7 @@ void main() {
       expect(j['path'], isNull);
       expect(j['value'], isNull);
       expect(j['title_en'], isNull);
-      // Пиненный английский самого класса — ответ не зависит от локали.
+
       expect(j['text_en'], contains('Duplicate'));
       expect(j['severity'], 'info');
     });

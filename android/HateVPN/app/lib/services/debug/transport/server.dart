@@ -40,17 +40,17 @@ import 'request.dart';
 import 'response.dart';
 import 'router.dart';
 
-/// Точка входа Debug API. Синглтон — один сервер на приложение.
-/// Wires вместе [Router], [Middleware] pipeline и [HttpServer].
-///
-/// Lifecycle:
-/// * `start(config, ctx)` — bind на `127.0.0.1:port`, accept connections
-/// * `stop()` — force-close сервера, in-flight responses обрываются
-/// * `restartFromSettings(ctx)` — читает `SettingsStorage.debug_*` и
-///   запускает/останавливает/рестартит согласно состоянию
-///
-/// Thread-safety: внутри event loop'а Dart, весь state под одним
-/// "потоком" — mutex не нужен.
+
+
+
+
+
+
+
+
+
+
+
 class DebugServer {
   DebugServer._();
   static final DebugServer I = DebugServer._();
@@ -64,8 +64,8 @@ class DebugServer {
   bool get running => _server != null;
   int get port => _config?.port ?? 0;
 
-  /// Биндит сервер на `127.0.0.1:config.port`. При активном предыдущем
-  /// инстансе сначала [stop]. Бросает [SocketException] если порт занят.
+
+
   Future<void> start(DebugServerConfig config, DebugContext context) async {
     await stop();
 
@@ -84,9 +84,9 @@ class DebugServer {
 
     _server = server;
     _config = config;
-    // Handlers видят config через context.config — сервер на старте
-    // инжектит его в контекст. Bootstrap создаёт context без config
-    // (ещё не знает порт/токен); они подмешиваются здесь.
+
+
+
     _context = context.withConfig(config);
     _router = router;
     _pipeline = pipeline;
@@ -118,9 +118,9 @@ class DebugServer {
     }
   }
 
-  /// Перечитывает `debug_enabled/port/token` из [SettingsStorage] и
-  /// приводит сервер в соответствие: start/stop/rebind. Вызывается
-  /// из `main.dart` на старте и из App Settings toggle/port-change.
+
+
+
   Future<void> restartFromSettings(DebugContext context) async {
     final enabled = await SettingsStorage.getDebugEnabled();
     if (!enabled) {
@@ -141,7 +141,7 @@ class DebugServer {
     }
   }
 
-  /// 32-hex token через [Random.secure] (128 bits).
+
   static String generateToken() {
     final rnd = Random.secure();
     final bytes = List<int>.generate(16, (_) => rnd.nextInt(256));
@@ -149,12 +149,12 @@ class DebugServer {
   }
 
   List<Middleware> _buildPipeline(DebugServerConfig config) {
-    // Порядок: внешний → внутренний.
-    // errorMapper — самый внешний, ловит всё включая accessLog crash'и.
-    // accessLog — после errorMapper чтобы видеть финальный статус.
-    // hostCheck — дёшево, рано отрезаем rebind.
-    // auth — после hostCheck (не мучаем auth если запрос уже отклонён).
-    // timeout — обёртывает handler, не должен мешать 401/403 ответам.
+
+
+
+
+
+
     return [
       errorMapper,
       accessLog(),
@@ -173,7 +173,7 @@ class DebugServer {
     final router = _router;
     final pipeline = _pipeline;
     if (cfg == null || ctx == null || router == null || pipeline == null) {
-      // Сервер остановлен между accept'ом и обработкой — закрываем соединение.
+
       await raw.response.close().catchError((_) {});
       return;
     }
@@ -183,10 +183,10 @@ class DebugServer {
       final req = await DebugRequest.from(raw, maxBodyBytes: cfg.maxBodyBytes);
       resp = await runPipeline(req, ctx, pipeline, router.handle);
     } on DebugError catch (e) {
-      // Ошибки из DebugRequest.from (PayloadTooLarge и т.п.) — pipeline
-      // ещё не начался, errorMapper не сработал. Логируем вручную чтобы
-      // line matched access_log middleware formatu — иначе эти ошибки
-      // были бы невидимы в AppLog.
+
+
+
+
       AppLog.I.warning(
         '[debug-api] ${raw.method} ${raw.uri.path} → ${e.status} (pre-pipeline)',
       );
@@ -201,13 +201,13 @@ class DebugServer {
     try {
       await resp.writeTo(raw.response);
     } catch (e) {
-      // Клиент отвалился мид-запись — ничего не делаем, connection закрыт.
+
       AppLog.I.debug('Debug API: write failed — $e');
     }
   }
 }
 
-/// Таблица префиксов Debug API. `DebugServer` и `/help`-тест читают одну.
+
 Router buildDebugRouter() {
   return Router()
     ..mount('/ping', pingHandler)
@@ -215,7 +215,7 @@ Router buildDebugRouter() {
     ..mount('/state', stateHandler)
     ..mount('/device', deviceHandler)
     ..mount('/config', configHandler)
-    ..mount('/pool', poolHandler) // §208 — снапшот пула round_robin
+    ..mount('/pool', poolHandler)
     ..mount('/logs', logsHandler)
     ..mount('/action', actionHandler)
     ..mount('/files', filesHandler)
@@ -223,18 +223,18 @@ Router buildDebugRouter() {
     ..mount('/backup', backupHandler)
     ..mount('/rules', rulesHandler)
     ..mount('/subs', subsHandler)
-    // Фича 478 — узел глазами эмиттера: ссылка, как у Copy link.
+
     ..mount('/nodes', nodesHandler)
-    ..mount('/directions', directionsHandler) // §238 — Направления роутинга §125
-    ..mount('/chains', chainsHandler) // §393 C — источники-цепочки SPEC 110
-    ..mount('/folders', foldersHandler) // §238 — папки серверов §234
-    // Фича 478 — страховка «отказ ядра выключает узел»: фаза автомата,
-    // вердикты, плашка и диалог предела наблюдаемы и управляемы снаружи.
+    ..mount('/directions', directionsHandler)
+    ..mount('/chains', chainsHandler)
+    ..mount('/folders', foldersHandler)
+
+
     ..mount('/core_reject', coreRejectHandler)
     ..mount('/warp', warpHandler)
     ..mount('/settings', settingsHandler)
     ..mount('/wifi_history', wifiHistoryHandler)
     ..mount('/profiler', profilerHandler)
-    ..mount('/support', supportHandler); // §357 — тест support-ленты
+    ..mount('/support', supportHandler);
 }
 

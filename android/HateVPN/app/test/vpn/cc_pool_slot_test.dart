@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/platform_channels.dart';
 import 'package:lxbox/vpn/cc_channel.dart';
 
-/// §208 — `CcPoolSlot.fromMap` (снапшот пула round_robin, GetPool RPC).
-/// §209 — `CcChannel.getPool` различает null (клиент недоступен) от [] (пусто).
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -48,7 +48,7 @@ void main() {
     test('native вернул null → getPool возвращает null (недоступно)', () async {
       messenger.setMockMethodCallHandler(channel, (call) async {
         expect(call.method, 'ccGetPool');
-        return null; // клиент недоступен (§209)
+        return null;
       });
       final r = await CcChannel.instance.getPool('vpn-1-auto');
       expect(r, isNull);
@@ -71,7 +71,7 @@ void main() {
       expect(r!.length, 2);
       expect(r[0].tag, 'node-de');
       expect(r[0].alive, true);
-      expect(r[1].alive, false); // delay 0
+      expect(r[1].alive, false);
     });
   });
 }

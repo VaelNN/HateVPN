@@ -15,37 +15,37 @@ import java.net.UnknownHostException
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-/// §049 F26 fix: полноценный LocalResolver, портированный 1:1 из reference
-/// (`bg/LocalResolver.kt` 1.13.11).
-///
-/// Старый impl использовал `InetAddress.getAllByName(domain)` — это идёт через
-/// system resolver, который при `tun.auto_route = true` мог рекурсивно
-/// пройти ЧЕРЕЗ tun → sing-box → LocalResolver → loop. На SDK ≥ Q (Android 10+)
-/// `DnsResolver.getInstance().query(defaultNetwork, ...)` использует **underlying
-/// network** (не tun) — DNS-запрос гарантированно идёт мимо нашего tun, без
-/// recursion-риска.
-///
-/// `raw()` теперь true на API ≥ Q — sing-box может отдавать raw DNS-байты
-/// для transport'ов которые требуют точный байтовый ответ (DoH wire-format,
-/// etc). Старый impl всегда возвращал errorCode(1) на raw exchange.
+
+
+
+
+
+
+
+
+
+
+
+
+
 object LocalResolver : LocalDNSTransport {
     private const val RCODE_NXDOMAIN = 3
 
-    /// §151 F3 — DNS RCODE SERVFAIL (RFC 1035 §4.1.1). Отдаём ядру при
-    /// отсутствии underlying-сети (`defaultNetwork == null`) вместо throw.
+
+
     private const val RCODE_SERVFAIL = 2
 
     override fun raw(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun exchange(ctx: ExchangeContext, message: ByteArray) {
-        // §151 F3 — `defaultNetwork` штатно null в окне смены/потери сети, а
-        // exchange() зовётся на каждый DNS-запрос. Раньше `error(...)` бросал
-        // IllegalStateException (ловится gomobile — Go-метод возвращает error —
-        // но даёт шумный Go-error на каждый резолв). Чище — вернуть ядру
-        // корректный SERVFAIL через ctx. Явный non-null тип нужен, чтобы
-        // вложенные замыкания callback'а захватили `defaultNetwork` как
-        // `Network`, а не nullable (иначе smart-cast не пробрасывается).
+
+
+
+
+
+
+
         val dn = DefaultNetworkMonitor.defaultNetwork
         if (dn == null) {
             ctx.errorCode(RCODE_SERVFAIL)
@@ -90,8 +90,8 @@ object LocalResolver : LocalDNSTransport {
     }
 
     override fun lookup(ctx: ExchangeContext, network: String, domain: String) {
-        // §151 F3 — см. exchange(): null defaultNetwork → SERVFAIL ядру, не throw.
-        // Явный non-null тип, чтобы вложенные замыкания захватили корректно.
+
+
         val dn = DefaultNetworkMonitor.defaultNetwork
         if (dn == null) {
             ctx.errorCode(RCODE_SERVFAIL)
@@ -157,8 +157,8 @@ object LocalResolver : LocalDNSTransport {
                     }
                 }
             } else {
-                // Pre-Q fallback: defaultNetwork.getAllByName() binds к underlying
-                // network тоже (Network class это умеет с API 21+).
+
+
                 val answer = try {
                     defaultNetwork.getAllByName(domain)
                 } catch (_: UnknownHostException) {

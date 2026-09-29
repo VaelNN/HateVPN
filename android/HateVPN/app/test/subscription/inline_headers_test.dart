@@ -4,8 +4,8 @@ import 'package:lxbox/services/subscription/sources.dart';
 import '../parser/engine_test_setup.dart';
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   test('inline profile-title from body comments → meta.profileTitle', () async {
@@ -34,7 +34,7 @@ vless://u2@h2:443?type=tcp#B
 vless://u@h:443?type=tcp#X
 ''';
     final r = await parseFromSource(const InlineSource(body));
-    // meta должно быть null (ни одного подписочного ключа нет)
+
     expect(r.meta, isNull);
     expect(r.nodes, hasLength(1));
   });

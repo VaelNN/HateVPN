@@ -20,19 +20,19 @@ import '../contract_paths.dart';
 import '../parser/engine_test_setup.dart';
 import 'json_schema_lite.dart';
 
-// §438 — запись LX Backup 1.0 и круг «состояние → экспорт → импорт».
-//
-// Инвариант П1 (BACKUP_PRINCIPLES): `import(export(x))` в том же приложении
-// = `x`, а импорт собственного экспорта в то же состояние ничего не
-// добавляет. Состояние собрано из всех видов, которые LxBox умеет выразить в
-// 1.0: подписка, одиночные узлы (URI и JSON), две папки-тёзки, член папки с
-// секциями и личным detour, нечитаемый член, цепочки с позициями в папку,
-// в подписку и в Направление, правила всех видов (включая json), DNS всех
-// видов, Направление с бюджетом теста, переносимые vars, route.final.
+
+
+
+
+
+
+
+
+
 
 String get _schemaPath => '$kVendorRoot/schema/backup.schema.json';
 
-/// Состояние стороны в памяти — то, что импорт пишет в storage.
+
 class _State {
   _State({
     this.lists = const [],
@@ -73,9 +73,9 @@ Future<LxBackupExport> _export(_State s) => buildLxBackup(
       ),
     );
 
-/// Импорт тем же планом, что приложение (`LxBackupImportService`): корень
-/// результата для подъёма `{tag}`, перевод ссылок файла и один список
-/// известных целей после слияния.
+
+
+
 LxBackupFile _import(_State s, String raw) {
   final plan = planLxBackupImport(
     raw,
@@ -136,7 +136,7 @@ _State _source() {
         name: 'root-jp',
         enabled: true,
         tagPrefix: '',
-        // Ссылка на член папки — пара {id папки, сырой тег} (D-112).
+
         detourPolicy: DetourPolicy.defaults
             .copyWith(overrideDetour: const NodeLink(folderId: 'fold-a', tag: 'de-1')),
         origin: UserSource.manual,
@@ -183,8 +183,8 @@ _State _source() {
           FolderMember(raw: 'not a node at all'),
         ],
       ),
-      // Тёзка первой папки: импорт собственного экспорта обязан держать их
-      // раздельно (BACKUP.md §9 п. 3).
+
+
       FolderServers(
         id: 'fold-b',
         name: 'EU',
@@ -209,7 +209,7 @@ _State _source() {
       SourceChain(
         tag: 'sub-then-dir',
         enabled: false,
-        // Узел подписки — пара {id подписки, сырой тег} (NODE_LINK §2.2).
+
         hops: [NodeLink(folderId: 'sub-1', tag: 'node-x'), NodeLink(tag: 'vpn-1')],
       ),
     ],
@@ -284,12 +284,12 @@ _State _source() {
     ..routeFinal = 'vpn-1';
 }
 
-/// Снимок состояния для сравнения: JSON storage, без меток времени создания
-/// (новая запись получает «сейчас»).
+
+
 Object? _snapshot(_State s) {
-  // `origin` одиночного сервера — write-only диагностика (§219: как узел
-  // добавлен); импорт ставит `manual`, в 1.0 дома у поля нет и поведения оно
-  // не меняет.
+
+
+
   Object? strip(Object? v) {
     if (v is Map) {
       return {
@@ -321,8 +321,8 @@ Object? _snapshot(_State s) {
 }
 
 void main() {
-  // §480 — круг бэкапа разбирает ссылки узлов, а разбор исполняет секции
-  // реестра: без них узлов не получается вовсе (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('§438 запись LX Backup 1.0', () {
@@ -353,9 +353,9 @@ void main() {
     }, skip: corpusTestSkip('test/contract/lx_backup_roundtrip_test.dart',
         subpath: 'schema'));
 
-    // §439 — экспорт пишет ссылку так, как она лежит в записи хранения
-    // (NODE_LINK §7.1): член папки — пара {id папки, сырой тег}, корневой
-    // узел — {tag}.
+
+
+
     test('ссылки: как в записи хранения, preset DNS → preset_id:tag', () async {
       final state = _source();
       final doc = jsonDecode((await _export(state)).json) as Map<String, dynamic>;
@@ -402,7 +402,7 @@ void main() {
         expect(got[k], _deepEquals(want[k]), reason: k);
       }
       expect(got.keys.toSet(), want.keys.toSet());
-      // Экспорт восстановленного состояния — тот же файл (без метки времени).
+
       String stable(String raw) =>
           jsonEncode((jsonDecode(raw) as Map)..remove('exported_at'));
       expect(stable((await _export(target)).json), stable(out.json));
@@ -449,9 +449,9 @@ void main() {
         const DnsRuleSrs(name: 'Geo', id: 's1'),
       ];
       final out = await _export(state);
-      // Контракт 1.0.1 (BACKUP.md §2 «Поля стороны LxBox»): detour_policy,
-      // on_update_action, ping_url и label цепочки едут, потерей не
-      // называются; json-правило без тела — потеря.
+
+
+
       expect(
         out.warnings.map((w) => '${w.code} ${w.detail}').toList(),
         ['$kWarnLocalOnlyDropped Broken: json'],

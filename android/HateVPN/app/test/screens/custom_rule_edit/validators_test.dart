@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/screens/custom_rule_edit/validators.dart';
 
-/// §053 Stage 1 — unit tests для extracted validators.
-/// До extract'а эти функции были private в CustomRuleEditScreen и не
-/// тестировались. Pure-function форма позволяет full coverage.
+
+
+
 void main() {
   group('isValidDomain', () {
     test('accepts standard FQDN', () {
@@ -53,8 +53,8 @@ void main() {
       expect(isValidDomainSuffix('a-b.c'), isTrue);
       expect(isValidDomainSuffix('123.com'), isTrue);
     });
-    // Caller (match_section) делает toLowerCase + strip leading '.' ДО вызова,
-    // поэтому валидатор видит already-normalized lower-case без ведущей точки.
+
+
     test('rejects empty', () {
       expect(isValidDomainSuffix(''), isFalse);
     });
@@ -75,8 +75,8 @@ void main() {
       expect(isValidDomainSuffix('a' * 64), isFalse);
       expect(isValidDomainSuffix('a' * 63), isTrue);
     });
-    // 20 реальных суффиксов как их вводят юзеры — прогон через тот же
-    // normalize (lower + strip leading '.'), что делает match_section.
+
+
     test('accepts 20 real-world suffix samples', () {
       String norm(String s) {
         var x = s.toLowerCase();
@@ -95,7 +95,7 @@ void main() {
       }
     });
     test('rejects raw (non-punycode) IDN — caller не делает punycode', () {
-      // sing-box хочет ASCII/punycode; юзер должен ввести .xn--p1ai.
+
       expect(isValidDomainSuffix('рф'), isFalse);
       expect(isValidDomainSuffix('мвд.рф'), isFalse);
     });

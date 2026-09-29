@@ -5,10 +5,10 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// format `cidr`: адрес строгим парсером, префикс по семейству.
-///
-/// Негодное значение идёт обычным `on_invalid` поля (у `wireguard.address` —
-/// `drop` / `type_invalid`; поле обязательное, поэтому узел уходит).
+
+
+
+
 const _core = '1.14.1-lx.4';
 const _priv = 'ccccccccccccccccccccccccccccccccccccccccccA=';
 const _pub = 'ddddddddddddddddddddddddddddddddddddddddddA=';

@@ -12,9 +12,9 @@ import '../node_inspect_screen.dart';
 import '../../../services/l10n/locale_controller.dart';
 import '../../../widgets/app_bottom_sheet.dart';
 
-/// Nodes-tab list: actionable-warning banner + node rows with §283 toggle,
-/// label/tag, protocol + server:port subtitle, inline warning and a
-/// long-press copy menu.
+
+
+
 class SubscriptionNodeList extends StatelessWidget {
   const SubscriptionNodeList({
     super.key,
@@ -30,48 +30,48 @@ class SubscriptionNodeList extends StatelessWidget {
     this.tagPrefix = '',
   });
 
-  /// §392 — префикс тегов контейнера, нужен экрану разбора: диагностика при
-  /// включённом VPN адресует узел его display-тегом из боевого конфига.
+
+
   final String tagPrefix;
 
   final List<NodeSpec>? nodes;
   final bool loading;
   final UiMsg? error;
 
-  /// §283 — top-level ноды подписки (identity-set): у них есть toggle.
-  /// Chained-дети (развёрнутые строки) управляются родителем — без toggle.
-  /// Пусто = не подписка (UserServer) — тогглов нет вовсе.
+
+
+
   final Set<NodeSpec> togglableNodes;
 
-  /// §283 — выключенные ноды (identity-subset [togglableNodes]). Дубли по
-  /// хешу приходят выключенными синхронно — состояние считает экран от
-  /// `disabledHashes`, не по-строчно.
+
+
+
   final Set<NodeSpec> disabledNodes;
 
-  /// §404 — строки-звенья цепочки (identity-set). Тег звена с D-085 — это
-  /// собственный тег релея из конфига провайдера, без украшений, поэтому в
-  /// списке звено ничем не отличалось бы от самостоятельного узла. Значок
-  /// `⚙` вешаем ЗДЕСЬ, на отрисовке: он про то, как строка читается, а не
-  /// про то, что уедет в конфиг ядра.
+
+
+
+
+
   final Set<NodeSpec> chainHops;
 
   final void Function(NodeSpec node)? onToggleNode;
 
-  /// §339 — результаты Test servers (identity-map по инстансам top-level
-  /// нод; chained-дети без бейджа). Пусто = теста не было.
+
+
   final Map<NodeSpec, ProbeResult> probe;
   final ProbeThresholds probeThresholds;
 
-  /// §404 — подпись строки. Звено цепочки помечается `⚙` на отрисовке (в
-  /// теге узла этого маркера больше нет, см. [chainHops]).
+
+
   String _rowTitle(NodeSpec node) {
     final base = node.label.isNotEmpty ? node.label : node.tag;
     return chainHops.contains(node) ? '⚙ $base' : base;
   }
 
-  /// §471 — есть ли у узла то, что требует действия (error/warning). Один
-  /// предикат на три места: счётчик в шапке, строка предупреждения и значок
-  /// info у имени (значок и строка — взаимоисключающие, см. ревизию 1).
+
+
+
   static bool _hasActionable(NodeSpec node) =>
       node.warnings.any((w) => w.severity != WarningSeverity.info);
 
@@ -109,11 +109,11 @@ class SubscriptionNodeList extends StatelessWidget {
       );
     }
 
-    // Считаем только actionable (warning/error). Info (TLS-insecure) тут
-    // не учитываем — это часто намеренный выбор провайдера, чтобы не пугать.
+
+
     final actionableCount = nodes.where(_hasActionable).length;
-    // §471 — цвет полосы берётся из общей палитры уровней (был плоский
-    // `Colors.orange`, не считавшийся с темой).
+
+
     final warnColor = warningSeverityColor(context, WarningSeverity.warning);
     return Column(
       children: [
@@ -137,25 +137,25 @@ class SubscriptionNodeList extends StatelessWidget {
           ),
         Expanded(
           child: ListView.separated(
-      // Bottom safe-area: последняя нода не должна прятаться за системной
-      // навигацией Android. Паттерн проекта — padding.bottom + 24.
+
+
       padding: EdgeInsets.fromLTRB(
           12, 0, 12, MediaQuery.of(context).padding.bottom + 24),
       itemCount: nodes.length,
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, i) {
         final node = nodes[i];
-        // §283 — per-node toggle (только top-level ноды подписки).
+
         final togglable =
             onToggleNode != null && togglableNodes.contains(node);
         final disabled = disabledNodes.contains(node);
-        final probeResult = probe[node]; // §339
+        final probeResult = probe[node];
         return ListTile(
           contentPadding: EdgeInsets.zero,
-          // §283 — Switch слева, как per-member toggle папок (§234). Иконки
-          // протокола нет (решение пользователя): протокол виден в подстроке.
-          // Строки без тоггла (chained-дети) получают placeholder той же
-          // ширины — выравнивание не пляшет; UserServer — без leading вовсе.
+
+
+
+
           leading: togglable
               ? SizedBox(
                   width: 40,
@@ -174,18 +174,18 @@ class SubscriptionNodeList extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 13,
-                    // Выключенная — глушим цветом (паттерн folder_detail §234).
+
                     color:
                         disabled ? theme.colorScheme.onSurfaceVariant : null,
                   ),
                 ),
               ),
-              // §302/§307 — значок «тело изменено import-rules» (REPLACE).
-              // Ключ — ruleTrail: контроллер заполняет его при каждом
-              // применении правил (refresh И регидрация из кэша), поэтому
-              // значок переживает рестарты. Прежний ключ originLine никогда
-              // не проставлялся — значок был мёртв. Сами замены — во вкладке
-              // Replacements экрана разбора (тап по строке).
+
+
+
+
+
+
               if (node.ruleTrail.isNotEmpty) ...[
                 const SizedBox(width: 6),
                 Tooltip(
@@ -201,12 +201,12 @@ class SubscriptionNodeList extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  // §479 — приглушённый `ⓘ` в НАЧАЛЕ строки протокола: у узла,
-                  // которому нечего сказать кроме info. Когда есть
-                  // warning/error, значок стоит в конце строки предупреждения
-                  // (сам `NodeWarningRow`), и здесь его быть не должно —
-                  // иначе он задваивается. Имя узла остаётся чистым
-                  // (ревизия 1 §471 отменена).
+
+
+
+
+
+
                   if (node.warnings.isNotEmpty && !_hasActionable(node))
                     NodeInfoBadge(node.warnings),
                   Flexible(
@@ -219,12 +219,12 @@ class SubscriptionNodeList extends StatelessWidget {
                   ),
                 ],
               ),
-              // §471 — в списке info только значком, без текста: строки нет
-              // вовсе, если требующего действия нечего сказать.
+
+
               if (_hasActionable(node)) NodeWarningRow(node.warnings),
             ],
           ),
-          // §339 — бейдж результата теста; тап по err — текст ошибки.
+
           trailing: probeResult == null
               ? null
               : ProbeBadge(
@@ -238,10 +238,10 @@ class SubscriptionNodeList extends StatelessWidget {
                   },
                 ),
           dense: true,
-          // §302 — короткий тап открывает разбор ноды (JSON + исходник):
-          // самое частое действие, ради него не надо лезть в меню. Включение/
-          // выключение узла живёт на Switch слева, так что тап по строке
-          // свободен. Долгий тап — меню (копирование, diff замен).
+
+
+
+
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => NodeInspectScreen(node: node, tagPrefix: tagPrefix),
           )),
@@ -288,14 +288,14 @@ class SubscriptionNodeList extends StatelessWidget {
                 );
               },
             ),
-            // §302 — экран разбора ноды: JSON (результат парсинга) + Source
-            // (исходный фрагмент подписки, для JSON-тел с переключателем
-            // Compact/Extended). Заменил попап «View JSON» — в попапе не
-            // помещался ни источник, ни переключение вида.
+
+
+
+
             ListTile(
               leading: const Icon(Icons.data_object),
               title: Text(getLocalText.s("Inspect node")),
-              // §307 — у пропатченных нод там же третья вкладка Replacements.
+
               subtitle: Text(getLocalText.s("JSON, source and replacements"),
                   style: const TextStyle(fontSize: 11)),
               onTap: () {

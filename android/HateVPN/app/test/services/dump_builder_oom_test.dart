@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -17,9 +17,9 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => root;
 }
 
-/// §397 — OOM-секция дампа: сводка у всех снимков, тела у kOomKeep
-/// свежайших. База каталогов — как в oom_reports_test: MethodChannel в
-/// тестах не поднят, `CrashReports.baseDir()` падает на path_provider.
+
+
+
 void main() {
   late Directory tempDir;
 
@@ -33,7 +33,7 @@ void main() {
     if (await tempDir.exists()) await tempDir.delete(recursive: true);
   });
 
-  /// Снимок как его кладёт ядро §397: metadata + профили + текстовые файлы.
+
   Future<Directory> writeSnapshot(
     String name, {
     DateTime? mtime,
@@ -95,13 +95,13 @@ void main() {
     expect(section, hasLength(1));
     final entry = section.single;
 
-    // Сводка на месте, как до §397.
+
     expect(entry['name'], '2026-08-12T14-03-51');
     expect(entry['memory_usage'], '512 MB');
     expect(entry['heap_inuse'], '160 MB');
     expect(entry['num_goroutine'], 200);
 
-    // Полный metadata.json — с полями, которых в сводке нет.
+
     final meta = entry['metadata'] as Map;
     expect(meta['sys'], '190 MB');
     expect(meta['stackInuse'], '4 MB');
@@ -112,7 +112,7 @@ void main() {
     expect(entry['configuration'], {'log': {}});
     expect(entry['cmdline'], 'libbox run');
 
-    // heap.pb: gzip+base64 разворачивается в исходные байты.
+
     final files = entry['files'] as Map;
     final pb = files['heap.pb'] as Map;
     expect(pb['encoding'], 'gzip+base64');
@@ -133,7 +133,7 @@ void main() {
 
     final section = await DumpBuilder.oomReportsSection();
     expect(section, hasLength(kOomKeep + 2));
-    // list() отдаёт новые первыми: тела у первых kOomKeep записей.
+
     for (final (i, entry) in section.indexed) {
       final hasBody = entry.containsKey('metadata');
       expect(hasBody, i < kOomKeep,

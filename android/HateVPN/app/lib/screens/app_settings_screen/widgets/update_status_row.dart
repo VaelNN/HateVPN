@@ -8,9 +8,9 @@ import '../../../services/update_checker.dart';
 import '../../../services/version_info.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// "Last check: …" + Check now-кнопка под Updates-toggle. Подписан на
-/// `UpdateChecker.latest` чтобы при успешном fetch'е результат сразу
-/// отрендерился.
+
+
+
 class UpdateStatusRow extends StatefulWidget {
   const UpdateStatusRow({super.key});
 
@@ -44,8 +44,8 @@ class _UpdateStatusRowState extends State<UpdateStatusRow> {
     );
     final dt = await SettingsStorage.getLastUpdateCheck();
     if (!mounted) return;
-    // §279 — screen-local transient render (mounted-гейт выше): строка живёт
-    // до следующего чека, смену локали не переживает сознательно.
+
+
     setState(() {
       _checking = false;
       _lastCheck = dt;

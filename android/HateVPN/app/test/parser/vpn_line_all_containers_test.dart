@@ -7,9 +7,9 @@ import 'package:lxbox/services/parser/parse_all.dart';
 
 import 'engine_test_setup.dart';
 
-/// Контракт 1.1.80 (§77 п.1) — строка `vpn://` внутри списка ссылок даёт все
-/// WG/AWG-контейнеры профиля; origin каждого — `.conf`; контейнер по
-/// умолчанию сохраняет прежнее имя строки (имя профиля).
+
+
+
 String _conf(String host) => '[Interface]\n'
     'PrivateKey = AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\n'
     'Address = 10.0.0.2/32\n'
@@ -50,7 +50,7 @@ void main() {
     for (final n in wg) {
       expect(n.rawSource.trimLeft(), startsWith('[Interface]'));
     }
-    // Контейнер по умолчанию — имя профиля (как прежний одиночный узел).
+
     expect(wg[1].label, 'Prof');
     expect(wg[0].label, 'Prof amnezia-wireguard');
   });

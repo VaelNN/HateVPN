@@ -9,12 +9,12 @@ import 'package:lxbox/services/subscription/subscription_identity.dart';
 import '../parser/engine_test_setup.dart';
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
-  // Нулевые backoff'ы — ретраи без реального сна 1s+3s (см. §101): иначе
-  // retry-кейсы спали бы ~4s каждый и flaky'или в параллельном suite.
+
+
   setUp(() => fetchBackoffsForTesting = const [Duration.zero, Duration.zero]);
   tearDown(() => fetchBackoffsForTesting = null);
 
@@ -104,7 +104,7 @@ void main() {
     test('непарсимый expire → null (не 0 = эпоха 1970)', () async {
       final m = await metaFor('upload=10; download=20; expire=notanumber');
       expect(m?.expireTimestamp, isNull);
-      // остальные поля с дефолтом 0 остаются валидными
+
       expect(m?.uploadBytes, 10);
       expect(m?.downloadBytes, 20);
     });
@@ -121,7 +121,7 @@ void main() {
   });
 
   group('§289 — per-subscription fetch identity в заголовках', () {
-    // Перехватываем реальные заголовки запроса через MockClient.
+
     Future<Map<String, String>> headersFor(UrlSource src) async {
       late Map<String, String> captured;
       final client = MockClient((req) async {
@@ -133,7 +133,7 @@ void main() {
     }
 
     setUp(() {
-      // Глобальная идентичность — чистый лист (Default-подписка её и берёт).
+
       SubscriptionIdentity.sendHwid = false;
       SubscriptionIdentity.hwid = '';
       SubscriptionIdentity.userAgentOverride = '';
@@ -154,7 +154,7 @@ void main() {
 
     test('Custom → слепок уходит в заголовки, глобальный игнорируется',
         () async {
-      // Глобальный HWID есть, но подписка в Custom → едет ЕЁ слепок.
+
       SubscriptionIdentity.sendHwid = true;
       SubscriptionIdentity.hwid = 'GLOBAL-HW';
       final h = await headersFor(UrlSource(

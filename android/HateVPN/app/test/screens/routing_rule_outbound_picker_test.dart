@@ -3,10 +3,10 @@ import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/screens/routing_screen/routing_screen_helpers.dart';
 
-/// §447 — outbound-пикер в тайле правила. У json-правила действие внутри тела
-/// и `withOutbound` — no-op: пикер показывал первую опцию («direct») и ничего
-/// не менял, в том числе у тела с `action: reject`. Inline-правило с reject
-/// пикер держит (значение Reject).
+
+
+
+
 void main() {
   SelectableRule preset(Map<String, dynamic> json) =>
       SelectableRule.fromJson(json);

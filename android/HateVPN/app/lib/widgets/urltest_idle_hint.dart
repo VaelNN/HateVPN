@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../services/core_duration.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// §442 — до чего сборка поднимет `idle_timeout`: строка [interval], если он
-/// больше [idleTimeout], иначе null. Значения — действующие, какими уйдут в
-/// хранение (пустое поле уже заменено умолчанием формы). Разбор тем же
-/// хелпером, что у санитайзера (правила ядра, суффикс `d`); нераспознанное —
-/// без подсказки, санитайзер его тоже не трогает.
+
+
+
+
+
 String? urltestIdleRaiseTarget(String interval, String idleTimeout) {
   final iv = parseCoreDurationNanos(interval);
   final idle = parseCoreDurationNanos(idleTimeout);
@@ -15,10 +15,10 @@ String? urltestIdleRaiseTarget(String interval, String idleTimeout) {
   return iv > idle ? interval : null;
 }
 
-/// §442 — серая подсказка под полями interval / idle timeout: сохранить
-/// можно, санитайзер сборки поднимет idle_timeout до [target]. Подсказка, а
-/// не ошибка — говорит, что окажется в конфиге. Показывать, только когда
-/// [urltestIdleRaiseTarget] вернул значение.
+
+
+
+
 class UrltestIdleRaiseHint extends StatelessWidget {
   const UrltestIdleRaiseHint({super.key, required this.target});
 

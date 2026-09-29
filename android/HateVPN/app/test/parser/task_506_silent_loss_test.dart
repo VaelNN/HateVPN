@@ -12,17 +12,17 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import 'engine_test_setup.dart';
 
-/// §506 — ни одной молчаливой потери на пути разбора.
-///
-/// Диагностика четырёх пользовательских входов нашла два входа, терявшихся
-/// ЦЕЛИКОМ и без единого слова: `vpn://<base64 голого .conf>` (0 узлов,
-/// `dropped[]` пуст) и строки незнакомой схемы в теле подписки. Тесты ниже
-/// закрывают оба, плюс общее правило: `null` от парсера без причины в
-/// `dropped[]` — это баг, а не норма.
 
-/// Тело входа A диагностики: AWG3-профиль wg-quick. Ключи — тестовые той же
-/// ФОРМЫ (32 байта base64), что у настоящего входа: форму судит санитайзер, и
-/// ключ неверной длины снял бы узел по `wg_key_invalid`.
+
+
+
+
+
+
+
+
+
+
 const _awg3Conf = '''
 [Interface]
 PrivateKey = QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVphYmNkZWY=
@@ -58,8 +58,8 @@ Endpoint = 94.250.255.65:56100
 PersistentKeepalive = 2
 ''';
 
-/// `vpn://` + base64 БЕЗ паддинга от голого текста `.conf` — ровно форма
-/// входа A (паддинг дописывает `decodeBase64Safe`).
+
+
 String _vpnLinkOfConf(String conf) {
   final b64 = base64Url.encode(utf8.encode(conf)).replaceAll('=', '');
   return 'vpn://$b64';
@@ -85,7 +85,7 @@ void main() {
       final map = nodes.single.emit(const TemplateVars()).map;
 
       expect(map['type'], 'wireguard');
-      // Скаляры AWG 2.0 и AWG3.
+
       expect(map['jc'], 4);
       expect(map['jmin'], 48);
       expect(map['jmax'], 128);
@@ -97,8 +97,8 @@ void main() {
       expect(map['h2'], 2);
       expect(map['h3'], 3);
       expect(map['h4'], 4);
-      // Ключ защиты заголовков и поля-ДИАПАЗОНЫ — строками с дефисом
-      // (`docs/PROTOCOLS.md:1199`, «passed through under the same names»).
+
+
       expect(map['header_protection_key'], isNotNull);
       expect(map['content_padding_addition'], '17-29');
       expect(map['rekey_after_time'], '120-155');
@@ -111,14 +111,14 @@ void main() {
     });
 
     test('identity как у того же .conf, поданного напрямую', () {
-      // Тело одно и то же — обёртка `vpn://` не имеет права менять узел.
+
       final viaLink = parseAll(decode(_vpnLinkOfConf(_awg3Conf))).single;
       final direct = parseAll(decode(_awg3Conf)).single;
 
       final a = viaLink.emit(const TemplateVars()).map;
       final b = direct.emit(const TemplateVars()).map;
-      // `tag` берётся из комментария под `[Peer]` у обоих путей, но сравнение
-      // идёт по ТЕЛУ: identity узла — это конфиг, а не имя.
+
+
       expect(jsonEncode(a..remove('tag')), jsonEncode(b..remove('tag')));
     });
 
@@ -133,13 +133,13 @@ void main() {
   });
 
   group('§506 п.2 — причина вместо молчания', () {
-    // §512 — схемой примера БОЛЬШЕ НЕ `amneziawg`: контракт 1.1.48 объявил её
-    // в `scheme_in` секции wireguard, и теперь она даёт УЗЕЛ (регресс-тест —
-    // `task_512_registry_schemes_test.dart`). Незнакомой берётся схема, которой
-    // не ведёт ни одна секция реестра.
-    // §512 (контракт 1.1.49, PARSING_PRINCIPLES §4.1) — код у НЕЗНАКОМОЙ СХЕМЫ теперь
-    // `scheme_unsupported`: `protocol_unsupported` остался за записью, чей ТИП
-    // неизвестен внутри опознанного тела.
+
+
+
+
+
+
+
     test('незнакомая схема: код scheme_unsupported со схемой в value', () {
       final verdict = XrayDropVerdict();
       final n = parseUri('nosuchproto://k@h.example:51820?jc=5',
@@ -164,11 +164,11 @@ void main() {
           reason: 'четыре такие строки входа D исчезали без следа');
     });
 
-    // §512 — игнор служебных строк остался ТИХИМ ДЛЯ UI, но перестал быть
-    // безымянным: реестр 1.1.48 дал info-код `service_record_ignored`.
-    // Шторка §500 показывает причины только при нуле узлов, поэтому у живой
-    // подписки код не виден, а у пустой отличает «команда панели» от
-    // «потерянный узел».
+
+
+
+
+
     test('служебные строки провайдера — info-код, не ошибка', () {
       for (final line in [
         'incy://routing/onadd/eyJhIjoxfQ',
@@ -185,16 +185,16 @@ void main() {
     });
 
     test('служебная схема БЕЗ хвоста routing/ тихого игнора не заслуживает', () {
-      // Реестр требует `path_prefix_fold: routing/`: про схему, объявившую
-      // иное, не известно ничего.
+
+
       final verdict = XrayDropVerdict();
       expect(parseUri('incy://somethingelse/x', dropped: verdict), isNull);
       expect(verdict.reason?.code, 'scheme_unsupported');
     });
 
     test('строка без схемы вовсе — молчим (ввод не распознан, §500)', () {
-      // `split('://')` отдал бы такую строку целиком, и код о протоколе
-      // назвал бы мусор именем протокола.
+
+
       for (final junk in ['%%% not a subscription %%%', 'hello world', 'abc']) {
         final verdict = XrayDropVerdict();
         expect(parseUri(junk, dropped: verdict), isNull);
@@ -211,9 +211,9 @@ void main() {
     });
 
     test('тело не декодировано — причина декодера в dropped[]', () {
-      // Тело, которое НЕ доходит до построчного разбора: пустое после
-      // декода. Строка без схемы туда бы дошла и получила свой код от
-      // диспетчера — здесь проверяется именно ветка `DecodeFailure`.
+
+
+
       final dropped = <NodeWarning>[];
       final nodes = parseAll(decode('   \n\n  \n'), dropped: dropped);
 
@@ -238,22 +238,22 @@ void main() {
 
   group('§506 п.3 — полоса с единицей', () {
     test('нормализатор bandwidth_mbps читает единицу, а не режет её', () {
-      // Голое число — канон, менять нечего.
+
       expect(normalizeBandwidthMbps('100'), 100);
-      // Мегабиты во всех написаниях.
+
       expect(normalizeBandwidthMbps('100mbps'), 100);
       expect(normalizeBandwidthMbps('100 Mbps'), 100);
       expect(normalizeBandwidthMbps('50m'), 50);
       expect(normalizeBandwidthMbps('  100MB  '), 100);
-      // Гигабиты — множитель 1000, а не «ведущие цифры» (было бы 1).
+
       expect(normalizeBandwidthMbps('1gbps'), 1000);
       expect(normalizeBandwidthMbps('300Gbps'), 300000);
-      // Килобиты и биты — вниз по шкале, округление ВВЕРХ (не ноль: ноль
-      // значил бы «не задано», то есть ту же потерю).
+
+
       expect(normalizeBandwidthMbps('2000kbps'), 2);
       expect(normalizeBandwidthMbps('500kbps'), 1);
       expect(normalizeBandwidthMbps('1bps'), 1);
-      // Дробное.
+
       expect(normalizeBandwidthMbps('1.5gbps'), 1500);
       expect(normalizeBandwidthMbps('0.5mbps'), 1);
     });

@@ -6,8 +6,8 @@ import 'package:lxbox/models/source_replace.dart';
 import 'package:lxbox/screens/direction_edit_screen.dart';
 import 'package:lxbox/screens/source_replace_screen.dart';
 
-/// §568 / задача 570 — UI свёртки: опция `include` Направления на группу
-/// свёртки и предупреждение редактора свёртки о занятом имени.
+
+
 void main() {
   Future<DirectionEditResult?> editDirection(
       WidgetTester tester, Direction initial) async {

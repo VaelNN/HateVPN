@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -24,10 +24,10 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §586 — перечень типов endpoint берётся из реестра (`kind` записи
-/// протокола); `openvpn-client` — тип реестра без описания полей
-/// (`fields_unchecked`): принимается из любого источника, без предупреждений,
-/// тело как написано, в конфиге — `endpoints[]`.
+
+
+
+
 class _FakePathProvider extends PathProviderPlatform
     with MockPlatformInterfaceMixin {
   final String tempRoot;
@@ -56,11 +56,11 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // Файлы кэша могут быть ещё открыты — не мешает тесту.
+
     }
   });
 
-  // Учётка и адрес — заглушки.
+
   const body = '''
 {
   "type": "openvpn-client",

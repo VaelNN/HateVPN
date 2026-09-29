@@ -3,21 +3,21 @@ import '../contract/errors.dart';
 import 'request.dart';
 import 'response.dart';
 
-/// Типизированный handler: чистая функция от (request, context) в
-/// [DebugResponse]. Без side-effects внутри транспорта.
+
+
 typedef Handler = Future<DebugResponse> Function(
   DebugRequest req,
   DebugContext ctx,
 );
 
-/// Префикс-based маршрутизатор. Endpoint регистрируется по префиксу
-/// (`/state`), handler получает запрос и сам диспатчит внутри по
-/// `/state/subs`, `/state/rules` и т.д. Это проще и меньше магии чем
-/// pattern-matching на path-параметры, а handler-файлы уже группируют
-/// близкие endpoints.
-///
-/// При конфликте префиксов побеждает более длинный (longest-prefix-match):
-/// `/state/foo` и `/state` — запрос `/state/foo/bar` уйдёт в `/state/foo`.
+
+
+
+
+
+
+
+
 class Router {
   final List<_Route> _routes = [];
 
@@ -27,11 +27,11 @@ class Router {
     _routes.add(_Route(prefix, handler));
   }
 
-  /// Смонтированные префиксы в порядке `mount` — для сверки `/help` с
-  /// роутером (обе формы `/help` обязаны описывать один роутер).
+
+
   List<String> get prefixes => [for (final r in _routes) r.prefix];
 
-  /// Найти handler для path'а или null если не замаунчен.
+
   Handler? resolve(String path) {
     _Route? best;
     for (final r in _routes) {
@@ -44,7 +44,7 @@ class Router {
     return best?.handler;
   }
 
-  /// Terminal handler для pipeline'а: находит route и вызывает, иначе [NotFound].
+
   Future<DebugResponse> handle(DebugRequest req, DebugContext ctx) async {
     final h = resolve(req.path);
     if (h == null) throw NotFound('route: ${req.path}');

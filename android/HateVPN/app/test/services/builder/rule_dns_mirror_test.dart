@@ -12,19 +12,19 @@ import 'package:lxbox/services/builder/rule_set_registry.dart';
 import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/storage_migration/legacy_form_v0.dart';
 
-/// Правило через запись `rules[]` и обратно — путь хранения (§439).
+
 CustomRule _storageRoundTrip(CustomRule r) =>
     ruleFromRecord(ruleToRecord(r), unknownAsVerbatim: true).value!;
 
-/// §117 задача 3 — «Опция DNS у правила (DNS follows the rule)».
-///
-/// - модель: `RuleDns` сериализация + backward-compat (нет `dns` → null);
-/// - гейт `dnsMirrorActive` (ports/protocols → mirror не эмитится);
-/// - applyAllCustomRules: сбор mirror-группы (inline+dns / srs+dns,
-///   порядок = routing-правила);
-/// - applyCustomDns: эмиссия группы у якоря, подстановка server, пропавший
-///   сервер → тихо (решение №3), force-include реферимого сервера (locked №7);
-/// - resolveDnsRulesList: компакция kind:preset блока (решение №6).
+
+
+
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -143,7 +143,7 @@ void main() {
       );
     });
 
-    // §256 — Force IPv4 (AAAA-глушилка).
+
     test('forceIpv4 roundtrip + скрыт когда false', () {
       final on = CustomRuleInline(
         name: 'f',
@@ -154,7 +154,7 @@ void main() {
       final r = _storageRoundTrip(on);
       expect(r.dns!.forceIpv4, true);
 
-      // false → ключ не пишется (симметрия с resolve-опциями).
+
       final off = CustomRuleInline(
         name: 'f2',
         domains: ['a.com'],
@@ -167,22 +167,22 @@ void main() {
     test('гейт forceIpv4Active: НЕ требует serverTag; режется port/protocol',
         () {
       const force = RuleDns(forceIpv4: true);
-      // Домены + галка, без сервера → активна (глушилка серверу не нужна).
+
       expect(
         CustomRuleInline(name: 'd', domains: ['a.com'], dns: force)
             .forceIpv4Active,
         true,
         reason: 'serverTag не требуется',
       );
-      // Только приложение (package_name), без доменов → активна (кейс
-      // «глючному приложению v4»).
+
+
       expect(
         CustomRuleInline(
                 name: 'app', packages: ['com.x'], dns: force)
             .forceIpv4Active,
         true,
       );
-      // ports / protocols → DNS-слеп → неактивна.
+
       expect(
         CustomRuleInline(
                 name: 'p', domains: ['a.com'], ports: ['443'], dns: force)
@@ -198,7 +198,7 @@ void main() {
             .forceIpv4Active,
         false,
       );
-      // disabled правило → неактивна.
+
       expect(
         CustomRuleInline(
                 name: 'off',
@@ -208,7 +208,7 @@ void main() {
             .forceIpv4Active,
         false,
       );
-      // галка выкл → неактивна.
+
       expect(
         CustomRuleInline(
                 name: 'g',
@@ -245,8 +245,8 @@ void main() {
       expect(m.presetId, null);
       expect(m.serverTag, 'google_udp');
       expect(m.body['rule_set'], 'tg-via-vpn');
-      // §030/new_fields: wifi_* теперь ВНУТРИ shared headless rule_set
-      // (sing-box 1.14) — в DNS-mirror body не дублируется.
+
+
       expect(m.body.containsKey('wifi_ssid'), false);
       expect(reg.getRuleSets().single['rules'], [
         {
@@ -257,7 +257,7 @@ void main() {
       ]);
       expect(m.body.containsKey('server'), false,
           reason: 'server подставляет applyCustomDns (фильтр пропавших)');
-      // Routing-сторона не изменилась: rule_set один, route-rule с outbound.
+
       expect(reg.getRuleSets(), hasLength(1));
       expect(reg.getRules().single['outbound'], 'vpn-1');
     });
@@ -286,7 +286,7 @@ void main() {
       expect(m.serverTag, 'cloudflare_udp');
     });
 
-    // §256 — srs + Force IPv4: serverless-mirror с .srs-тегом.
+
     test('srs+forceIpv4 → serverless-mirror ссылается на .srs-тег', () {
       final reg = RuleSetRegistry();
       final srs = CustomRuleSrs(
@@ -331,7 +331,7 @@ void main() {
       expect(reg.getRules(), hasLength(1), reason: 'routing-сторона живёт');
     });
 
-    // §256 — Force IPv4: serverless AAAA-глушилка.
+
     test('forceIpv4 inline → serverless-mirror {ip_version:6, predefined}',
         () {
       final reg = RuleSetRegistry();
@@ -376,7 +376,7 @@ void main() {
         const [],
       );
       expect(result.dnsMirrors, hasLength(2));
-      // Порядок §253: AAAA-гейт первым, server-mirror вторым.
+
       expect(result.dnsMirrors[0].serverless, true);
       expect(result.dnsMirrors[0].body['ip_version'], 6);
       expect(result.dnsMirrors[1].serverless, false);
@@ -403,7 +403,7 @@ void main() {
       expect(m.serverless, true);
       expect(m.body['ip_version'], 6);
       expect(m.body['action'], 'predefined');
-      // rule_set — headless-тег правила (package_name внутри него).
+
       expect(m.body['rule_set'], 'glitchy');
     });
 
@@ -457,8 +457,8 @@ void main() {
       expect(result.dnsMirrors[2].ruleName, 'last-rule');
     });
 
-    // §253 — пресет с dns_rules-массивом: mirror на КАЖДОЕ правило, подряд,
-    // в порядке шаблона; dnsRulesByPresetId несёт весь список.
+
+
     test('dns_rules-массив пресета → mirror на каждое правило, порядок шаблона',
         () {
       final reg = RuleSetRegistry();
@@ -485,7 +485,7 @@ void main() {
   });
 
   group('applyCustomDns — эмиссия mirror-группы', () {
-    // §117-обёртка template-сервера (минимальная).
+
     Map<String, dynamic> tplServer(String tag, String ip,
             {bool enabled = true}) =>
         {
@@ -518,8 +518,8 @@ void main() {
       ]);
     });
 
-    // §256 — serverless rule-mirror (Force IPv4 predefined): server НЕ
-    // подставляется, запись НЕ режется отсутствием сервера в dns.servers.
+
+
     test('serverless rule-mirror эмитится как есть (без server-подстановки)',
         () async {
       final config = <String, dynamic>{};
@@ -551,8 +551,8 @@ void main() {
       ]);
     });
 
-    // §253 — serverless-тело пресета (predefined, без ключа `server`)
-    // проходит defensive-гейт эмиссии (гейт только для String-server).
+
+
     test('serverless preset-mirror (predefined) эмитится; route-тело — '
         'с server-гейтом', () async {
       await SettingsStorage.saveDnsRulesList([
@@ -650,7 +650,7 @@ void main() {
         ],
         activePresetIdsWithDnsRule: const {'ru-direct'},
         dnsMirrors: const [
-          // routing order: сначала rule-mirror, потом preset
+
           DnsMirrorEntry(
             ruleId: 'r1',
             ruleName: 'tg',
@@ -667,8 +667,8 @@ void main() {
 
       final dns = config['dns'] as Map<String, dynamic>;
       expect(dns['rules'], [
-        {'domain': ['x.com'], 'server': 'google_udp'}, // standalone выше якоря
-        {'rule_set': 'tg', 'server': 'google_udp'}, // группа: routing order
+        {'domain': ['x.com'], 'server': 'google_udp'},
+        {'rule_set': 'tg', 'server': 'google_udp'},
         {'rule_set': 'ru-domains', 'server': 'yandex_udp'},
       ]);
     });
@@ -775,7 +775,7 @@ SelectableRule _ruDirect() => SelectableRule(
       ],
     );
 
-/// §253 — реплика ru-direct с ПАРОЙ DNS-правил (AAAA-гейт + маршрут).
+
 SelectableRule _ruDirectDnsPair() => SelectableRule(
       label: 'Russian domains direct',
       presetId: 'ru-direct',

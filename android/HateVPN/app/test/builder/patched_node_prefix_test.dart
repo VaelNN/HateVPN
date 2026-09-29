@@ -11,14 +11,14 @@ import 'package:lxbox/services/subscription/import_rules.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §307 — накопление tag-префикса у пропатченных нод (4PDA #1263).
-///
-/// Репро бага: узел с `patchedJson` (import-rule REPLACE) эмитился патчем ПО
-/// ССЫЛКЕ; билдер писал префиксованный тег прямо в сохранённый патч, и каждый
-/// следующий build (старт/рестарт VPN в рамках сессии) клеил префикс поверх:
-/// «xxx xxx 0004 - …». Фикс — `emit` отдаёт глубокую копию патча.
+
+
+
+
+
+
 class _FakeCtx extends EmitContext {
-  // §272/§322 — глобальный passive_check; этим тестам он не важен.
+
   @override
   bool get passiveCheck => false;
 
@@ -55,8 +55,8 @@ class _FakeCtx extends EmitContext {
 }
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   const uri = 'vless://u1@h1.com:443?type=ws&security=tls&sni=h1.com#0004';
@@ -69,7 +69,7 @@ void main() {
         detourPolicy: DetourPolicy.defaults,
         url: 'https://example.com/sub',
         nodes: [
-          // Узел, которого коснулось REPLACE-правило — как в репро.
+
           parseUri(uri)!
             ..patchedJson = applyRulesToNode(
               parseUri(uri)!,
@@ -95,7 +95,7 @@ void main() {
       expect(ctx.entries.single.tag, 'xxx 0004',
           reason: 'build #$build: не «xxx xxx …»');
     }
-    // Сохранённый патч не тронут: тег в нём остался голым, detour не въехал.
+
     final patch = list.nodes.single.patchedJson!;
     expect(patch['tag'], '0004');
     expect(patch.containsKey('detour'), isFalse);
@@ -106,8 +106,8 @@ void main() {
     final list = sub('xxx');
     list.build(_FakeCtx());
 
-    // Юзер сменил префикс — модель immutable, копия с новым prefix, узлы
-    // (и их патчи) те же инстансы.
+
+
     final renamed = list.copyWith(tagPrefix: 'yyy');
     final ctx = _FakeCtx();
     renamed.build(ctx);

@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/screens/custom_rule_edit/punycode.dart';
 
-/// §144 — Punycode (RFC 3492) + per-label IDNA ToASCII.
+
 void main() {
   group('punycodeEncode (RFC 3492 §7.1 reference vectors)', () {
-    // Эталонные строки из RFC 3492 — без `xn--` префикса.
+
     test('arabic (egyptian)', () {
       expect(punycodeEncode('ليهمابتكلموشعربي؟'),
           'egbpdaj6bu4bxfgehfvwxn');
@@ -40,11 +40,11 @@ void main() {
     test('pure-ASCII passthrough (fast-path)', () {
       expect(domainToAscii('example.com'), 'example.com');
       expect(domainToAscii('co.uk'), 'co.uk');
-      expect(domainToAscii('xn--p1ai'), 'xn--p1ai'); // уже punycode
+      expect(domainToAscii('xn--p1ai'), 'xn--p1ai');
     });
     test('empty / empty labels', () {
       expect(domainToAscii(''), '');
-      expect(domainToAscii('.рф'), '.xn--p1ai'); // leading dot сохраняется
+      expect(domainToAscii('.рф'), '.xn--p1ai');
     });
   });
 }

@@ -8,9 +8,9 @@ import 'package:lxbox/models/template_vars.dart';
 import 'package:lxbox/models/tls_spec.dart';
 import 'package:lxbox/services/parser/uri_utils.dart' show newUuidV4;
 
-/// §222 — verify HttpSpec → JSON outbound → UserServer round-trip
-/// preserves user-chosen tag verbatim (тот же lossless-путь, что SOCKS §074:
-/// rawBody = sing-box JSON, parseSingboxEntry читает tag напрямую).
+
+
+
 void main() {
   test('HttpSpec → JSON outbound → UserServer.fromJson preserves tag', () {
     const userTag = 'my-http-out';
@@ -36,7 +36,7 @@ void main() {
     final restored =
         sourceFromRecord(sourceToRecord(us)).value! as UserServer;
 
-    // §439 — имя одиночного сервера (с §243 пустое) записью не хранится.
+
     expect(restored, us);
     expect(restored.name, '');
     expect(restored.nodes.length, 1);

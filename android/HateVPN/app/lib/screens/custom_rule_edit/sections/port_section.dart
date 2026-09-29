@@ -4,7 +4,7 @@ import '../validators.dart' as v;
 import '../widgets/items_field.dart';
 import '../widgets/section_header.dart';
 
-/// §053 Stage 2 — PORT section: exact ports + port_range.
+
 class PortSection extends StatelessWidget {
   const PortSection({
     super.key,

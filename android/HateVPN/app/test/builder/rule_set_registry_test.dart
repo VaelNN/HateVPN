@@ -32,7 +32,7 @@ void main() {
 
     test('addRuleSet copies entry — no mutation of caller map', () {
       final r = RuleSetRegistry();
-      r.addRuleSet({'tag': 'base', 'type': 'inline'}); // occupies 'base'
+      r.addRuleSet({'tag': 'base', 'type': 'inline'});
       final callerMap = {'tag': 'base', 'type': 'inline', 'rules': []};
       final tag = r.addRuleSet(callerMap);
       expect(tag, 'base (2)');

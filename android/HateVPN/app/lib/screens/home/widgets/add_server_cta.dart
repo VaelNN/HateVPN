@@ -5,10 +5,10 @@ import '../../../controllers/subscription_controller.dart';
 import '../../../services/subscription/auto_updater.dart';
 import '../../subscriptions_screen.dart';
 
-/// Гайд пустого состояния главного экрана (нет конфига/нод): заголовок, FAB
-/// «Add a server» → [SubscriptionsScreen] и ссылка restore-from-backup
-/// ([onRestoreFromBackup] живёт в `_HomeScreenState` — это async flow с
-/// file-picker'ом и ScaffoldMessenger).
+
+
+
+
 class AddServerCta extends StatelessWidget {
   const AddServerCta({
     super.key,

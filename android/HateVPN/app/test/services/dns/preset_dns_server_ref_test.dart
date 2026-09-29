@@ -13,13 +13,13 @@ import 'package:lxbox/services/lx_backup.dart';
 import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/storage_migration/migrate_storage.dart';
 
-/// §439 — preset-сервер DNS проходит миграцию 2.23.2, пересборку, слияние
-/// бэкапа и экспорт одной формой: тег модели — тег конфига
-/// (`ru-direct:dns_ru`), `ref` записи — та же строка.
-///
-/// Стенд волны E: первая пересборка после миграции переписала `ref` в
-/// `ru-direct:ru-direct:dns_ru`, включила выключенный пользователем сервер и
-/// сняла его `description`; слияние файла 0.x дописало четыре дубля.
+
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -47,8 +47,8 @@ void main() {
     if (tmp.existsSync()) await tmp.delete(recursive: true);
   });
 
-  // Серверы пресета так, как их называет сборка (`expandPreset` →
-  // `namespacePresetTags`).
+
+
   final presetServersByTag = {
     for (final s in namespacePresetTags(
       'ru-direct',
@@ -143,7 +143,7 @@ void main() {
     }
     expect(await settings().readAsString(), before);
 
-    // Экспорт 1.0 пишет тот же ref.
+
     final exported = dnsToBackup(
       servers: await SettingsStorage.getDnsServers(),
       rules: const [],
@@ -193,7 +193,7 @@ void main() {
 
   test('слияние бэкапа: preset-сервер из хранения и тот же из файла 0.x или '
       '1.0 — одна запись, своя сильнее', () {
-    // Хранение после резолвера: пресет известен.
+
     const local = <DnsServerRef>[
       DnsServerPreset(
         enabled: false,
@@ -204,7 +204,7 @@ void main() {
     ];
     final fromFile10 = dnsServerFromRecord(
         {'kind': 'preset', 'ref': 'ru-direct:yandex_doh', 'enabled': true}).value!;
-    // Читатель файла 0.x отдаёт тег внутри пресета и presetId отдельно.
+
     const fromFile0x =
         DnsServerPreset(enabled: true, tag: 'yandex_doh', presetId: 'ru-direct');
     final got = applyDnsBackup(

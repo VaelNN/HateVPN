@@ -1,5 +1,5 @@
-// Фича 478 — разбор строки отказа ядра, PARSING_PRINCIPLES §9.1–§9.2.
-// Таблица примеров §9.2 взята дословно.
+
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/core_reject/core_error_parse.dart';
 
@@ -152,11 +152,11 @@ void main() {
     });
   });
 
-  // Д-1 — до Dart строка доходит обёрнутой: Go кладёт свою цепочку, Kotlin
-  // сверху локализованный шаблон `stop_alert_start_failed`. Разбор не вправе
-  // знать ни один текст обёртки — иначе страховка молчит на ru.
+
+
+
   group('Д-1 — обёртки перед грамматикой §9', () {
-    // Дословно то, что пришло с эмулятора.
+
     const device = 'Failed to start service: start or reload service: '
         'initialize outbound[33] shadowsocks[⚡ c-ss2022-badkey]: '
         'bad key length, required 32, got 5';

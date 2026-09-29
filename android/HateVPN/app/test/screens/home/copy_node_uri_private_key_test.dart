@@ -11,12 +11,12 @@ import 'package:lxbox/screens/home/node_actions.dart';
 
 import '../../parser/engine_test_setup.dart';
 
-/// §466 — «Copy URI» у узла, чья ссылка несёт приватный ключ, спрашивает
-/// подтверждение (§463 здесь отказывал наотрез). Проверяем обе ветки диалога,
-/// какие узлы его вызывают и что у остальных копирование как было.
+
+
+
 void main() {
-  // §480 W7 — эмит ссылки исполняет секции реестра; рукописного `toUri` у
-  // схем не осталось.
+
+
   setUpAll(loadEngineSections);
 
   late String? clipboard;
@@ -52,8 +52,8 @@ void main() {
     return c;
   }
 
-  /// Экран с одной кнопкой, дёргающей `copyNodeUri` — диалогу нужен Navigator,
-  /// снэкбару Scaffold.
+
+
   Future<void> pumpAndTap(WidgetTester tester, SubscriptionController c,
       String tag) async {
     await tester.pumpWidget(MaterialApp(
@@ -122,7 +122,7 @@ void main() {
         uuid: '11111111-2222-3333-4444-555555555555',
       );
 
-  // Контракт 1.1.59 — признак по роли `private_key` реестра, не по классу.
+
   bool pk(NodeSpec n) =>
       carriesPrivateKeyByRegistry(n.emit(TemplateVars.empty).map);
 
@@ -186,7 +186,7 @@ void main() {
       await pumpAndTap(
           tester, controllerWith(ssh(privateKey: 'K')), 'ssh-1');
 
-      // Barrier: тап в верхний угол, вне AlertDialog.
+
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
 

@@ -2,11 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/dns_ref.dart';
 import 'package:lxbox/services/storage_migration/legacy_form_v0.dart';
 
-/// §294 → §439 — чтение DNS-записей формы хранения 2.23.2 (`dns_options`)
-/// замороженными читателями `legacy_form_v0.dart`: миграция формы и файл
-/// правил `format: 1`. Своей сериализации у моделей больше нет, круг хранения
-/// проверяет `record_codec_test.dart`; здесь — что форма 2.23.2 даёт ту же
-/// модель, что давал `fromJson` 2.23.2, и терпимость чтения (null, не бросает).
+
+
+
+
+
 void main() {
   group('readLegacyDnsServer — виды', () {
     test('inline с body + description', () {
@@ -145,8 +145,8 @@ void main() {
     });
   });
 
-  // §439 A1 — отсутствие ключа `enabled`: inline/srs — включено,
-  // template/preset — выключено (как читала сборка 2.23.2).
+
+
   group('readLegacyDnsRule — enabled без ключа', () {
     test('inline и srs → включено', () {
       expect(

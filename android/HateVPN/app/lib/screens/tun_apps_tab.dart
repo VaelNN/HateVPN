@@ -1,11 +1,11 @@
-// §046 — Tunnel apps tab. OS-level split-tunneling control.
-//
-// UI для `tun_apps` storage shape (mode + packages list).
-// Builder applyTunPackages() трансформирует это в config.tun.{include,exclude}_package.
-// Native слой BoxVpnService.kt:557-560 далее пробрасывает в VpnService.Builder.
-//
-// Изменения требуют **full VPN restart** (не light reload) — addAllowedApplication
-// applies только на builder.establish(). Banner показывается при tunnel up.
+
+
+
+
+
+
+
+
 
 import 'dart:async';
 
@@ -37,12 +37,12 @@ class TunAppsTab extends StatefulWidget {
 class _TunAppsTabState extends State<TunAppsTab>
     with WidgetsBindingObserver, LazyPersistMixin<TunAppsTab> {
   TunAppsConfig _cfg = const TunAppsConfig(mode: 'off', packages: <String>[]);
-  // §076: `_appliedCfg` / `_isModified` / `_listEq` / local restart banner +
-  // button — удалены. Staging через LazyPersistMixin (§085 R4 / §107):
-  //   - mutations → markDirty() + setState; буфер сразу в _cache (stageChanges)
-  //   - dispose / AppLifecycleState.paused → flushToDisk (atomic write)
-  //   - markDirty set'ит subController.configDirty = true sync
-  //   - home banner показывает «Apply / Restart» глобально
+
+
+
+
+
+
   bool _loading = true;
 
   @override
@@ -66,9 +66,9 @@ class _TunAppsTabState extends State<TunAppsTab>
     }
   }
 
-  /// §107: staging — `_cfg` в `_cache` на каждую мутацию; дисковый flush —
-  /// mixin'ом (flushToDisk) на dispose/paused. `configDirty` уже set'нут в
-  /// `markDirty()` синхронно — не трогаем.
+
+
+
   @override
   Future<void> stageChanges() async {
     await SettingsStorage.setTunApps(_cfg, flush: false);
@@ -140,8 +140,8 @@ class _TunAppsTabState extends State<TunAppsTab>
         builder: (_) => SettingsScreen(
           subController: widget.subController,
           homeController: widget.homeController,
-          initialTab: 0, // 0 = System (VpnService toggles); per-app split
-                          // — это System-level фича, не Core sing-box.
+          initialTab: 0,
+
         ),
       ),
     );
@@ -170,7 +170,7 @@ class _TunAppsTabState extends State<TunAppsTab>
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
-    // Подписка на icon-cache updates: re-render когда AppInfo подгружаются.
+
     return AnimatedBuilder(
       animation: AppInfoCache.revision,
       builder: (context, _) => _buildBody(context),
@@ -180,14 +180,14 @@ class _TunAppsTabState extends State<TunAppsTab>
   Widget _buildBody(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    // §076: tunnelUp / showRestartBanner — удалены. Home banner показывает
-    // «Apply / Restart» глобально через configDirty + configChangedNeedRestart.
+
+
     final bottomPad = MediaQuery.of(context).padding.bottom + 24;
 
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
       children: [
-        // ─── Header: Mode + tooltip + overflow ───
+
         Row(
           children: [
             Text(getLocalText.s("Mode"), style: tt.titleMedium),
@@ -259,8 +259,8 @@ class _TunAppsTabState extends State<TunAppsTab>
           style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
         ),
 
-        // §076: локальный «Restart needed» banner удалён.
-        // Home banner единый source-of-truth для «Apply / Restart».
+
+
 
         if (!_cfg.isOff) ...[
           const SizedBox(height: 16),
@@ -311,9 +311,9 @@ class _TunAppsTabState extends State<TunAppsTab>
     final info = AppInfoCache.of(pkg);
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    // §109: метка только при ПОДТВЕРЖДЁННОМ native'ом not-found.
-    // «Ещё грузится» / «проверка сорвалась (timeout)» → обычный tile без
-    // метки (раньше любая неудача красила «uninstalled» до конца сессии).
+
+
+
     final uninstalled = AppInfoCache.isNotFound(pkg);
     final displayName = info?.appName ?? pkg;
 

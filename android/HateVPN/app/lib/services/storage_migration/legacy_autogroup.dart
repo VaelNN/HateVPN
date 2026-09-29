@@ -1,8 +1,8 @@
-/// Член-группа папки в тексте `autogroup://…` — форма 2.23.2 (§322), разбор
-/// которой снят в §439 N2. Замороженный читатель и перевод состава в узлы
-/// папки: один путь на миграцию хранения (`migrateAutogroupMembers`) и импорт
-/// LX Backup 0.x (`lx_backup.dart`), чтобы группа из файла и группа из
-/// хранения переводились одинаково.
+
+
+
+
+
 library;
 
 import '../../models/auto_select.dart';
@@ -12,28 +12,28 @@ import '../../models/node_spec.dart';
 import '../node_identity.dart';
 import '../parser/uri_utils.dart' show newUuidV4, tagFromLabel;
 
-/// Схема члена-группы папки в хранении и файле 0.x до §439 N2.
+
 const String kLegacyAutogroupScheme = 'autogroup://';
 
-/// Текст члена папки — группа `autogroup://`.
+
 bool isLegacyAutogroupText(Object? raw) =>
     raw is String &&
     raw.trimLeft().toLowerCase().startsWith(kLegacyAutogroupScheme);
 
-/// Итог перевода группы: узел автовыбора и члены состава, которые сняты
-/// (`<ключ или тег>: <причина>`).
+
+
 typedef LegacyAutogroup = ({AutoSelectSpec group, List<String> dropped});
 
-/// Текст [raw] группы папки → узел автовыбора. `null` — текст не читается.
-///
-/// - Режим правила (`include`/`exclude`, «все члены») переносится как есть.
-/// - Явный состав — ключи `protocol|server|port|credential` — становится
-///   ссылками [linkOf] на члены той же папки (индекс в [nodes] и тег узла):
-///   [nodes] — разобранные члены по месту (`null` — не разобран или сам
-///   группа), [enabledAt] — включён ли член. Ключ нескольких членов решает
-///   включённый, если он один (его и собирала сборка 2.23.2). Ключ без члена,
-///   неоднозначный ключ, член без тега или с тегом, который носит ещё кто-то
-///   в папке, в состав не входят и называются в `dropped`.
+
+
+
+
+
+
+
+
+
+
 LegacyAutogroup? legacyAutogroupSpec(
   String raw, {
   required List<NodeSpec?> nodes,
@@ -75,7 +75,7 @@ LegacyAutogroup? legacyAutogroupSpec(
   );
 }
 
-/// Ключ `protocol|server|port|credential` → тег члена папки.
+
 ({int? index, String? tag, String? error}) _memberTagOfKey(
   String key,
   List<NodeSpec?> nodes,
@@ -85,7 +85,7 @@ LegacyAutogroup? legacyAutogroupSpec(
     for (var i = 0; i < nodes.length; i++)
       if (nodes[i] case final n? when nodeIdentityKey(n) == key) i,
   ];
-  // Сборка до N2 брала только включённых членов.
+
   if (hits.length > 1) hits = hits.where(enabledAt).toList();
   if (hits.isEmpty) {
     return (index: null, tag: null, error: 'key "$key" matches no node');
@@ -112,8 +112,8 @@ LegacyAutogroup? legacyAutogroupSpec(
   return (index: hits.single, tag: tag, error: null);
 }
 
-/// Разбор `autogroup://?members=…|include=…&mode=…#Label` — замороженная
-/// форма 2.23.2 (`autoGroupFromUri`). [keys] `null` — режим правила.
+
+
 ({
   String label,
   List<String>? keys,
@@ -131,7 +131,7 @@ LegacyAutogroup? legacyAutogroupSpec(
     final sticky = q['sticky'];
     return (
       label: Uri.decodeComponent(uri.fragment),
-      // §352 — узкое экранирование ключа: `,` и `%`.
+
       keys: rawMembers?.split(',')
           .map((e) =>
               e.trim().replaceAll('%2C', ',').replaceAll('%25', '%'))

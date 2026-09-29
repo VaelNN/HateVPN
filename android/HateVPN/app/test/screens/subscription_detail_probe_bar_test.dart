@@ -58,7 +58,7 @@ void main() {
       await pumpScreen(tester, _subEntry());
 
       final switches = find.byType(Switch);
-      expect(switches, findsNWidgets(3)); // bulk + 2 строки
+      expect(switches, findsNWidgets(3));
       final bulkSize = tester.getSize(switches.first);
       final rowSize = tester.getSize(switches.at(1));
       expect(bulkSize, rowSize);

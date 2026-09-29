@@ -8,8 +8,8 @@ import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/preset_on_change.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §266 — on_change пресета FakeIP: `@rule_enable AND @dns_enable` → глушит
-/// глобальную `resolve_enabled`. Тест на РЕАЛЬНОМ wizard_template.json.
+
+
 void main() {
   const channel = MethodChannel('plugins.flutter.io/path_provider');
   late Directory tmp;
@@ -43,7 +43,7 @@ void main() {
   });
 
   test('FakeIP disabled → resolve_enabled=true (вернулась)', () async {
-    // сначала выключаем
+
     await SettingsStorage.setVar('resolve_enabled', 'false');
     final cr = CustomRulePreset(name: 'FakeIP', presetId: 'fakeip', enabled: false);
     await applyPresetOnChange(fakeip, cr);

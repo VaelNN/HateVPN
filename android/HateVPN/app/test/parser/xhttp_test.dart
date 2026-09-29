@@ -15,19 +15,19 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import 'engine_test_setup.dart';
 
-/// §097 — XHTTP (Xray splithttp) нативный transport. По образцу
-/// singbox-launcher SPEC 071: parse (URI camelCase + snake) → emit → round-trip,
-/// httpupgrade остаётся отдельным типом.
-/// §480 W8 — круг транспорта НАСТОЯЩИМ путём: `toUri()` собирает ссылку
-/// движком по секции `uri`, `parseUri` разбирает её обратно той же секцией.
-///
-/// Прежде эти тесты звали `transportToQuery` — рукописную эмиссию, снятую
-/// волной W7. Звать её отдельно от ссылки значило проверять слой, которого в
-/// `lib` больше нет: у транспорта своей ссылки не бывает, он всегда едет
-/// параметрами узла.
-///
-/// Носитель — VLESS: транспорт в его секции объявлен целиком, и схема первой
-/// переехала на движок.
+
+
+
+
+
+
+
+
+
+
+
+
+
 TransportSpec? _viaUri(TransportSpec t) {
   final node = VlessSpec(
     id: 'id-1',
@@ -42,15 +42,15 @@ TransportSpec? _viaUri(TransportSpec t) {
   return (parseUri(node.toUri()) as VlessSpec).transport;
 }
 
-/// Тело транспорта, доехавшее до ссылки и обратно. Сравнивать спеки по телу,
-/// а не по полям: тело — то, что уходит в ядро, и именно его круг обязан
-/// сохранить.
+
+
+
 Map<String, dynamic> _bodyViaUri(TransportSpec t) =>
     _viaUri(t)!.toSingbox(TemplateVars.empty).$1;
 
-/// Тело транспорта узла, пришедшего sing-box JSON: `parseSingboxConfigs`
-/// строит модель по карте санитайзера реестра (§545), так что правила
-/// `transports.json` срабатывают здесь, а не в эмиттере (§546).
+
+
+
 Map<String, dynamic> _viaSingbox(Map<String, dynamic> transport) {
   final node = parseSingboxConfigs([
     {
@@ -69,7 +69,7 @@ Map<String, dynamic> _viaSingbox(Map<String, dynamic> transport) {
   return node.emit(TemplateVars.empty).map['transport'] as Map<String, dynamic>;
 }
 
-/// Тело транспорта и коды узла из sing-box JSON (путь §545 через санитайзер).
+
 (Map<String, dynamic>, List<String?>) _viaSingboxCodes(
     Map<String, dynamic> transport) {
   final node = parseSingboxConfigs([
@@ -86,7 +86,7 @@ Map<String, dynamic> _viaSingbox(Map<String, dynamic> transport) {
       ],
     },
   ]).single;
-  // Коды JSON-входа ставит проход по дословной карте (как в `parseAll`).
+
   annotateFromRawBody(node);
   return (
     node.emit(TemplateVars.empty).map['transport'] as Map<String, dynamic>,
@@ -94,8 +94,8 @@ Map<String, dynamic> _viaSingbox(Map<String, dynamic> transport) {
   );
 }
 
-/// Тело транспорта и коды узла, пришедшего ссылкой с xhttp и параметрами
-/// [query] (имена параметров — snake_case, как читает секция `uri`).
+
+
 (Map<String, dynamic>, List<String?>) _viaUriQuery(String query) {
   final node = parseUri('vless://11111111-2222-3333-4444-555555555555'
       '@1.2.3.4:443?security=tls&type=xhttp&$query#n')!;
@@ -106,8 +106,8 @@ Map<String, dynamic> _viaSingbox(Map<String, dynamic> transport) {
 }
 
 void main() {
-  // §480 — разбор ссылки и Xray-элемента идёт ДВИЖКОМ по секциям реестра;
-  // без них у схемы запасного рукописного пути не осталось (критерий 7).
+
+
   setUpAll(loadEngineSections);
 
   group('XHTTP', () {
@@ -176,8 +176,8 @@ void main() {
       final t =
           parseTransport({'type': 'httpupgrade', 'path': '/u', 'host': 'h'});
       expect(t, isA<HttpUpgradeTransport>());
-      // И через ссылку тип не подменяется на xhttp: путаница этих двух
-      // транспортов и есть тот регресс, который сторожит кейс.
+
+
       expect(_viaUri(t!), isA<HttpUpgradeTransport>());
       expect(_bodyViaUri(t)['type'], 'httpupgrade');
     });
@@ -198,15 +198,15 @@ void main() {
       expect(m.containsKey('mode'), false);
       expect(m.containsKey('x_padding_bytes'), false);
       expect(m.containsKey('no_grpc_header'), false);
-      // §127 — расширенные поля тоже не текут в выхлоп при дефолтах.
+
       expect(m.containsKey('session_placement'), false);
       expect(m.containsKey('x_padding_obfs_mode'), false);
       expect(m.containsKey('sc_max_each_post_bytes'), false);
     });
   });
 
-  // §127 — расширенные клиентские поля SPEC 002 v2: placement/keys/obfs/tuning,
-  // парсинг `extra`-JSON, нормализация sc*, golden round-trip.
+
+
   group('XHTTP §127 full params', () {
     test('golden: все 15 полей camelCase → snake_case transport (§8.1)', () {
       final t = parseTransport({
@@ -259,7 +259,7 @@ void main() {
     });
 
     test('snake_case формы расширенных полей тоже читаются', () {
-      // parseTransport читает поле как есть; значения судит реестр на разборе.
+
       final t = parseTransport({
         'type': 'xhttp',
         'session_placement': 'cookie',
@@ -271,31 +271,31 @@ void main() {
       expect(t.uplinkHttpMethod, 'GET');
     });
 
-    // SPEC 103 vless/xhttp_uplink_get_without_packet_up_reset,
-    // xhttp_uplink_header_placement_reset, xhttp_placement_bogus_reset —
-    // session_placement/uplink_data_placement/uplink_http_method — pure
-    // passthrough, эталон Go (registry/warnings.json xhttp_param_reset:
-    // "go": null, Go пока не нормализует XHTTP-параметры — "normalization
-    // is left to the core", xhttpBuildTransport). Раньше Dart сбрасывал их
-    // на дефолт + warning; контрактный корпус показал расхождение с Go —
-    // выровнено на pass-through (core сам роняет мусор, не парсер).
+
+
+
+
+
+
+
+
     test('session_placement/uplink_data_placement/uplink_http_method — pure passthrough (canon = Go)', () {
-      // GET без packet-up → пишем как есть, без warning (было: сброс).
+
       final t1 = parseTransport(
           {'type': 'xhttp', 'uplink_http_method': 'GET', 'mode': 'auto'})!;
       final (m1, w1) = t1.toSingbox(TemplateVars.empty);
       expect(m1['uplink_http_method'], 'GET');
       expect(w1.whereType<XhttpParamResetWarning>(), isEmpty);
 
-      // GET с packet-up → тоже пишем, без warning.
+
       final t2 = parseTransport(
           {'type': 'xhttp', 'uplink_http_method': 'GET', 'mode': 'packet-up'})!;
       final (m2, w2) = t2.toSingbox(TemplateVars.empty);
       expect(m2['uplink_http_method'], 'GET');
       expect(w2, isEmpty);
 
-      // Эмиттер пишет placement как есть при любом mode: связь с mode
-      // (header/cookie только в packet-up) судит реестр, см. группу §416.
+
+
       final t3 = parseTransport({
         'type': 'xhttp',
         'uplink_data_placement': 'cookie',
@@ -305,23 +305,23 @@ void main() {
       expect(m3['uplink_data_placement'], 'cookie');
       expect(w3.whereType<XhttpParamResetWarning>(), isEmpty);
 
-      // §460 — session_placement вне enum реестра снимается (xhttp_param_reset)
-      // на разборе, как seq_placement; см. группу ниже.
+
+
       expect(
           _viaSingbox({'type': 'xhttp', 'session_placement': 'bogus'})
               .containsKey('session_placement'),
           isFalse);
     });
 
-    // §459 (контракт §24.2 п. 7.14) — mode/x_padding_placement/
-    // x_padding_method: мусор даёт fatal на ВЕСЬ конфиг
-    // (transport/v2rayxhttp/client.go:47-51, meta.go:151-160). Регистр НЕ
-    // нормализуем — ядро case-sensitive, `queryInHeader` только camelCase.
-    //
-    // §546 — enum судит реестр (`transports.json` → xhttp, `on_invalid` →
-    // `xhttp_param_reset`) на разборе, эмиттер пишет как есть. Поэтому
-    // проверка идёт обоими входами: sing-box JSON (тело) и ссылкой (тело и
-    // код).
+
+
+
+
+
+
+
+
+
     group('§459 enum-гейт трёх полей', () {
       void expectKept(String key, String value) {
         expect(_viaSingbox({'type': 'xhttp', key: value})[key], value,
@@ -416,13 +416,13 @@ void main() {
     });
 
     test('extra (URL-encoded JSON) вливается в transport', () {
-      // {"scMaxEachPostBytes":"1000000","scMaxConcurrentPosts":100.0,
-      //  "scMinPostsIntervalMs":30.0,"xPaddingBytes":"100-1000","noGRPCHeader":false}
+
+
       const extra =
           '%7B%22scMaxEachPostBytes%22%3A%221000000%22%2C%22scMaxConcurrentPosts%22'
           '%3A100.0%2C%22scMinPostsIntervalMs%22%3A30.0%2C%22xPaddingBytes%22%3A'
           '%22100-1000%22%2C%22noGRPCHeader%22%3Afalse%7D';
-      // Uri.queryParameters сам percent-декодит — эмулируем декодированный extra.
+
       final decodedExtra = Uri.decodeComponent(extra);
       final t = parseTransport({
         'type': 'xhttp',
@@ -431,10 +431,10 @@ void main() {
       }) as XhttpTransport;
       expect(t.xPaddingBytes, '100-1000');
       expect(t.noGrpcHeader, false);
-      // числа из extra нормализованы в строку
+
       expect(t.scMaxEachPostBytes, '1000000');
-      expect(t.scMinPostsIntervalMs, '30'); // 30.0 → "30"
-      // scMaxConcurrentPosts (legacy) не маппится
+      expect(t.scMinPostsIntervalMs, '30');
+
       final (m, _) = t.toSingbox(TemplateVars.empty);
       expect(m.containsKey('sc_max_concurrent_posts'), false);
     });
@@ -444,7 +444,7 @@ void main() {
         'type': 'xhttp',
         'mode': 'packet-up',
         'path': '/p',
-        'extra': '{not valid json', // обрезанный
+        'extra': '{not valid json',
       }) as XhttpTransport;
       expect(t.mode, 'packet-up');
       expect(t.path, '/p');
@@ -489,16 +489,16 @@ void main() {
         scMaxEachPostBytes: '1000000',
         scMinPostsIntervalMs: '30',
       );
-      // сравнение по выхлопу toSingbox (= по смыслу spec)
+
       expect(_bodyViaUri(golden), golden.toSingbox(TemplateVars.empty).$1);
     });
 
     test('toUri пишет только не-дефолтные поля (§8.3 — без раздувания)', () {
-      // дефолтная нода: эти значения == дефолт ядра → НЕ должны попасть в query.
+
       const x = XhttpTransport(
         path: '/',
-        sessionPlacement: '', // дефолт path
-        uplinkHttpMethod: '', // дефолт POST
+        sessionPlacement: '',
+        uplinkHttpMethod: '',
         xPaddingObfsMode: false,
       );
       final node = VlessSpec(
@@ -518,10 +518,10 @@ void main() {
     });
   });
 
-  // §399 — состав полей XHTTP общий для трёх веток парсера. До фикса Xray-JSON
-  // читала три поля (path/host/mode), sing-box-JSON — шесть, URI — все.
+
+
   group('§399 XHTTP: общий состав полей в JSON-ветках', () {
-    /// Xray-элемент с одним VLESS-узлом на XHTTP.
+
     Map<String, dynamic> xrayElement(Map<String, dynamic> xhttpSettings) => {
           'remarks': 'x',
           'outbounds': [
@@ -549,7 +549,7 @@ void main() {
           ],
         };
 
-    /// sing-box `transport`-объект → разобранный обратно XHTTP-транспорт.
+
     XhttpTransport singboxTransport(Map<String, dynamic> transport) {
       final node = parseSingboxEntry({
         'type': 'vless',
@@ -568,8 +568,8 @@ void main() {
       return (nodes.single as VlessSpec).transport as XhttpTransport;
     }
 
-    // Критерий 1 — узел 188.72.103.4 из SPEC 102-B: сервер ждёт uplink GET'ом,
-    // ядро без поля шлёт POST → `unexpected upload status: 400`.
+
+
     test('extra.uplinkHTTPMethod=GET + packet-up доезжает до конфига', () {
       final t = xrayTransport({
         'path': '/x',
@@ -586,8 +586,8 @@ void main() {
       expect(w, isEmpty);
     });
 
-    // Критерий 2 — узлы 46.243.142.42 / 95.163.232.194: без x_padding_bytes
-    // ядро подставляет свой padding, которого сервер не ждёт → 400.
+
+
     test('xPaddingBytes "50-150" и "0-0" доезжают дословно из обеих веток', () {
       for (final v in ['50-150', '0-0']) {
         expect(
@@ -605,8 +605,8 @@ void main() {
       }
     });
 
-    // Критерий 3 — эмиттер кладёт значение в конфиг как есть; `1e+06` ядро
-    // не разберёт, а число вместо строки ломает схему транспорта.
+
+
     test('числа из extra → строки, без экспоненциальной нотации', () {
       final t = xrayTransport({
         'mode': 'packet-up',
@@ -624,7 +624,7 @@ void main() {
       expect(m['sc_max_each_post_bytes'], isA<String>());
     });
 
-    // Критерий 4 — Xray допускает обе раскладки; при конфликте extra выигрывает.
+
     test('плоское поле читается; одноимённое в extra его перекрывает', () {
       expect(
         xrayTransport({'xPaddingBytes': '10-20'}).xPaddingBytes,
@@ -639,11 +639,11 @@ void main() {
       );
     });
 
-    // §410 — регрессия v2.21.0 (4PDA #1740…#1765): Xray кладёт в `extra`
-    // весь объект транспорта с пустыми незаданными полями; `"mode": ""`
-    // затирало плоский `mode=packet-up`, ядро брало `auto` и узел с
-    // `uplinkDataPlacement=header` ронял конфиг целиком. Эталон Go —
-    // `xhttpLookup`: пустое из extra → откат к плоскому значению.
+
+
+
+
+
     test('пустое значение в extra не перекрывает плоское поле (§410)', () {
       final t = xrayTransport({
         'mode': 'packet-up',
@@ -655,9 +655,9 @@ void main() {
       expect(t.host, '');
     });
 
-    // Xray `SplitHTTPConfig.Build()`: при наличии extra host/path/mode
-    // перезаписываются значениями внешнего объекта, даже непустые из extra
-    // отбрасываются. Остальные поля extra по-прежнему в приоритете.
+
+
+
     test('extra.host/path/mode не перекрывают плоские даже непустыми (§410)',
         () {
       final t = xrayTransport({
@@ -689,8 +689,8 @@ void main() {
       expect(t.maxConcurrency, '16');
     });
 
-    // Ссылка cumirum (#1755) дословно: mode=packet-up плоско, в extra
-    // "mode":"" + uplinkDataPlacement=header + uplinkHTTPMethod=GET.
+
+
     test('ссылка из подписки с extra.mode="" → mode packet-up в конфиге (§410)',
         () {
       const uri =
@@ -723,15 +723,15 @@ void main() {
       final t = (node! as VlessSpec).transport as XhttpTransport;
       expect(t.mode, 'packet-up');
       expect(t.host, 'media.morphei.cc');
-      // path: в extra лежит "/", плоско — "/hls/…". Xray (SplitHTTPConfig
-      // .Build) host/path/mode берёт только из внешнего объекта; с "/"
-      // сервер отвечал 404 на uplink (device-verified на эмуляторе).
+
+
+
       expect(t.path, '/hls/v2/track/8e31c750/');
       final (m, w) = t.toSingbox(TemplateVars.empty);
       expect(m['mode'], 'packet-up');
       expect(m['uplink_data_placement'], 'header');
       expect(m['uplink_http_method'], 'GET');
-      // §508 — proto-имена Xray в extra: sessionIDPlacement/sessionIDKey.
+
       expect(m['session_placement'], 'cookie');
       expect(m['session_key'], 'media_sid');
       expect(m.containsKey('session_length'), false);
@@ -791,7 +791,7 @@ void main() {
       expect(t.sessionKey, 'stream_auth');
     });
 
-    // Критерий 5 — R6: деградация вместо поломки.
+
     test('битый / не-объектный extra не роняет разбор узла', () {
       for (final bad in <Object>['не-json', <Object>[], 5, true]) {
         final t = xrayTransport({
@@ -805,8 +805,8 @@ void main() {
       }
     });
 
-    // Критерий 6 — round-trip через sing-box JSON. До фикса «открыл ноду в
-    // JSON-редакторе → сохранил» молча срезало 15 полей §127.
+
+
     test('round-trip NodeSpec → sing-box JSON → NodeSpec не теряет полей', () {
       const golden = XhttpTransport(
         host: 'www.example.com',
@@ -849,10 +849,10 @@ void main() {
       );
     });
 
-    // Критерий 7 — расхождение схем между ветками. Тест падает, когда поле
-    // добавлено в модель/эмиттер, но какая-то ветка его не читает.
+
+
     test('три ветки читают один и тот же набор ключей', () {
-      // Эталон — выхлоп эмиттера для ноды со всеми заполненными полями.
+
       const golden = XhttpTransport(
         host: 'h',
         path: '/p',
@@ -877,13 +877,13 @@ void main() {
         scStreamUpServerSecs: '20-80',
         scMaxBufferedPosts: 30,
         noSseHeader: true,
-        // §480 — `max_concurrency` в эталон НЕ входит, и это не пробел
-        // состава: реестр объявляет его взаимоисключающим с
-        // `max_connections` (`transports.xhttp.xmux.max_concurrency.conflicts`,
-        // код `field_conflict`), и санитайзер снимает ДЕКЛАРАНТА, когда в
-        // теле оба. Узла с обоими полями не бывает — ядро отвергает такой
-        // конфиг, — поэтому эталон «все поля разом» несёт одно из двух.
-        // Само поле читается всеми тремя ветками: отдельный кейс ниже.
+
+
+
+
+
+
+
         maxConnections: '1',
         cMaxReuseTimes: '5',
         hMaxRequestTimes: '600',
@@ -892,10 +892,10 @@ void main() {
       );
       final expected = golden.toSingbox(TemplateVars.empty).$1;
 
-      // Ветка 1 — URI (ссылка узла: сборка и разбор одной секцией).
+
       expect(_bodyViaUri(golden), expected, reason: 'URI-ветка потеряла поле');
 
-      // Ветка 2 — Xray-JSON: те же значения, но snake_case ключами в extra.
+
       final viaXray = xrayTransport({
         'host': 'h',
         'path': '/p',
@@ -905,15 +905,15 @@ void main() {
       expect(viaXray.toSingbox(TemplateVars.empty).$1, expected,
           reason: 'Xray-JSON-ветка потеряла поле');
 
-      // Ветка 3 — sing-box JSON: выхлоп эмиттера, поданный обратно.
+
       expect(singboxTransport(expected).toSingbox(TemplateVars.empty).$1,
           expected,
           reason: 'sing-box-JSON-ветка потеряла поле');
     });
 
-    // §480 — вторая половина критерия 7: поле, которое в общий эталон войти
-    // не может (оно конфликтует с соседом), всё равно обязано читаться
-    // всеми тремя ветками. Без соседа конфликта нет, и оно доезжает.
+
+
+
     test('max_concurrency без max_connections читают все три ветки', () {
       const golden = XhttpTransport(
         host: 'h',
@@ -941,9 +941,9 @@ void main() {
           reason: 'sing-box-JSON-ветка потеряла max_concurrency');
     });
 
-    // Паритет с Go (SPEC 102 R2): Xray пишет xmux в `extra` вложенным
-    // объектом. Обе формы обязаны давать один и тот же транспорт — иначе один
-    // и тот же узел читается по-разному в зависимости от формы записи.
+
+
+
     test('extra={"xmux":{…}} эквивалентен плоским ключам', () {
       final nested = parseTransport({
         'type': 'xhttp',
@@ -974,8 +974,8 @@ void main() {
       expect(flat.toSingbox(TemplateVars.empty).$1, want);
     });
 
-    // Нуль у int-полей значащий: «не задано» кодируется как -1, поэтому
-    // scMaxBufferedPosts=0 обязан доехать до конфига, а не исчезнуть.
+
+
     test('int-поля: 0 эмитится, отсутствие — нет', () {
       final zero = parseTransport({
         'type': 'xhttp',
@@ -994,12 +994,12 @@ void main() {
     });
   });
 
-  // §416 — форумная жалоба 03.09: узел подписки несёт
-  // uplink_data_placement=header БЕЗ mode, ядро отвергает ВЕСЬ конфиг
-  // («uplink_data_placement can be header only in packet-up mode»), VPN не
-  // поднимается. §547 фаза B (контракт 1.1.56): правило живёт в реестре —
-  // тело xhttp (`mode.default_when`, `uplink_data_placement.requires` с
-  // `when`) и записи маппера uri/xray; эмиттер копии не держит.
+
+
+
+
+
+
   group('§416 XHTTP: header/cookie-placement требует packet-up (реестр)', () {
     test('эмиттер пишет пару как есть — правило не его', () {
       final (m, w) = const XhttpTransport(
@@ -1043,8 +1043,8 @@ void main() {
       expect(codes, isEmpty);
     });
 
-    // §169 — отбрасывать, а не подгонять молча: явный чужой mode не
-    // переписываем (это сменило бы wire-протокол узла), снимаем placement.
+
+
     test('JSON: header/cookie + mode=stream-one → placement снят, mode цел',
         () {
       for (final p in ['header', 'cookie']) {
@@ -1059,8 +1059,8 @@ void main() {
       }
     });
 
-    // §547 п. 4 — body/auto ядро принимает в любом режиме: ни mode не
-    // дописывается, ни placement не снимается, на всех трёх входах.
+
+
     test('body/auto при любом mode — узел не трогаем (JSON, ссылка, Xray)',
         () {
       for (final p in ['body', 'auto']) {

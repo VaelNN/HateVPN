@@ -1,42 +1,42 @@
 part of '../post_steps.dart';
 
-/// §441/§443 (SPEC 129 Н10, D-118) — ссылки на DNS-серверы, выпавшие второй
-/// линией fail-closed: `detour` после подстановки указывает на тег, которого
-/// нет в конфиге ([resolveDnsServersBodies], [detourDropped]), и DNS-группы,
-/// опустевшие от этого.
-///
-/// ЕДИНСТВЕННОЕ место политики этого случая, форма — таблица Н10 SPEC 129
-/// лаунчера (`core/build/dns_detour_sanitize.go`):
-///
-/// - `dns.rules[]` с `server` из [detourDropped] → `action: reject` (SPEC 129
-///   §13 п. 4). Снятое правило отдало бы свои домены `dns.final`, а при
-///   прямом `final` это утечка по доменам правила. Сопоставители остаются,
-///   поля маршрута снимаются: у `reject` ядро принимает только
-///   `method`/`no_drop`, лишний ключ роняет конфиг.
-/// - `dns.final` на выпавший сервер → ключ снимается, последним DNS-правилом
-///   встаёт `{"action": "reject"}` без условий. Без `final` ядро берёт первый
-///   сервер списка — у шаблона это системный резолвер; заглушка не пускает к
-///   нему ни один запрос (ядро lx.39: `check` принимает, живое отвечает
-///   REFUSED).
-/// - `route.default_domain_resolver`, `domain_resolver` узлов
-///   (`outbounds[]`, `endpoints[]`) и DNS-серверов → замена: умолчание шаблона
-///   (`dns_default_domain_resolver` из [defaults]), если он эмитирован и
-///   пригоден, иначе первый эмитированный сервер не `fakeip`/`hosts`
-///   ([_DnsResolverPool]). Резолвер адреса сервера работает ДО туннеля:
-///   пользовательских доменов там нет, а без резолвера ядро не стартует.
-///   Заменить нечем — ключ снимается. У DNS-сервера, чей адрес — IP (или
-///   адреса нет), `domain_resolver` просто снимается: резолвер ему не нужен.
-///   Значение-объект (`{server, strategy, …}`) сохраняет форму.
-///
-/// Сервер, выпавший из-за висячего `endpoint` (Tailscale, NODE_SECTIONS §6),
-/// сюда не попадает и лечится прежним механизмом: правило снимается,
-/// `dns.final` — политика §419 ([healDanglingDnsResolvers]).
-///
-/// Замены НЕ персистятся (в отличие от §419): сервер выпал, а выбор
-/// пользователя цел — вернётся Направление, вернётся и сервер со всеми
-/// ссылками. [detourDropped] пуст — конфиг не меняется ни в одном байте.
-///
-/// Мутирует [config]. Возвращает warnings сборки.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 List<String> healDetourDroppedDnsRefs(
   Map<String, dynamic> config, {
   required Set<String> detourDropped,
@@ -48,7 +48,7 @@ List<String> healDetourDroppedDnsRefs(
   final warnings = <String>[];
 
   final rules = dns['rules'];
-  // Копии, а не правка на месте: тело правила может быть картой модели.
+
   final out = <dynamic>[];
   var rulesChanged = false;
   if (rules is List) {
@@ -86,9 +86,9 @@ List<String> healDetourDroppedDnsRefs(
   final pool = _DnsResolverPool.of(config);
   final preferred = defaults['dns_default_domain_resolver'] ?? '';
 
-  /// Ключ-резолвер [key] объекта [owner] на выпавший сервер: замена
-  /// ([except] — сам носитель), заменить нечем или [dropOnly] — ключ
-  /// снимается. Строка или объект `{server, …}` — форма значения сохраняется.
+
+
+
   void heal(Map<String, dynamic> owner, String key, String where,
       {String except = '', bool dropOnly = false}) {
     final value = owner[key];
@@ -137,8 +137,8 @@ List<String> healDetourDroppedDnsRefs(
   return warnings;
 }
 
-/// Адрес DNS-сервера — имя, а не IP-литерал (`[v6]` тоже IP). Пусто или не
-/// строка — не имя: резолвер такому серверу не нужен.
+
+
 bool _dnsAddressIsDomain(Object? address) {
   if (address is! String) return false;
   var a = address.trim();
@@ -148,7 +148,7 @@ bool _dnsAddressIsDomain(Object? address) {
     Uri.parseIPv4Address(a);
     return false;
   } on FormatException {
-    // не IPv4
+
   }
   try {
     Uri.parseIPv6Address(a);
@@ -158,8 +158,8 @@ bool _dnsAddressIsDomain(Object? address) {
   }
 }
 
-/// DNS-правило [rule] с отказом вместо маршрута: сопоставители те же, поля
-/// маршрута (`server` и опции `route`/`evaluate`) сняты.
+
+
 Map<String, dynamic> dnsRuleAsReject(Map<String, dynamic> rule) {
   const routeKeys = {
     'server',

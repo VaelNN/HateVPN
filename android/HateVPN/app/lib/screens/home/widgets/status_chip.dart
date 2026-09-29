@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../models/home_state.dart';
 
-/// Статус-чип VPN-туннеля в connect-controls на главном экране: иконка щита +
-/// label текущего [TunnelStatus]. Во время connecting иконка вращается
-/// ([connectingAnim], которым управляет `_HomeScreenState` вне build-фазы).
-///
-/// UI-маппинг: revoked и `unknown` показываются как disconnected (нейтральный
-/// off-state — факт revoke юзер получает через SnackBar, не алармирующий чип).
+
+
+
+
+
+
 class StatusChip extends StatelessWidget {
   const StatusChip({
     super.key,
@@ -48,8 +48,8 @@ class StatusChip extends StatelessWidget {
       );
     }
 
-    // Длинные локализованные статусы («Подключено») сжимаются вместо того,
-    // чтобы выдавливать соседей: ширину ограничивает Flexible в точке вызова.
+
+
     return Chip(
       label: Text(label, overflow: TextOverflow.ellipsis, maxLines: 1),
       avatar: iconWidget,

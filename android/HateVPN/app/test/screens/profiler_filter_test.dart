@@ -3,8 +3,8 @@ import 'package:lxbox/services/traffic_profiler.dart';
 import 'package:lxbox/screens/stats_screen/profiler_filter.dart';
 import 'package:lxbox/screens/per_app_trace_tab/session_json.dart';
 
-/// §044/new-profiler — тесты фильтр-модели (ортогональность осей app/тип,
-/// includeApps-флаг для App-вкладки, §177 family) и eventsToJson.
+
+
 
 TrafficEvent _ev({
   required TrafficEventKind kind,
@@ -71,7 +71,7 @@ void main() {
     test('kind-ось по семейству §177: DNS ловит resolve+fail', () {
       f.toggleKind(TrafficEventKind.dnsResolve, true);
       final out = f.apply(events).toList();
-      expect(out.length, 2); // dnsResolve + dnsFail
+      expect(out.length, 2);
       expect(
           out.every((e) =>
               e.kind == TrafficEventKind.dnsResolve ||
@@ -83,14 +83,14 @@ void main() {
       f.toggleApp('com.android.chrome', true);
       f.toggleKind(TrafficEventKind.dnsResolve, true);
       final out = f.apply(events).toList();
-      // chrome + DNS-family → только dnsFail у chrome (chrome.fail)
+
       expect(out.length, 1);
       expect(out.single.domain, 'chrome.fail');
     });
 
     test('includeApps=false (App-вкладка): app-ось игнорится', () {
       f.toggleApp('com.android.chrome', true);
-      // С includeApps=false выбор app не сужает список.
+
       final out = f.apply(events, includeApps: false).toList();
       expect(out.length, 4);
     });
@@ -110,13 +110,13 @@ void main() {
             domain: 'noowner.example',
             confidence: ConfidenceLevel.unattributed),
       ];
-      // Только потеряшки: chrome не выбран → лишь noowner.
+
       f.includeUnattributed = true;
       expect(f.apply(mixed).single.domain, 'noowner.example');
-      // Chrome + потеряшки: OR → chrome-события И noowner.
+
       f.toggleApp('com.android.chrome', true);
       final out = f.apply(mixed).toList();
-      expect(out.length, 3); // 2 chrome + 1 noowner
+      expect(out.length, 3);
       expect(out.any((e) => e.domain == 'noowner.example'), isTrue);
       expect(out.any((e) => e.process == 'com.android.chrome'), isTrue);
     });
@@ -127,9 +127,9 @@ void main() {
       f.toggleKind(TrafficEventKind.dnsResolve, true);
       f.search = 'x';
       f.includeUnattributed = true;
-      expect(f.activeCount, 5); // 2 app + 1 kind + search + unattr
-      // App-вкладка: activeCountNoApps игнорит app-ось.
-      expect(f.activeCountNoApps, 2); // 1 kind + search
+      expect(f.activeCount, 5);
+
+      expect(f.activeCountNoApps, 2);
       f.clearAll();
       expect(f.activeCount, 0);
     });
@@ -174,7 +174,7 @@ void main() {
         _ev(
             kind: TrafficEventKind.tcpOpen,
             domain: 'c.com',
-            rule: null, // без правила → «final»
+            rule: null,
             outboundChain: ['direct-out']),
       ];
     });
@@ -200,7 +200,7 @@ void main() {
     test('outbound-ось: любое звено outboundChain', () {
       f.toggleOutbound('vpn-1', true);
       final out = f.apply(events).toList();
-      // vpn-1 есть в цепочках a.ru и b.com (не в direct-out).
+
       expect(out.length, 2);
       expect(out.map((e) => e.domain), containsAll(['a.ru', 'b.com']));
     });
@@ -213,7 +213,7 @@ void main() {
     test('rule + outbound ортогональны (AND между осями)', () {
       f.toggleRule('fakeip', true);
       f.toggleOutbound('vpn-1', true);
-      // fakeip И vpn-1 в цепочке → только b.com.
+
       expect(f.apply(events).single.domain, 'b.com');
     });
 
@@ -221,7 +221,7 @@ void main() {
       f.toggleRule('ru-direct', true);
       f.toggleOutbound('vpn-1', true);
       f.toggleOutbound('WARP', true);
-      expect(f.activeCount, 3); // 1 rule + 2 outbound
+      expect(f.activeCount, 3);
       f.clearAll();
       expect(f.activeCount, 0);
       expect(f.apply(events).length, 3);
@@ -245,7 +245,7 @@ void main() {
       expect(json['event_count'], 2);
       expect((json['events'] as List).length, 2);
       expect(json['exported_at'], isA<String>());
-      // by_domain содержит оба домена (verified → попадают в агрегат).
+
       final domains = (json['by_domain'] as List)
           .map((d) => (d as Map)['domain'])
           .toList();
@@ -260,8 +260,8 @@ void main() {
             confidence: ConfidenceLevel.unattributed),
       ];
       final json = eventsToJson(events);
-      expect(json['event_count'], 1); // в events попадает
-      expect((json['by_domain'] as List), isEmpty); // в агрегат — нет
+      expect(json['event_count'], 1);
+      expect((json['by_domain'] as List), isEmpty);
     });
   });
 }

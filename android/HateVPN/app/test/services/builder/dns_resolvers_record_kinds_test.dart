@@ -8,11 +8,11 @@ import 'package:lxbox/models/dns_ref.dart';
 import 'package:lxbox/services/builder/post_steps.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §439 §4.2, §2.3 п. 6 — записи `dns{}` всех видов формы 1.0 переживают оба
-/// резолвера: `resolveDnsServersList` и `resolveDnsRulesList` отдают тот же
-/// состав в том же порядке и не переписывают файл. Ловушка, которую держит
-/// тест: резолвер, выбрасывающий незнакомый ему вид и сохраняющий результат,
-/// стёр бы DNS-записи пользователя на первом входе в экран или сборке.
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -40,8 +40,8 @@ void main() {
     if (tmp.existsSync()) await tmp.delete(recursive: true);
   });
 
-  // Серверы: пользовательские вперемешку с template и preset — резолвер
-  // хранит порядок пользователя.
+
+
   const serverRecords = [
     {
       'kind': 'user',
@@ -69,7 +69,7 @@ void main() {
     },
   ];
 
-  // Правила: все четыре вида, включая виды LxBox (srs, template).
+
   const ruleRecords = [
     {
       'kind': 'user',
@@ -123,8 +123,8 @@ void main() {
         },
       };
 
-  // Ключ — тег конфига: сборка кладёт серверы пресета в пространство его id
-  // (`namespacePresetTags`), и `ref` записи — та же строка.
+
+
   const presetServersByTag = {
     'ru-direct:yandex_udp': {
       'type': 'udp',
@@ -179,7 +179,7 @@ void main() {
     expect(await settings().readAsString(), before);
     expect(settings().statSync().modified, beforeStat);
 
-    // Повторный проход (экран после сборки) — то же самое.
+
     SettingsStorage.resetCacheForTesting();
     final again = await resolveDnsServersList(
       templateServers: [templateGoogleUdp()],
@@ -243,8 +243,8 @@ void main() {
       () async {
     await seedFile();
 
-    // Шаблон принёс новый template-сервер и новое template-правило: оба
-    // резолвера дописывают и сохраняют.
+
+
     final servers = await resolveDnsServersList(
       templateServers: [
         templateGoogleUdp(),

@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -28,10 +28,10 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §393 C — `/chains/*` handler поверх реального SettingsStorage
-/// (temp-dir через fake path provider, как в directions_handler_test.dart).
+
+
 void main() {
-  // Каталог strip — данные реестра (chain.json).
+
   setUpAll(loadTestRegistry);
 
   late Directory tempDir;
@@ -64,8 +64,8 @@ void main() {
     await Directory('${tempDir.path}/support').create();
     PathProviderPlatform.instance = _FakePathProvider(tempDir.path);
     SettingsStorage.resetCacheForTesting();
-    // Инвариант продукта: vpn-1 существует всегда — цепочка вправе на него
-    // сослаться, и тег-коллизия проверяется по обоим спискам сразу.
+
+
     await SettingsStorage.setDirections([
       const Direction(tag: 'vpn-1', label: 'VPN ①'),
     ]);
@@ -75,7 +75,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -164,7 +164,7 @@ void main() {
     final r = await chainsHandler(req('POST', '/chains'), ctx());
     expect(asMap(r)['tag'], 'chain-1');
     expect(asMap(r)['hops'], isEmpty);
-    // Второй вызов берёт следующий свободный номер.
+
     final r2 = await chainsHandler(req('POST', '/chains'), ctx());
     expect(asMap(r2)['tag'], 'chain-2');
   });
@@ -238,11 +238,11 @@ void main() {
       final off = await chainsHandler(
         req('PATCH', '/chains/chain-1', body: {'strip_evasion': false}), ctx());
       expect(asMap(off)['strip_evasion'], isFalse);
-      // Отсутствие ключа — сохранить явный выбор.
+
       final keep = await chainsHandler(
         req('PATCH', '/chains/chain-1', body: {'label': 'Keep'}), ctx());
       expect(asMap(keep)['strip_evasion'], isFalse);
-      // null — вернуть умолчание ядра: ключа в storage-форме больше нет.
+
       final cleared = await chainsHandler(
         req('PATCH', '/chains/chain-1', body: {'strip_evasion': null}), ctx());
       expect(asMap(cleared).containsKey('strip_evasion'), isFalse);
@@ -298,15 +298,15 @@ void main() {
         ),
         throwsA(isA<BadRequest>()),
       );
-      // Отказ не записался: цепочка осталась пустой.
+
       expect((await SettingsStorage.getChains()).single.hops, isEmpty);
     });
 
     test('§393 D3 POST с одной позицией → 400 И НИЧЕГО НЕ ЗАПИСАНО', () async {
-      // Баг с живой проверки: хендлер создавал запись, потом применял поля и
-      // только потом валидировал — 400 возвращался, а ПУСТАЯ цепочка
-      // оставалась в storage. Теперь запись собирается и проверяется до
-      // единственной операции сохранения.
+
+
+
+
       await expectLater(
         chainsHandler(
           req('POST', '/chains', body: {
@@ -321,9 +321,9 @@ void main() {
     });
 
     test('§393 D3 POST с самоссылкой → 400 И списка не прибавилось', () async {
-      // Самоссылка требует знать тег ДО записи — ровно то, чего не умел
-      // прежний «создать, потом проверить».
-      await chainsHandler(req('POST', '/chains'), ctx()); // chain-1
+
+
+      await chainsHandler(req('POST', '/chains'), ctx());
       final before = (await SettingsStorage.getChains()).length;
       await expectLater(
         chainsHandler(
@@ -342,8 +342,8 @@ void main() {
 
     test('§393 D3 POST без hops остаётся законным (промежуточное состояние)',
         () async {
-      // Тот же путь проходит UI: диалог создаёт запись с нулём позиций и сразу
-      // открывает форму, которая запрёт сохранение, пока позиций меньше двух.
+
+
       final r = await chainsHandler(req('POST', '/chains'), ctx());
       expect(asMap(r)['tag'], 'chain-1');
       expect((await SettingsStorage.getChains()).single.hops, isEmpty);
@@ -386,9 +386,9 @@ void main() {
 
     test('ссылка на цепочку НИЖЕ по списку → 400 (циклы исключены порядком)',
         () async {
-      await chainsHandler(req('POST', '/chains'), ctx()); // chain-1
-      await chainsHandler(req('POST', '/chains'), ctx()); // chain-2
-      // chain-1 объявлена выше — сослаться на chain-2 она не вправе.
+      await chainsHandler(req('POST', '/chains'), ctx());
+      await chainsHandler(req('POST', '/chains'), ctx());
+
       await expectLater(
         chainsHandler(
           req('PATCH', '/chains/chain-1', body: {
@@ -398,7 +398,7 @@ void main() {
         ),
         throwsA(isA<BadRequest>()),
       );
-      // Обратная ссылка (вверх) законна.
+
       final ok = await chainsHandler(
         req('PATCH', '/chains/chain-2', body: {
           'hops': ['chain-1', 'vpn-1'],
@@ -409,8 +409,8 @@ void main() {
     });
 
     test('вложенная цепочка НЕ на позиции 0 → 400', () async {
-      await chainsHandler(req('POST', '/chains'), ctx()); // chain-1
-      await chainsHandler(req('POST', '/chains'), ctx()); // chain-2
+      await chainsHandler(req('POST', '/chains'), ctx());
+      await chainsHandler(req('POST', '/chains'), ctx());
       await expectLater(
         chainsHandler(
           req('PATCH', '/chains/chain-2', body: {
@@ -426,18 +426,18 @@ void main() {
   group('DELETE /chains/{tag}', () {
     test('§393 D2 удаляет; unknown → 404; позиция вычищена, цепочка жива',
         () async {
-      await chainsHandler(req('POST', '/chains'), ctx()); // chain-1
+      await chainsHandler(req('POST', '/chains'), ctx());
       await chainsHandler(
         req('POST', '/chains', body: {
           'hops': ['chain-1', 'vpn-1', 'direct-out'],
         }),
         ctx(),
-      ); // chain-2
+      );
 
       final r = await chainsHandler(req('DELETE', '/chains/chain-1'), ctx());
       expect(asMap(r)['ok'], isTrue);
-      // Счётчик в `healed`-блоке — как у /directions (§202/§248): маршрут
-      // укоротился, и агент обязан увидеть это в ответе.
+
+
       expect((asMap(r)['healed'] as Map)['chain_positions'], 1);
       expect(asMap(r)['chains_touched'], ['chain-2']);
       final stored = await SettingsStorage.getChains();
@@ -453,10 +453,10 @@ void main() {
   });
 
   test('?rebuild=true — write доезжает до storage', () async {
-    // Контроллеры в тесте не зарегистрированы, поэтому сам rebuild упирается в
-    // общий для всех CRUD-хендлеров `requireSub` → Conflict (то же поведение,
-    // что у /directions). Проверяем главное: флаг не ломает write — запись уже
-    // на диске, а не откатывается вместе с неудачной пересборкой.
+
+
+
+
     await expectLater(
       chainsHandler(
         req('POST', '/chains',

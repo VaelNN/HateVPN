@@ -10,14 +10,14 @@ import 'package:lxbox/models/node_spec.dart';
 import '../parser/parse_link_as.dart';
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('buildConfig — smoke', () {
     final template = WizardTemplate(
       parserConfig: ParserConfigBlock(),
-      // §267 — group_templates: vpn-1 Направление (direct+auto), auto-подгруппа.
+
       groupTemplates: GroupTemplates(
         direction: DirectionTemplate(
           include: const ['direct', 'auto'],
@@ -74,11 +74,11 @@ void main() {
           reason: result.validation.issues.join('\n'));
       final outs = result.config['outbounds'] as List;
       final tags = outs.map((o) => (o as Map)['tag']).toList();
-      // §125 — глобальный ✨auto заменён на per-direction двойник vpn-1-auto.
+
       expect(tags, containsAll(['A', 'B', 'direct-out', 'vpn-1', 'vpn-1-auto']));
       expect(tags, isNot(contains(kAutoOutboundTag)));
 
-      // vpn-1 includes node tags.
+
       final vpn1 =
           outs.firstWhere((o) => (o as Map)['tag'] == 'vpn-1') as Map;
       expect(vpn1['outbounds'], containsAll(['A', 'B']));
@@ -161,7 +161,7 @@ void main() {
       final outs = result.config['outbounds'] as List;
       final v = outs.firstWhere((o) => (o as Map)['tag'] == 'V') as Map;
       final n = outs.firstWhere((o) => (o as Map)['tag'] == 'N') as Map;
-      // vless получает fragment, naive — нет (иначе ядро: fatal).
+
       expect((v['tls'] as Map)['fragment'], true);
       expect((n['tls'] as Map).containsKey('fragment'), isFalse);
       expect((n['tls'] as Map).containsKey('record_fragment'), isFalse);
@@ -191,19 +191,19 @@ void main() {
 
       final outs = result.config['outbounds'] as List;
       final tags = outs.map((o) => (o as Map)['tag'] as String).toList();
-      // Все теги уникальны.
+
       expect(tags.toSet().length, tags.length, reason: 'tags must be unique: $tags');
-      // Префикс применён.
+
       expect(tags, contains('BL: Frankfurt'));
       expect(tags, contains('BL: Frankfurt-1'));
       expect(tags, contains('W: Frankfurt'));
       expect(result.validation.isOk, true);
     });
 
-    // §122 Фаза 1b — clash_api БОЛЬШЕ НЕ инжектится/рандомизируется (ядро rc.2
-    // без with_clash_api → блок даёт фатальный отказ старта). Раньше тут был
-    // тест рандомизации порта; теперь проверяем ОБРАТНОЕ: clash_api НЕ попадает
-    // в выходной конфиг даже если пришёл в userVars.
+
+
+
+
     test('§122 — clash_api НЕ инжектится в выходной конфиг', () async {
       final list = UserServer(
         id: 'u4',
@@ -220,15 +220,15 @@ void main() {
         settings: const BuildSettings(userVars: {'clash_api': '127.0.0.1:9090'}),
       );
       expect(result.emitWarnings, isEmpty);
-      // experimental.clash_api отсутствует в собранном конфиге.
+
       expect(result.config, isNot(contains('clash_api')));
       expect(result.config, isNot(contains('external_controller')));
     });
 
-    // §215 — idle-suspend (ядро SPEC 020). Порог прокидывается только когда
-    // задан; пусто = omitempty (блока нет).
-    // §535 — ключи переехали из route в корневой блок lx.wg (ядро SPEC 098):
-    // старые имена не пишем, иначе ядро даёт WARN на каждый ключ.
+
+
+
+
     test('§535 idleSuspend="30s" → lx.wg.idle_suspend, route чист', () async {
       final wg = parseLinkAs<WireguardSpec>(
         'wireguard://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA=@wg.example.com:51820?publickey=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbA=&address=10.0.0.2%2F32&mtu=1420#WG',
@@ -253,7 +253,7 @@ void main() {
       final wgBlock =
           (result.config['lx'] as Map)['wg'] as Map;
       expect(wgBlock['idle_suspend'], '30s');
-      // Старый ключ не эмитится — иначе WARN «deprecated» на каждом старте.
+
       final route = result.config['route'] as Map;
       expect(route.containsKey('lx_idle_suspend'), false);
     });
@@ -278,14 +278,14 @@ void main() {
           userVars: {'clash_api': '127.0.0.1:9090'},
         ),
       );
-      // Kill-switch: блок не пишется, дефолт ядра (идл-тик не запущен).
+
       expect(result.config.containsKey('lx'), false);
       final route = result.config['route'] as Map;
       expect(route.containsKey('lx_idle_suspend'), false);
     });
 
-    // §272 — reachable-окно (lx.wg.idle_suspend_reachable) эмитится только
-    // вместе с базовым порогом: ядро отвергает reachable без idle_suspend.
+
+
     test('§272 reachable пишется только при включённом idleSuspend', () async {
       final wg = parseLinkAs<WireguardSpec>(
         'wireguard://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA=@wg.example.com:51820?publickey=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbA=&address=10.0.0.2%2F32&mtu=1420#WG',
@@ -299,7 +299,7 @@ void main() {
         origin: UserSource.paste,
         nodes: [wg],
       );
-      // Оба порога заданы → оба в route.
+
       final both = await buildConfig(
         lists: [list],
         template: template,
@@ -312,16 +312,16 @@ void main() {
       final bothWg = (both.config['lx'] as Map)['wg'] as Map;
       expect(bothWg['idle_suspend'], '30s');
       expect(bothWg['idle_suspend_reachable'], '30m');
-      // §536 — lazy_build/build_max пишутся всегда рядом с порогом сна
-      // (ядро: lazy_build требует idle_suspend). build_overflow не пишем —
-      // дефолт ядра `wait`.
+
+
+
       expect(bothWg['lazy_build'], true);
       expect(bothWg['build_max'], 5);
       expect(bothWg.containsKey('build_overflow'), false);
-      // §535 — глобальный masque.idle_timeout не пишем (у узлов свой).
+
       expect((both.config['lx'] as Map).containsKey('masque'), false);
 
-      // Базовый выключен → reachable подавлен (иначе ядро упало бы на старте).
+
       final orphan = await buildConfig(
         lists: [list],
         template: template,
@@ -336,9 +336,9 @@ void main() {
       expect(orphanRoute.containsKey('lx_idle_suspend_reachable'), false);
     });
 
-    // §536 — lazy_build/build_max едут вместе с базовым порогом, даже когда
-    // reachable-окно не задано: ядро требует lazy_build при idle_suspend, а
-    // build_max самостоятелен, но держим оба в одном месте.
+
+
+
     test('§536 lazy_build/build_max пишутся при одном лишь idleSuspend',
         () async {
       final wg = parseLinkAs<WireguardSpec>(
@@ -368,8 +368,8 @@ void main() {
       expect(wgBlock['build_max'], 5);
     });
 
-    // §542 — build_max берётся из настройки `wg_build_max`; 0 пишется как 0
-    // (ядро: без потолка); без порога сна блока lx (и ключа) нет.
+
+
     Future<BuildResult> build542(
         {required String idle, required int max, bool lazy = true}) {
       final wg = parseLinkAs<WireguardSpec>(
@@ -424,7 +424,7 @@ void main() {
   });
 
   group('buildConfig — §161 empty required-var → default backstop', () {
-    // Template с required int-var `tol` (default "30"), плейсхолдер в config.
+
     WizardTemplate templateWithTol() => WizardTemplate(
           parserConfig: ParserConfigBlock(),
           groupTemplates: GroupTemplates(),
@@ -454,10 +454,10 @@ void main() {
       final result = await buildConfig(
         lists: const [],
         template: templateWithTol(),
-        settings: const BuildSettings(userVars: {'tol': ''}), // пусто в state
+        settings: const BuildSettings(userVars: {'tol': ''}),
       );
       final exp = result.config['experimental'] as Map<String, dynamic>;
-      expect(exp['tolerance'], 30); // backstop подставил default, coerce → int
+      expect(exp['tolerance'], 30);
       expect(exp['tolerance'], isA<int>());
     });
 
@@ -479,8 +479,8 @@ void main() {
         settings: const BuildSettings(userVars: {'tol': '30', 'opt': ''}),
       );
       final exp = result.config['experimental'] as Map<String, dynamic>;
-      // opt — optional: пусто → "" остаётся, default НЕ навязывается. coerce
-      // text → пустая строка (не Dropped: это build_config-движок, не preset).
+
+
       expect(exp['opt'], '');
     });
   });

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/support/support_nav.dart';
 
-/// §357 — парсер `lxbox://action:payload` и резолвабельность действий.
+
 void main() {
   group('SupportLinkAction.parse', () {
     test('route: экран и экран/вкладка', () {
@@ -67,7 +67,7 @@ void main() {
       expect(
           isResolvableSupportAction(SupportLinkAction.parse('lxbox://share:   ')!),
           false);
-      // route/add — уводят (pushReplacement), не in-place.
+
       expect(
           isInPlaceSupportAction(SupportLinkAction.parse('lxbox://route:dns')!),
           false);

@@ -8,10 +8,10 @@ import '../services/warp/scan/scan_pool.dart';
 import '../services/warp/warp_endpoint_picker.dart';
 import '../services/usage_region.dart';
 
-/// §305 — экран настройки WARP-эксперимента (генератор нод). Вынесен из попапа:
-/// JSON-пул большой, в диалоге тесно. Пользователь задаёт число нод и
-/// редактирует JSON пула (по умолчанию bundled asset), генератор рандомит по
-/// нему. Возвращает `(count, pool)` через `Navigator.pop` или null (отмена).
+
+
+
+
 class WarpExperimentScreen extends StatefulWidget {
   const WarpExperimentScreen({super.key});
 
@@ -28,7 +28,7 @@ class _WarpExperimentScreenState extends State<WarpExperimentScreen> {
   @override
   void initState() {
     super.initState();
-    // Дефолт JSON — сырой asset (наш пул). Юзер правит под свои диапазоны.
+
     WarpEndpointPicker.loadRawJson().then((raw) {
       if (!mounted) return;
       setState(() {
@@ -45,9 +45,9 @@ class _WarpExperimentScreenState extends State<WarpExperimentScreen> {
     super.dispose();
   }
 
-  /// §305 — JSON пула → [ScanPool]. null если битый JSON/структура.
-  /// §425 — секция `loc.<регион>` из этого же JSON накладывается по той же
-  /// настройке, что и в визарде: юзер правит один формат.
+
+
+
   Future<ScanPool?> _parsePool(String raw) async {
     try {
       final region = await UsageRegion.effective();
@@ -94,7 +94,7 @@ class _WarpExperimentScreenState extends State<WarpExperimentScreen> {
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.all(16), // bottom-inset: handled — footer SafeArea ниже
+                    padding: const EdgeInsets.all(16),
                     children: [
                       Text(
                         getLocalText.s(

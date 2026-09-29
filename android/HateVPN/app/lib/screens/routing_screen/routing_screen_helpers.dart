@@ -7,12 +7,12 @@ import '../../services/rule_display_names.dart';
 import '../../services/rule_set_downloader.dart' show RuleSetDownloader;
 import '../../services/l10n/locale_controller.dart';
 
-// §366 — `PresetRemoteRuleSet` и `parseUpdateIntervalHours` переехали в
-// `models/preset_rule_set.dart` (нужны headless-сервису авто-обновления).
-// Реэкспорт — чтобы потребители экрана не меняли импорты.
+
+
+
 export '../../models/preset_rule_set.dart';
 
-/// Outbound-опция для селекторов на экране Routing.
+
 class RoutingOutboundOption {
   const RoutingOutboundOption({
     required this.label,
@@ -22,30 +22,30 @@ class RoutingOutboundOption {
   final String label;
   final String tag;
 
-  /// §201 — рисовать красным (block, по аналогии с reject в правилах).
+
   final bool danger;
 }
 
-/// Sentinel для `firstWhere(..., orElse: ...)` lookups — содержимое игнорируется,
-/// caller проверяет `label.isEmpty` после поиска. `presetId` обязательный
-/// (§067), кладём marker который заведомо никогда не матчится в реальных
-/// preset_id.
+
+
+
+
 final SelectableRule kEmptySelectable =
     SelectableRule(label: '', presetId: '__empty_sentinel__');
 
-/// Pure-функции экрана Routing (без доступа к State). Вынесены из
-/// `_RoutingScreenState` чтобы ужать сам экран — поведение идентично.
+
+
 class RoutingHelpers {
   const RoutingHelpers._();
 
-  /// §125 — outbound-опции для селекторов экрана Routing из списка Направлений
-  /// (storage). vpn-1 всегда присутствует (required-инвариант), выключенные
-  /// Направления скрыты. §274 — все enabled-Направления валидные цели правил, включая
-  /// detour-Направления (взаимоисключение ролей §248 снято); detour-Направление виден
-  /// с ⚙-префиксом ([Direction.displayLabel]). Единственная точка закрывает
-  /// route final, тайлы правил, редактор правила и outbound-var пресетов.
-  /// §201 — block всегда доступен (системный), красный как reject; держим
-  /// его последним, direct — первым.
+
+
+
+
+
+
+
+
   static List<RoutingOutboundOption> outboundOptions(List<Direction> directions) {
     final opts = <RoutingOutboundOption>[
       const RoutingOutboundOption(label: 'direct', tag: kDirectOutboundTag),
@@ -60,17 +60,17 @@ class RoutingHelpers {
     return opts;
   }
 
-  /// Список remote `rule_set` пресета (type=remote + url). Пустой если
-  /// пресет только inline или без rule_set'ов.
-  ///
-  /// `rule` опционален — если передан, выключенные гейтом наборы
-  /// отфильтрованы (`#enable` §107 и легаси `enabled` §045, та же семантика,
-  /// что у билдера — §534). Без `rule` — все remote rule_set'ы (для
-  /// cleanup-операций когда хотим тронуть все cached files). `globalVars` —
-  /// userVars для гейта на ref-переменной (§265).
-  /// §366 — реализация переехала в `models/preset_rule_set.dart` (нужна
-  /// headless-сервису авто-обновления). Здесь — делегат, чтобы не менять
-  /// вызовы на экранах.
+
+
+
+
+
+
+
+
+
+
+
   static List<PresetRemoteRuleSet> remoteRuleSetsOf(
     SelectableRule preset, [
     CustomRulePreset? rule,
@@ -78,8 +78,8 @@ class RoutingHelpers {
   ]) =>
       remoteRuleSetsOfPreset(preset, rule, globalVars);
 
-  /// Гейт `rule_set` пресета (`#enable` §107 + легаси `enabled` §045).
-  /// См. `isRuleSetEnabledFor` в `models/preset_rule_set.dart`.
+
+
   static bool isRuleSetEnabled(
     Map<String, dynamic> rs,
     SelectableRule preset,
@@ -88,20 +88,20 @@ class RoutingHelpers {
   }) =>
       isRuleSetEnabledFor(rs, preset, rule, globalVars: globalVars);
 
-  /// Composite ключ для `_srsCached` / `_srsDownloading` у preset-rule_set'ов.
-  /// У `CustomRuleSrs` там просто `rule.id`; у preset'ов — `<id>|<tag>`,
-  /// чтобы не путаться между несколькими rule_set'ами одного пресета.
+
+
+
   static String presetSrsKey(CustomRulePreset rule, String tag) =>
       '${rule.id}|$tag';
 
-  /// §534 — что `_refreshSrsCache` делает с кэшем preset-правила.
-  ///
-  /// - `keepCacheIds` — файлы ВСЕХ remote-наборов пресета, в том числе
-  ///   выключенных гейтом: такой файл не сирота для `pruneOrphans` — вернут
-  ///   галку, качать заново не придётся; свежесть при возврате обеспечит
-  ///   автообновление по TTL. Так же держатся файлы выключенного правила.
-  /// - `required` — только включённые гейтом наборы: без их файлов правило
-  ///   гаснет (task 011), иконка ☁ считается по ним же.
+
+
+
+
+
+
+
+
   static ({Set<String> keepCacheIds, List<PresetRemoteRuleSet> required})
       presetCachePlan(
     CustomRulePreset rule,
@@ -116,18 +116,18 @@ class RoutingHelpers {
             required: remoteRuleSetsOf(preset, rule, globalVars),
           );
 
-  /// `true` если у preset-правила есть remote rule_set'ы и хотя бы один из
-  /// них НЕ закэширован. Используется для disabled-switch (switch auto-
-  /// download'ит при toggle-on) и для выбора иконки ☁/✅.
-  /// Выключенные гейтом наборы не учитываются (§534): иконки ☁ ради набора,
-  /// который в конфиг не попадёт, нет.
+
+
+
+
+
   static bool presetNeedsDownload(
     CustomRulePreset rule,
     SelectableRule preset,
     Set<String> srsCached, {
     Map<String, String> globalVars = const {},
   }) {
-    // §045/§107/§534: гейт наборов — одна семантика с билдером.
+
     final remotes = remoteRuleSetsOf(preset, rule, globalVars);
     if (remotes.isEmpty) return false;
     for (final rs in remotes) {
@@ -143,8 +143,8 @@ class RoutingHelpers {
     for (final v in preset.vars) {
       if (v.name == 'outbound') return v.defaultValue;
     }
-    // §246: rule может быть массивом — outbound-дефолт несёт терминальный
-    // элемент (resolve/sniff — промежуточные, у них outbound'а нет).
+
+
     final action = preset.terminalRule['action'];
     if (action is String && action.isNotEmpty) return action;
     final literal = preset.terminalRule['outbound'];
@@ -154,15 +154,15 @@ class RoutingHelpers {
     return kDirectOutboundTag;
   }
 
-  /// Рисовать ли outbound-пикер в тайле корневого правила.
-  ///
-  /// - json: действие внутри тела, отдельного outbound нет (`withOutbound` —
-  ///   no-op), пикер показывал бы первую опцию и ничего не менял (§447). Как
-  ///   в редакторе, где json-режим пикер скрывает; тело видно в подписи.
-  /// - DNS-only пресет (FakeIP: только dns_rule, без routing rule и без
-  ///   var:outbound) — роутить нечего.
-  /// - user-правило и пресет «not found» — пикер есть (последний рисует
-  ///   warning через pickerDisabled).
+
+
+
+
+
+
+
+
+
   static bool showsOutboundPicker(CustomRule rule, SelectableRule? preset) =>
       switch (rule.kind) {
         CustomRuleKind.json => false,
@@ -173,15 +173,15 @@ class RoutingHelpers {
   static String ruleSubtitle(CustomRule rule, SelectableRule? preset) {
     if (rule.kind == CustomRuleKind.preset) {
       if (preset == null) return getLocalText.s("Preset not found — tap to fix");
-      // §045: только non-default vars; preset.label дублирует title (rule.name)
+
       final extras = <String>[];
       for (final v in preset.vars) {
-        // §265 — ref-var: её значение в ГЛОБАЛЬНОМ userVars, не в varsValues.
-        // Subtitle читает varsValues → показал бы застрявшее/неверное значение
-        // (напр. resolve_enabled: true, когда глобаль уже false). Ref-vars из
-        // подписи исключаем — их состояние не место в subtitle правила.
+
+
+
+
         if (v.isRef) continue;
-        // §266 — hidden-var (rule_enable и т.п.) служебная, не для показа.
+
         if (v.wizardUI == 'hidden') continue;
         final value = rule.varsValues[v.name] ?? v.defaultValue;
         if (value.isEmpty || value == v.defaultValue) continue;
@@ -196,11 +196,11 @@ class RoutingHelpers {
         : getLocalText.s("%s — tap to edit", summary);
   }
 
-  /// §279 (§3.5.1) — дедуп по DISPLAY-резолвнутым именам: live-label'ы
-  /// preset-строк (из локализованного [template]) + сохранённые снапшоты.
-  /// Иначе inline-правило можно назвать ровно как видимый label пресета и
-  /// получить визуальный дубль. [template] null (холодный кэш) → сравнение
-  /// только по сохранённым именам (как раньше).
+
+
+
+
+
   static String uniqueCustomRuleName(
     String requested,
     String selfId,

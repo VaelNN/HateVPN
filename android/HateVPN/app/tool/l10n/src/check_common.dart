@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-// §279 — общая обвязка l10n-checker'ов: CWD-гвард, репортер failures/warnings
-// с --strict-эскалацией, отчёт в GITHUB_STEP_SUMMARY, канонический JSON.
 
-/// Все checker'ы запускаются из `app/` (так их зовёт CI, working-directory: app).
+
+
+
 void ensureAppCwd() {
   final pubspec = File('pubspec.yaml');
   if (!pubspec.existsSync() ||
@@ -28,9 +28,9 @@ class CheckReporter {
   void fail(String msg) => failures.add(msg);
   void warn(String msg) => warnings.add(msg);
 
-  /// Печатает все сообщения + итоговую строку, дописывает markdown-таблицу в
-  /// GITHUB_STEP_SUMMARY (если переменная выставлена) и возвращает exit-код:
-  /// failures всегда фатальны, warnings — только под --strict.
+
+
+
   int finish({List<MapEntry<String, String>> extraRows = const []}) {
     for (final f in failures) {
       stdout.writeln('FAIL: $f');
@@ -85,9 +85,9 @@ void appendStepSummary(String markdown) {
   File(path).writeAsStringSync('$markdown\n', mode: FileMode.append);
 }
 
-/// Канонический вид генерируемых JSON-артефактов (en.json, baseline):
-/// отсортированные ключи, отступ 2, завершающий перевод строки — детерминизм
-/// нужен для byte-equal сравнения в CI.
+
+
+
 String canonicalJson(Map<String, Object?> map) {
   final sorted = <String, Object?>{
     for (final k in map.keys.toList()..sort()) k: map[k],
@@ -95,8 +95,8 @@ String canonicalJson(Map<String, Object?> map) {
   return '${const JsonEncoder.withIndent('  ').convert(sorted)}\n';
 }
 
-/// Рекурсивный список .dart-файлов под [root] (пути с '/'-сепаратором,
-/// относительные к CWD), минус каталоги из [excludeDirs] (префиксы путей).
+
+
 List<String> dartFilesUnder(String root,
     {List<String> excludeDirs = const []}) {
   final result = <String>[];

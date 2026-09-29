@@ -10,15 +10,15 @@ import '../services/stderr_reader.dart';
 import '../services/ui_helpers.dart';
 import '../widgets/big_text_view.dart';
 
-/// §316 — вкладка «Crashes» на экране Debug: история Go-паник ядра.
-///
-/// Показываем архив `crash_reports/` плюс текущий репорт, если он непуст
-/// (текущая сессия ещё не архивирована ядром — оно перекладывает файл
-/// только на следующем `Setup()`).
-///
-/// Оговорка (см. §3 спеки): `debug.SetCrashOutput` ловит ТОЛЬКО паники
-/// Go-рантайма. JNI-abort, нативный SIGSEGV вне Go и kill системой сюда не
-/// попадают — пустой список при наличии tombstone это сам по себе сигнал.
+
+
+
+
+
+
+
+
+
 class CrashReportsTab extends StatefulWidget {
   const CrashReportsTab({super.key});
 
@@ -88,8 +88,8 @@ class _CrashReportsTabState extends State<CrashReportsTab>
     );
   }
 
-  /// Пустой список — хорошая новость, а не поломка экрана. Говорим это
-  /// прямо, вместе с оговоркой про границу применимости.
+
+
   Widget _buildEmpty(BuildContext context) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -130,8 +130,8 @@ class _CrashReportsTabState extends State<CrashReportsTab>
             r.isCurrent
                 ? getLocalText.s("%s · current session", formatBytes(r.size))
                 : r.coreVersion != null
-                    // Версия ядра в подписи: сразу видно, актуально ли
-                    // падение для текущей сборки.
+
+
                     ? '${formatBytes(r.size)} · ${r.coreVersion}'
                     : formatBytes(r.size),
             style: const TextStyle(fontSize: 12),
@@ -141,7 +141,7 @@ class _CrashReportsTabState extends State<CrashReportsTab>
             tooltip: getLocalText.s("Share the crash report"),
             onPressed: () => _share(r),
           ),
-          // Тап открывает трейс: чаще нужно посмотреть, а не сразу отдать.
+
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => CrashReportViewScreen(report: r),
@@ -153,7 +153,7 @@ class _CrashReportsTabState extends State<CrashReportsTab>
   }
 }
 
-/// §316 — просмотр одного репорта: сам Go-трейс, monospace, с кнопкой share.
+
 class CrashReportViewScreen extends StatefulWidget {
   const CrashReportViewScreen({super.key, required this.report});
 
@@ -191,8 +191,8 @@ class _CrashReportViewScreenState extends State<CrashReportViewScreen>
       appBar: AppBar(
         title: Text(formatDateTime(r.mtime)),
         actions: [
-          // §333 — «выделить всё» в построчном вьюере невозможно, копия
-          // целиком — кнопкой.
+
+
           IconButton(
             icon: const Icon(Icons.copy, size: 20),
             tooltip: getLocalText.s("Copy"),
@@ -215,8 +215,8 @@ class _CrashReportViewScreenState extends State<CrashReportViewScreen>
           ),
         ],
       ),
-      // §333 — Go-паника с goroutine dump бывает сотни КБ; единый
-      // SelectableText-Paragraph на слабом устройстве ронял просмотр.
+
+
       body: _text == null
           ? const Center(child: CircularProgressIndicator())
           : BigTextView(

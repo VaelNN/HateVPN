@@ -2,28 +2,28 @@ import 'dart:io';
 
 import 'src/check_common.dart';
 
-// §279 (спека §9.5) — grep-tier гвард нативных строк Android.
-//
-// Скан android/app/src/main: строковый литерал внутри аргументов
-// setContentTitle/setContentText/addAction/setShortLabel/setLongLabel/
-// Toast.makeText/NotificationChannel/stopAndAlert в .kt — находка
-// (R.string-ссылки и переменные легальны); присваивание литерала в
-// tile.label/tile.subtitle — находка; android:label="<raw>" без @string в
-// манифесте — находка. Аргументы читаются до парной ')' (строковый контекст
-// учитывается), многострочные вызовы покрыты; литералы без букв пропускаются.
-//
-// Исключение: литералы с префиксом `alert:` — структурный wire-протокол
-// (`alert:permission_location:...`, парсится Dart-side в StopReason, §4.5
-// спеки 279), английский навсегда — не находка.
-//
-// Phase 6 (§279) выполнена: экстракция в strings.xml закончена, CI зовёт
-// checker с --strict — любая новая находка фатальна.
-//
-// + parity-гвард values/strings.xml ↔ каждый values-<tag>/strings.xml (§452:
-// языки берутся из каталогов res/values-*, не из списка в коде): каждый
-// translatable en-ключ обязан иметь перевод, перевод без en-ключа (orphan) —
-// находка, translatable="false" в переводе — находка, наборы %-placeholder'ов
-// (%1$s и т.п.) у пары ключей обязаны совпадать.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const String _root = 'android/app/src/main';
 
@@ -36,8 +36,8 @@ final RegExp _stringLit = RegExp(r'"((?:[^"\\]|\\.)*)"');
 final RegExp _letter = RegExp(r'\p{L}', unicode: true);
 final RegExp _manifestLabel = RegExp(r'android:label\s*=\s*"([^"]*)"');
 
-/// Аргументный сегмент вызова: от '(' до парной ')', кавычки учитываются,
-/// окно ограничено — grep-tier, не парсер Kotlin.
+
+
 String _argSegment(String content, int openParen) {
   var depth = 0;
   var inString = false;
@@ -88,9 +88,9 @@ Map<String, _Res> _parseStrings(String content) {
   return map;
 }
 
-/// §279/§452 — parity values/strings.xml ↔ каждый `values-<tag>/strings.xml`
-/// (см. шапку). Языки берутся из самих каталогов res/values-*: новый язык
-/// попадает под гейт, как только у него появляется strings.xml.
+
+
+
 void _checkResourceParity(CheckReporter r) {
   final enFile = File('$_root/res/values/strings.xml');
   if (!enFile.existsSync()) {
@@ -172,7 +172,7 @@ void main(List<String> args) {
       for (final lit in _stringLit.allMatches(seg)) {
         final text = lit.group(1)!;
         if (text.isEmpty || !_letter.hasMatch(text)) continue;
-        // Структурный wire-префикс (см. шапку) — не display-строка.
+
         if (text.startsWith('alert:')) continue;
         r.warn('$path:${_lineOf(content, m.start)}: string literal "$text" '
             'in ${m.group(1)}(...) — use R.string');

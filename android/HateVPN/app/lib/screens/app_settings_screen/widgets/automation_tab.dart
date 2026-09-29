@@ -8,18 +8,18 @@ import '../../../services/url_launcher.dart' as ul;
 import '../../../vpn/box_vpn_client.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §047 Public Intent API — вкладка App Settings → Automation.
-///
-/// Самодостаточный StatefulWidget: грузит/сохраняет свои настройки сам (через
-/// [SettingsStorage]) и синкает в native ([BoxVpnClient]) — не раздувает
-/// родительский `_AppSettingsScreenState`.
-///
-/// Состав:
-///   - мастер-toggle «Принимать команды автоматизации» (включает receiver);
-///   - список intent-строк команд с кнопкой копирования;
-///   - 4 emit-категории (Lifecycle / State / Subscription / Health);
-///   - explainer-диалог при первом включении emit-категории;
-///   - ссылка на docs.
+
+
+
+
+
+
+
+
+
+
+
+
 class AutomationTab extends StatefulWidget {
   const AutomationTab({super.key, required this.padding});
 
@@ -33,7 +33,7 @@ class _AutomationTabState extends State<AutomationTab> {
   static const _docsUrl =
       ProjectLinks.automationDoc;
 
-  /// (action-строка, подпись с extras) для UI-списка команд.
+
   static const _commands = <(String, String)>[
     ('com.leadaxe.lxbox.START_VPN', ''),
     ('com.leadaxe.lxbox.STOP_VPN', ''),
@@ -76,7 +76,7 @@ class _AutomationTabState extends State<AutomationTab> {
     });
   }
 
-  // ─── Master toggle ──────────────────────────────────────────────────────────
+
 
   Future<void> _onReceiveChanged(bool value) async {
     if (value) {
@@ -108,7 +108,7 @@ class _AutomationTabState extends State<AutomationTab> {
     );
   }
 
-  // ─── Emit categories ─────────────────────────────────────────────────────────
+
 
   Future<void> _onEmitChanged(
     bool value,
@@ -145,7 +145,7 @@ class _AutomationTabState extends State<AutomationTab> {
     );
   }
 
-  // ─── Clipboard ───────────────────────────────────────────────────────────────
+
 
   Future<void> _copy(String text, String label) async {
     await Clipboard.setData(ClipboardData(text: text));
@@ -157,7 +157,7 @@ class _AutomationTabState extends State<AutomationTab> {
     );
   }
 
-  // ─── Build ───────────────────────────────────────────────────────────────────
+
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +179,7 @@ class _AutomationTabState extends State<AutomationTab> {
         ),
         const Divider(height: 28),
 
-        // ─── Master ───
+
         Text(getLocalText.s("Command receiver"),
             style: theme.textTheme.titleSmall),
         SwitchListTile(
@@ -192,7 +192,7 @@ class _AutomationTabState extends State<AutomationTab> {
 
         const Divider(height: 28),
 
-        // ─── Commands ───
+
         Text(getLocalText.s("Commands (intent actions)"),
             style: theme.textTheme.titleSmall),
         const SizedBox(height: 2),
@@ -220,12 +220,12 @@ class _AutomationTabState extends State<AutomationTab> {
 
         const Divider(height: 28),
 
-        // ─── Emit categories ───
+
         Text(getLocalText.s("Outbound events (emit)"),
             style: theme.textTheme.titleSmall),
-        // Хинт про request-response: успех команды приходит в State
-        // (ACTIVE_NODE_CHANGED), а провал — как VPN_ERROR в Lifecycle. Юзеры
-        // легко включают только одну категорию и не получают вторую половину.
+
+
+
         Padding(
           padding: const EdgeInsets.only(top: 2, bottom: 6),
           child: Text(
@@ -239,7 +239,7 @@ class _AutomationTabState extends State<AutomationTab> {
         SwitchListTile(
           title: Text(getLocalText.s("Lifecycle")),
           subtitle: const Text(
-            // l10n-exempt: broadcast event names (wire values)
+
             'VPN_CONNECTED · DISCONNECTED · ERROR · REVOKED · '
             'UPDATE_AVAILABLE · PERMISSION_NEEDED',
           ),
@@ -253,7 +253,7 @@ class _AutomationTabState extends State<AutomationTab> {
         SwitchListTile(
           title: Text(getLocalText.s("State")),
           subtitle: const Text(
-              // l10n-exempt: broadcast event names (wire values)
+
               'ACTIVE_NODE_CHANGED · ACTIVE_GROUP_CHANGED · NODE_ALREADY_ACTIVE'),
           value: _emitState,
           onChanged: _loaded
@@ -263,7 +263,7 @@ class _AutomationTabState extends State<AutomationTab> {
         ),
         SwitchListTile(
           title: Text(getLocalText.s("Subscription")),
-          // l10n-exempt: broadcast event names (wire values)
+
           subtitle: const Text('SUB_REFRESHED · SUB_REFRESH_FAILED'),
           value: _emitSubs,
           onChanged: _loaded
@@ -274,7 +274,7 @@ class _AutomationTabState extends State<AutomationTab> {
         SwitchListTile(
           title: Text(getLocalText.s("Health")),
           subtitle: const Text(
-            // l10n-exempt: broadcast event names (wire values)
+
             'HEARTBEAT_FAILED · LATENCY_DEGRADED',
           ),
           value: _emitHealth,

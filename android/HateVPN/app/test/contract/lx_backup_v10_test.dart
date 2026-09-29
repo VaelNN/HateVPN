@@ -12,10 +12,10 @@ import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/services/dns/dns_backup.dart';
 import 'package:lxbox/services/lx_backup.dart';
 
-// §438 — чтение LX Backup 1.0 (`lx_backup: 2`) вместе с 0.x одним слиянием.
-// Корпус `v10_*` проверяет сквозные сценарии; здесь — развилки, которых
-// корпус не касается: версии, тёзки папок, preset-серверы DNS, ось правил,
-// секции совпавшего узла, виды записей без дома в модели LxBox.
+
+
+
+
 
 String _file(Map<String, dynamic> body) => jsonEncode({
       'lx_backup': 2,
@@ -178,9 +178,9 @@ void main() {
           mergeBackupServers(subs.lists, file.servers, folders: file.folders);
       final folderId = servers.lists.whereType<FolderServers>().single.id;
       expect(servers.folderIds['FILE'], folderId);
-      // NODE_LINK §7.2: folder_id — по карте контейнеров, тег сырой (префикс
-      // папки в ссылку не входит); контейнера нет ни в файле, ни здесь —
-      // ссылка ввозится как есть, её разбирает сборка.
+
+
+
       final expected = [
         NodeLink(folderId: folderId, tag: 'de'),
         const NodeLink(tag: 'jp'),
@@ -343,8 +343,8 @@ void main() {
           ],
         };
 
-    // §575 (контракт 1.1.85) — секции узла упразднены: импорт снимает поле
-    // у записи любого вида, непустое — с предупреждением.
+
+
     test('у сервера и члена папки: поле снято с not_allowed, узел на месте; пустое — молча', () {
       final file = parseLxBackup(_file({
         'sources': [
@@ -372,8 +372,8 @@ void main() {
       final folder = out.lists.whereType<FolderServers>().single;
       expect(folder.members, hasLength(1));
 
-      // Совпавший по телу узел: файл с секциями его не меняет (поля у модели
-      // нет — секции снимаются на чтении записи).
+
+
       final again = _apply(out.lists, parseLxBackup(_file({
         'sources': [_server('ts', 'example-1.com', sections: sections('file'))],
       })));
@@ -406,8 +406,8 @@ void main() {
           .where((w) => w.code == kWarnSourceKindUnsupported)
           .map((w) => w.kind)
           .toList();
-      // §439 N2 — auto в папке ввозится группой; в корне sources[] у LxBox
-      // группы нет (BACKUP.md §2).
+
+
       expect(kinds, ['chain', 'auto']);
       final folder = _apply(const [], file).lists.whereType<FolderServers>().single;
       expect(folder.members.map((m) => m.node?.tag), ['grp', null]);
@@ -439,10 +439,10 @@ void main() {
     });
 
     test('номера файла держатся, порядок сохраняется, равные остаются равными', () {
-      // Раскладка шаблона: голова 0, пресеты 950–990, зона 1000–1100,
-      // перехватчики 1110+. Правило из UI после импорта встаёт в конец зоны,
-      // пресет из шаблона — на свой номер, и оба оказываются там же, где до
-      // импорта (§438, v2.23.2 номера сохранял).
+
+
+
+
       final file = parseLxBackup(jsonEncode({
         'lx_backup': 1,
         'exported_by': {'app': 'lxbox'},
@@ -560,8 +560,8 @@ void main() {
   });
 
   group('§438 файл 1.0 лаунчера', () {
-    // `test/fixtures/lx_backup/launcher_v8_export10.json` — Export10 лаунчера
-    // над его `core/state/testdata/v8_roundtrip.json` (без правок руками).
+
+
     test('импорт в пустое состояние: ожидаемые потери и только они', () {
       final template = jsonDecode(File('assets/wizard_template.json').readAsStringSync())
           as Map<String, dynamic>;
@@ -570,14 +570,14 @@ void main() {
         File('test/fixtures/lx_backup/launcher_v8_export10.json').readAsStringSync(),
         knownPresets: {for (final p in presets) p['preset_id'] as String},
       );
-      // §439 N2 — группа «быстрые» папки ввозится autogroup'ом, потерей не
-      // называется.
-      // Legacy `fold`/`fold_tag` (решение владельца 26.09.2026, контракт
-      // 1.1.79) не читаются: чужие ключи с предупреждением.
+
+
+
+
       expect([for (final w in file.warnings) '${w.code} ${w.detail}'], [
         '$kWarnUnknownField sources[#2].fold',
         '$kWarnUnknownField sources[#2].fold_tag',
-        // §575 — секции узла упразднены, поле снято.
+
         '$kWarnSectionRecordDropped 🇯🇵 Tokyo: sections',
         '$kWarnDnsEntrySkipped dns.servers: russian:yandex_udp',
         '$kWarnDnsEntrySkipped dns.rules: russian',

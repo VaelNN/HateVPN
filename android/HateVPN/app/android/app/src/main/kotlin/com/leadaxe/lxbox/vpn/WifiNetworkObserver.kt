@@ -10,30 +10,30 @@ import android.os.Looper
 import android.util.Log
 import io.flutter.plugin.common.MethodChannel
 
-/**
- * §051 Phase 3 — наблюдает за актуально подключённой Wi-Fi сетью и
- * пишет в `wifi_history` (Dart side через `MethodChannel`) ровно те
- * сети **на которых юзер пробыл ≥ [STICKINESS_THRESHOLD_MS] миллисекунд**.
- *
- * Зачем debounce: без него история засоряется случайными drive-by
- * сетями (магазин на 30 сек, кафе на 5 минут с забытым выходом).
- * 60 сек — отсекает мимохожих, не теряет рабочие/домашние.
- *
- * Фича **opt-in** — гейтится `auto_record_wifi_history` в storage. Без
- * флага observer не регистрируется → нулевая стоимость когда выключено.
- *
- * Lifecycle = process-scope (BoxApplication). При toggle ON/OFF из UI
- * вызываются [start]/[stop] через `WifiHistoryBridge`.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class WifiNetworkObserver(private val ctx: Context) {
 
     private val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE)
             as ConnectivityManager
     private val handler = Handler(Looper.getMainLooper())
 
-    /// `(ssid, bssid)` сеть на которой юзер сейчас «висит». null когда
-    /// нет активной wifi-сети или мы только что переключились (старый
-    /// pending был cancelled, новый ещё не дождался threshold).
+
+
+
     private var pendingSsid: String? = null
     private var pendingBssid: String = ""
     private var pendingTimer: Runnable? = null
@@ -45,17 +45,17 @@ class WifiNetworkObserver(private val ctx: Context) {
             caps: NetworkCapabilities,
         ) {
             if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return
-            // Capabilities update fires при first connect, roaming, SSID
-            // change и т.д. — каждый раз дёргаем readWifi и evaluate'им
-            // pending timer.
+
+
+
             val state = readWifi() ?: return
             if (state.first.isEmpty()) return
             handlePending(state.first, state.second)
         }
 
         override fun onLost(net: Network) {
-            // Wi-Fi пропал (off, отвалилась сеть). Pending timer
-            // отменяем — текущая сеть «не достояла».
+
+
             cancelPending()
         }
     }
@@ -63,10 +63,10 @@ class WifiNetworkObserver(private val ctx: Context) {
     @Synchronized
     fun start() {
         if (registered) return
-        // На API 33+ проверяем NEARBY_WIFI_DEVICES, на 29-32 BACKGROUND_LOCATION.
-        // Без них readWifi всё равно вернёт null, observer бесполезен — но
-        // регистрируем callback чтобы как только permission'ы появятся,
-        // дальше работало без re-toggle.
+
+
+
+
         try {
             val req = NetworkRequest.Builder()
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
@@ -91,10 +91,10 @@ class WifiNetworkObserver(private val ctx: Context) {
         Log.d(TAG, "stopped")
     }
 
-    /// Delegate to `WifiInfoReader` — same defensive read как у sing-box
-    /// callback. Returns `(ssid, bssid)` или null при ошибке. Empty ssid
-    /// в результате трактуется как "unknown" — calling code (handlePending)
-    /// сам skip'нёт.
+
+
+
+
     private fun readWifi(): Pair<String, String>? {
         return when (val r = WifiInfoReader.read(ctx)) {
             is WifiInfoReader.Result.Success -> r.ssid to r.bssid
@@ -103,15 +103,15 @@ class WifiNetworkObserver(private val ctx: Context) {
         }
     }
 
-    /// Если та же сеть что pending — оставляем таймер. Иначе cancel + new.
+
     private fun handlePending(ssid: String, bssid: String) {
         if (pendingSsid == ssid && pendingBssid == bssid) return
         cancelPending()
         pendingSsid = ssid
         pendingBssid = bssid
         val task = Runnable {
-            // Threshold met. Promote через MethodChannel в Dart →
-            // SettingsStorage.addToWifiHistory.
+
+
             val s = pendingSsid
             val b = pendingBssid
             pendingSsid = null
@@ -134,20 +134,20 @@ class WifiNetworkObserver(private val ctx: Context) {
     companion object {
         private const val TAG = "WifiNetObserver"
 
-        /// 5 минут — отсекает drive-by сети (магазин, проходящий wifi
-        /// на 1-2 мин). Дом / офис / постоянное кафе с сидением за
-        /// работой — легко больше 5 минут. Не вытаскиваем константу
-        /// в settings — overengineering, default works for everyone.
+
+
+
+
         const val STICKINESS_THRESHOLD_MS = 300_000L
     }
 }
 
-/**
- * Native ↔ Flutter bridge для §051 Phase 3 auto-history. Singleton
- * channel attached в `MainActivity.configureFlutterEngine`. Native
- * side вызывает `notifySeen(ssid, bssid)` → `MethodChannel.invokeMethod`
- * в main looper → Dart handler → `SettingsStorage.addToWifiHistory`.
- */
+
+
+
+
+
+
 object WifiHistoryBridge {
     private const val TAG = "WifiHistoryBridge"
     private const val METHOD_ON_WIFI_SEEN = "onWifiSeen"

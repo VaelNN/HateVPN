@@ -51,13 +51,13 @@ class SubscriptionsScreen extends StatefulWidget {
   final HomeController homeController;
   final AutoUpdater autoUpdater;
 
-  /// §255 — при открытии проскроллить к этому entry и мигнуть его строкой
-  /// (навигация из detour-cycle sheet к владельцу ноды-виновника). null = нет.
+
+
   final String? focusEntryId;
 
-  /// §357 — предзаполнить поле «URL подписки или proxy-ссылка» (lxbox-кнопка
-  /// `add:<uri>` support-ленты). Только prefill: добавление подтверждает сам
-  /// юзер кнопкой «+». null = пустое поле.
+
+
+
   final String? initialInput;
 
   @override
@@ -68,29 +68,29 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   final _inputController = TextEditingController();
   bool _autoUpdateEnabled = true;
 
-  /// §524 — ОБЩИЙ СПИСОК ИСТОЧНИКОВ в порядке `sources[]`: подписки, серверы,
-  /// папки и цепочки одним рядом. Один список — одна истина о порядке; до §524
-  /// экран сшивал три источника (`entries` контроллера, буфер цепочек,
-  /// `List<String>` ключей) в `_rows()` на каждый кадр.
-  ///
-  /// Наполняется [SubscriptionController.sourceEntries]; пусто до первой
-  /// загрузки — [_rows] тогда рисует записи контроллера в их порядке.
+
+
+
+
+
+
+
   List<SourceEntry> _sources = const [];
 
-  /// Цепочки общего списка — срез [_sources]. Нужен диалогам (редактор
-  /// цепочки хочет соседей, чтобы показать законные позиции) и гейту тега.
+
+
   List<SourceChain> get _chains => [
     for (final e in _sources)
       if (e is ChainEntry) e.chain,
   ];
 
-  /// §375 — есть ли камера. null = ещё не ответил канал; до ответа пункт
-  /// «Scan QR code» показываем (проверка мгновенная, на телефоне камера есть
-  /// практически всегда). На Android TV — false, пункт прячется.
+
+
+
   bool? _hasCamera;
 
-  // §255 / §504 — прокрутка к строке + подсветка. Локальная (в хранилище не
-  // пишется): focusEntryId (detour-cycle) или свежедобавленная запись.
+
+
   final _scrollController = ScrollController();
   final _tileKeys = <String, GlobalKey>{};
   String? _highlightedEntryId;
@@ -98,19 +98,19 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   double _highlightOpacity = 0;
   double? _highlightScrollBaseline;
 
-  /// §504 — запас под SnackBar в конце списка. Новая запись встаёт в хвост,
-  /// а хвост длинного списка прокручивается только до нижнего padding:
-  /// без запаса последняя строка оставалась под SnackBar «Config
-  /// regenerated». Появляется с первой подсветкой и живёт до ухода с экрана —
-  /// иначе список дёрнулся бы вниз при снятии подсветки.
+
+
+
+
+
   double _snackBarClearance = 0;
   Timer? _highlightTimer;
   Timer? _highlightFadeTimer;
 
-  /// §504 — programmatic clear поля после add не снимает подсветку.
+
   bool _ignoreInputDismiss = false;
 
-  /// §504 — ensureVisible/jumpTo к новой записи не считается ручным скроллом.
+
   bool _programmaticScroll = false;
 
   GlobalKey _tileKey(String id) => _tileKeys.putIfAbsent(id, GlobalKey.new);
@@ -132,7 +132,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     unawaited(_loadCameraAvailability());
     unawaited(_loadSourceOrder());
     widget.subController.addListener(_onControllerForSourceOrder);
-    // §357 — prefill поля ввода из lxbox-кнопки `add:<uri>` support-ленты.
+
     final prefill = widget.initialInput;
     if (prefill != null && prefill.trim().isNotEmpty) {
       _inputController.text = prefill.trim();
@@ -198,9 +198,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     });
   }
 
-  /// §255 — скролл к строке владельца + вспышка. Retry по кадрам: строка за
-  /// вьюпортом в lazy-списке не смонтирована (currentContext null); грубо
-  /// прыгаем по оценке позиции и повторяем ensureVisible.
+
+
+
   Future<void> _focusEntry(String id, {required int attempt}) async {
     if (!mounted) return;
     if (attempt == 0) {
@@ -241,7 +241,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     });
   }
 
-  /// §504 — после успешного add: подсветка + прокрутка к новой записи.
+
   Future<void> _beginNewEntryHighlight(String id) async {
     if (!mounted) return;
     _highlightTimer?.cancel();
@@ -266,10 +266,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     });
   }
 
-  /// Прокрутка к строке записи (~300 мс, ближе к центру — не под SnackBar).
-  ///
-  /// ensureVisible не ждём до конца Future: в widget-тестах без pump'ов это
-  /// зависает, а SnackBar должен выйти после анимации — хватает длительности.
+
+
+
+
   Future<void> _scrollToEntry(String id, {int attempt = 0}) async {
     if (!mounted) return;
     final ctx = _tileKeys[id]?.currentContext;
@@ -305,18 +305,18 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     setState(() => _autoUpdateEnabled = v);
   }
 
-  /// §375 — спрашиваем платформу о камере один раз при открытии экрана:
-  /// меню строится синхронно в itemBuilder, асинхронную проверку туда не
-  /// вставить.
+
+
+
   Future<void> _loadCameraAvailability() async {
     final v = await UrlLauncher.hasCamera();
     if (!mounted) return;
     setState(() => _hasCamera = v);
   }
 
-  // ── §393 C7/D1 — источники-цепочки ─────────────────────────────────────
 
-  /// §524 — перечитать общий список источников одним чтением.
+
+
   Future<void> _loadSourceOrder() async {
     final sources = await widget.subController.sourceEntries();
     if (!mounted) return;
@@ -328,9 +328,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     unawaited(_loadSourceOrder());
   }
 
-  /// §511 m1 — запись ушла (удалена из меню, пропала при обновлении
-  /// подписки): подсветка с её id снимается, а не живёт до таймера, и
-  /// `GlobalKey` строки не копится в [_tileKeys] до закрытия экрана.
+
+
+
   void _forgetGoneEntries() {
     final ids = _entryIds(widget.subController);
     _tileKeys.removeWhere((id, _) => !ids.contains(id));
@@ -338,13 +338,13 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     if (hl != null && !ids.contains(hl)) _dismissHighlight(animated: false);
   }
 
-  /// §524 — жест перестановки общего списка в виджет-тесте: адресуется
-  /// индексами строк, как `onReorderItem`, минус drag-механика.
+
+
   @visibleForTesting
   Future<void> debugReorderRows(int oldIndex, int newIndex) =>
       _reorderRows(widget.subController, oldIndex, newIndex);
 
-  /// §524 — перечитать общий список (как это делает слушатель контроллера).
+
   @visibleForTesting
   Future<void> debugReloadSources() => _loadSourceOrder();
 
@@ -354,11 +354,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   @visibleForTesting
   Iterable<String> get debugTileKeyIds => _tileKeys.keys;
 
-  /// Создание цепочки: тег спрашиваем ДО создания (после он immutable — на
-  /// него ссылаются фильтры Направлений, `route_final` и позиции ДРУГИХ
-  /// цепочек), затем сразу открываем форму: пустая цепочка ядру не годится
-  /// (нужно минимум две позиции), и оставлять пользователя наедине со строкой
-  /// «0 hops» смысла нет.
+
+
+
+
+
   Future<void> _addChain() async {
     final directions = await SettingsStorage.getDirections();
     if (!mounted) return;
@@ -374,8 +374,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         label: req.label.isEmpty ? null : req.label,
       );
     } on StateError catch (e) {
-      // Гонка со вторым источником мутаций (Debug API / restore): форма
-      // считала тег свободным, storage — уже нет.
+
+
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -397,23 +397,23 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     if (outcome == null || !mounted) return;
     await _loadSourceOrder();
     if (!mounted) return;
-    // Укороченный маршрут обязан быть замечен: цепочка ниже двух позиций
-    // теперь не эмитится, 3+ хопов эмитится короче — пользователь узнаёт об
-    // этом здесь, тем же механизмом, что rules/detours-heal (§202/§248).
+
+
+
     _notifyChainPositionsRemoved(outcome.positionsRemoved);
-    // Цепочка — узел конфига: правка маршрута обязана доехать до сборки, иначе
-    // пользователь увидит старый маршрут под новым именем.
+
+
     await _regenerateAndSave();
   }
 
-  /// §439 (D-114) — уведомление о ссылках, погашенных удалением узла или
-  /// источника: кто удалён, у скольких источников снят detour, сколько членов
-  /// групп и позиций цепочек ушло, с именами (до трёх, дальше `+N`).
-  ///
-  /// Тот же механизм, что у rules/detours/includes-heal (§202/§248,
-  /// `routing_screen._notifyHealed`). Показывать обязательно — удаление МЕНЯЕТ
-  /// МАРШРУТ задетых: узел без detour идёт напрямую, цепочка 3+ хопов
-  /// эмитится укороченной, 2-хоповая перестаёт эмититься вовсе.
+
+
+
+
+
+
+
+
   void _notifyLinksCleared(NodeLinkNotice notice) {
     if (!mounted) return;
     String names(List<String> carriers) {
@@ -465,7 +465,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     ).showSnackBar(SnackBar(content: Text('$lead — ${parts.join(', ')}.')));
   }
 
-  /// §393 D2 — удаление цепочки сняло её позиции у остальных цепочек.
+
   void _notifyChainPositionsRemoved(int removed) {
     if (removed <= 0 || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -477,17 +477,17 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 
-  /// §439 — забрать уведомления, накопленные контроллером на удалении, и
-  /// показать их; цепочки перечитать, если реестр ссылок их переписал (иначе
-  /// буфер экрана затёр бы переписанные позиции следующей правкой). Контроллер
-  /// копит, экран показывает: у контроллера нет `BuildContext`, а у экрана —
-  /// знания, какие мутации сейчас прошли.
+
+
+
+
+
   void _drainLinkNotices() {
     final ctrl = widget.subController;
     if (ctrl.takeChainsRelinked()) {
       unawaited(
         _loadSourceOrder(),
-      ); // строки цепочек показывают новое число хопов
+      );
     }
     for (final notice in ctrl.takeLinkNotices()) {
       _notifyLinksCleared(notice);
@@ -510,9 +510,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   @override
   void deactivate() {
-    // Уход с экрана снимает подсветку (§504). setState здесь нельзя: дерево
-    // в фазе сборки, debug ловит assert. Поля — напрямую; при activate()
-    // элемент перестроится сам.
+
+
+
     _highlightTimer?.cancel();
     _highlightFadeTimer?.cancel();
     _highlightedEntryId = null;
@@ -535,9 +535,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   Future<bool> _onWillPop() async {
-    // Unsaved-input guard (night T4-3): если юзер ввёл что-то в поле и
-    // уходит со screen без сабмита — подтверждаем, чтобы не терять URL
-    // / proxy-link, который он только что вставил.
+
+
+
     final pending = _inputController.text.trim();
     if (pending.isEmpty) return true;
     if (!mounted) return true;
@@ -565,9 +565,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     return confirmed ?? false;
   }
 
-  /// §074 — open Add server wizard (long-press на «+»). Wizard сам зовёт
-  /// `addUserServer`/`addFromInput`; после successful add — callback
-  /// делает `_regenerateAndSave` тут.
+
+
+
   void _openAddServerWizard() {
     final baseline = _entryIds(widget.subController);
     Navigator.of(context).push(
@@ -580,7 +580,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 
-  /// Открыть App Settings сразу на табе «Subscriptions» (initialTab: 2).
+
   void _openSubscriptionSettings() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -589,7 +589,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 
-  /// §025 — открыть full-screen визард Cloudflare WARP.
+
   void _openWarpWizard() {
     final baseline = _entryIds(widget.subController);
     Navigator.of(context).push(
@@ -602,7 +602,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 
-  /// §500 — при отказе с известной причиной открыть шторку сразу после add.
+
   void _presentParseRejectSheetIfNeeded() {
     final err = widget.subController.lastError;
     if (err is! ParseInputRejectedMsg || !err.hasDropped || !mounted) return;
@@ -612,7 +612,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     });
   }
 
-  /// §585 — комментарии вставленного JSON убраны из источника записи.
+
   void _snackCommentsRemoved() {
     if (!mounted || !widget.subController.lastCommentsRemoved) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -623,8 +623,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   Future<void> _add() async {
     final text = _inputController.text.trim();
     if (text.isEmpty) {
-      // Пустое поле + тап «+» = paste-from-clipboard поток с диалогом
-      // подтверждения (анализ + предпросмотр).
+
+
       await _pasteFromClipboard();
       return;
     }
@@ -641,11 +641,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     }
   }
 
-  /// После любого add'а — пересобрать конфиг и сохранить, чтобы новые
-  /// узлы попали в выбираемые group'ы без ручного нажатия rebuild.
-  ///
-  /// [entryBaseline] — id записей до add; при успехе §504 прокручивает к первой
-  /// новой и подсвечивает её, SnackBar — после прокрутки.
+
+
+
+
+
   Future<void> _regenerateAndSave({Set<String>? entryBaseline}) async {
     final applied = await regenerateSourcesConfig(
       widget.subController,
@@ -713,17 +713,17 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     }
   }
 
-  /// §375 — импорт по QR-коду с камеры. Сканер только поставляет строку:
-  /// разбор формата и подтверждение — тот же путь, что у буфера обмена, так
-  /// что юзер видит, что именно приехало в коде, до записи в конфиг (QR —
-  /// недоверенный ввод из внешнего мира).
+
+
+
+
   Future<void> _scanQrCode() async {
     final outcome = await Navigator.of(context).push<ScanOutcome>(
       MaterialPageRoute(builder: (_) => const QrScanScreen()),
     );
     if (!mounted) return;
 
-    // Уход системной кнопкой «назад» — pop без значения.
+
     if (outcome is! ScannedCode) {
       final problem = outcome == null ? null : scanProblemText(outcome);
       if (problem != null) {
@@ -761,7 +761,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     }
   }
 
-  /// §234 — создать пустую папку серверов.
+
   Future<void> _createFolder() async {
     final name = await showFolderNameDialog(context);
     if (name == null) return;
@@ -772,16 +772,16 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     if (newId != null) await _beginNewEntryHighlight(newId);
   }
 
-  /// Импорт подписки/конфига из файла. Содержимое (URI-список, JSON-конфиг,
-  /// proxy-link) идёт в тот же `addFromInput`, что и paste/manual — парсер
-  /// сам определяет формат. Файл приходит уже прочитанным ([PickedFile]).
-  ///
-  /// §234 — multi-select: несколько файлов → все серверы в новую папку
-  /// (имена нод — из имён файлов). Один файл — прежние пути (§129
-  /// file-подписка при >1 ноды / одиночный сервер).
+
+
+
+
+
+
+
   Future<void> _importFromFile() async {
     try {
-      // §372 — Android TV без файлового менеджера: подсказка вместо тупика.
+
       final outcome = await pickFileSafely(allowMultiple: true);
       if (outcome is! PickedFiles) {
         final problem = pickProblemText(outcome);
@@ -808,19 +808,19 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       }
       if (!mounted) return;
       final baseline = _entryIds(widget.subController);
-      // §129 — если в файле > 1 ноды, создаём ФАЙЛОВУЮ подписку (снапшот в
-      // кэше, живёт как обычная подписка). ≤ 1 ноды → старое поведение
-      // (addFromInput → одиночный сервер/нода).
+
+
+
       final asFileSub = await widget.subController.addFileSubscription(
         text,
         file.name,
       );
       if (!asFileSub) {
         if (!mounted) return;
-        // §243 — имя файла уходит nameHint'ом: для WG/AWG `.conf` оно
-        // становится tag'ом узла (фрагмент синтетического URI). Прежний
-        // §234-renameAt в entry.name убран — displayName одиночного сервера
-        // name игнорирует, правда живёт в tag'е.
+
+
+
+
         await widget.subController.addFromInput(
           text,
           nameHint: SubscriptionController.fileBaseName(file.name),
@@ -850,7 +850,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     }
   }
 
-  /// §234 — несколько выбранных файлов → новая папка со всеми серверами.
+
   Future<void> _importFilesIntoFolder(List<PickedFile> files) async {
     final name = await showFolderNameDialog(
       context,
@@ -891,9 +891,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   Future<void> _updateAll() async {
-    // Ручной force-refresh: сбрасываем session-cap (5 фейлов) и форсим через
-    // AutoUpdater — так получаем `_running` guard от дубль-кликов и общий
-    // логирующий путь. После fetch'а — локальный generateConfig (без HTTP).
+
+
+
     widget.autoUpdater.resetAllFailCounts();
     await widget.autoUpdater.maybeUpdateAll(UpdateTrigger.manual, force: true);
     if (!mounted) return;
@@ -926,11 +926,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       animation: widget.subController,
       builder: (context, _) {
         final ctrl = widget.subController;
-        // §439 — уведомления о погашенных ссылках накопил контроллер
-        // (удаление источника идёт из контекстного меню, у которого нет ни
-        // нашего состояния, ни списка цепочек). Забираем их ПОСЛЕ кадра:
-        // snackbar во время build запрещён, а мутация уже завершилась —
-        // контроллер как раз поэтому и уведомил.
+
+
+
+
+
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => _drainLinkNotices(),
         );
@@ -997,9 +997,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                   ),
                 Expanded(
                   child: RefreshIndicator(
-                    // Pull-to-refresh (night T3-2): стандартный Android UX-жест,
-                    // альтернативный кнопке refresh в AppBar. Эквивалент
-                    // `_updateAll()`; noop если уже busy.
+
+
+
                     onRefresh: () async {
                       if (ctrl.busy) return;
                       await _updateAll();
@@ -1076,12 +1076,12 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 
-  /// §524 — строки общего списка: ОДИН [_sources], без сшивки трёх источников.
-  /// Взаимный порядок цепочек внутри него держит инвариант «позиция ссылается
-  /// только на цепочку ВЫШЕ».
-  ///
-  /// Фолбэк «[_sources] пусто» — только первый кадр до [_loadSourceOrder]:
-  /// рисуем записи контроллера в их порядке, чтобы список не мигал пустым.
+
+
+
+
+
+
   List<_SourceRow> _rows(SubscriptionController ctrl) {
     final byId = <String, int>{
       for (var i = 0; i < ctrl.entries.length; i++) ctrl.entries[i].id: i,
@@ -1098,12 +1098,12 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         case ChainEntry(:final chain):
           rows.add(_SourceRow.chain(chain));
         case ContainerEntry(:final list):
-          // Индекс записи в контроллере — счёт его мутаций, не общего списка.
+
           final at = byId[list.id];
           if (at != null) rows.add(_SourceRow.entry(ctrl.entries[at], at));
         case OpaqueEntry():
-          // §141 P1.8c — запись, которую кодек не читает: показывать нечего,
-          // и перестановка её не адресует (она остаётся в своём слоте).
+
+
           break;
       }
     }
@@ -1119,13 +1119,13 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     }
     final rows = _rows(ctrl);
     return ReorderableListView.builder(
-      // §098 — drag-reorder источников (grab-strip слева, как routing rules).
-      // AlwaysScrollable — pull-to-refresh на коротких списках. Divider теперь
-      // внутри самой строки (у ReorderableListView нет separatorBuilder).
+
+
+
       scrollController: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      // Bottom safe-area: последняя подписка не должна прятаться за системной
-      // навигацией Android (жесты/кнопки). Паттерн проекта — padding.bottom + 24.
+
+
       padding: EdgeInsets.fromLTRB(
         12,
         0,
@@ -1136,7 +1136,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       itemCount: rows.length,
       onReorderItem: (oldIndex, newIndex) {
         _onUserInteractionDismissHighlight();
-        // onReorderItem уже нормализует newIndex под удалённый элемент.
+
         unawaited(_reorderRows(ctrl, oldIndex, newIndex));
       },
       itemBuilder: (context, i) {
@@ -1161,8 +1161,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
             _highlightMode == _HighlightMode.newEntry &&
             _highlightOpacity > 0;
         final cs = Theme.of(context).colorScheme;
-        // §255 / §504 — reorder-key остаётся top-level (KeyedSubtree);
-        // GlobalKey для ensureVisible + подсветка — на внутреннем Container.
+
+
         return KeyedSubtree(
           key: ValueKey(entry.id),
           child: AnimatedContainer(
@@ -1178,9 +1178,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                         : null,
                   )
                 : null,
-            // Фон подсветки — DecoratedBox над ближайшим Material: без своего
-            // прозрачного Material ink строки рисовался бы под ним (невидим),
-            // а debug-сборка ловила assert ListTile.
+
+
+
             child: Material(
               type: MaterialType.transparency,
               child: SubscriptionEntryTile(
@@ -1196,7 +1196,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                 onLongPress: (context) => _showContextMenu(context, at, entry),
                 onTap: (context) {
                   _onUserInteractionDismissHighlight();
-                  // §234 — папка открывает свой экран (члены + settings).
+
                   if (entry.list is FolderServers) {
                     Navigator.push(
                       context,
@@ -1235,13 +1235,13 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 
-  /// §524 — перестановка в общем списке источников: ОДНА запись на жест.
-  ///
-  /// До §524 жест писал дважды — `reorderSources` и `applyEntryOrder`, — и
-  /// каждая падала независимо; порядок контейнеров зеркалится в памяти
-  /// (`applySourceOrder`), а не вторым `_persist`. «Цепочка ссылается только
-  /// вверх» считается по взаимному порядку цепочек; сервер между ними ссылок
-  /// не ломает.
+
+
+
+
+
+
+
   Future<void> _reorderRows(
     SubscriptionController ctrl,
     int oldIndex,
@@ -1285,21 +1285,21 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 }
 
-/// §255 — навигация из detour-cycle sheet. §504 — свежедобавленная запись.
+
 enum _HighlightMode { none, focus, newEntry }
 
-/// §393 D1 — ряд общего списка источников: либо запись контроллера
-/// (подписка/сервер/папка), либо цепочка. Ровно два рода, поэтому обычный
-/// класс с двумя nullable-полями, а не sealed-иерархия: тип живёт внутри
-/// одного экрана и наружу не выходит.
+
+
+
+
 class _SourceRow {
   const _SourceRow.entry(this.entry, this.entryIndex) : chain = null;
   const _SourceRow.chain(this.chain) : entry = null, entryIndex = -1;
 
   final SubscriptionEntry? entry;
 
-  /// Индекс записи в `SubscriptionController.entries` — счёт контроллера, не
-  /// общего списка. Мутации подписок адресуются им.
+
+
   final int entryIndex;
   final SourceChain? chain;
 }

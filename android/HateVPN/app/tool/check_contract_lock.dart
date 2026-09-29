@@ -1,27 +1,27 @@
-// Проверка синхронизации общего контракта (SPEC 103, фаза 5).
-//
-// В CI репозитория лаунчера нет, поэтому пересинхронизировать контракт здесь
-// нечем. Но одно проверить можно и нужно: если копия контракта в дереве ЕСТЬ,
-// её содержимое обязано совпадать с зафиксированным в contract.lock хешем.
-// Иначе кто-то правил копию руками — а копия не источник, и правка потерялась
-// бы при следующей синхронизации.
-//
-// Копии нет вовсе — не ошибка: контрактные тесты сами пропускаются, а
-// разработчик синхронизирует локально (tool/sync_contract.sh).
-//
-// §460 — вторая проверка: бандлируемое зеркало реестра assets/contract/ (в
-// git, в отличие от contract/) обязано совпадать с копией файл-в-файл. Оно
-// едет в APK и определяет поведение санитайзера, так что разойтись с
-// контрактом ему нельзя. Проверка идёт только когда есть обе стороны: в CI
-// копии нет, и сверять зеркало не с чем.
-//
-// §460 W2b — третья: зеркало страниц документации ../docs/contract/ против
-// contract/docs/generated/. Туда ведёт ссылка «Learn more» из карточки
-// предупреждения, и страница с текстом от прошлого контракта врала бы
-// уверенно. Сверяется тем же правилом файл-в-файл; README.md зеркала —
-// единственный файл, которого в источнике нет: его пишет сам скрипт.
-//
-// Запуск: dart run tool/check_contract_lock.dart
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -88,11 +88,11 @@ void main(List<String> args) {
   stdout.writeln('../docs/contract/: зеркало документации совпадает с копией');
 }
 
-/// §460 W2b — расхождения зеркала документации, по строке на файл.
-///
-/// Состав сверяется в обе стороны рекурсивно (страницы протоколов лежат
-/// подкаталогом). `README.md` зеркала из сверки исключён: его нет в
-/// источнике, он про источник — версия, sha, «не править руками».
+
+
+
+
+
 List<String> _docsMirrorDiff(Directory contractDir) {
   final src = Directory('${contractDir.path}/docs/generated');
   final mirror = Directory('../docs/contract');
@@ -128,9 +128,9 @@ List<String> _docsMirrorDiff(Directory contractDir) {
   return diff;
 }
 
-/// §460 — расхождения зеркала реестра с вендоренной копией, по одной строке
-/// на файл. Сверяется ровно тот состав, который кладёт sync_contract.sh и
-/// объявляет pubspec: VERSION + registry/*.json + registry/protocols/*.json.
+
+
+
 List<String> _mirrorDiff(Directory contractDir) {
   final diff = <String>[];
 
@@ -162,8 +162,8 @@ List<String> _mirrorDiff(Directory contractDir) {
     }
   }
 
-  // Обратная сторона: лишний файл в зеркале (источник его удалил, а зеркало
-  // не пересобрали) — такой же разрыв, как отсутствующий.
+
+
   for (final sub in const ['registry', 'registry/protocols']) {
     final mirrorDir = Directory('assets/contract/$sub');
     if (!mirrorDir.existsSync()) continue;
@@ -193,22 +193,22 @@ String? _lockHash(String content) {
   return null;
 }
 
-/// Хеш дерева — ТОТ ЖЕ алгоритм, что в tool/sync_contract.sh:
-/// `find -type f | sort | xargs cat | shasum -a 256`, то есть sha256 от
-/// склеенного содержимого файлов в байтовом порядке путей. Имена в хеш не
-/// входят. Считать иначе нельзя: проверка падала бы на каждом прогоне.
+
+
+
+
 String _treeHash(Directory dir) {
   final paths = dir
       .listSync(recursive: true)
       .whereType<File>()
       .map((f) => f.path)
       .toList()
-    ..sort(); // байтовый порядок, как LC_ALL=C sort
+    ..sort();
 
-  // Склеиваем содержимое ровно так, как это делает `xargs cat`. Файлы
-  // контракта — текстовые и мелкие (единицы мегабайт на всё дерево), поэтому
-  // держать их в памяти дешевле, чем тянуть ради потокового хеша ещё один
-  // пакет в зависимости.
+
+
+
+
   final bytes = <int>[];
   for (final path in paths) {
     bytes.addAll(File(path).readAsBytesSync());

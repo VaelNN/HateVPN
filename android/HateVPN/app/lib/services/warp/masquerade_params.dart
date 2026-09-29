@@ -1,13 +1,13 @@
-/// §143 — параметры WARP masquerade (WireSock-style `id`/`ip`/`ib`).
-///
-/// Ядро (sing-box-lx 009) само разворачивает `id`/`ip`/`ib` в AmneziaWG `i1`
-/// CPS-пакет нужного протокола — LxBox больше НЕ генерит `i1` в Dart (старый
-/// `quic_i1.dart` / SIP-генератор удалены).
-///
-/// - [sni] = `id` — домен маскировки (на провод идёт только для `ip=dns`/`sip`).
-/// - [ip] = протокол: `quic` \| `dns` \| `stun` \| `sip`.
-/// - [ib] = браузер: `chrome` \| `firefox` \| `curl` (осмыслен только при `ip=quic`).
-/// - [jc]/[jmin]/[jmax] — junk-пакеты перед handshake.
+
+
+
+
+
+
+
+
+
+
 class QuicParams {
   const QuicParams({
     this.sni = '',

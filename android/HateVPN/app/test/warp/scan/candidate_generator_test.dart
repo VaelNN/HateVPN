@@ -5,7 +5,7 @@ import 'package:lxbox/services/warp/scan/candidate_generator.dart';
 import 'package:lxbox/services/warp/scan/scan_models.dart';
 import 'package:lxbox/services/warp/scan/scan_pool.dart';
 
-/// §284 — генератор кандидатов для рандом-скана (фаза 1 посев + фаза 2 вариации).
+
 void main() {
   ScanPool fullPool() => const ScanPool(
         wgV4Cidr: ['162.159.192.0/24', '188.114.96.0/22'],
@@ -52,8 +52,8 @@ void main() {
 
     test('§305 — h3-IP ТОЛЬКО из h3-списка; h2-IP из блока', () {
       final g = CandidateGenerator(fullPool(), rng: Random(13));
-      // fullPool (§420): h3 = общий .198.2 + h3-only .198.1/.199.1; h2 —
-      // /24 блоки минус h3-only адреса.
+
+
       const h3hosts = {'162.159.198.2', '162.159.198.1', '162.159.199.1'};
       const h2excluded = {'162.159.198.1', '162.159.199.1'};
       var sawH3 = false, sawH2 = false;
@@ -63,10 +63,10 @@ void main() {
               reason: 'h3 IP ${c.ip} должен быть из h3-списка');
           sawH3 = true;
         } else if (c.protocol == ScanProtocol.masqueH2) {
-          // h2 — по блоку, октет варьируется (не только .1).
+
           expect(c.ip.startsWith('162.159.198.') ||
               c.ip.startsWith('162.159.199.'), isTrue);
-          // §420 — h3-only адреса из h2-рандома исключены.
+
           expect(h2excluded.contains(c.ip), isFalse,
               reason: 'h2 IP ${c.ip} — h3-only хост');
           sawH2 = true;
@@ -108,7 +108,7 @@ void main() {
       final protos = g.seed(50).map((c) => c.protocol).toSet();
       expect(protos.contains(ScanProtocol.awg), isFalse);
       expect(protos.every((p) => p.isMasque), isTrue);
-      // §420 — без h3-хостов h3 не сеем (рандом по блоку = мёртвые ноды).
+
       expect(protos, [ScanProtocol.masqueH2]);
     });
 

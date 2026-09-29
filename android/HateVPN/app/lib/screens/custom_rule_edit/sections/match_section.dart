@@ -6,21 +6,21 @@ import '../widgets/items_field.dart';
 import '../widgets/section_header.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §030 new_fields — quick-вставки для CIDR-полей (кнопка «Presets ▾»).
-/// Три ходовых сценария: само устройство, домашний Wi-Fi, поймать всё.
-/// `Localhost`/`All` дают обе IP-семьи (v4+v6) одной вставкой.
+
+
+
 const List<FieldPreset> kCidrPresets = [
   FieldPreset(label: 'Localhost', value: '127.0.0.0/8\n::1/128'),
   FieldPreset(label: 'Wi-Fi subnet', value: '192.168.0.0/16'),
   FieldPreset(label: 'All (IPv4 + IPv6)', value: '0.0.0.0/0\n::/0'),
 ];
 
-/// §053 Stage 2 — MATCH section: domain / suffix / keyword / IP CIDR
-/// + ipIsPrivate toggle.
-///
-/// Controllers owned by parent (для save flow). Виджет — dumb StatelessWidget
-/// который рендерит секцию. ItemsField сам подписывается на controller
-/// для self-rebuild.
+
+
+
+
+
+
 class MatchSection extends StatelessWidget {
   const MatchSection({
     super.key,
@@ -42,8 +42,8 @@ class MatchSection extends StatelessWidget {
   final bool ipIsPrivate;
   final ValueChanged<bool> onIpIsPrivateChanged;
 
-  /// §030/new_fields — source-IP-CIDR (источник пакета). Эмитится в headless
-  /// match (sing-box 1.14). chip-поле, та же cidr-валидация что у [ipCidrCtrl].
+
+
   final TextEditingController sourceIpCidrCtrl;
   final bool sourceIpIsPrivate;
   final ValueChanged<bool> onSourceIpIsPrivateChanged;
@@ -109,9 +109,9 @@ class MatchSection extends StatelessWidget {
             style: const TextStyle(fontSize: 11),
           ),
         ),
-        // §030/new_fields — source-ось: по источнику пакета (AND с группой
-        // назначения). Полезно для mixed-in прокси-клиентов (LAN) и source-
-        // сегментов tun.
+
+
+
         ItemsField(
           label: 'Source IP CIDR',
           controller: sourceIpCidrCtrl,

@@ -7,24 +7,24 @@ import 'package:lxbox/models/template_vars.dart';
 import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §320 — `ech` из подписки НЕ применяется, только предупреждение.
-///
-/// Xray-форма `ech=<name>+<resolver>` не несёт ключа: это имя для DNS
-/// HTTPS-запроса. Подписки кладут туда публичные ECH-пробники — DEVICE-VERIFIED:
-/// DNS отдаёт для `ip.gs` и `encryptedsni.com` ОДИН конфиг с
-/// `public_name = cloudflare-ech.com`, тогда как SNI узла
-/// `www.ignitelimit.com`. Ключ не от того сервера ⇒ рукопожатие падает.
-///
-/// Замер (узел 172.67.149.60 `/in-pdr`): с `ech` мёртв, без — 723 мс. NekoBox
-/// параметр отбрасывает и держит тот же узел живым на 23 мс.
+
+
+
+
+
+
+
+
+
+
 void main() {
   setUpAll(loadEngineSections);
 
   Map<String, dynamic> tlsOf(NodeSpec n) =>
       n.emitRaw(const TemplateVars()).map['tls'] as Map<String, dynamic>;
 
-  /// Код предупреждения, а не класс: текст `ech_ignored` живёт в реестре
-  /// (`warnings.json`), и на узле он обычным `RegistryWarning`.
+
+
   List<RegistryWarning> echWarnings(NodeSpec n) => n.warnings
       .whereType<RegistryWarning>()
       .where((w) => w.code == 'ech_ignored')
@@ -44,7 +44,7 @@ void main() {
       expect(w.value, 'encryptedsni.com');
       expect(w.params['query_name'], 'ech');
       expect(w.severity, WarningSeverity.info);
-      // Остальное разобрано как обычно — узел рабочий.
+
       expect(tlsOf(n)['server_name'], 'space.byu.id.yxls.eu.cc');
       expect((n.emitRaw(const TemplateVars()).map['transport'] as Map)['path'],
           '/in-pdr');
@@ -129,10 +129,10 @@ void main() {
     });
   });
 
-  // §459 (контракт §24.2 п. 7.2) — посылка D-006 «ядро без with_ech» ложна:
-  // ECH компилируется всегда (common/tls/ech_tag_stub.go), tls.ech{} проходит
-  // sing-box check. Тело из JSON пропускается, URI-параметр `ech=` Xray-формы
-  // по-прежнему снимается — он несёт имя чужого публичного пробника.
+
+
+
+
   group('§459 разделение: тело проходит, URI снимается', () {
     test('sing-box JSON: tls.ech{} доезжает до эмита, URI-ветка — нет', () {
       final fromJson = parseSingboxEntry({

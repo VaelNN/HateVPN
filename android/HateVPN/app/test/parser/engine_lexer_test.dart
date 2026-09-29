@@ -2,26 +2,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/parser/engine/decoders.dart';
 import 'package:lxbox/services/parser/engine/lexer.dart';
 
-/// §480 W1 — лексер и декодеры, таблично.
-///
-/// Лексер режет текст и НИЧЕГО не декодирует, поэтому ожидания здесь сырые:
-/// `%2F` остаётся `%2F`, `+` остаётся `+`. Кто и с какой семантикой их
-/// раскроет, решает запись секции, а не лексер.
+
+
+
+
+
 void main() {
   group('лексер: authority', () {
-    // (имя, ссылка, host, port, port_raw)
+
     const cases = <(String, String, String, int?, String)>[
       ('обычный host:port', 'trojan://p@example.com:443#n', 'example.com', 443,
           '443'),
       ('без порта', 'trojan://p@example.com#n', 'example.com', null, ''),
-      // Ради этого случая лексер и написан: Uri.tryParse отвергает ссылку
-      // ЦЕЛИКОМ, то есть узел пропадает молча.
+
+
       ('multi-port: порт не число', 'hy2://p@example.com:443,20000-30000#n',
           'example.com', null, '443,20000-30000'),
       ('IPv6 в скобках с портом', 'trojan://p@[2001:db8::1]:443#n',
           '2001:db8::1', 443, '443'),
       ('IPv6 в скобках без порта', 'trojan://p@[::1]#n', '::1', null, ''),
-      // Два и больше двоеточий без скобок — это адрес, а не host:port.
+
       ('голый IPv6 без скобок', 'trojan://p@2001:db8::1#n', '2001:db8::1', null,
           ''),
       ('порт не число', 'trojan://p@example.com:abc#n', 'example.com', null,
@@ -39,7 +39,7 @@ void main() {
   });
 
   group('лексер: userinfo', () {
-    // Режется по ПОСЛЕДНЕМУ `@`: внутри пароля `@` законен, в хосте — нет.
+
     const cases = <(String, String, String, String)>[
       ('простой', 'trojan://pass@h.com:443#n', 'pass', 'h.com'),
       ('с двоеточием — НЕ режется', 'trojan://pa:ss:1@h.com:443#n', 'pa:ss:1',
@@ -104,9 +104,9 @@ void main() {
       expect(lexQuery('sni=a.com').get('SNI'), 'a.com');
     });
 
-    // Норма §0.6: при двух написаниях побеждает ТОЧНОЕ совпадение, иначе
-    // первое по порядку. У лаунчера здесь дефект — обход Go-map даёт
-    // недетерминированный ответ между запусками.
+
+
+
     test('два написания: побеждает точное совпадение с каноном', () {
       expect(lexQuery('SNI=upper&sni=exact').get('sni'), 'exact');
     });
@@ -125,15 +125,15 @@ void main() {
   });
 
   group('декодеры: семантика percent', () {
-    // (имя, вход, режим, ожидание)
+
     const cases = <(String, String, DecodeMode, String)>[
       ('query: + это пробел', 'a+b', DecodeMode.query, 'a b'),
       ('path: + литерален', 'a+b', DecodeMode.path, 'a+b'),
       ('%2F одинаково в обоих', '%2Fx', DecodeMode.query, '/x'),
       ('%2F одинаково в обоих (path)', '%2Fx', DecodeMode.path, '/x'),
       ('UTF-8 из байтов', '%D0%BC%D0%B8%D1%80', DecodeMode.query, 'мир'),
-      // Битый хвост НЕ роняет разбор и НЕ снимает значение: код о негодности
-      // ставит санитайзер, с путём и значением.
+
+
       ('битый percent остаётся как есть', '%2Fx%zz', DecodeMode.path, '/x%zz'),
       ('одинокий %', 'a%', DecodeMode.path, 'a%'),
       ('пусто', '', DecodeMode.query, ''),
@@ -146,7 +146,7 @@ void main() {
 
   group('декодеры: decode_extra', () {
     test('path — ровно 2 прохода, плюс литерален на обоих', () {
-      // Это D133-14: query-семантика на первом проходе дала бы «/a b».
+
       expect(decodeExtra('%2Fa+b', mode: DecodeMode.path, passes: 2), '/a+b');
       expect(
           decodeExtra('%252Fa%252Fb', mode: DecodeMode.path, passes: 2), '/a/b');
@@ -166,8 +166,8 @@ void main() {
     });
 
     test('потолок проходов соблюдается', () {
-      // Патологический вход: каждый проход снимает один уровень, и через 16
-      // декодирование обязано остановиться, а не крутиться.
+
+
       var v = 'x';
       for (var i = 0; i < 40; i++) {
         v = v.replaceAll('%', '%25');

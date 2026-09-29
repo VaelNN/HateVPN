@@ -27,7 +27,7 @@ internal static class MachineSecret
         Marshal.Copy(bytes,0,input.Data,bytes.Length);
         try
         {
-            // WireGuard authenticates the DPAPI description against the tunnel filename.
+
             if(!CryptProtectData(ref input,"HateVPN",IntPtr.Zero,IntPtr.Zero,IntPtr.Zero,5,out var output)) throw new Win32Exception();
             try { var encrypted=new byte[output.Length]; Marshal.Copy(output.Data,encrypted,0,encrypted.Length); File.WriteAllBytes(path,encrypted); }
             finally { LocalFree(output.Data); }

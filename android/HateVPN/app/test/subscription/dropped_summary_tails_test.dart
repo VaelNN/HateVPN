@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -17,9 +17,9 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §561 / §570 — данные сводки отбраковок источника: запись несёт владельца
-/// (запись источника), одинаковые записи одного владельца сводятся, пустой
-/// refresh кладёт свои причины в сводку.
+
+
+
 class _FakePathProvider extends PathProviderPlatform
     with MockPlatformInterfaceMixin {
   final String tempRoot;
@@ -78,7 +78,7 @@ void main() {
       try {
         if (tempDir.existsSync()) await tempDir.delete(recursive: true);
       } on FileSystemException {
-        // гонка удаления temp — не предмет теста
+
       }
     });
 

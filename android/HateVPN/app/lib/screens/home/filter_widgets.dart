@@ -3,12 +3,12 @@ import 'package:flutter/services.dart';
 
 import '../../services/l10n/locale_controller.dart';
 
-/// §048 — UI components для filter panel в node list header.
-/// Все слим, compact, default collapsed (см. spec).
 
-/// §096 — компактный `!`-тогл инверсии (negate). Серый = обычный фильтр,
-/// bold-красный = инверсия (показать НЕ совпадающие/выбранные). Единый
-/// визуальный язык для regex / protocol / subscriptions / detour.
+
+
+
+
+
 class NegateToggle extends StatelessWidget {
   const NegateToggle({
     super.key,
@@ -46,10 +46,10 @@ class NegateToggle extends StatelessWidget {
   }
 }
 
-/// Slim TextField для regex pattern. Слева — `!`-negate ([NegateToggle], §096:
-/// занял слот бывшей enable-галки); внутри prefix — лупа, suffix — `✕ clear`
-/// (виден когда поле непустое). Regex активен пока поле непустое (выключение =
-/// очистка). `errorText` («Invalid regex») — всегда при битом паттерне.
+
+
+
+
 class RegexFilterField extends StatelessWidget {
   const RegexFilterField({
     super.key,
@@ -69,9 +69,9 @@ class RegexFilterField extends StatelessWidget {
   final VoidCallback onInvertToggle;
   final VoidCallback? onClear;
 
-  /// §195/§197 — сохранить текущий regex (+инверсию) в активное Направление.
-  /// `null` → кнопка 💾 скрыта (нет активного Направления). Показывается только при
-  /// непустом валидном паттерне.
+
+
+
   final void Function(String pattern, bool invert)? onSaveRegex;
 
   @override
@@ -81,8 +81,8 @@ class RegexFilterField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          // top:4 — иначе тогл центрируется ОТ всей высоты row (включая
-          // errorText) и съезжает вниз когда regex invalid.
+
+
           padding: const EdgeInsets.only(top: 4),
           child: NegateToggle(
             active: invert,
@@ -99,8 +99,8 @@ class RegexFilterField extends StatelessWidget {
               isDense: true,
               contentPadding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
               hintText: getLocalText.s("regex pattern"),
-              // §096 — invert переехал в ведущий [!] (NegateToggle слева от
-              // поля); внутри prefix остаётся только лупа.
+
+
               prefixIcon: const SizedBox(
                 width: 30,
                 height: 28,
@@ -110,10 +110,10 @@ class RegexFilterField extends StatelessWidget {
                   const BoxConstraints(minWidth: 34, minHeight: 28),
               errorText: valid ? null : 'Invalid regex',
               errorStyle: const TextStyle(fontSize: 10),
-              // §195 — суффикс: [💾 save] + [× clear], оба только при непустом
-              // тексте. 💾 — лишь если onSaveRegex задан (есть активное Направление) И
-              // regex валиден (битый паттерн сохранять нельзя). Каждый — голый
-              // SizedBox 28×28, без material 48dp tap-target → suffix не прыгает.
+
+
+
+
               suffixIcon: controller.text.isEmpty
                   ? null
                   : Row(
@@ -163,9 +163,9 @@ class RegexFilterField extends StatelessWidget {
   }
 }
 
-/// Horizontal scroll row с emoji chips. Tap chip → toggle emoji в regex
-/// OR-паттерне; выбранные (присутствующие в паттерне) — подсвечены
-/// ([selected]), повторный tap снимает.
+
+
+
 class EmojiChipsRow extends StatelessWidget {
   const EmojiChipsRow({
     super.key,
@@ -205,9 +205,9 @@ class EmojiChipsRow extends StatelessWidget {
   }
 }
 
-/// Horizontal scroll row с `FilterChip`'ами. Multi-select: tap → toggle.
-/// Empty set = no filter. Не переносит на следующую строку — все chips в
-/// одной полоске со скроллом (как `EmojiChipsRow`).
+
+
+
 class MultiSelectChipsRow extends StatelessWidget {
   const MultiSelectChipsRow({
     super.key,
@@ -218,13 +218,13 @@ class MultiSelectChipsRow extends StatelessWidget {
     required this.onInvertToggle,
   });
 
-  /// Список `(id, label)` пар. `id` хранится в [enabled], `label` —
-  /// текстовая подпись на chip.
+
+
   final List<(String id, String label)> options;
   final Set<String> enabled;
   final ValueChanged<String> onToggle;
 
-  /// §096 — invert (NOT) всей категории + тогл. Ведущий [NegateToggle].
+
   final bool invert;
   final VoidCallback onInvertToggle;
 
@@ -266,8 +266,8 @@ class MultiSelectChipsRow extends StatelessWidget {
   }
 }
 
-/// `[☐] Test ≤ [N] ms` numeric input с checkbox для on/off. Checkbox
-/// позволяет временно выключить filter не теряя значение.
+
+
 class PingFilterField extends StatelessWidget {
   const PingFilterField({
     super.key,
@@ -321,7 +321,7 @@ class PingFilterField extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        // l10n-exempt: 'ms' — латинская единица в обеих локалях (spec §5)
+
         const Text('ms', style: TextStyle(fontSize: 12)),
         if (controller.text.isNotEmpty)
           IconButton(
@@ -336,8 +336,8 @@ class PingFilterField extends StatelessWidget {
   }
 }
 
-/// Compact checkbox-like switch row. Используется для `Show detour servers`
-/// и `Show non-matching (dimmed)`.
+
+
 class FilterCheckboxRow extends StatelessWidget {
   const FilterCheckboxRow({
     super.key,

@@ -8,9 +8,9 @@ import '../parser/engine_test_setup.dart';
 import '../parser/parse_link_as.dart';
 
 void main() {
-  // §480 W7 — `toUri()` этой схемы собирает ДВИЖОК по секции реестра, как и
-  // её разбор. Без загруженных секций ссылки нет вовсе (критерий 7 спеки:
-  // рукописного запасного пути у переехавшей схемы не осталось).
+
+
+
   setUpAll(loadEngineSections);
 
   group('NaïveProxy emit (spec 037 §4)', () {
@@ -45,13 +45,13 @@ void main() {
       expect(m['tag'], 'naive-test');
       expect(m['server'], 'h.example.com');
       expect(m['server_port'], 443);
-      // sing-box NaiveOutboundOptions не имеет поля `network`.
+
       expect(m.containsKey('network'), false);
       expect(m.containsKey('username'), false);
       expect(m.containsKey('password'), false);
       expect(m.containsKey('extra_headers'), false);
       expect(m.containsKey('detour'), false);
-      // TLS обязательно: enabled + server_name = host, без alpn/utls/insecure.
+
       final tls = m['tls'] as Map;
       expect(tls['enabled'], true);
       expect(tls['server_name'], 'h.example.com');
@@ -82,7 +82,7 @@ void main() {
           'M-Mid': 'm',
         },
       ).emit(TemplateVars.empty).map;
-      // sing-box NaiveOutboundOptions использует `extra_headers`, не `headers`.
+
       expect(m.containsKey('headers'), false);
       final eh = m['extra_headers'] as Map;
       expect(eh.keys.toList(), ['A-First', 'M-Mid', 'Z-Last']);
@@ -101,10 +101,10 @@ void main() {
   });
 
   group('NaïveProxy toUri (spec 037 §5)', () {
-    // §533 / контракт 1.1.53 (§49 п.12) — ПОРТ ПИШЕТСЯ ВСЕГДА. Оверлей
-    // `emit.omit_port: 443` снят: реестр порт пишет, и у лаунчера `hostPort`
-    // писал его всегда. Ссылка БЕЗ порта по-прежнему читается — дефолт
-    // разбора 443 объявлен секцией (кейсы round-trip ниже это держат).
+
+
+
+
     test('пишет :443 — порт больше не опускается', () {
       final s = NaiveSpec(
         id: 'id', tag: 't', label: 't',
@@ -125,9 +125,9 @@ void main() {
       expect(s.toUri(), 'naive+https://p@h:8443#t');
     });
 
-    // §465 — одиночный userinfo читается как password, поэтому форма «только
-    // username» обязана нести двоеточие, иначе собственная ссылка вернулась
-    // бы с именем в слоте пароля.
+
+
+
     test('username without password → user:@', () {
       final s = NaiveSpec(
         id: 'id', tag: 't', label: 't',
@@ -155,10 +155,10 @@ void main() {
         tls: const TlsSpec(enabled: true, serverName: 'h'),
         extraHeaders: const {'B-Two': '2', 'A-One': '1'},
       );
-      // Expect: extra-headers=A-One%3A%201%0D%0AB-Two%3A%202
+
       final uri = s.toUri();
       expect(uri.contains('extra-headers='), true);
-      // Lex order: A-One then B-Two.
+
       expect(
         uri.contains(
           'A-One%3A%201%0D%0AB-Two%3A%202',
@@ -169,12 +169,12 @@ void main() {
     });
 
     test('dropping invalid header name on encode', () {
-      // На входе невозможный header — encoder тихо дропает.
-      //
-      // §480 W7: правило больше не живёт отдельной функцией в коде эмита —
-      // годность пары судит ТА ЖЕ регулярка `extract.re`, какой её читает
-      // разбор. Напиши эмиттер такую пару, разбор пропустил бы её
-      // (`on_item_invalid`), и круг потерял бы её молча.
+
+
+
+
+
+
       final s = NaiveSpec(
         id: 'id', tag: 't', label: 't',
         server: 'h', port: 443, rawSource: '',
@@ -202,9 +202,9 @@ void main() {
       expect(s2.label, original.label);
     });
 
-    // §465 / контракт §24.2 п. 7.3 — три формы userinfo держат round-trip
-    // `parseUri(toUri(spec)) ≈ spec`. Раньше форма «только пароль» после
-    // своего же эмита возвращалась именем пользователя.
+
+
+
     test('round-trip preserves password-only auth (no colon)', () {
       final original = parseLinkAs<NaiveSpec>('naive+https://onlypass@host.example.com')!;
       expect(original.username, '');
@@ -218,8 +218,8 @@ void main() {
       final original = parseLinkAs<NaiveSpec>('naive+https://onlyuser:@host.example.com')!;
       expect(original.username, 'onlyuser');
       expect(original.password, '');
-      // Вход БЕЗ порта, выход С портом (§49 п.12): дефолт разбора 443
-      // подставляется секцией, и круг сходится по ТЕЛУ, а не по строке.
+
+
       expect(original.toUri(), 'naive+https://onlyuser:@host.example.com:443');
       final s2 = parseUri(original.toUri()) as NaiveSpec;
       expect(s2.username, 'onlyuser');
@@ -245,7 +245,7 @@ void main() {
       final original = parseLinkAs<NaiveSpec>(
         'naive+https://u:p@host:443?padding=true#X',
       )!;
-      // toUri() не пишет padding обратно; повторный парсинг — тоже без padding.
+
       expect(original.toUri().contains('padding'), false);
     });
 

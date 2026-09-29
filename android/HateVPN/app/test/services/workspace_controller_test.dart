@@ -7,8 +7,8 @@ import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/workspaces/workspace_controller.dart';
 import 'package:lxbox/services/workspaces/workspace_store.dart';
 
-/// §417 — оркестрация загрузки: стоп-колбэк, generation для пересоздания
-/// HomeScreen, одноразовый флаг автозапуска, no-op на current.
+
+
 void main() {
   late Directory docs;
   late Directory support;
@@ -34,7 +34,7 @@ void main() {
     SettingsStorage.resetCacheForTesting();
     await File('${docs.path}/lxbox_settings.json')
         .writeAsString('{"vars":{"scene":"a"}}');
-    // Синглтон держит справочник прошлого теста — перечитать пустой.
+
     await ws.refresh();
   });
 
@@ -51,7 +51,7 @@ void main() {
       try {
         if (d.existsSync()) await d.delete(recursive: true);
       } on FileSystemException {
-        // AppLog пишет persistent-лог в docs async — race с delete.
+
       }
     }
   });
@@ -89,8 +89,8 @@ void main() {
     expect(ws.generation, gen + 1);
     expect(ws.current, 'Home');
     expect(ws.busy, isFalse);
-    // После загрузки состояние перечитано: миграции (Направления) прошли по
-    // новой сцене и переписали файл — сравниваем разобранный JSON.
+
+
     expect(await sceneTag(), 'a');
     expect(await File('${docs.path}/lxbox_settings.json').readAsString(),
         contains('"directions"'),

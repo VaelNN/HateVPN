@@ -1,15 +1,15 @@
-// §279 Phase 4 / §285 — sealed-иерархия хранимых пользовательских сообщений.
-//
-// Хранимые ошибки/статусы (`lastError`, `SubscriptionEntry.status` и т.п.) —
-// типизированные объекты, НЕ отрендеренные строки: рендер происходит в момент
-// показа (`render()` в build через глобальный getLocalText) — смена локали
-// мгновенно перерендеривает хранимое состояние. Машинные поверхности (Tasker,
-// AppLog, Debug API, notification-labels) используют `renderEn()` — пиненный
-// английский рендер (GetLocalText.en, dict=null → английский ключ).
-//
-// En-мосты для соседних иерархий (NodeWarning/ValidationIssue/StopReason)
-// живут здесь же extension'ами (renderEn-allowlist-правило в
-// tool/l10n/hardcoded_check.dart).
+
+
+
+
+
+
+
+
+
+
+
+
 
 import 'node_warning.dart';
 import 'stop_reason.dart';
@@ -17,25 +17,25 @@ import 'validation.dart';
 import '../services/l10n/get_local_text.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// Пользовательское сообщение с ленивым рендером. Equatable по данным
-/// (runtimeType + [props]) — dedup/сравнение не зависят от локали.
+
+
 sealed class UiMsg {
   const UiMsg();
 
-  /// §285 — тело рендера подкласса. [t] — локализатор: глобальный getLocalText
-  /// (активная локаль) для [render], пиненный английский [GetLocalText.en] для
-  /// [renderEn]. Одно тело обслуживает обе поверхности. Публичный (а не
-  /// приватный) — вложенные UiMsg/соседние иерархии композируют его напрямую,
-  /// пробрасывая тот же [t] (Dart-приватность пофайловая).
+
+
+
+
+
   String renderWith(GetLocalText t);
 
-  /// §285 — рендер активной локали через глобальный t.
+
   String render() => renderWith(getLocalText);
 
-  /// Фиксированный английский рендер для machine-поверхностей (automation,
-  /// AppLog, Debug API, notification-labels). Единственный санкционированный
-  /// путь UiMsg → String вне build. [GetLocalText.en] — пиненный английский
-  /// локализатор (dict=null → печатает английский ключ независимо от локали).
+
+
+
+
   String renderEn() => renderWith(GetLocalText.en);
 
   List<Object?> get props => const [];
@@ -54,8 +54,8 @@ sealed class UiMsg {
   String toString() => '$runtimeType(${props.join(', ')})';
 }
 
-/// Deep-равенство списков props (публичный — переиспользуется соседними
-/// иерархиями с data-равенством).
+
+
 bool propsEquals(List<Object?> a, List<Object?> b) {
   if (a.length != b.length) return false;
   for (var i = 0; i < a.length; i++) {
@@ -64,14 +64,14 @@ bool propsEquals(List<Object?> a, List<Object?> b) {
   return true;
 }
 
-// §285 — renderEn() соседних иерархий (NodeWarning/ValidationIssue/StopReason)
-// теперь живёт в их собственных base-классах (message()/_message(t)/renderEn()),
-// см. node_warning.dart / validation.dart / stop_reason.dart.
 
-// ──────────────────────────────── Подклассы ───────────────────────────────────
 
-/// Passthrough OS/kernel/library-английского (диагностический payload не
-/// переводится — spec §8).
+
+
+
+
+
+
 final class RawMsg extends UiMsg {
   final String detail;
   const RawMsg(this.detail);
@@ -83,7 +83,7 @@ final class RawMsg extends UiMsg {
   String renderWith(GetLocalText t) => detail;
 }
 
-/// `formatUserError(TimeoutException)` — "timeout 10s" / "timeout 5.8s".
+
 final class TimeoutError extends UiMsg {
   final int ms;
   const TimeoutError(this.ms);
@@ -98,28 +98,28 @@ final class TimeoutError extends UiMsg {
   }
 }
 
-/// Фреймы вида `<префикс>: <detail>`, где detail — вложенный [UiMsg]
-/// (обычно [RawMsg]-payload или результат formatUserError).
+
+
 enum ErrPrefix {
-  /// "platform error: {detail}"
+
   platformError,
 
-  /// "Reload failed: {detail}"
+
   reloadFailed,
 
-  /// "Switch failed: {detail}"
+
   switchFailed,
 
-  /// "Failed to parse config: {detail}"
+
   parseConfigFailed,
 
-  /// "Failed to read file: {detail}"
+
   readFileFailed,
 
-  /// "File error: {detail}"
+
   fileError,
 
-  /// "Error: {detail}"
+
   error,
 }
 
@@ -146,9 +146,9 @@ final class PrefixedMsg extends UiMsg {
   }
 }
 
-/// Фиксированные фразы без параметров (ключ → ARB-строка).
+
 enum ErrKey {
-  // ── home_controller / config_io ──
+
   failedToStartVpn,
   stopTimedOut,
   stopTimedOutReconnectAborted,
@@ -161,7 +161,7 @@ enum ErrKey {
   failedToReadFile,
   fileIsEmpty,
   noFileManager,
-  // ── subscription_controller add-пути ──
+
   invalidMasqueConfig,
   invalidWarpConfigObfuscated,
   invalidWarpConfig,
@@ -170,11 +170,11 @@ enum ErrKey {
   couldNotParseDirectLink,
   inputNotRecognized,
   noValidOutboundsInJson,
-  // ── humanizeError generic ──
+
   noConnection,
   requestTimedOut,
   cantParseResponse,
-  // ── папки / источники ──
+
   folderNotFound,
   notAFolder,
   serverNotFound,
@@ -190,9 +190,9 @@ enum ErrKey {
   onlySingleServersCanBeMoved,
 }
 
-/// §500 — отказ `addFromInput`: базовая фраза под полем; причины из
-/// `dropped[]` разбора — в шторке уведомлений (как у узла, §479).
-/// Без причин — как [ErrMsg].
+
+
+
 final class ParseInputRejectedMsg extends UiMsg {
   final ErrKey key;
   final List<NodeWarning> dropped;
@@ -232,7 +232,7 @@ final class ErrMsg extends UiMsg {
         ErrKey.failedToParseConfig => t.s("Failed to parse config"),
         ErrKey.failedToReadFile => t.s("Failed to read file"),
         ErrKey.fileIsEmpty => t.s("File is empty"),
-        // §372 — на устройстве нет файлового менеджера (Android TV).
+
         ErrKey.noFileManager => t.s(
             "No file manager on this device. Paste from the clipboard or add by URL instead."),
         ErrKey.invalidMasqueConfig => t.s("Invalid MASQUE config"),
@@ -262,7 +262,7 @@ final class ErrMsg extends UiMsg {
       };
 }
 
-/// `humanizeError(SocketException)` с извлечённым хостом.
+
 final class NoConnectionToHost extends UiMsg {
   final String host;
   const NoConnectionToHost(this.host);
@@ -274,7 +274,7 @@ final class NoConnectionToHost extends UiMsg {
   String renderWith(GetLocalText t) => t.s("No connection to %s — check network or URL", host);
 }
 
-/// `humanizeError(TimeoutException)` с известной длительностью.
+
 final class TimedOutAfter extends UiMsg {
   final int seconds;
   const TimedOutAfter(this.seconds);
@@ -286,7 +286,7 @@ final class TimedOutAfter extends UiMsg {
   String renderWith(GetLocalText t) => t.s("Timed out after %ds — server slow or unreachable", seconds);
 }
 
-/// `humanizeError(HttpException)` — короткое описание по HTTP-коду.
+
 final class HttpStatusMsg extends UiMsg {
   final int code;
   const HttpStatusMsg(this.code);
@@ -306,7 +306,7 @@ final class HttpStatusMsg extends UiMsg {
   }
 }
 
-/// §141 P0.1 — рендер [FatalValidationException] (список fatal-issues).
+
 final class ValidationFatalMsg extends UiMsg {
   final List<ValidationIssue> issues;
   const ValidationFatalMsg(this.issues);
@@ -323,7 +323,7 @@ final class ValidationFatalMsg extends UiMsg {
   }
 }
 
-/// §279 — обёртка [StopReason] для хранения в `HomeState.lastError`.
+
 final class StopReasonMsg extends UiMsg {
   final StopReason reason;
   const StopReasonMsg(this.reason);
@@ -335,15 +335,15 @@ final class StopReasonMsg extends UiMsg {
   String renderWith(GetLocalText t) => reason.messageWith(t);
 }
 
-/// §355 — DNS-сервер зависит от мёртвой ноды (через detour напрямую или
-/// через Направление, где она выбрана): его домены тихо не резолвятся. Баннер
-/// показывается ТОЛЬКО для DNS-ветки графа зависимостей (решение юзера
-/// 03.08.2026); больные ноды обходятся ⚠-меткой в списке.
-/// dns/root/via — wire-теги конфига, не переводятся.
+
+
+
+
+
 final class DnsViaDeadNodeMsg extends UiMsg {
   final String dnsTag;
   final String rootTag;
-  final String via; // '' → прямой detour (без части "selected in …")
+  final String via;
   const DnsViaDeadNodeMsg(this.dnsTag, this.rootTag, this.via);
 
   @override
@@ -360,12 +360,12 @@ final class DnsViaDeadNodeMsg extends UiMsg {
           via);
 }
 
-/// Ошибка ping/URLTest: `<target> → <host> — <reason>` (или без host).
-/// target/host — wire-значения (тег ноды, хост URL), не переводятся;
-/// джойнеры — пунктуация (spec §4.6).
+
+
+
 final class ProbeErrorMsg extends UiMsg {
   final String target;
-  final String host; // '' → без части "→ host"
+  final String host;
   final UiMsg reason;
   const ProbeErrorMsg(this.target, this.host, this.reason);
 
@@ -379,9 +379,9 @@ final class ProbeErrorMsg extends UiMsg {
   }
 }
 
-// ─────────────────────── Статусы подписки (SubscriptionEntry) ─────────────────
 
-/// Прогресс-баннер генерации конфига ("Building config...").
+
+
 final class SubStatusBuildingConfig extends UiMsg {
   const SubStatusBuildingConfig();
 
@@ -403,7 +403,7 @@ final class SubStatusJsonOutbound extends UiMsg {
   String renderWith(GetLocalText t) => t.s("JSON outbound");
 }
 
-/// `{n} nodes` / `{n} +{d}⚙ nodes`, опционально с суффиксом `(cached)`.
+
 final class SubStatusNodes extends UiMsg {
   final int nodes;
   final int detours;
@@ -422,7 +422,7 @@ final class SubStatusNodes extends UiMsg {
   }
 }
 
-/// `{n} nodes (update failed)` / `{n} nodes (update failed: 0 parsed)`.
+
 final class SubStatusUpdateFailed extends UiMsg {
   final int nodes;
   final bool zeroParsed;
@@ -437,8 +437,8 @@ final class SubStatusUpdateFailed extends UiMsg {
       : t.plural("%d nodes (update failed)", nodes);
 }
 
-/// `0 nodes` / `0 nodes — {hint}`; hint — английская диагностика парсера
-/// (machine-строка, passthrough).
+
+
 final class SubStatusZeroNodes extends UiMsg {
   final String? hint;
   const SubStatusZeroNodes([this.hint]);

@@ -11,19 +11,19 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §393 C3–C5 — эмиссия источников-цепочек через НАСТОЯЩИЙ `buildConfig`.
-//
-// Корпус (`test/contract/direction_corpus_test.dart`) нормирует те же вещи со
-// стороны контракта; здесь — случаи, которых в корпусе нет: ссылка ВПЕРЁД,
-// вложенная цепочка не первой позицией, коллизия тега, выключенная цепочка,
-// гейт версии ядра на самой сборке.
+
+
+
+
+
+
 
 const _newCore = '1.14.0-lx.27-rc.6';
 const _oldCore = '1.14.0-lx.27-rc.4';
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('§393 C3 — эмиссия цепочки узлом type:chain', () {
@@ -34,8 +34,8 @@ void main() {
       );
       final chain = _byTag(r, 'via-de')!;
       expect(chain['type'], 'chain');
-      // Первая позиция — ближайший к клиенту хоп. Перевёрнутый список дал бы
-      // работающий, но ДРУГОЙ маршрут (SPEC 110 T3).
+
+
       expect(chain['outbounds'], ['DE', 'NL']);
     });
 
@@ -112,9 +112,9 @@ void main() {
     });
   });
 
-  // §57 (контракт 1.1.61) — `on_hop_required` каталога strip: REALITY-звено
-  // требует `tls.utls`, ключ снимается с патча цепочки, цепочка собирается,
-  // код реестра — предупреждением. Прежде форма запирала такую цепочку.
+
+
+
   group('§57 — REALITY × strip tls.utls на звене', () {
     test('цепочка собирается, tls.utls снят с патча, код в отчёте', () async {
       final r = await _build(
@@ -182,9 +182,9 @@ void main() {
 
     test('ссылка ВПЕРЁД дропает цепочку целиком (антицикл держится порядком)',
         () async {
-      // Порядок объявления — единственное, чем исключены циклы между
-      // цепочками. Ссылка вниз неотличима от ссылки в никуда и обязана
-      // деградировать так же.
+
+
+
       final r = await _build(
         nodeTags: ['DE', 'NL', 'SG'],
         chains: [
@@ -204,14 +204,14 @@ void main() {
         chains: [const SourceChain(tag: 'broken', hops: [NodeLink(tag: 'DE'), NodeLink(tag: 'SG')])],
       );
       expect(_byTag(r, 'broken'), isNull);
-      // Именно «целиком»: маршрут без хопа — другой маршрут.
+
       expect(r.emitWarnings.join('\n'),
           contains('A route without a hop is a different route'));
     });
 
     test('вложенная цепочка позицией ≥1 дропает цепочку', () async {
-      // Инвариант ядра `protocol/chain/chain.go:279`: звено — это «узел через
-      // предыдущую позицию», а цепочка не узел.
+
+
       final r = await _build(
         nodeTags: ['DE', 'NL'],
         chains: [
@@ -226,7 +226,7 @@ void main() {
 
     test('коллизия тега с Направлением дропает цепочку, а не ломает конфиг',
         () async {
-      // Два outbound'а с одним тегом — отказ ядра на ВЕСЬ конфиг.
+
       final r = await _build(
         nodeTags: ['DE', 'NL'],
         chains: [const SourceChain(tag: 'vpn-1', hops: [NodeLink(tag: 'DE'), NodeLink(tag: 'NL')])],
@@ -250,8 +250,8 @@ void main() {
 
   group('§393 C4 / T9 — Направление не берёт цепочку через себя', () {
     test('прямой случай [proxy-out, exit] при фильтре «всё»', () async {
-      // Самый частый сценарий из всех (§393 L6): фильтр Направления ловит
-      // цепочку, которая через это же Направление проходит.
+
+
       final r = await _build(
         nodeTags: ['DE', 'NL'],
         chains: [const SourceChain(tag: 'via-de', hops: [NodeLink(tag: 'proxy-out'), NodeLink(tag: 'NL')])],
@@ -271,8 +271,8 @@ void main() {
         ],
         directions: [const Direction(tag: 'proxy-out', label: 'P')],
       );
-      // Обе цепочки эмитированы, но ни одна не входит в proxy-out: outer
-      // проходит через proxy-out ЧЕРЕЗ inner.
+
+
       expect(_byTag(r, 'inner'), isNotNull);
       expect(_byTag(r, 'outer'), isNotNull);
       expect(_byTag(r, 'proxy-out')!['outbounds'], ['DE', 'NL', 'SG']);
@@ -291,10 +291,10 @@ void main() {
     });
 
     test('вычет T9 НЕ винит фильтр Направления', () async {
-      // Фильтр поймал ровно цепочку и отработал правильно; убрал её T9.
-      // Сказать тут «node filter matched no nodes — Check its node filter»
-      // значит отправить пользователя искать несуществующую опечатку вместо
-      // настоящей причины, которая названа отдельной строкой про цикл.
+
+
+
+
       final r = await _build(
         nodeTags: ['DE'],
         chains: [const SourceChain(tag: 'via-de', hops: [NodeLink(tag: 'proxy-out'), NodeLink(tag: 'DE')])],
@@ -310,8 +310,8 @@ void main() {
 
     test('фильтр, реально не поймавший ничего, по-прежнему предупреждает',
         () async {
-      // Обратная сторона: гейт не должен заодно проглотить настоящую
-      // болезнь §200/§274.
+
+
       final r = await _build(
         nodeTags: ['DE'],
         directions: [
@@ -323,7 +323,7 @@ void main() {
     });
 
     test('без цепочек состав Направления не меняется вовсе', () async {
-      // Конфиги без цепочек обязаны собираться байт-в-байт как раньше.
+
       final r = await _build(nodeTags: ['DE', 'NL'], chains: []);
       expect(_byTag(r, 'vpn-1')!['outbounds'], ['DE', 'NL']);
       expect(r.emitWarnings, isEmpty);
@@ -355,7 +355,7 @@ void main() {
     });
 
     test('кривая строка версии — FAIL-OPEN, цепочка эмитится', () async {
-      // Деградировать на догадке нельзя: это отняло бы рабочий маршрут.
+
       for (final v in const ['', 'unknown', '1.13.11']) {
         final r = await _build(
           nodeTags: ['DE', 'NL'],
@@ -368,7 +368,7 @@ void main() {
   });
 }
 
-// ── helpers ─────────────────────────────────────────────────────────────────
+
 
 Future<BuildResult> _build({
   required List<String> nodeTags,
@@ -397,8 +397,8 @@ Map<String, dynamic>? _byTag(BuildResult r, String tag) {
   return null;
 }
 
-/// Минимальный шаблон: служебные outbound'ы + пустой route. Направления
-/// приходят целиком из настроек, поэтому `groupTemplates` пуст.
+
+
 WizardTemplate _template() => WizardTemplate(
       parserConfig: ParserConfigBlock(),
       groupTemplates: GroupTemplates(),

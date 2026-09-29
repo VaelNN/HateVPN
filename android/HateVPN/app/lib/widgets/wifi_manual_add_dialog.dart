@@ -4,20 +4,20 @@ import '../screens/custom_rule_edit/validators.dart';
 import 'wifi_entry.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// §053 Stage 1 — extract «Manual add Wi-Fi» dialog из
-/// `custom_rule_edit_screen.dart`. Self-contained, возвращает либо
-/// валидный `WifiEntry`, либо `null` если юзер cancel'нул.
-///
-/// Не пишет в storage и не дедуп'ит — это caller responsibility
-/// (editor добавляет в `_wifiNetworks` + `SettingsStorage.addToWifiHistory`).
-///
-/// Validation: SSID non-empty, BSSID empty или матчит `xx:xx:xx:xx:xx:xx`.
-/// BSSID lower-cased на возврате.
+
+
+
+
+
+
+
+
+
 Future<WifiEntry?> showWifiManualAddDialog(BuildContext context) async {
   final ssidCtrl = TextEditingController();
   final bssidCtrl = TextEditingController();
-  String? ssidError; // §219 — отдельная ошибка для SSID (раньше пустой SSID
-  String? errorText; // молча ничего не делал: errorText был только у BSSID).
+  String? ssidError;
+  String? errorText;
   return showDialog<WifiEntry>(
     context: context,
     builder: (ctx) => StatefulBuilder(
@@ -32,7 +32,7 @@ Future<WifiEntry?> showWifiManualAddDialog(BuildContext context) async {
               autofocus: true,
               decoration: InputDecoration(
                 labelText: getLocalText.s("SSID"),
-                // l10n-exempt: пример SSID, не переводится
+
                 hintText: 'lexRouter',
                 errorText: ssidError,
                 isDense: true,
@@ -44,9 +44,9 @@ Future<WifiEntry?> showWifiManualAddDialog(BuildContext context) async {
               controller: bssidCtrl,
               decoration: InputDecoration(
                 labelText: getLocalText.s("BSSID (optional)"),
-                // l10n-exempt: пример MAC-адреса, не переводится
+
                 hintText: '38:2c:4a:cf:6d:5c',
-                // l10n-exempt: маска формата, одинакова во всех локалях
+
                 helperText: 'xx:xx:xx:xx:xx:xx',
                 errorText: errorText,
                 isDense: true,

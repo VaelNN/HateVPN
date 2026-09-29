@@ -1,9 +1,9 @@
 part of '../settings_storage.dart';
 
-// Vars-домен + Wi-Fi history (§051) для [SettingsStorage].
-//
-// Вынесено `part`'ом — та же библиотека, тот же доступ к `_load`/`_save`/
-// `_cache`. Семантика storage-ключей идентична исходнику.
+
+
+
+
 
 Future<String> _getVar(String name, String defaultValue) async {
   final data = await _load();
@@ -17,8 +17,8 @@ Future<void> _setVar(String name, String value, {bool flush = true}) async {
   vars[name] = value;
   data['vars'] = vars;
   SettingsStorage._cache = data;
-  // §113 — config-var → конфиг устарел. Прочие var (сортировка, таймстемпы
-  // обновлений, wifi_history) флаг не поднимают.
+
+
   if (SettingsStorage._configVarKeys.contains(name)) {
     SettingsStorage.markConfigDirty();
   }
@@ -44,9 +44,9 @@ Future<void> _removeVar(String name) async {
 Future<List<Map<String, String>>> _getWifiHistory() async {
   final raw = await SettingsStorage.getVar('wifi_history', '[]');
   final decoded = (jsonDecode(raw) as List?) ?? const [];
-  // Growable — caller'ы (Pick saved bottom sheet) делают `removeWhere`
-  // для optimistic UI update. `growable: false` ломал это с silent
-  // UnsupportedError в setState callback.
+
+
+
   return decoded
       .whereType<Map>()
       .map<Map<String, String>>((e) => {

@@ -4,15 +4,15 @@ import '../../../models/custom_rule.dart';
 import '../widgets/section_header.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §117 задача 3 — DNS section: «DNS follows the rule».
-///
-/// Чекбокс + дропдаун «DNS server» из существующих серверов (по tag —
-/// locked decision №2). Правило только **ссылается** на сервер; detour
-/// сервера — зона задач 1/2 (№1).
-///
-/// Гейт: при непустых ports/protocols чекбокс серый + пометка (headless
-/// rule_set их не выразит; порт/протокол неизвестны в момент DNS-запроса).
-/// Для srs — серая пометка «работает, только если в rule-set есть домены».
+
+
+
+
+
+
+
+
+
 class DnsSection extends StatelessWidget {
   const DnsSection({
     super.key,
@@ -28,16 +28,16 @@ class DnsSection extends StatelessWidget {
   final RuleDns? dns;
   final List<String> serverTags;
 
-  /// true → чекбокс disabled (ports/protocols в форме).
+
   final bool gateBlocked;
 
-  /// true → серая пометка про IP-only rule-set'ы.
+
   final bool isSrs;
 
   final ValueChanged<bool> onEnabledChanged;
   final ValueChanged<String> onServerTagChanged;
 
-  /// §256 — переключение галки Force IPv4 (AAAA-глушилка).
+
   final ValueChanged<bool> onForceIpv4Changed;
 
   @override
@@ -47,8 +47,8 @@ class DnsSection extends StatelessWidget {
     final enabled = dns?.enabled ?? false;
     final forceIpv4 = dns?.forceIpv4 ?? false;
     final serverTag = dns?.serverTag ?? '';
-    // Выбранный tag мог исчезнуть из списка (сервер удалён) — показываем
-    // его в дропдауне, build тихо не эмитит mirror (решение №3).
+
+
     final tags = serverTags.contains(serverTag) || serverTag.isEmpty
         ? serverTags
         : [serverTag, ...serverTags];
@@ -111,8 +111,8 @@ class DnsSection extends StatelessWidget {
               ),
             ),
         ],
-        // §256 — Force IPv4: независимая галка (не требует dedicated-сервера;
-        // predefined отвечает локально). Тот же port/protocol-гейт.
+
+
         CheckboxListTile(
           dense: true,
           contentPadding: EdgeInsets.zero,

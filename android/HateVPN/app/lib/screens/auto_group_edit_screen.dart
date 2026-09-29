@@ -12,14 +12,14 @@ import '../services/ui_helpers.dart';
 import '../widgets/safe_bottom.dart';
 import '../widgets/urltest_idle_hint.dart';
 
-/// §322 — редактор узла автовыбора внутри папки.
-///
-/// Идиома проекта ([direction_edit_screen.dart]): Navigator.push + PopScope
-/// back-guard (Save/Keep/Discard) + AppBar delete/save.
-///
-/// Отличие от Направления: членство здесь — три режима (все / правило / список),
-/// и превью показывает, кто именно попал в пул. [candidates] — узлы папки
-/// (без самой группы), по ним и считается превью.
+
+
+
+
+
+
+
+
 class AutoGroupEditScreen extends StatefulWidget {
   const AutoGroupEditScreen({
     super.key,
@@ -28,11 +28,11 @@ class AutoGroupEditScreen extends StatefulWidget {
     required this.canDelete,
   });
 
-  /// `null` — создание нового узла.
+
   final AutoSelectSpec? initial;
 
-  /// Кандидаты в пул — узлы того же контейнера: ссылка на члена
-  /// `{id папки, сырой тег}` (§439) и имя.
+
+
   final List<({NodeLink key, String label})> candidates;
 
   final bool canDelete;
@@ -41,7 +41,7 @@ class AutoGroupEditScreen extends StatefulWidget {
   State<AutoGroupEditScreen> createState() => _AutoGroupEditScreenState();
 }
 
-/// Что вернул экран: сохранение или удаление.
+
 sealed class AutoGroupEditResult {
   const AutoGroupEditResult();
   const factory AutoGroupEditResult.saved(AutoSelectSpec spec) = AutoGroupSaved;
@@ -59,7 +59,7 @@ final class AutoGroupDeleted extends AutoGroupEditResult {
 
 enum _MembershipMode { all, rule, explicit }
 
-/// §565 — выбор режима группы: два вида автовыбора и ручной род.
+
 enum _Kind { fastest, balance, manual }
 
 class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
@@ -72,18 +72,18 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
   late final TextEditingController _idleCtrl;
   late final TextEditingController _poolCtrl;
   late final TextEditingController _poolToleranceCtrl;
-  late final TextEditingController _badgeCtrl; // §322 — UI-only значки
+  late final TextEditingController _badgeCtrl;
 
   late _MembershipMode _mode;
-  late Set<NodeLink> _picked; // ссылки для режима «список»
+  late Set<NodeLink> _picked;
   late UrltestMode _urlMode;
   late Set<StickyHashKey> _sticky;
-  late bool _interrupt; // §208 — рвать соединения при смене узла
-  late bool _manual; // §565 — род selector: член выбирается вручную
-  late String _default; // §565 — сырой тег выбранного члена
+  late bool _interrupt;
+  late bool _manual;
+  late String _default;
   bool _advanced = false;
 
-  late final AutoSelectSpec _initial; // снимок для сравнения «грязно ли»
+  late final AutoSelectSpec _initial;
 
   @override
   void initState() {
@@ -143,7 +143,7 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
 
   void _onChanged() => setState(() {});
 
-  // ── Сборка результата ──
+
 
   AutoSelectMembership _membership() => switch (_mode) {
         _MembershipMode.all => const RuleMembers(),
@@ -151,7 +151,7 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
             include: _includeCtrl.text.trim(),
             exclude: _excludeCtrl.text.trim(),
           ),
-        // Порядок — как в списке папки, а не как кликали чекбоксы.
+
         _MembershipMode.explicit => ExplicitMembers([
             for (final c in widget.candidates)
               if (_picked.contains(c.key)) c.key,
@@ -183,19 +183,19 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
         ],
         interruptExistConnections: _interrupt,
       ),
-      // Синонимы — производное от подписки; у папочной группы их нет, у
-      // приехавшей из подписки сохраняем как есть (правка их не меняет).
+
+
       tagSynonyms: widget.initial?.tagSynonyms ?? const {},
       poolBadge: _badgeCtrl.text.trim(),
-      // §565 — род и выбранный член. У автовыбора `default` доживает
-      // сквозным, как пришёл (контракт 1.1.50).
+
+
       genus: _manual ? GroupGenus.manual : GroupGenus.auto,
       manualDefault: _default,
     );
   }
 
-  /// Interval и idle timeout ровно такими, какими они уйдут в хранение:
-  /// пустое поле — умолчание [AutoSelectParams].
+
+
   String get _intervalValue {
     final v = _intervalCtrl.text.trim();
     return v.isEmpty ? const AutoSelectParams().interval : v;
@@ -208,11 +208,11 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
 
   bool _isDirty() => !_snapshot().sameGroupAs(_initial);
 
-  // ── Превью состава ──
 
-  /// Кандидаты, попавшие в пул при текущих настройках. Повторяет логику
-  /// `resolveAutoSelectMembers`, но по именам: синонимов у папочной группы
-  /// нет, а у приехавшей из подписки превью всё равно показывает имена.
+
+
+
+
   List<({NodeLink key, String label})> _matched() {
     switch (_mode) {
       case _MembershipMode.all:
@@ -232,7 +232,7 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
     }
   }
 
-  // ── Навигация ──
+
 
   Future<void> _handleBack() async {
     if (!_isDirty()) {
@@ -316,7 +316,7 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
             ),
             const Divider(height: 28),
 
-            // ── Членство ──
+
             Text(getLocalText.s("Servers in the pool"),
                 style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
             const SizedBox(height: 6),
@@ -346,9 +346,9 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
               ),
               onSelectionChanged: (s) => setState(() {
                 final next = s.first;
-                // Переключение «правило → список» разворачивает текущий
-                // результат в галочки: пользователь видит то же самое и может
-                // подправить руками, а не начинает с нуля.
+
+
+
                 if (next == _MembershipMode.explicit &&
                     _mode != _MembershipMode.explicit) {
                   _picked = _matched().map((c) => c.key).toSet();
@@ -387,7 +387,7 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
               const SizedBox(height: 8),
             ],
 
-            // Превью состава — общее для всех режимов.
+
             _previewLine(
               cs,
               getLocalText.s("%s of %s servers", '${matched.length}',
@@ -398,7 +398,7 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
 
             const Divider(height: 28),
 
-            // ── Режим выбора ──
+
             Text(getLocalText.s("Mode"),
                 style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
             const SizedBox(height: 6),
@@ -457,7 +457,7 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
 
             const Divider(height: 28),
 
-            // ── Advanced ──
+
             InkWell(
               onTap: () => setState(() => _advanced = !_advanced),
               child: Padding(
@@ -488,8 +488,8 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
       ? _Kind.manual
       : (_urlMode == UrltestMode.roundRobin ? _Kind.balance : _Kind.fastest);
 
-  /// §565 — род selector: выбранный член пула. Отметка — текущий `default`;
-  /// без него (или если член выпал из пула) ядро берёт первого.
+
+
   List<Widget> _manualControls(
       ColorScheme cs, List<({NodeLink key, String label})> matched) {
     if (matched.isEmpty) return const [];
@@ -528,8 +528,8 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
         style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
       );
 
-  /// Список кандидатов. В режиме «список» — с чекбоксами; иначе только
-  /// показывает, кто попал (галочка) и кто нет (приглушённый).
+
+
   Widget _memberList(
       ColorScheme cs, List<({NodeLink key, String label})> matched) {
     if (widget.candidates.isEmpty) {
@@ -588,7 +588,7 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
     );
   }
 
-  /// §208 — pool size / tolerance + sticky-чипы. Только под Load balance.
+
   List<Widget> _balancerControls(ColorScheme cs) {
     final n = widget.candidates.length;
     return [
@@ -667,7 +667,7 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
   }
 
   List<Widget> _advancedControls(ColorScheme cs) => [
-        // §565 — у ручного рода замеров нет: их поля не показываем.
+
         if (!_manual) ..._probeControls(),
         const SizedBox(height: 4),
         CheckboxListTile(
@@ -716,7 +716,7 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
         ],
       ];
 
-  /// Параметры замера автовыбора: адрес, период, простой.
+
   List<Widget> _probeControls() => [
         const SizedBox(height: 8),
         TextField(
@@ -760,9 +760,9 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
             ),
           ],
         ),
-        // §442 — interval > idle_timeout: сохранить можно, санитайзер сборки
-        // поднимет idle_timeout до interval. Условие — по значениям, которые
-        // уйдут в хранение (пустое поле — умолчание AutoSelectParams).
+
+
+
         if (urltestIdleRaiseTarget(_intervalValue, _idleValue)
             case final target?) ...[
           const SizedBox(height: 4),
@@ -773,8 +773,8 @@ class _AutoGroupEditScreenState extends State<AutoGroupEditScreen> {
         ],
       ];
 
-  // Названия ключей — как в §208-редакторе Направления: технические термины
-  // config'а, не переводим (l10n-exempt по тому же основанию).
+
+
   String _stickyLabel(StickyHashKey k) => switch (k) {
         StickyHashKey.process => 'process',
         StickyHashKey.domain => 'domain',

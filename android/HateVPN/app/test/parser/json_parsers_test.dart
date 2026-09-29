@@ -12,18 +12,18 @@ import 'package:lxbox/services/parser/singbox_config.dart';
 import 'engine_test_setup.dart';
 
 void main() {
-  // §480 W5 — Xray-вход идёт ДВИЖКОМ по секции `mappers.xray` реестра, и
-  // без загруженных секций разбор отвечает «узла нет». Запасного
-  // рукописного пути у переехавшего входа не осталось (критерий 7 спеки).
+
+
+
   setUpAll(loadEngineSections);
 
   group('parseSingboxEntry', () {
-    // §545 — связь flow ↔ transport судит только реестр
-    // (`vless.flow.conflicts`, `unless_set: [encryption]`). Узел sing-box JSON
-    // строится по карте санитайзера (`singbox_config.dart`), эмиттер своей
-    // копии правила не держит. Проверка идёт полным путём JSON-входа —
-    // `parseSingboxConfigs`, куда приходят и подписка, и редактор JSON, и
-    // Smart-Paste одиночного entry.
+
+
+
+
+
+
     group('§545 flow ↔ transport на JSON-входе судит реестр', () {
       const uuid = '11111111-2222-3333-4444-555555555555';
       const enc = 'mlkem768x25519plus.native.0rtt.AbCd-EfGh_IjKl0123456789';
@@ -138,11 +138,11 @@ void main() {
       expect(wg.peers.single.reserved, [1, 2, 3]);
     });
 
-    // SPEC 103 D-026 — canon = Go: mtu не эмитится, когда его не было в
-    // источнике (ядро само ставит 1408, transport/wireguard/endpoint.go).
-    // Было закреплено, что парсер сам подставляет 1408 — неканоничное
-    // поведение (свой дефолт спорил с ядром и ломал identity-хеш), тест
-    // обновлён.
+
+
+
+
+
     test('§219 wireguard: plain WG без mtu → mtu не задан (как URI-парсер)', () {
       final spec = parseSingboxEntry({
         'type': 'wireguard',
@@ -178,7 +178,7 @@ void main() {
         idleTimeout: '10m',
         keepAlive: '45s',
       );
-      // emit пишет sing-box JSON — читаем обратно через parseSingboxEntry.
+
       final json = orig.emit(TemplateVars.empty).map;
       final back = parseSingboxEntry(json.cast<String, dynamic>());
       expect(back, isA<MasqueSpec>());
@@ -195,10 +195,10 @@ void main() {
     });
 
     test('§393/0.8.0 (D-078) — masque: плоские legacy-ключи НЕ переносятся', () {
-      // Директива оператора 25.08: network/sni «не принимаем» — значения
-      // игнорируются (узел живёт на дефолтах), в эмит не протаскиваются
-      // (зеркально Go-стрипу sanitizeSingboxMasqueLegacy: плоский sni рядом
-      // с tls.server_name ронял ядро fail-fast'ом).
+
+
+
+
       final m = parseSingboxEntry({
         'type': 'masque',
         'tag': 'legacy',
@@ -211,9 +211,9 @@ void main() {
         'sni': '4pda.to',
       }) as MasqueSpec?;
       expect(m, isNotNull);
-      // Контракт 1.1.64 (корпус body/singbox/masque_tls_owner_rules, узел
-      // masque-no-vhttp-fragment): тело без `vhttp` остаётся без него —
-      // у ядра это `auto` (default реестра), а не прежний местный h3.
+
+
+
       expect(m!.vhttp, '', reason: 'legacy network игнорируется — ключа нет');
       expect(m.sni, isEmpty, reason: 'плоский sni не переносится');
       expect(m.disableSni, isFalse);
@@ -266,8 +266,8 @@ void main() {
     });
 
     test('§358 — hysteria2 с неизвестным obfs: тип отброшен, конфиг цел', () {
-      // §547 A2 — obfs судит реестр: полный путь JSON-входа
-      // (`parseSingboxConfigs`, модель по карте санитайзера, §545).
+
+
       final spec = parseSingboxConfigs([
         {
           'outbounds': [
@@ -336,8 +336,8 @@ void main() {
             'streamSettings': {
               'network': 'tcp',
               'security': 'reality',
-              // §169 — валидный X25519 (43-симв base64url). `PK` (2 симв)
-              // теперь невалиден и дал бы plain TLS без reality.
+
+
               'realitySettings': {
                 'publicKey': 'AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw',
                 'shortId': 'abcd',
@@ -377,7 +377,7 @@ void main() {
         ],
       }) as VlessSpec;
       expect(spec.encryption, enc, reason: 'вложено в users[0], берём оттуда');
-      // В конфиге ядра уровень вложенности другой — плоское поле аутбаунда.
+
       expect(spec.emit(TemplateVars.empty).map['encryption'], enc);
     });
 
@@ -472,9 +472,9 @@ void main() {
       expect(nodes.length, 3, reason: 'резервные ноды больше не теряются');
       expect(nodes.map((n) => n.server),
           ['node1.example', 'node3.example', 'node2n.example']);
-      // §322 — `remarks` без добавки положен ровно одной сущности элемента.
-      // Узлов несколько → тег получают ВСЕ, включая первый (раньше он брал
-      // чистый `remarks` и дрался за имя с группой автовыбора).
+
+
+
       expect(nodes.map((n) => n.label), [
         'Main Server proxy',
         'Main Server proxy-2',
@@ -507,16 +507,16 @@ void main() {
       expect(nodes.single.chained!.server, 'jump.example');
     });
 
-    // ════════════════════════════════════════════════════════════════════
-    // §404 / D-085 — недостижимый релей роняет ВЛАДЕЛЬЦА целиком
-    // ════════════════════════════════════════════════════════════════════
-    //
-    // Прежде негодная цель просто не давала звена, и владелец собирался с
-    // ПРЯМЫМ путём. Провайдер завернул дозвон в релей именно потому, что
-    // прямой выход нежелателен, — подмена его прямым путём это тихая
-    // деанонимизация, а не деградация.
+
+
+
+
+
+
+
+
     group('§404 dialerProxy непригоден → владелец отброшен', () {
-      /// Владелец с `dialerProxy` на [target] плюс перечисленные соседи.
+
       List<NodeSpec> parseWith(String target, List<Map<String, dynamic>> rest,
           {List<NodeWarning>? dropped}) {
         final main = vless('proxy', 'main.example');
@@ -530,10 +530,10 @@ void main() {
         );
       }
 
-      /// Причина отбраковки.
-      ///
-      /// §561 — единственный канал — подписочный `dropped`: выжившие узлы
-      /// чужую причину не несут (прежний носитель §404 P3 снят).
+
+
+
+
       Iterable<DialerProxyUnusableWarning> causes(
           List<NodeSpec> nodes, List<NodeWarning> dropped) {
         for (final n in nodes) {
@@ -598,16 +598,16 @@ void main() {
           },
           dropped: dropped,
         );
-        // Группа в элементе есть (балансировщик даёт узел автовыбора), но
-        // звеном служить не может — владелец выпадает. Причина — в
-        // подписочном `dropped`, выживший сосед чист (§561).
+
+
+
         expect(nodes.where((n) => n.server == 'main.example'), isEmpty);
         expect(causes(nodes, dropped), hasLength(1));
       });
 
       test('КОЛЬЦО: dialerProxy на самого себя', () {
-        // Тег владельца засеян в набор посещённых сразу, поэтому кольцо
-        // длины 1 ловится как кольцо, а не как бесконечная рекурсия.
+
+
         final dropped = <NodeWarning>[];
         expectDropped(parseWith('proxy', const [], dropped: dropped), dropped,
             'proxy');
@@ -624,15 +624,15 @@ void main() {
       });
 
       test('ГЛУБИНА больше лимита', () {
-        // Цепочка длиннее kMaxDetourDepth: усечь её значило бы выпустить
-        // трафик хопом раньше, чем задумал провайдер.
+
+
         final relays = <Map<String, dynamic>>[];
         for (var i = 0; i < kMaxDetourDepth + 2; i++) {
           final r = vless('r$i', 'r$i.example');
           (r['streamSettings'] as Map)['sockopt'] = {'dialerProxy': 'r${i + 1}'};
           relays.add(r);
         }
-        // Последнее звено цепочки — терминальное, без dialerProxy.
+
         (relays.last['streamSettings'] as Map).remove('sockopt');
         final dropped = <NodeWarning>[];
         final nodes = parseWith('r0', relays, dropped: dropped);
@@ -642,8 +642,8 @@ void main() {
       });
 
       test('сосед выжил → причина в dropped, сосед чист', () {
-        // §561 — отбраковка живёт только в `dropped[]` подписки: на рабочем
-        // соседе чужая ошибка человеку не нужна.
+
+
         final main = vless('proxy', 'main.example');
         (main['streamSettings'] as Map)['sockopt'] = {'dialerProxy': 'ghost'};
         final dropped = <NodeWarning>[];
@@ -839,9 +839,9 @@ void main() {
       });
     });
 
-    // §573 / контракт 1.1.83 — вторая форма фрагментации Xray:
-    // `streamSettings.finalmask.tcp[type=fragment]`; шум `tcpSettings: {}` и
-    // тройки `extra`. Ожидания — кейсы корпуса body/xray/ того же имени.
+
+
+
     group('§573 / контракт 1.1.83 — finalmask.tcp fragment', () {
       const fragmentMask = {
         'tcp': [
@@ -904,7 +904,7 @@ void main() {
         final tls = tlsOf(spec)!;
         expect(tls['fragment'], true);
         expect(tls.containsKey('record_fragment'), isFalse);
-        // Фикстура несёт и `tcpSettings: {}`, и дубль `extra.mode`.
+
         expect(unknownPaths(spec), isEmpty);
         expect(spec.warnings, isEmpty);
       });
@@ -1106,8 +1106,8 @@ void main() {
       });
 
       test('D-085: тег и label звена — СЫРОЙ тег релея, без ⚙', () {
-        // `⚙` занят §274-маркером Направлений и в конфиге ядра значит совсем
-        // другое. Маркер переехал на отрисовку списка узлов.
+
+
         final main = vless('proxy', 'main.example');
         (main['streamSettings'] as Map)['sockopt'] = {
           'dialerProxy': 'ru-upstream',
@@ -1172,7 +1172,7 @@ void main() {
       }, dropped: dropped);
       expect(nodes.map((n) => n.server), ['ok.example'],
           reason: 'битый outbound не роняет соседей по элементу');
-      // §561 — пропажа не молчаливая, но причина в `dropped[]`, не на соседе.
+
       expect(nodes.single.warnings, isEmpty);
       expect(dropped.whereType<RegistryWarning>().map((w) => w.ownerTag),
           ['proxy-bad']);
@@ -1197,10 +1197,10 @@ void main() {
     });
   });
 
-  // §321 P4/§322 — ИНВАРИАНТ: ключ идентичности, посчитанный парсером по
-  // сырому Xray-JSON (tagSynonyms), обязан посимвольно совпадать с
-  // nodeIdentityKey готового NodeSpec — иначе резолв пула на билде
-  // (server_list_build) молча выкидывает члена.
+
+
+
+
   group('идентичность parser ↔ builder', () {
     Map<String, dynamic> balancer(List<String> selector) => {
           'balancers': [
@@ -1237,9 +1237,9 @@ void main() {
       expect(syn, nodeIdentityKeyRaw(hy));
     });
 
-    // §513 — ветка hysteria зеркалит ту же дельту: секция требует порт,
-    // узла без порта нет, значит и ключ identity с придуманным 443 не
-    // строится. Раньше здесь стоял `?? 443`.
+
+
+
     test('hysteria без порта: узла нет, синонима у тега нет', () {
       final nodes = parseXrayElement({
         'remarks': 'HY',
@@ -1274,15 +1274,15 @@ void main() {
       expect(auto.tagSynonyms['hy-ok'], nodeIdentityKeyRaw(hy));
     });
 
-    // §480, дельта `vless_default_port` (19.09.2026): элемент БЕЗ порта
-    // больше не даёт узла. Дефолта порта нет и у самого Xray — `trojan` и
-    // `shadowsocks` отбраковывают такой элемент явно (infra/conf/trojan.go:
-    // 67-69), а `vless` порт не проверяет вовсе (infra/conf/vless.go:274-283)
-    // и собирает узел с нулём, падающий при первом дозвоне. Прежний дефолт
-    // 443 был единственным поведением, придумывавшим рабочий узел.
-    //
-    // Второй половине теста (§459 — `vision-udp443` порт узла НЕ трогает)
-    // дельта не касается, и она остаётся дословно прежней.
+
+
+
+
+
+
+
+
+
     test('vless без порта отбракован, vision-udp443 порт узла не трогает',
         () {
       final nodes = parseXrayElement({
@@ -1362,8 +1362,8 @@ void main() {
     });
   });
 
-  // §459 (контракт §24.2 п. 7.4) — `-udp443` нормализует flow и
-  // packet_encoding, но порт узла не трогает ни в одной из веток.
+
+
   group('§459 vision-udp443 не переписывает порт', () {
     test('Xray JSON: порт 8443 остаётся', () {
       final nodes = parseXrayElement({

@@ -3,9 +3,9 @@ import 'package:lxbox/models/dns_ref.dart';
 import 'package:lxbox/screens/dns_server_edit/edit_controller.dart';
 import 'package:lxbox/vpn/cc_channel.dart';
 
-/// §312 — форма DNS-группы: round-trip body↔поля, переходы режимов,
-/// duration-валидация; маппинг CcDnsGroup.
-/// Тело inline-сервера снимка контроллера (модель, не форма хранения).
+
+
+
 Map<String, dynamic> bodyOf(DnsServerEditController c) =>
     (c.snapshot() as DnsServerInline).body;
 
@@ -32,11 +32,11 @@ void main() {
       c.dispose();
     });
 
-    // v2.18.0-регрессия: сохранение группы падало с «Server address is
-    // required». Гейт в `_save()` требовал адрес при `serverMode != null`, а
-    // 'group' входит в kDnsServerModes наравне с udp/tls/https — при том что
-    // форма для группы поле адреса вообще не рисует (там участники).
-    // Заполнить его было НЕЧЕМ → сохранить группу было нельзя вовсе.
+
+
+
+
+
     test('isGroup отделяет группу от адресных режимов', () {
       final g = newCtrl({'type': 'group', 'servers': ['a']});
       expect(g.isGroup, isTrue);
@@ -102,7 +102,7 @@ void main() {
       final c = newCtrl({'type': 'group', 'servers': <String>[]});
       c.toggleGroupMember('a', true);
       c.toggleGroupMember('b', true);
-      c.toggleGroupMember('grp', true); // self — тег в tagCtrl
+      c.toggleGroupMember('grp', true);
       expect(c.groupMembers, ['a', 'b']);
       c.toggleGroupMember('a', false);
       expect(c.groupMembers, ['b']);
@@ -124,7 +124,7 @@ void main() {
     });
 
     test('isValidDnsDuration — граничные случаи', () {
-      expect(isValidDnsDuration(''), isTrue); // пусто = дефолт ядра
+      expect(isValidDnsDuration(''), isTrue);
       expect(isValidDnsDuration('2m'), isTrue);
       expect(isValidDnsDuration('90s'), isTrue);
       expect(isValidDnsDuration('1h5m30s'), isTrue);

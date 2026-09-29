@@ -7,12 +7,12 @@ import 'package:lxbox/models/background_mode.dart';
 import 'package:lxbox/models/tunnel_status.dart';
 import 'package:lxbox/vpn/box_vpn_client.dart';
 
-/// Narrow contract tests для MethodChannel'а VpnPlugin.
-/// Рендерить AppSettingsScreen целиком избыточно — он тянет SettingsStorage
-/// (path_provider), HapticService и 10+ других channels. Здесь проверяется
-/// только то, что Dart wrapper правильно пакует аргументы в native call —
-/// этого достаточно чтобы регрессия в сигнатуре (например `'mode'` → `'value'`)
-/// упала сразу, без запуска Android.
+
+
+
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -68,7 +68,7 @@ void main() {
     });
   });
 
-  // §271 — memory limit: контракт wire-значений + нормализация ответов native.
+
   group('BoxVpnClient memory limit (§271)', () {
     test('setMemoryLimit passes value to native', () async {
       await BoxVpnClient().setMemoryLimit('512');
@@ -105,9 +105,9 @@ void main() {
     });
   });
 
-  // §109 — контракт getAppInfo: null ТОЛЬКО при подтверждённом not-found;
-  // timeout/ошибка канала обязаны бросать, не маскироваться под null
-  // (регрессия: ложный «uninstalled, auto-skipped» на Tunnel apps).
+
+
+
   group('BoxVpnClient.getAppInfo (§109)', () {
     test('{notFound: true} → null (подтверждённый not-found)', () async {
       messenger.setMockMethodCallHandler(channel, (call) async {
@@ -178,8 +178,8 @@ void main() {
     });
   });
 
-  // §207 — pprof-снимки через единый native-метод `pprofProfile`
-  // (Dart передаёт готовый pathAndQuery).
+
+
   group('BoxVpnClient.pprof (§207)', () {
     test('pprofRaw passes pathAndQuery verbatim to the native call', () async {
       late MethodCall captured;
@@ -207,8 +207,8 @@ void main() {
 
     test('dumpGoroutines decodes UTF-8 bytes correctly (not Latin-1)',
         () async {
-      // Multi-byte UTF-8 (Cyrillic «тест») would be mojibake under
-      // String.fromCharCodes; utf8.decode round-trips it.
+
+
       final utf8Bytes = Uint8List.fromList(utf8.encode('goroutine тест ✓'));
       messenger.setMockMethodCallHandler(channel, (call) async => utf8Bytes);
       final text = await BoxVpnClient().dumpGoroutines();
@@ -235,7 +235,7 @@ void main() {
       await BoxVpnClient().captureCpuProfile(durationMs: 10000);
       expect(captured.arguments['pathAndQuery'], 'profile?seconds=10');
 
-      // durationMs below 1s clamps to 1 (pprof requires seconds>=1).
+
       await BoxVpnClient().captureCpuProfile(durationMs: 200);
       expect(captured.arguments['pathAndQuery'], 'profile?seconds=1');
     });
@@ -252,9 +252,9 @@ void main() {
     });
   });
 
-  /// §276 — pull-путь (`getVpnStatus`) на resume. Broadcast'ятся только
-  /// переходы, поэтому UI, вернувшийся из фона после перехвата слота, узнаёт о
-  /// revoke только отсюда. Native отдаёт map; голая строка — старый контракт.
+
+
+
   group('getVpnStatus', () {
     test('map со Stopped + revoked → revoked (перехват пережил фон)', () async {
       messenger.setMockMethodCallHandler(channel, (call) async {
@@ -288,8 +288,8 @@ void main() {
     });
   });
 
-  // §507 — контракт native-карты getMemoryInfo: ключи и байты. Сам AMS vs
-  // Debug — на устройстве; здесь только что Dart не теряет разбивку.
+
+
   group('BoxVpnClient.getMemoryInfo (§507)', () {
     test('парсит native-карту в MemoryInfo (байты как есть)', () async {
       late MethodCall captured;

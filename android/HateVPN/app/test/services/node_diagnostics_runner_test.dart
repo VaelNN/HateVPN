@@ -7,11 +7,11 @@ import 'package:lxbox/services/platform_channels.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §392 — раннер диагностики узла: выбор ветки probe/live по состоянию VPN,
-/// probe-сессия поднимается и ГАСИТСЯ, узел-группа отсекается до вызова ядра.
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -22,14 +22,14 @@ void main() {
 
   const uri = 'vless://u1@h1.example:443?type=ws&security=tls#Alpha';
 
-  /// Парс URI в ноду тем же путём, что и продовый код (FolderMember).
+
   NodeSpec nodeOf(String raw) => FolderMember(raw: raw).node!;
 
-  /// Мок native-стороны: ведёт журнал вызовов, отвечает по методу.
-  ///
-  /// [vpnStatus] — WIRE-литерал native ('Started'/'Stopped'), а не имя
-  /// TunnelStatus: `fromNative` мапит только их, всё прочее → `unknown`,
-  /// и ветка молча ушла бы в live.
+
+
+
+
+
   List<MethodCall> installHandler({
     required String vpnStatus,
     Map<String, dynamic>? getUrlReply,
@@ -72,7 +72,7 @@ void main() {
       final methods = calls.map((c) => c.method).toList();
       expect(methods, containsAllInOrder(
           ['probeStart', 'probeGetUrl', 'probeStop']));
-      // Боевой клиент в этой ветке не трогаем вовсе.
+
       expect(methods, isNot(contains('ccGetUrlViaOutbound')));
     });
 
@@ -100,8 +100,8 @@ void main() {
       );
       final call =
           calls.firstWhere((c) => c.method == 'ccGetUrlViaOutbound');
-      // В живом конфиге узлы подписки живут под display-тегом; bare там
-      // не резолвится — ядро вернуло бы «outbound not found».
+
+
       expect((call.arguments as Map)['tag'], 'pr: Alpha');
     });
 
@@ -139,9 +139,9 @@ void main() {
       final group = AutoSelectSpec(id: 'g-1', tag: 'Auto', label: 'Auto');
       expect(group.isGroup, isTrue);
 
-      // Группа — не соединение: своего outbound'а у неё нет, а её заготовка
-      // urltest с пустым outbounds роняет ВЕСЬ probe-конфиг («missing tags»).
-      // Поэтому отсекаем до старта сессии.
+
+
+
       await expectLater(
         NodeDiagnosticsRunner()
             .run(group, url: 'https://example.org', liveTag: 'pr: Auto'),
@@ -154,8 +154,8 @@ void main() {
 
     test('node == null + VPN выключен → no_node, ядро не зовётся', () async {
       final calls = installHandler(vpnStatus: 'Stopped');
-      // Экран просмотра outbound'а знает узел только по тегу собранного
-      // конфига — probe-конфиг собирать не из чего.
+
+
       await expectLater(
         NodeDiagnosticsRunner()
             .run(null, url: 'https://example.org', liveTag: 'pr: Alpha'),
@@ -200,8 +200,8 @@ void main() {
         url: 'https://example.org',
         liveTag: 'pr: Alpha',
       );
-      // Раннер бросает только когда прогон невозможен в принципе; отказ
-      // соединения — обычный итог, который UI показывает текстом ошибки.
+
+
       expect(outcome.ok, false);
       expect(outcome.result.error, contains('timeout'));
     });

@@ -3,11 +3,11 @@ import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/services/debug/handlers/rules.dart';
 import 'package:lxbox/services/debug/serializers/rules.dart';
 
-/// §256 — read/write симметрия DNS-опции правила в Debug API.
-///
-/// Read: `serializeCustomRule` → `dns.force_ipv4` (когда true).
-/// Write: `ruleFromJsonStrictForTest` (тест-хук над `_ruleFromJsonStrict`)
-/// парсит `force_ipv4` + допускает forceIpv4-only (без server_tag/enabled).
+
+
+
+
+
 void main() {
   Map<String, dynamic> baseInline(Map<String, dynamic> dns) => {
         'name': 'r',
@@ -63,7 +63,7 @@ void main() {
       final dns = wire['dns'] as Map<String, Object?>;
       expect(dns['force_ipv4'], true);
 
-      // Round-trip: read → write сохраняет force_ipv4.
+
       final parsed = ruleFromJsonStrictForTest({
         'name': 'r',
         'kind': 'inline',

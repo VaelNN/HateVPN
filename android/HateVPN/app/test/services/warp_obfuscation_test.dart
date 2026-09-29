@@ -9,13 +9,13 @@ import 'package:lxbox/services/warp/warp_client.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §126 — WARP + AmneziaWG 1.5 обфускация: preset, .conf round-trip, persist.
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
-  // client_id «AQID» = base64([1,2,3]).
+
   final clientId = base64.encode([1, 2, 3]);
 
   WarpAccount account({Awg? awg}) => WarpAccount(
@@ -45,7 +45,7 @@ void main() {
       expect(p['jc'], 4);
       expect(p['jmin'], 40);
       expect(p['jmax'], 70);
-      expect(p.containsKey('i1'), isFalse); // i1 генерится отдельно
+      expect(p.containsKey('i1'), isFalse);
     });
 
     test('§136 preset с кастомными jc/jmin/jmax', () {
@@ -53,7 +53,7 @@ void main() {
       expect(p['jc'], 120);
       expect(p['jmin'], 23);
       expect(p['jmax'], 911);
-      expect(p['s1'], 0); // S/H не трогаются
+      expect(p['s1'], 0);
       expect(p['h1'], 1);
     });
 
@@ -64,7 +64,7 @@ void main() {
       expect(awg.fields['ip'], 'quic');
       expect(awg.fields['id'], 'www.google.com');
       expect(awg.fields['ib'], 'firefox');
-      // i1 НЕ пишем — взаимоисключение с id/ip/ib (ядро отвергло бы оба).
+
       expect(awg.fields.containsKey('i1'), isFalse);
     });
 
@@ -73,14 +73,14 @@ void main() {
           const QuicParams(sni: 'ozon.ru', ip: 'dns'));
       expect(awg.fields['ip'], 'dns');
       expect(awg.fields['id'], 'ozon.ru');
-      expect(awg.fields.containsKey('ib'), isFalse); // ib только для quic
+      expect(awg.fields.containsKey('ib'), isFalse);
       expect(awg.fields.containsKey('i1'), isFalse);
     });
 
     test('§143 buildAmneziaAwg: пустой id → дефолтный домен; jc/jmin/jmax', () {
       final awg = WarpClient.buildAmneziaAwg(
           const QuicParams(sni: '', ip: 'quic', jc: 7, jmin: 10, jmax: 20));
-      expect(awg.fields['id'], 'www.google.com'); // fallback
+      expect(awg.fields['id'], 'www.google.com');
       expect(awg.fields['jc'], 7);
       expect(awg.fields['jmin'], 10);
       expect(awg.fields['jmax'], 20);
@@ -109,7 +109,7 @@ void main() {
       expect(conf.contains('H1 = 1'), isTrue);
       expect(conf.contains('IP = quic'), isTrue);
       expect(conf.contains('ID = ozon.ru'), isTrue);
-      expect(conf.contains('I1 ='), isFalse); // i1 не пишем (конфликт)
+      expect(conf.contains('I1 ='), isFalse);
     });
 
     test('§142 includeReserved=false → НЕТ Reserved (conf и uri)', () {
@@ -118,7 +118,7 @@ void main() {
           isFalse);
       expect(acc.toWireguardUri(includeReserved: false).contains('reserved'),
           isFalse);
-      // дефолт (true) — reserved есть (backward-compat).
+
       expect(acc.toWireguardConf().contains('Reserved = 1,2,3'), isTrue);
       expect(acc.toWireguardUri().contains('reserved'), isTrue);
     });
@@ -132,14 +132,14 @@ void main() {
 
       final spec = parseWireguardIni(conf);
       expect(spec, isNotNull);
-      // AWG + masquerade долетели.
+
       expect(spec!.awg, isNotNull);
       expect(spec.awg!.fields['jc'], 4);
       expect(spec.awg!.fields['s1'], 0);
       expect(spec.awg!.fields['h4'], 4);
       expect(spec.awg!.fields['ip'], 'dns');
       expect(spec.awg!.fields['id'], 'ozon.ru');
-      // reserved (WARP client_id) долетел в peer.
+
       expect(spec.peers, isNotEmpty);
       expect(spec.peers.first.reserved, [1, 2, 3]);
     });
@@ -178,16 +178,16 @@ void main() {
     });
 
     test('§138 copyWith(endpoint) применяет новый endpoint к аккаунту', () {
-      // Корень бага: закешированный аккаунт с дефолтным endpoint; юзер выбрал
-      // свой в Advanced. Без применения endpoint в узел шёл старый из кеша.
-      final cached = account(); // endpoint = defaultEndpoint
+
+
+      final cached = account();
       expect(cached.endpoint, WarpAccount.defaultEndpoint);
       final updated = cached.copyWith(endpoint: '188.114.97.6:988');
       expect(updated.endpoint, '188.114.97.6:988');
-      // остальное (ключи) не теряется.
+
       expect(updated.privKey, cached.privKey);
       expect(updated.peerPub, cached.peerPub);
-      // и доходит до .conf/URI узла.
+
       expect(updated.toWireguardUri(), contains('188.114.97.6:988'));
     });
   });

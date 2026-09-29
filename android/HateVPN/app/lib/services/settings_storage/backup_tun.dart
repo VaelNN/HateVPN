@@ -1,48 +1,48 @@
 part of '../settings_storage.dart';
 
-// Backup snapshot (§031) + tun-apps split-tunneling (§046) для
-// [SettingsStorage].
-//
-// Вынесено `part`'ом — та же библиотека, тот же доступ к `_load`/`_save`/
-// `_cache`. Семантика storage-ключей идентична исходнику.
+
+
+
+
+
 
 Future<Map<String, dynamic>> _dumpCache() async {
   final data = await _load();
   return jsonDecode(jsonEncode(data)) as Map<String, dynamic>;
 }
 
-/// §159 — применить snapshot при импорте. Фильтр default-deny на ВХОДЕ:
-/// top-level ∈ [SettingsStorage.allowedTopLevelKeys], подключи `vars` ∈
-/// (app-флаги ∪ vars текущего template). Всё прочее отбрасывается и
-/// возвращается в списке отброшенных (`dropped`) — caller логирует/показывает.
-///
-/// Закрывает оба входа в storage: UI-импорт бэкапа и Debug API
-/// `POST /backup/import` (оба сходятся здесь). Экспорт (`_dumpCache`) НЕ
-/// фильтруется — чистим только на входе.
-///
-/// `merge=false` (default) — replace целиком; `merge=true` — top-level upsert
-/// (присутствующие ключи overwrite, отсутствующие keep), `vars` мерджится
-/// per-subkey. Фильтр применяется к обоим путям.
-///
-/// §413 — при `merge=false` ключи Debug API ([SettingsStorage.debugApiVarKeys]),
-/// которых во входящем `vars` нет, переносятся из текущего стораджа. Экспорт
-/// их по умолчанию не включает (категория «Debug config» выключена, токен —
-/// секрет), и полная замена молча гасила Debug API устройства: порт и токен
-/// уходили вместе со всем `vars`. «Ключа нет в файле» = «не трогать», а не
-/// «сбросить». Ключ, который в файле есть, по-прежнему побеждает. §447 — так
-/// же переносятся флаги стартовых промптов
-/// ([SettingsStorage.startupPromptVarKeys]).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<List<String>> _replaceRaw(
   Map<String, dynamic> snapshot, {
   bool merge = false,
 }) async {
-  // Allowlist для vars: кодовые флаги ∪ имена vars из локального template
-  // (template в бэкап не входит — резолвим против зашитого в APK, §159).
+
+
   final template = await TemplateLoader.load();
 
-  // §439 §3.4 — снимок формы 2.23.2 мигрирует до allowlist'а. Входы бэкапа и
-  // Debug API мигрируют раньше (им нужен отчёт); здесь это no-op, а вызов
-  // страхует прочих вызывающих.
+
+
+
   final doc = jsonDecode(jsonEncode(snapshot)) as Map<String, dynamic>;
   final migration = migrateStorageDoc(
     doc,
@@ -50,7 +50,7 @@ Future<List<String>> _replaceRaw(
     subscriptionBodies: storageDocNeedsMigration(doc)
         ? await _subscriptionBodiesForMigration(doc)
         : const {},
-    recordVars: RecordVarDecls.fromTemplate(template), // §441 — Н2–Н4
+    recordVars: RecordVarDecls.fromTemplate(template),
   );
   if (migration.info.isNotEmpty) {
     AppLog.I.info('replaceRaw: snapshot migrated to storage_version '
@@ -91,8 +91,8 @@ Future<List<String>> _replaceRaw(
   }
 
   if (!merge) {
-    // §413 — Debug API устройства переживает полную замену, если файл
-    // о нём молчит.
+
+
     final current = await _load();
     final currentVars = current['vars'];
     if (currentVars is Map) {
@@ -100,7 +100,7 @@ Future<List<String>> _replaceRaw(
           <String, dynamic>{};
       for (final k in const {
         ...SettingsStorage.debugApiVarKeys,
-        ...SettingsStorage.startupPromptVarKeys, // §447
+        ...SettingsStorage.startupPromptVarKeys,
       }) {
         if (!outVars.containsKey(k) && currentVars.containsKey(k)) {
           outVars[k] = currentVars[k];
@@ -169,20 +169,20 @@ Future<void> _setTunApps(TunAppsConfig cfg, {bool flush = true}) async {
     'packages': dedup.toList()..sort(),
   };
   SettingsStorage._cache = data;
-  SettingsStorage.markConfigDirty(); // §113
+  SettingsStorage.markConfigDirty();
   if (flush) await _save();
 }
 
-/// Typed wrapper over `tun_apps` storage shape (§046).
+
 class TunAppsConfig {
   const TunAppsConfig({required this.mode, required this.packages});
 
-  /// `"off"` | `"allow"` | `"deny"`.
+
   final String mode;
   final List<String> packages;
 
-  /// §293 — валиден ли `mode` (единый источник для write-путей: storage-сеттер
-  /// и Debug-handler; был инлайн-список в обоих).
+
+
   static bool isValidMode(String mode) =>
       mode == 'off' || mode == 'allow' || mode == 'deny';
 

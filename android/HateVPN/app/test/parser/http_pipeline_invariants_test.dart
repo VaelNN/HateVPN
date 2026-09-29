@@ -10,10 +10,10 @@ import 'package:lxbox/services/contract/parse_warnings.dart';
 import 'package:lxbox/services/node_hash.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §472 шаг 6, раздел 3 спеки — инварианты переезда http(s)-прокси (§222) на
-/// конвейер.
 
-/// Снимок identity, снятый СТАРЫМ путём ДО правки (18.09.2026).
+
+
+
 const _identityFixture = 'test/fixtures/http/pipeline_identity_before.json';
 
 Map<String, Map<String, dynamic>> _identityBefore() {
@@ -92,7 +92,7 @@ void main() {
             reason: 'круг изменил identity: $u');
         checked++;
       }
-      // Круг проходят ВСЕ разбираемые кейсы, без исключений.
+
       expect(checked, greaterThan(8));
     }, skip: corpusSkip);
   });
@@ -149,7 +149,7 @@ void main() {
           _registry(spec).firstWhere((w) => w.code == 'utls_fp_unknown');
       expect(fp.path, 'tls.utls.fingerprint');
       expect(fp.value, 'bogus', reason: 'значение как написал автор');
-      // Отпечаток сведён к chrome — правилом реестра, не разбором.
+
       final tls = spec.emit(TemplateVars.empty).map['tls'] as Map;
       expect((tls['utls'] as Map)['fingerprint'], 'chrome');
     });
@@ -177,7 +177,7 @@ void main() {
     });
 
     test('security=none гасит TLS даже на https-схеме', () {
-      // `security_none_no_tls` — `applies_to` включает http.
+
       final spec =
           parseUri('proxy-https://u@h.example:443?security=none#n')!;
       expect(spec.emit(TemplateVars.empty).map.containsKey('tls'), isFalse);
@@ -200,7 +200,7 @@ void main() {
     test('headers: та же сериализация, что extra-headers у naive', () {
       final spec = parseUri(
           'proxy-http://u@h.example?headers=X-B%3A%20two%0D%0AX-A%3A%20one#n')!;
-      // Ключи отсортированы — так эмитят оба проекта.
+
       expect(spec.emit(TemplateVars.empty).map['headers'],
           {'X-A': 'one', 'X-B': 'two'});
     });

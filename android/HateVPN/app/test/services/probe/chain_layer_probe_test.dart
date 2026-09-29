@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -20,8 +20,8 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §394 — послойная проба цепочки: нарезка слоёв 0..k, схема тегов ядра,
-/// накопительные значения и дельты, обрыв слоя k помечает k+1.. not reached.
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -31,10 +31,10 @@ void main() {
 
   late Directory tempDir;
 
-  /// Мок native: журнал вызовов + ответы `ccUrlTestOutbound` по тегу.
-  ///
-  /// [vpnStatus] — WIRE-литерал native ('Started'/'Stopped'): `fromNative`
-  /// мапит только их.
+
+
+
+
   List<MethodCall> installHandler({
     required String vpnStatus,
     Map<String, Map<String, dynamic>> byTag = const {},
@@ -78,9 +78,9 @@ void main() {
   });
 
   group('схема тегов = лаунчерной', () {
-    // Литералы сверены с `config.ChainLayerTag` лаунчера
-    // (`core/config/chain_validate.go:100`) и первоисточником — `Chain.hopTag`
-    // ядра (`protocol/chain/chain.go:135`).
+
+
+
     test('<chain>#<pos>, позиции с нуля', () {
       expect(chainLayerTag('chain-1', 0), 'chain-1#0');
       expect(chainLayerTag('chain-1', 1), 'chain-1#1');
@@ -88,9 +88,9 @@ void main() {
     });
 
     test('тег с пробелом и решёткой в имени не меняет схему', () {
-      // «Germany #1» — обычное имя из публичной подписки; служебный тег
-      // цепочки от него отличается отсутствием пробела перед `#`
-      // (`ChainInternalTag` лаунчера).
+
+
+
       expect(chainLayerTag('Germany #1', 2), 'Germany #1#2');
     });
   });
@@ -113,7 +113,7 @@ void main() {
       expect([for (final l in report.layers) l.tag],
           ['warp', 'al-france', 'masque']);
       expect([for (final l in report.layers) l.pos], [0, 1, 2]);
-      // Пробится ровно по одному разу на слой и ровно этими тегами.
+
       final probed = [
         for (final c in calls)
           if (c.method == 'ccUrlTestOutbound')
@@ -134,7 +134,7 @@ void main() {
 
       expect([for (final l in report.layers) l.cumulativeMs],
           [127, 316, 675]);
-      // Первый слой опорной точки не имеет — цены нет.
+
       expect(report.deltaAt(0), isNull);
       expect(report.deltaAt(1), 316 - 127);
       expect(report.deltaAt(2), 675 - 316);
@@ -182,7 +182,7 @@ void main() {
       expect(report.layers[1].error,
           'position 1 (al-france): dial: i/o timeout');
       expect(report.layers[1].notReached, isFalse);
-      // Третий слой недостижим ПО ПОСТРОЕНИЮ — своей ошибки у него нет.
+
       expect(report.layers[2].notReached, isTrue);
       expect(report.layers[2].error, isEmpty);
       expect(report.layers[2].ok, isFalse);
@@ -192,8 +192,8 @@ void main() {
           if (c.method == 'ccUrlTestOutbound')
             (c.arguments as Map)['tag'] as String,
       ];
-      // Ядро о третьем слое не спрашивали вовсе: бюджет не тратится на
-      // заведомо мёртвый путь.
+
+
       expect(probed, ['chain-1#0', 'chain-1#1']);
     });
 

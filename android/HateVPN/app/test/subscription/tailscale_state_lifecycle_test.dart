@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -19,9 +19,9 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §445 — контроллер: `state_directory` узла Tailscale из индекса переживает
-/// правку тега члена и смену префикса папки; удаление члена удаляет каталог
-/// при остановленном ядре и оставляет его при поднятом.
+
+
+
 void main() {
   late Directory tempDir;
   late String root;
@@ -58,7 +58,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -81,18 +81,18 @@ void main() {
     await Directory(dirA).create(recursive: true);
     await File('$dirA/tailscaled.state').writeAsString('key');
 
-    // Правка тела члена: тег a → renamed.
+
     expect(await c.updateMemberAt(0, 0, tsRaw('renamed')), isNull);
-    await c.removeMemberAt(0, 1); // b — без каталога на диске
+    await c.removeMemberAt(0, 1);
     expect(await stateDirOf(c), dirA);
 
-    // Префикс папки.
+
     final entry = c.entries.single;
     await c.replaceList(0, (entry.list as dynamic).copyWith(tagPrefix: 'pr'));
     expect(await stateDirOf(c), dirA);
     expect(File('$dirA/tailscaled.state').existsSync(), isTrue);
 
-    // Удаление под поднятым ядром: каталог остаётся до сборки при остановленном.
+
     coreStopped = false;
     await c.removeMemberAt(0, 0);
     expect(Directory(dirA).existsSync(), isTrue);

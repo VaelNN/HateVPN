@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../widgets/section_header.dart';
 
-/// §225 (#17) — секция для raw-JSON правила (kind == json). Один monospace
-/// TextField с телом правила route.rules + inline-валидация (parse-ошибка →
-/// красный helper, Save заблокирован на уровне editor'а).
-///
-/// Действие правила — часть самого JSON, поэтому OutboundPicker и все
-/// match-секции (domain/port/wifi/dns) при json-режиме скрыты в ParamsTab.
+
+
+
+
+
+
 class JsonSection extends StatelessWidget {
   const JsonSection({
     super.key,
@@ -18,7 +18,7 @@ class JsonSection extends StatelessWidget {
 
   final TextEditingController controller;
 
-  /// `null` — тело валидно; иначе краткое описание ошибки под полем.
+
   final String? errorText;
 
   final VoidCallback onChanged;
@@ -55,7 +55,7 @@ class JsonSection extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             ),
             errorText: errorText,
-            // §447 — длинная причина (массив вместо объекта) переносится.
+
             errorMaxLines: 4,
             isDense: true,
           ),

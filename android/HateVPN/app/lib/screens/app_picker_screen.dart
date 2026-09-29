@@ -7,7 +7,7 @@ import '../models/app_info.dart';
 import '../services/app_info_cache.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// Screen for selecting apps. Returns updated list of package names on pop.
+
 class AppPickerResult {
   AppPickerResult({required this.packages});
   final List<String> packages;
@@ -27,14 +27,14 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
   late final Set<String> _selected;
   bool _loading = true;
   bool _showSystem = false;
-  bool _popped = false; // guard от двойного Navigator.pop
+  bool _popped = false;
   String _search = '';
 
   @override
   void initState() {
     super.initState();
     _selected = Set<String>.from(widget.selected);
-    // Let build() render the preloader first.
+
     Future.delayed(const Duration(milliseconds: 300), _load);
   }
 
@@ -56,9 +56,9 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
     );
   }
 
-  /// Рендер иконки для tile'а через общий [AppInfoCache]. На первом проходе
-  /// AppInfo обычно уже есть (loadAllApps populate'ит cache), но если pkg
-  /// ещё не подъехал — kick fire-and-forget fetch и letter-placeholder.
+
+
+
   Widget _iconFor(AppInfo app) {
     final pkg = app.packageName;
     AppInfoCache.ensure(pkg);
@@ -67,7 +67,7 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
       return Image.memory(info.icon!,
           width: 36, height: 36, gaplessPlayback: true);
     }
-    // Placeholder: первая буква имени в circle avatar.
+
     final letter = app.appName.isNotEmpty
         ? app.appName.characters.first.toUpperCase()
         : '?';
@@ -148,10 +148,10 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
 
     return PopScope(
       canPop: false,
-      // §108: системный back/жест обязан возвращать выбор так же, как
-      // стрелка в AppBar. С пустым handler'ом (canPop=true по умолчанию)
-      // роут попался с result=null — caller (`_pickApps`) молча выкидывал
-      // селекцию.
+
+
+
+
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         _safePop();
@@ -166,10 +166,10 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
           actions: [
             PopupMenuButton<String>(
               onSelected: (v) {
-                // Bulk-actions бессмысленны пока список не загрузился.
-                // §278 — export исключён из гейта: он читает только _selected
-                // (инициализирован синхронно из widget.selected), список
-                // приложений ему не нужен — а пункт меню и так enabled.
+
+
+
+
                 if (_loading && v != 'system' && v != 'export') return;
                 switch (v) {
                   case 'select_all': _selectAll();
@@ -248,11 +248,11 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
                       itemBuilder: (context, i) {
                         final app = apps[i];
                         final checked = _selected.contains(app.packageName);
-                        // §412 — тап по строке галочку НЕ переключает: при
-                        // прокрутке длинного списка палец задевал строку и
-                        // снимал выбор незаметно (4PDA #1702). Кликабелен
-                        // только сам Checkbox с его штатной областью
-                        // касания (48dp) — строка без onTap.
+
+
+
+
+
                         return ListTile(
                           leading: AnimatedBuilder(
                             animation: AppInfoCache.revision,

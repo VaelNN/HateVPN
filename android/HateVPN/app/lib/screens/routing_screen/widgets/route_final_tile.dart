@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../routing_screen_helpers.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// ListTile с дропдауном "Default traffic" (route.final) на табе Directions.
+
 class RouteFinalTile extends StatelessWidget {
   const RouteFinalTile({
     super.key,
@@ -34,7 +34,7 @@ class RouteFinalTile extends StatelessWidget {
           value: options.any((o) => o.tag == routeFinal)
               ? routeFinal
               : options.first.tag,
-          // §201 — danger-опция (block) красным, как reject в правилах.
+
           items: options
               .map((o) => DropdownMenuItem(
                   value: o.tag,

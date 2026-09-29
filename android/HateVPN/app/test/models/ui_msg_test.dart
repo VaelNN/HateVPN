@@ -9,9 +9,9 @@ import 'package:lxbox/models/validation.dart';
 import 'package:lxbox/services/l10n/get_local_text.dart';
 import 'package:lxbox/services/l10n/plural_resolver.dart';
 
-// §285 — sealed UiMsg: равенство по данным, рендер по локали (через
-// GetLocalText, не ARB), стабильность renderEn() (machine-поверхности не
-// зависят от активной локали). `_ru` — реальный словарь assets/l10n/ru/ui.json.
+
+
+
 GetLocalText _loadRu() {
   final raw = File('assets/l10n/ru/ui.json').readAsStringSync();
   final dict = jsonDecode(raw) as Map<String, dynamic>;
@@ -48,9 +48,9 @@ void main() {
           const PrefixedMsg(ErrPrefix.reloadFailed, RawMsg('x')) ==
               const PrefixedMsg(ErrPrefix.switchFailed, RawMsg('x')),
           isFalse);
-      // Разные типы с одинаковым рендером недопустимо считать равными.
+
       expect(
-          // ignore: unrelated_type_equality_checks
+
           const RawMsg('Failed to start VPN') ==
               const ErrMsg(ErrKey.failedToStartVpn),
           isFalse);
@@ -79,8 +79,8 @@ void main() {
 
     test('ErrMsg(tunnelNotResponding): heartbeat-стоп — типизированный UiMsg',
         () {
-      // Регрессия: heartbeat._onTunnelDead писал сырой String в
-      // copyWith(lastError:) (Object?-параметр) → runtime cast error.
+
+
       const m = ErrMsg(ErrKey.tunnelNotResponding);
       expect(m.renderEn(), 'Connection lost — VPN tunnel is not responding');
       expect(m.renderWith(ru), isNot(m.renderEn()));
@@ -146,11 +146,11 @@ void main() {
         HttpStatusMsg(503),
         StopReasonMsg(StopRevoked()),
       ];
-      // renderEn() не зависит ни от какого внешнего состояния локали.
+
       for (final m in msgs) {
         expect(m.renderEn(), isNot(contains(RegExp('[а-яА-ЯёЁ]'))));
       }
-      // NodeWarning/ValidationIssue/StopReason — та же гарантия.
+
       expect(const UnknownObfsWarning('junk').renderEn(), contains('junk'));
       expect(const EmptyUrltestGroup('auto').renderEn(),
           'URL-test group "auto" has no outbounds.');
@@ -175,7 +175,7 @@ void main() {
           const DetourCycle(['a', 'b']) == const DetourCycle(['a', 'c']),
           isFalse);
       expect(
-          // ignore: unrelated_type_equality_checks
+
           const EmptyUrltestGroup('t') == const InvalidDefault('t', 't'),
           isFalse);
     });

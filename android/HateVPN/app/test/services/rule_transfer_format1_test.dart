@@ -7,11 +7,11 @@ import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/models/record_codec.dart';
 import 'package:lxbox/services/rule_transfer.dart';
 
-/// §439 §3.4 — файл правил (§396): экспорт пишет `format: 2` — записи хранения
-/// 1.0 со всеми полями LxBox (`verbatim`, `update_interval_hours`,
-/// `description`, `vars` сервера); `format: 1` (форма хранения 2.23.2) читают
-/// замороженные читатели `legacy_form_v0.dart`. Какой читатель берётся, решает
-/// `format` конверта, а не вид элемента.
+
+
+
+
+
 
 final _template = WizardTemplate.fromJson({
   'dns_options': {
@@ -55,7 +55,7 @@ SanitizedImportDnsItem<DnsRuleRef> _dnsRule(dynamic entry, int format) =>
     sanitizeImportedDnsRule(entry,
         existingRules: const [], template: _template, format: format);
 
-/// Запись правила без `id` (импорт выдаёт новый) — для сравнения моделей.
+
 Map<String, dynamic> _withoutId(CustomRule r) => ruleToRecord(r)..remove('id');
 
 void main() {
@@ -333,8 +333,8 @@ void main() {
                   kRulesExportFormatVersion)
               .skipReason,
           ImportDnsSkipReason.unsupportedEntry);
-      // Элемент правила формы 2.23.2: матчеры и цель — ключи верхнего
-      // уровня, у записи 1.0 они в `body`, и кодек их не видит.
+
+
       final old = _rule({
         'kind': 'inline',
         'name': 'Old',

@@ -1,4 +1,4 @@
-// §043: AppLog per-source quotas + k-way merge + entriesForSource.
+
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -25,7 +25,7 @@ void main() {
 
     test('app spam не вытесняет core entries', () {
       AppLog.I.info('preserve me', source: DebugSource.core);
-      // Спам app до cap'а app (300) и за пределы.
+
       for (var i = 0; i < 350; i++) {
         AppLog.I.info('app msg $i', source: DebugSource.app);
       }
@@ -51,13 +51,13 @@ void main() {
     });
 
     test('per-source cap drop oldest', () {
-      // App cap = 300. Push 305 → должен остаться last 300.
+
       for (var i = 0; i < 305; i++) {
         AppLog.I.info('msg $i', source: DebugSource.app);
       }
       final list = AppLog.I.entriesForSource(DebugSource.app);
       expect(list.length, 300);
-      // newest first → first entry msg 304, last entry msg 5
+
       expect(list.first.message, 'msg 304');
       expect(list.last.message, 'msg 5');
     });
@@ -65,7 +65,7 @@ void main() {
 
   group('AppLog.entries — k-way merge (§043)', () {
     test('merged result отсортирован newest-first по обоим source', () async {
-      // Чередуем источники с микро-паузой чтобы timestamps были различными.
+
       AppLog.I.info('app 1', source: DebugSource.app);
       await Future<void>.delayed(const Duration(milliseconds: 2));
       AppLog.I.info('core 1', source: DebugSource.core);
@@ -80,28 +80,28 @@ void main() {
     });
 
     test('пустые buckets не ломают merge', () {
-      // Только app, core пуст.
+
       AppLog.I.info('only app', source: DebugSource.app);
       expect(AppLog.I.entries.map((e) => e.message), ['only app']);
 
-      // Только core, app пуст.
+
       AppLog.I.resetForTesting();
       AppLog.I.info('only core', source: DebugSource.core);
       expect(AppLog.I.entries.map((e) => e.message), ['only core']);
 
-      // Оба пусты.
+
       AppLog.I.resetForTesting();
       expect(AppLog.I.entries, isEmpty);
     });
 
     test('merged result preserves order для одного и того же timestamp', () async {
-      // Если timestamp совпадают (микросекунда), порядок tie-breaking — не
-      // спецификация, но он должен быть стабильным. Проверяем что merge
-      // не падает на одинаковых временах.
+
+
+
       final t = DateTime.now();
-      // (Прямой инжект через resetForTesting + log не поддерживает
-      // injection времени, поэтому просто пушим быстро и проверяем что
-      // нет crash.)
+
+
+
       AppLog.I.info('a', source: DebugSource.app);
       AppLog.I.info('c', source: DebugSource.core);
       expect(AppLog.I.entries.length, 2);

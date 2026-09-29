@@ -16,7 +16,7 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 import '../../parser/engine_test_setup.dart';
 import '../../parser/parse_link_as.dart';
 
-/// §502/§505 — уведомления узла на главном экране: старший уровень и источники.
+
 void main() {
   setUpAll(loadEngineSections);
   tearDownAll(unloadEngineSections);
@@ -84,9 +84,9 @@ void main() {
     });
   });
 
-  // §513 — отдельный `nodeSpecForConfigTag` снят: в lib/ его никто не звал,
-  // главный экран ищет узел через `storedNodeOfEmittedTag` (§505). Кейс
-  // «префикс записи → bare-тег» проверяется на реальном пути.
+
+
+
   group('storedNodeOfEmittedTag', () {
     test('одиночный сервер с префиксом — bare-тег', () {
       final node = awgHomeNode();
@@ -301,8 +301,8 @@ void main() {
       filter.dispose();
     });
 
-    // §511 M3 — тик статистики даёт новый HomeState с теми же узлами: уровни
-    // не пересчитываются; смена записей или карты сборки — пересчёт.
+
+
     test('уведомления кэшируются по входам, тик статистики их не считает',
         () {
       final node = awgHomeNode();

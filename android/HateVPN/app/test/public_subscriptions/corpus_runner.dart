@@ -1,13 +1,13 @@
-// §525 — прогон конвейера разбора по корпусу публичных подписок.
-//
-// Одна реализация на два потребителя: тест
-// (`public_subs_corpus_test.dart`) и CLI (`tool/public_subs/run.dart`).
-// Разойдись они, «прогон в CI» и «прогон руками» считали бы по-разному.
-//
-// Что делает прогон: по каждому снимку `decode()` → `parseAll(dropped:)`, и
-// собирает ЧИСЛА — узлы, коды отбраковок, коды предупреждений, покрытие
-// «протокол × транспорт × security». Конфиг НЕ собирается, ядро НЕ
-// запускается, в сеть прогон не ходит: тела берутся с диска.
+
+
+
+
+
+
+
+
+
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -22,18 +22,18 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/parse_all.dart';
 
-/// Корень корпуса относительно `app/` (рабочий каталог и тестов, и CLI).
+
 const kCorpusRoot = 'test/fixtures/public_subscriptions';
 
-/// Реестр — из бандлируемого зеркала, как у остальных тестов (§486).
+
 const _kRegistryRoot = 'assets/contract';
 const _kDraftRoot = 'assets/contract_draft';
 
-/// Корпус на месте? Его отсутствие — законный skip, а не падение: клон без
-/// LFS/фикстур должен собираться.
+
+
 bool get corpusAvailable => File('$kCorpusRoot/index.json').existsSync();
 
-/// Одна запись индекса корпуса.
+
 class CorpusEntry {
   CorpusEntry(this.raw);
   final Map<String, dynamic> raw;
@@ -46,19 +46,19 @@ class CorpusEntry {
   int get bodyBytes => raw['body_bytes'] as int? ?? 0;
   String get kindHint => raw['body_kind_hint'] as String? ?? '';
 
-  /// Тело снимка. Файл лежит `.gz` (сжат КОРПУС, не транспорт) — снимаем.
+
   String readBody() {
     final f = File('$kCorpusRoot/$bodyFile');
     final bytes = f.path.endsWith('.gz')
         ? gzip.decode(f.readAsBytesSync())
         : f.readAsBytesSync();
-    // `allowMalformed` — тела бывают в чужой кодировке; разбор обязан их
-    // переварить, а не упасть на декодировании.
+
+
     return utf8.decode(bytes, allowMalformed: true);
   }
 }
 
-/// Результат прогона по одному снимку.
+
 class SubscriptionResult {
   SubscriptionResult({
     required this.id,
@@ -80,29 +80,29 @@ class SubscriptionResult {
   final String url;
   final String source;
 
-  /// Как `decode()` опознал тело (`UriLines`, `JsonConfig:xray_config`, …).
+
   final String decodedKind;
   final int nodesTotal;
   final int groupsTotal;
 
-  /// `type` из `emit()` → число узлов.
+
   final Map<String, int> byType;
 
-  /// Коды отбраковок целых записей (`dropped[]` конвейера) → число.
+
   final Map<String, int> dropped;
 
-  /// Коды предупреждений на выживших узлах → число.
+
   final Map<String, int> warnings;
 
-  /// `протокол|транспорт|security` → число узлов (метрика покрытия).
+
   final Map<String, int> coverage;
 
   final int parseMs;
 
-  /// Непустая строка, если `decode()` отказал (`DecodeFailure.reason`).
+
   final String? decodeFailure;
 
-  /// До трёх примеров отбракованных строк — для анализа, адреса замаскированы.
+
   final List<String> sampleDropLines;
 
   Map<String, dynamic> toJson() => {
@@ -121,9 +121,9 @@ class SubscriptionResult {
         if (sampleDropLines.isNotEmpty) 'sample_drop_lines': sampleDropLines,
       };
 
-  /// Эталонный срез: только ЧИСЛА, без времени разбора и примеров. Время
-  /// машинозависимо, и эталон, который его несёт, расходился бы на каждом
-  /// прогоне.
+
+
+
   Map<String, dynamic> toExpected() => {
         'nodes_total': nodesTotal,
         'dropped': _sorted(dropped),
@@ -136,7 +136,7 @@ Map<String, int> _sorted(Map<String, int> m) {
   return {for (final k in keys) k: m[k]!};
 }
 
-/// Загрузить реестр и секции — без биндингов Flutter (§486, `loadFromDirectory`).
+
 Future<void> loadCorpusRegistry() async {
   if (!ContractRegistry.I.isLoaded) {
     await ContractRegistry.I.loadFromDirectory(_kRegistryRoot);
@@ -144,7 +144,7 @@ Future<void> loadCorpusRegistry() async {
   await MapperSections.I.loadDrafts(dir: _kDraftRoot, files: kDraftFiles);
 }
 
-/// Прочитать индекс корпуса.
+
 List<CorpusEntry> readCorpusIndex() {
   final decoded =
       jsonDecode(File('$kCorpusRoot/index.json').readAsStringSync());
@@ -154,7 +154,7 @@ List<CorpusEntry> readCorpusIndex() {
   ];
 }
 
-/// Прогон по одному снимку. В сеть не ходит, конфиг не собирает.
+
 SubscriptionResult runOne(CorpusEntry entry) {
   final body = entry.readBody();
   final sw = Stopwatch()..start();
@@ -212,20 +212,20 @@ Map<String, dynamic>? _emitOf(NodeSpec n) {
   try {
     return Map<String, dynamic>.from(n.emit(TemplateVars.empty).map);
   } catch (_) {
-    // Эмит узла падать не должен, но прогон корпуса из-за одного узла —
-    // тем более.
+
+
     return null;
   }
 }
 
-/// Транспорт узла для таблицы покрытия. `none` — прямой TCP/UDP без обёртки.
+
 String _transportOf(Map<String, dynamic>? body) {
   final t = body?['transport'];
   if (t is Map && t['type'] is String) return t['type'] as String;
   return 'none';
 }
 
-/// Слой безопасности: `reality` сильнее `tls`, дальше — что объявлено телом.
+
 String _securityOf(Map<String, dynamic>? body) {
   final tls = body?['tls'];
   if (tls is! Map) return 'none';
@@ -243,8 +243,8 @@ String _kindOf(DecodedBody d) => switch (d) {
       DecodeFailure() => 'decode_failure',
     };
 
-/// Примеры строк, которые разбор не превратил в узел. Адрес маскируется: отчёт
-/// про КОДЫ, а не про чужие серверы.
+
+
 List<String> _sampleDropLines(DecodedBody decoded, List<NodeSpec> nodes) {
   if (decoded is! UriLines) return const [];
   if (nodes.isNotEmpty) return const [];
@@ -256,22 +256,22 @@ List<String> _sampleDropLines(DecodedBody decoded, List<NodeSpec> nodes) {
   return out;
 }
 
-/// Схема и форма строки остаются, узнаваемые части — нет.
+
 String _maskLine(String line) {
   var s = line.length > 160 ? '${line.substring(0, 160)}…' : line;
-  // user@host:port → ***@***:port
+
   s = s.replaceAllMapped(
       RegExp(r'//[^@/?#]*@'), (_) => '//***@');
   s = s.replaceAllMapped(
       RegExp(r'@([^/?#:]+)'), (_) => '@***');
-  // Осмысленные хвосты запроса (sni/host/pbk) — тоже адреса.
+
   s = s.replaceAllMapped(
       RegExp(r'([?&](?:sni|host|pbk|sid|serverName)=)[^&#]*'),
       (m) => '${m[1]}***');
   return s;
 }
 
-/// Полный прогон по индексу. Мёртвые URL без тела пропускаются.
+
 Future<List<SubscriptionResult>> runCorpus({void Function(String)? log}) async {
   await loadCorpusRegistry();
   final out = <SubscriptionResult>[];

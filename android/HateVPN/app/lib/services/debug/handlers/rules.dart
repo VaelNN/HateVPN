@@ -11,29 +11,29 @@ import '../transport/request.dart';
 import '../transport/response.dart';
 import '_shared.dart';
 
-/// §256 — тест-хук для чистого парсера тела правила (без storage/rebuild),
-/// чтобы покрыть read/write симметрию DNS-полей. Суффикс `ForTest` —
-/// конвенция «вызывать только из тестов» (meta-аннотацию не тянем в deps).
+
+
+
 CustomRule ruleFromJsonStrictForTest(Map<String, dynamic> j) =>
     _ruleFromJsonStrict(j);
 
-/// `/rules/*` — CRUD для custom routing rules (§030).
-///
-/// Работает поверх [SettingsStorage.getCustomRules] / [saveCustomRules] —
-/// тот же write-путь что и UI, атомарность read-modify-write на уровне storage.
-///
-/// Routes:
-/// - `GET    /rules`             → list (alias для /state/rules)
-/// - `POST   /rules`             → create (UUID генерится сервером)
-/// - `POST   /rules/reorder`     → reorder (body: `{"order":[id,...]}`)
-/// - `GET    /rules/{id}`        → single
-/// - `PATCH  /rules/{id}`        → partial update
-/// - `DELETE /rules/{id}`        → remove
-/// - `POST /rules/move`          → §370 переставить одно правило по оси `num`
-///                                  (зеркало drag'а: `{id, after}`)
-///
-/// Любой write принимает `?rebuild=true` — после успешного write'а
-/// регенерирует sing-box конфиг (см. [maybeRebuild]).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> rulesHandler(DebugRequest req, DebugContext ctx) async {
   final path = req.path;
 
@@ -52,7 +52,7 @@ Future<DebugResponse> rulesHandler(DebugRequest req, DebugContext ctx) async {
     return _reorder(req);
   }
 
-  // §370 — точечный move (зеркало drag'а в UI).
+
   if (path == '/rules/move') {
     if (req.method != 'POST') {
       throw BadRequest('move requires POST, got ${req.method}');
@@ -94,13 +94,13 @@ Future<DebugResponse> _single(String id) async {
 
 Future<DebugResponse> _create(DebugRequest req, DebugContext ctx) async {
   final body = req.jsonBodyAsMap();
-  // id из body игнорируется — сервер всегда генерит fresh UUID.
+
   final stripped = Map<String, dynamic>.from(body)..remove('id');
   final rule = _ruleFromJsonStrict(stripped);
   final rules = await SettingsStorage.getCustomRules();
-  // §370 — тот же путь, что UI (`_addCustomRule`): пресет садится на свой
-  // шаблонный `num`, пользовательское правило — в конец занятой части зоны.
-  // Явный `num` в body уважаем: он нужен, чтобы гонять раскладку из тестов.
+
+
+
   rule.orderNum ??= rule.kind == CustomRuleKind.preset
       ? (await _templateNumFor(rule.presetId)) ?? nextUserRuleNum(rules)
       : nextUserRuleNum(rules);
@@ -128,16 +128,16 @@ Future<DebugResponse> _update(
   return JsonResponse({...serialized, ...extras});
 }
 
-/// Патч правила телом `PATCH /rules/{id}` (snake_case, как у POST).
-///
-/// Отсутствующий ключ оставляет поле как есть; `"dns": null` и
-/// `"resolve": null` очищают опцию. Смена `kind` сначала переводит правило в
-/// новый вид ([_retype]), затем поля патчатся `copyWith` этого вида; поле,
-/// которого у вида нет (`preset_id` у inline, `srs_url` у preset), молча не
-/// применяется.
-///
-/// Поля читаются в прежнем порядке: при нескольких битых полях 400 называет
-/// то же поле.
+
+
+
+
+
+
+
+
+
+
 CustomRule _patchRule(CustomRule current, Map<String, dynamic> body) {
   final name = fieldString(body, 'name');
   final enabled = fieldBool(body, 'enabled');
@@ -150,31 +150,31 @@ CustomRule _patchRule(CustomRule current, Map<String, dynamic> body) {
   final portRanges = fieldStringList(body, 'port_ranges');
   final packages = fieldStringList(body, 'packages');
   final protocols = fieldStringList(body, 'protocols');
-  // §240 — L4-транспорт (tcp/udp/icmp).
+
   final network = fieldStringList(body, 'network');
   final ipIsPrivate = fieldBool(body, 'ip_is_private');
-  // §030/new_fields — source-ось + inbound.
+
   final sourceIpCidrs = fieldStringList(body, 'source_ip_cidrs');
   final sourceIpIsPrivate = fieldBool(body, 'source_ip_is_private');
   final inbounds = fieldStringList(body, 'inbounds');
-  // §051 — wifi-условия. `wifi_ssids` остаётся as-is, `wifi_bssids`
-  // нормализуем lower-case на write-side для consistency.
+
+
   final wifiSsids = fieldStringList(body, 'wifi_ssids');
   final rawBssids = fieldStringList(body, 'wifi_bssids');
   final wifiBssids = rawBssids == null ? null : _validateBssids(rawBssids);
-  // ## 12 — `srs_urls` (список) главнее `srs_url`; одиночный `srs_url`
-  // заменяет весь список одним набором.
+
+
   final srsUrlList = fieldStringList(body, 'srs_urls');
   final srsUrl = fieldString(body, 'srs_url');
   final srsUrls = srsUrlList ?? (srsUrl == null ? null : [srsUrl]);
   final outbound = fieldString(body, 'outbound');
-  // Preset-kind поля (task 011 / spec §033).
+
   final presetId = fieldString(body, 'preset_id');
   final varsValues = fieldStringMap(body, 'vars_values');
-  // §117 задача 3 — DNS-опция. `"dns": null` явно очищает поле.
+
   final clearDns = body.containsKey('dns') && body['dns'] == null;
   final dns = clearDns ? null : _fieldRuleDns(body, 'dns');
-  // §247 — resolve-опция. `"resolve": null` явно очищает поле.
+
   final clearResolve = body.containsKey('resolve') && body['resolve'] == null;
   final resolve = clearResolve ? null : _fieldRuleResolve(body, 'resolve');
 
@@ -234,12 +234,12 @@ CustomRule _patchRule(CustomRule current, Map<String, dynamic> body) {
   };
 }
 
-/// Правило вида [kind] с полями [r], которые этот вид умеет держать; прочее —
-/// дефолты вида. Тот же вид — [r] как есть.
-///
-/// У inline и srs общие доп-фильтры, `outbound`, `dns`, `resolve`; домены и
-/// `ip_cidr` есть только у inline, наборы `.srs` и TTL — только у srs. У
-/// preset и json своего `outbound` нет: из них правило уходит на direct-out.
+
+
+
+
+
+
 CustomRule _retype(CustomRule r, CustomRuleKind kind) {
   if (r.kind == kind) return r;
   final outbound = switch (r) {
@@ -352,10 +352,10 @@ Future<DebugResponse> _reorder(DebugRequest req) async {
     );
   }
   final reordered = order.map((id) => byId[id]!).toList();
-  // §370 — порядок задаёт ось `num`, а не позиция в массиве: без пересчёта
-  // перестановка молча откатывалась бы при следующей загрузке (sortRulesByNum
-  // вернул бы всё по старым номерам). Несортируемые держат свой номер, поэтому
-  // они обязаны остаться на своих местах — иначе запрос противоречит инварианту.
+
+
+
+
   final sortable = await _sortablePredicate();
   var cursor = kUserRuleNumStart;
   for (final r in reordered) {
@@ -379,14 +379,14 @@ Future<DebugResponse> _reorder(DebugRequest req) async {
   });
 }
 
-/// §370 — переставить ОДНО правило: точное зеркало drag'а в UI
-/// (`_onReorderCustomRule` → `placeRuleAfter`). Тело:
-/// `{"id": "<uuid>", "after": "<uuid>"|null}` — `after: null` = в начало
-/// сортируемой части.
-///
-/// Существует ради тестируемости: без него порядок можно было проверить
-/// только тапами по экрану, а `/rules/reorder` задаёт список целиком и не
-/// проверяет ленивый сдвиг (сохранение зазоров и шаблонных якорей).
+
+
+
+
+
+
+
+
 Future<DebugResponse> _move(DebugRequest req) async {
   final body = req.jsonBodyAsMap();
   final id = fieldString(body, 'id');
@@ -419,7 +419,7 @@ Future<DebugResponse> _move(DebugRequest req) async {
     throw const BadRequest('rule is not sortable (isSortable:false)');
   }
 
-  // Разметка на случай storage до §370 — иначе `num` null и сдвиг некорректен.
+
   final template = await TemplateLoader.load();
   markRuleOrder(rules, template.selectableRules);
 
@@ -439,8 +439,8 @@ Future<DebugResponse> _move(DebugRequest req) async {
   });
 }
 
-/// §370 — предикат «правило можно двигать», построенный по шаблону.
-/// Общий источник с UI (`_isSortable`): правило вне шаблона сортируемо.
+
+
 Future<bool Function(CustomRule)> _sortablePredicate() async {
   final template = await TemplateLoader.load();
   final byId = {for (final sr in template.selectableRules) sr.presetId: sr};
@@ -450,7 +450,7 @@ Future<bool Function(CustomRule)> _sortablePredicate() async {
   };
 }
 
-/// §370 — шаблонный `num` пресета (null, если пресета в шаблоне нет).
+
 Future<int?> _templateNumFor(String presetId) async {
   if (presetId.isEmpty) return null;
   final template = await TemplateLoader.load();
@@ -478,8 +478,8 @@ CustomRuleKind? _fieldKind(Map<String, dynamic> m, String key) {
   throw BadRequest('unknown kind: $v (expected inline|srs|preset|json)');
 }
 
-/// Строгий парсинг для POST — отклоняет пустое `name`, wrong-types.
-/// Возвращает конкретный подкласс по `kind` (sealed dispatch).
+
+
 CustomRule _ruleFromJsonStrict(Map<String, dynamic> j) {
   final name = fieldString(j, 'name') ?? '';
   if (name.trim().isEmpty) throw const BadRequest('field "name" required');
@@ -487,18 +487,18 @@ CustomRule _ruleFromJsonStrict(Map<String, dynamic> j) {
   final enabled = fieldBool(j, 'enabled') ?? true;
   final outbound = fieldString(j, 'outbound') ?? kDirectOutboundTag;
 
-  // §051 — общие wifi-условия. Валидируем BSSID format строго (на read-side
-  // в model — tolerant lower-case). Empty list / null → no condition.
+
+
   final wifiSsids = fieldStringList(j, 'wifi_ssids') ?? const [];
   final wifiBssidsRaw = fieldStringList(j, 'wifi_bssids') ?? const [];
   final wifiBssids = _validateBssids(wifiBssidsRaw);
-  // §030/new_fields — source-ось + inbound (inline/srs).
+
   final sourceIpCidrs = fieldStringList(j, 'source_ip_cidrs') ?? const [];
   final sourceIpIsPrivate = fieldBool(j, 'source_ip_is_private') ?? false;
   final inbounds = fieldStringList(j, 'inbounds') ?? const [];
-  // §117 задача 3 — DNS-опция (inline/srs).
+
   final dns = _fieldRuleDns(j, 'dns');
-  // §247 — resolve-опция (inline/srs).
+
   final resolve = _fieldRuleResolve(j, 'resolve');
 
   switch (kind) {
@@ -530,7 +530,7 @@ CustomRule _ruleFromJsonStrict(Map<String, dynamic> j) {
         name: name,
         enabled: enabled,
         srsUrl: fieldString(j, 'srs_url') ?? '',
-        srsUrls: fieldStringList(j, 'srs_urls') ?? const [], // ## 12
+        srsUrls: fieldStringList(j, 'srs_urls') ?? const [],
         ports: fieldStringList(j, 'ports') ?? const [],
         portRanges: fieldStringList(j, 'port_ranges') ?? const [],
         packages: fieldStringList(j, 'packages') ?? const [],
@@ -558,7 +558,7 @@ CustomRule _ruleFromJsonStrict(Map<String, dynamic> j) {
         varsValues: fieldStringMap(j, 'vars_values'),
       );
     case CustomRuleKind.json:
-      // §225 — raw-JSON правило: тело в поле `json` (сырой текст route.rule).
+
       final body = fieldString(j, 'json') ?? '';
       if (body.trim().isEmpty) {
         throw const BadRequest('field "json" required for json rules');
@@ -567,15 +567,15 @@ CustomRule _ruleFromJsonStrict(Map<String, dynamic> j) {
   }
 }
 
-/// §117 задача 3 / §256 — DNS-опция правила. Wire shape (snake_case как у
-/// остальных полей API): `{"enabled": bool, "server_tag": dns-server-tag,
-/// "force_ipv4": bool}`. Отсутствие ключа → null (поле не задано).
-///
-/// §256: `enabled`/`server_tag`/`force_ipv4` независимы — DNS-опция может
-/// нести только Force IPv4 (глушилка AAAA серверу не нужна). Поэтому
-/// `enabled` дефолтит в false, а `server_tag` обязателен ТОЛЬКО когда
-/// `enabled == true` (dedicated-server-mirror без tag'а бессмыслен). Сервер
-/// по tag не валидируем — пропавший реф build тихо не эмитит (решение №3).
+
+
+
+
+
+
+
+
+
 RuleDns? _fieldRuleDns(Map<String, dynamic> m, String key) {
   if (!m.containsKey(key)) return null;
   final v = m[key];
@@ -602,11 +602,11 @@ RuleDns? _fieldRuleDns(Map<String, dynamic> m, String key) {
   return RuleDns(enabled: enabled, serverTag: tag, forceIpv4: forceIpv4);
 }
 
-/// §247 — resolve-опция правила. Wire shape (snake_case):
-/// `{"only": bool, "strategy": "ipv4_only", "server_tag": "...",
-///   "disable_cache": bool, "disable_optimistic_cache": bool,
-///   "rewrite_ttl": uint, "timeout": "5s", "client_subnet": "1.2.3.0/24"}`.
-/// Все поля кроме `only` опциональны. Отсутствие ключа → null (не задано).
+
+
+
+
+
 RuleResolve? _fieldRuleResolve(Map<String, dynamic> m, String key) {
   if (!m.containsKey(key)) return null;
   final v = m[key];
@@ -617,8 +617,8 @@ RuleResolve? _fieldRuleResolve(Map<String, dynamic> m, String key) {
     throw BadRequest(
         'field "$key.strategy" must be one of ${strategies.join('/')}');
   }
-  // Strict bools — заданный ключ обязан быть bool (паттерн _fieldRuleDns);
-  // отсутствие ключа = дефолт false.
+
+
   bool strictBool(String name) {
     final raw = v[name];
     if (raw == null) return false;
@@ -626,8 +626,8 @@ RuleResolve? _fieldRuleResolve(Map<String, dynamic> m, String key) {
     return raw;
   }
 
-  // rewrite_ttl: int или числовая строка; всё прочее (включая "abc") — 400,
-  // а не тихо «не задано» (битое поле не должно молча теряться).
+
+
   final ttlRaw = v['rewrite_ttl'];
   final int? ttl;
   switch (ttlRaw) {
@@ -641,13 +641,13 @@ RuleResolve? _fieldRuleResolve(Map<String, dynamic> m, String key) {
       throw BadRequest(
           'field "$key.rewrite_ttl" must be non-negative integer');
   }
-  // timeout: duration-строка sing-box (та же проверка, что в UI-окне).
+
   final timeout = v['timeout']?.toString() ?? '';
   if (timeout.isNotEmpty && !RegExp(r'^\d+(ms|s|m|h)$').hasMatch(timeout)) {
     throw BadRequest('field "$key.timeout" must be duration (e.g. "5s")');
   }
-  // client_subnet: IP или CIDR — битое значение валит конфиг на старте ядра,
-  // поэтому режем на входе.
+
+
   final subnet = v['client_subnet']?.toString() ?? '';
   if (subnet.isNotEmpty && !_clientSubnetPattern.hasMatch(subnet)) {
     throw BadRequest(
@@ -665,14 +665,14 @@ RuleResolve? _fieldRuleResolve(Map<String, dynamic> m, String key) {
   );
 }
 
-/// §247 — IPv4/IPv6-адрес с опциональным /prefix (лёгкая структурная
-/// проверка; полную семантику проверит ядро).
+
+
 final RegExp _clientSubnetPattern = RegExp(
     r'^([0-9]{1,3}(\.[0-9]{1,3}){3}|[0-9A-Fa-f:]+:[0-9A-Fa-f:]*)(/\d{1,3})?$');
 
-/// §051 — strict BSSID validation для Debug API (write-side).
-/// Принимает `xx:xx:xx:xx:xx:xx` (case-insensitive), нормализует к lower-case.
-/// На любую невалидную строку — `BadRequest` с конкретным offending value.
+
+
+
 final RegExp _bssidPattern =
     RegExp(r'^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$');
 

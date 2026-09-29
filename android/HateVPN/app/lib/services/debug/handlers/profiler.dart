@@ -1,12 +1,12 @@
-// §044 / §048 — Debug API handler for `/profiler/*` (system-wide only, §288).
-//
-//   §048 inclusive observer:
-//   GET    /profiler/live?seconds=60     — global rolling buffer snapshot
-//   GET    /profiler/live/stream         — SSE stream of all events system-wide
-//   GET    /profiler/live/unattributed   — recent unattributed (DNS fail без owner etc)
-//   POST   /profiler/live/start          — startGlobalRecording
-//   POST   /profiler/live/stop           — stopGlobalRecording
-//   GET    /profiler/live/state          — recording state + counts
+
+
+
+
+
+
+
+
+
 
 import '../../traffic_profiler.dart';
 import '../context.dart';
@@ -28,7 +28,7 @@ Future<DebugResponse> profilerHandler(
   };
 }
 
-// ─── §048 inclusive observer endpoints ──────────────────────────────────
+
 
 Future<DebugResponse> _live(DebugRequest req) async {
   if (req.method != 'GET') {

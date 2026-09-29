@@ -1,8 +1,8 @@
-/// Фича 478 — плашка «выключено N серверов» и вопрос после предела кругов.
-///
-/// Тексты согласованы с владельцем 18.09.2026 и меняться не вправе. Словарь:
-/// rejected / turned off / disabled / checking, «server», не «node»; слово
-/// «scanning» не используется — оно занято сканером WARP-endpoint'ов.
+
+
+
+
+
 library;
 
 import 'package:flutter/material.dart';
@@ -18,16 +18,16 @@ import '../../widgets/app_bottom_sheet.dart';
 import '../node_settings_screen.dart';
 import '../subscription_detail_screen/node_inspect_screen.dart';
 
-/// Имён в тексте плашки — до трёх, остальные уходят в хвост «+%d more».
+
 const _kNamesInBanner = 3;
 
-/// Заголовок плашки и листа: «1 server disabled» / «%d servers disabled».
+
 String coreRejectBannerTitle(int n) =>
     n == 1
         ? getLocalText.s('1 server disabled')
         : getLocalText.plural('%d servers disabled', n);
 
-/// Текст плашки: перечень имён с хвостом.
+
 String coreRejectBannerText(List<DisabledNode> nodes) {
   final names = nodes.take(_kNamesInBanner).map((d) => d.tag).join(', ');
   final rest = nodes.length - _kNamesInBanner;
@@ -42,12 +42,12 @@ String coreRejectBannerText(List<DisabledNode> nodes) {
           list);
 }
 
-/// Подпись кнопки плашки.
+
 String coreRejectShowLabel() => getLocalText.s("Show");
 
-/// Вопрос после предела кругов. `null` (диалог закрыт мимо кнопок) читается
-/// как Stop: VPN не поднимается, и молчание не должно означать согласие на
-/// долгую проверку.
+
+
+
 Future<CoreRejectPrompt> showCoreRejectPrompt(
     BuildContext context, int limit) async {
   final answer = await showDialog<CoreRejectPrompt>(
@@ -70,9 +70,9 @@ Future<CoreRejectPrompt> showCoreRejectPrompt(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dCtx).pop(CoreRejectPrompt.stop),
-          // Ключ отличается от кнопки VPN «Stop»: у той в русском словаре
-          // намеренно оставлено английское слово, а диалогу владелец задал
-          // «Остановить». Один ключ — один перевод, поэтому ключи разные.
+
+
+
           child: Text(getLocalText.s("Stop checking")),
         ),
         FilledButton(
@@ -86,8 +86,8 @@ Future<CoreRejectPrompt> showCoreRejectPrompt(
   return answer ?? CoreRejectPrompt.stop;
 }
 
-/// §498/§501/§503 — экран деталей узла на вкладке Diagnostics. Узел ищется по
-/// идентичности вердикта в хранилище, не по карте текущей сборки.
+
+
 Future<void> openCoreRejectNodeDetails(
   BuildContext context, {
   required SubscriptionController subController,
@@ -123,9 +123,9 @@ Future<void> openCoreRejectNodeDetails(
   );
 }
 
-/// Секция Notifications во вкладке Diagnostics читает `NodeSpec.warnings`;
-/// вердикт страховки живёт в хранилище — дописываем его, как
-/// [stampStoredVerdicts] на разборе.
+
+
+
 void _stampStoredForInspect(ServerList list, NodeSpec source) {
   switch (list) {
     case SubscriptionServers():
@@ -146,8 +146,8 @@ void _stampStoredForInspect(ServerList list, NodeSpec source) {
   }
 }
 
-/// Кнопка Show: список выключенных этим прогоном; тап по строке — детали
-/// узла на вкладке Diagnostics (§498/§501). Удалённый узел — строка неактивна.
+
+
 Future<void> showCoreRejectList(
   BuildContext context,
   List<DisabledNode> nodes, {

@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -15,8 +15,8 @@ class _FakePathProvider extends PathProviderPlatform with MockPlatformInterfaceM
   Future<String?> getApplicationDocumentsPath() async => tempRoot;
 }
 
-/// Те же 2 ретрая что в проде, но без реального сна — иначе тест спал бы
-/// 1s+3s и в параллельном suite (§T3) сдвигался к таймауту → flaky.
+
+
 const _noBackoff = [Duration.zero, Duration.zero];
 
 void main() {
@@ -26,8 +26,8 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     tempDir = await Directory.systemTemp.createTemp('rsd_test_');
     PathProviderPlatform.instance = _FakePathProvider(tempDir.path);
-    // _cacheDir переживает между тестами — без сброса download() пишет в
-    // директорию первого setUp (уже снесённую его tearDown). §T3.
+
+
     RuleSetDownloader.resetCacheForTesting();
   });
 
@@ -120,12 +120,12 @@ void main() {
         seenHeaders.add(Map.of(req.headers));
         return http.Response.bytes([9], 200, headers: {'etag': '"v1"'});
       });
-      // Первый заход: etag'а ещё нет — заголовка быть не должно.
+
       await RuleSetDownloader.fetch(id, 'http://x/r.srs',
           client: client, backoffs: _noBackoff, conditional: true);
       expect(seenHeaders.first.containsKey('If-None-Match'), isFalse);
 
-      // Второй: etag сохранён, файл на месте → шлём условный GET.
+
       await RuleSetDownloader.fetch(id, 'http://x/r.srs',
           client: client, backoffs: _noBackoff, conditional: true);
       expect(seenHeaders.last['If-None-Match'], '"v1"');
@@ -158,7 +158,7 @@ void main() {
       final path = (await RuleSetDownloader.cachedPath(id))!;
       final firstUpdated = (await RuleSetDownloader.readMeta(id)).lastUpdated!;
 
-      // Разводим по времени, чтобы сдвиг было видно.
+
       await Future<void>.delayed(const Duration(milliseconds: 5));
       serve304 = true;
       final r = await RuleSetDownloader.fetch(id, 'http://x/r.srs',
@@ -189,7 +189,7 @@ void main() {
           client: client, backoffs: _noBackoff, conditional: true);
 
       expect(r.outcome, DownloadOutcome.failed);
-      // Главный инвариант §366: устаревший рабочий rule-set лучше пустоты.
+
       expect(r.path, isNotNull);
       expect(await File(r.path!).readAsBytes(), [7, 7]);
 
@@ -225,7 +225,7 @@ void main() {
 
       await RuleSetDownloader.delete(id);
       final meta = await RuleSetDownloader.readMeta(id);
-      // Иначе следующий условный GET получил бы 304 на пустой кэш.
+
       expect(meta.etag, isNull);
       expect(meta.lastUpdated, isNull);
     });

@@ -7,12 +7,12 @@ import 'package:lxbox/screens/connections_screen.dart';
 import 'package:lxbox/services/process_name.dart';
 import 'package:lxbox/services/rule_name_resolver.dart';
 
-/// §153 — тесты эвристики `isOneWayStuck` (подсветка зависших соединений).
-///
-/// Фикстура `connections_oneway_live.json` — живой снимок `/connections`
-/// с устройства (21.06.2026), где WhatsApp-сессия залипла с ↑517 ↓0.
+
+
+
+
 void main() {
-  // Базовое: TCP, давно, перекос вверх → залип.
+
   final base = DateTime.parse('2026-06-21T20:00:00Z');
   final old = base.subtract(const Duration(seconds: 30));
 
@@ -144,7 +144,7 @@ void main() {
       final conns = (data['connections'] as List<dynamic>)
           .cast<Map<String, dynamic>>();
 
-      // Снимок снят ~23:23 +03 = 20:23Z; на этот момент залип жил >60с.
+
       final now = DateTime.parse('2026-06-21T20:24:00Z');
 
       final pink = conns.where((c) {
@@ -167,7 +167,7 @@ void main() {
     });
   });
 
-  // §154 — извлечение чистого package name для резолва иконки.
+
   group('packageNameFromProcess', () {
     test('ядро-формат "pkg (pkg)" → чистый pkg', () {
       expect(
@@ -242,7 +242,7 @@ void main() {
             suffixes: ['a.com', 'b.com', 'c.com', 'd.com', 'e.com'],
             ssids: ['LexRouteRich2G', 'LexRouteRich5G']),
       ]);
-      // Ядро обрезало suffix-список до 3+`...` — но префикс совпадает.
+
       expect(
         ruleName(
             'domain_suffix=[a.com b.com c.com...] wifi_ssid=[LexRouteRich2G LexRouteRich5G] => route(vpn-1)'),
@@ -277,7 +277,7 @@ void main() {
     });
 
     test('fallback rule_set=<tag> когда справочник пуст', () {
-      // setRules не вызван (пустой справочник) → fallback на rule_set-тег.
+
       expect(ruleName('rule_set=SomeTag => route(vpn-1)'), 'SomeTag');
       expect(ruleName('rule_set=[ru-domains ru-services]'), 'ru-domains');
     });

@@ -4,10 +4,10 @@ import 'package:lxbox/models/dns_ref.dart';
 import 'package:lxbox/screens/dns_server_edit/edit_controller.dart';
 import 'package:lxbox/screens/dns_settings_screen/resolved_server.dart';
 
-/// §117 задача 4 — `DnsServerEditController`: snapshot/isDirty по kind,
-/// inline-detour (`body['detour']`, locked decision №10), JSON-валидация
-/// со strip'ом ref-level полей (бывший server_editor_sheet).
-/// Тело inline-сервера снимка контроллера (модель, не форма хранения).
+
+
+
+
 Map<String, dynamic> bodyOf(DnsServerEditController c) =>
     (c.snapshot() as DnsServerInline).body;
 
@@ -41,11 +41,11 @@ void main() {
     test('inline-detour: выбор Направления пишет body.detour, direct-out стирает',
         () {
       final c = makeNew();
-      expect(c.inlineDetour, 'direct-out'); // ключа нет → direct
+      expect(c.inlineDetour, 'direct-out');
       c.setInlineDetour('vpn-1');
       expect(bodyOf(c)['detour'], 'vpn-1');
       expect(c.inlineDetour, 'vpn-1');
-      // JSON-вкладка синхронизирована
+
       expect(c.bodyCtrl.text, contains('"detour": "vpn-1"'));
       c.setInlineDetour('direct-out');
       expect(bodyOf(c).containsKey('detour'), false);
@@ -63,7 +63,7 @@ void main() {
         'server': '9.9.9.9',
         'server_port': 853,
       });
-      // tag — часть sing-box-тела: в new-режиме синхронизируется в поле Tag.
+
       expect(c.tagCtrl.text, 'x');
       expect(c.snapshot().tag, 'x');
       c.dispose();
@@ -138,13 +138,13 @@ void main() {
         () {
       final c = makeNew();
       c.onAddressChanged('9.9.9.9');
-      c.onPortChanged('53'); // дефолт udp
+      c.onPortChanged('53');
       c.setServerMode('tls');
       final body = bodyOf(c);
       expect(body['type'], 'tls');
       expect(body.containsKey('server_port'), false,
           reason: 'дефолтный порт старого режима → дефолт нового');
-      c.onPortChanged('8853'); // кастомный
+      c.onPortChanged('8853');
       c.setServerMode('https');
       expect(bodyOf(c)['server_port'], 8853);
       c.dispose();
@@ -154,7 +154,7 @@ void main() {
       final c = makeNew();
       c.setServerMode('https');
       c.onAddressChanged('8.8.8.8');
-      c.onPathChanged('dns-query'); // без слэша — нормализуется
+      c.onPathChanged('dns-query');
       c.onSniChanged('dns.google');
       expect(bodyOf(c), {
         'type': 'https',
@@ -183,7 +183,7 @@ void main() {
       c.dispose();
     });
 
-    // §411 — DoQ (quic, 853, как DoT) и DoH3 (h3, 443 + path, как DoH).
+
     test('DoQ/DoH3: режимы формы и порты по умолчанию (§411)', () {
       expect(kDnsServerModes, containsAll(['quic', 'h3']));
       expect(defaultDnsPort('quic'), 853);
@@ -322,7 +322,7 @@ void main() {
       final c = makeTpl();
       c.descCtrl.text = 'Мой Google';
       expect(c.snapshot().description, 'Мой Google');
-      c.descCtrl.text = 'Google DNS (direct)'; // вернули canonical
+      c.descCtrl.text = 'Google DNS (direct)';
       expect(c.snapshot().description, isNull);
       c.dispose();
     });
@@ -367,7 +367,7 @@ void main() {
       expect(c.bodyCtrl.text, contains('"tag": "my-dns"'));
       c.onBodyTextChanged(
           '{"tag":"other","type":"udp","server":"192.168.1.1"}');
-      // §117 задача 4b: rename разрешён — каскад по ссылкам на save.
+
       expect(c.jsonError, null);
       expect(c.tagCtrl.text, 'other');
       expect(c.snapshot().tag, 'other');
@@ -392,7 +392,7 @@ void main() {
       );
       expect(c.overrides, ServerKind.template);
       expect(c.isUserOnly, false);
-      // body инициализирован из resolved.body без синтезированного tag'а
+
       expect(bodyOf(c), {'type': 'udp', 'server': '8.8.4.4'});
       c.dispose();
     });

@@ -1,25 +1,25 @@
-// §393 C7 — экран правки цепочки хопов (SPEC 110).
-//
-// Эталон UX — вкладка «Цепочка» лаунчера (`ui/configurator/tabs/
-// source_chain_tab.go` + `source_chain_hops.go`), идиома экрана — проектная
-// ([direction_edit_screen.dart]): Navigator.push, PopScope back-guard
-// (Save/Keep/Discard), AppBar delete/save.
-//
-// ПОРЯДОК ПОЗИЦИЙ ПОДПИСАН СВЕРХУ, и это не украшение. `chain` читается в
-// порядке ПАКЕТА (первая позиция — от вас), а `detour` — наоборот, «кто через
-// кого». Это единственное различие между двумя механизмами при чтении и
-// единственное, в чём легко ошибиться (SPEC 110 T3): перепутав их, соберёшь
-// РАБОТАЮЩИЙ, но не тот маршрут — ошибку, которую пользователь заметит только
-// по геолокации.
-//
-// ФОРМА — ЕДИНСТВЕННЫЙ РУБЕЖ (§393 L4): `sing-box check` ошибки старта не
-// ловит. Поэтому сохранение заперто, пока есть блокирующая находка
-// [validateChainForm], — собрать конфиг, на котором ядро не стартует, отсюда
-// нельзя.
-//
-// Позиции вписываются ТОЛЬКО выбором из существующих целей (как участники
-// группы и detour-мишень): опечатка в теге — это ссылка в никуда, на которой
-// ядро не стартует вовсе.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import 'package:flutter/material.dart';
 
@@ -40,7 +40,7 @@ import 'chain_edit/chain_hop_candidate.dart';
 import 'chain_edit/chain_hop_targets.dart';
 import '../widgets/app_bottom_sheet.dart';
 
-/// Результат редактора: saved (с обновлённой цепочкой) или deleted.
+
 class ChainEditResult {
   const ChainEditResult._({this.saved, this.wasDeleted = false});
 
@@ -52,7 +52,7 @@ class ChainEditResult {
   factory ChainEditResult.deleted() => const ChainEditResult._(wasDeleted: true);
 }
 
-/// Открывает редактор цепочки. null — пользователь ушёл без изменений.
+
 Future<ChainEditResult?> openChainEditor(
   BuildContext context, {
   required SourceChain initial,
@@ -89,21 +89,21 @@ class ChainEditScreen extends StatefulWidget {
 
   final SourceChain initial;
 
-  /// §439 — пул ссылок (`computeNodeLinkPool`): позиция хранится ссылкой на
-  /// узел, а показывается и сверяется с кандидатами финальным тегом.
+
+
   final NodeLinkTargets? pool;
 
-  /// Источники — показ позиции-пары, которой нет в пуле.
+
   final List<ServerList> lists;
 
-  /// Последний собранный конфиг — источник ОКОНЧАТЕЛЬНЫХ тегов (см.
-  /// `chain_hop_targets.dart`).
+
+
   final ParsedConfig config;
 
   final List<Direction> directions;
 
-  /// Весь список цепочек в порядке объявления (включая редактируемую):
-  /// порядок решает, на кого можно сослаться.
+
+
   final List<SourceChain> chains;
 
   @override
@@ -114,15 +114,15 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
   late final TextEditingController _labelCtrl;
   late final TextEditingController _idleCtrl;
 
-  /// Позиции ссылками (§439); показ и проверка — финальными тегами
-  /// ([_shown]).
+
+
   late List<NodeLink> _hops;
   late bool _enabled;
   late bool? _stripEvasion;
   late Map<String, bool> _strip;
 
-  /// Раскрыт ли Advanced. Свёрнут по умолчанию: цепочка из двух позиций —
-  /// подавляющее большинство, и настройки звеньев ей не нужны.
+
+
   bool _advancedOpen = false;
 
   late List<ChainHopCandidate> _cands;
@@ -149,7 +149,7 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
     _lookup = chainHopLookup(_cands);
   }
 
-  /// Финальный тег позиции для показа и проверки.
+
   String _shown(NodeLink hop) =>
       nodeLinkDisplay(hop, widget.pool, lists: widget.lists);
 
@@ -205,18 +205,18 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
         ChainFormContext(
           candidates: _lookup,
           targetsKnown: chainTargetsKnown(widget.config),
-          // Тег цепочки immutable (форма его не правит), но занятым он мог
-          // стать ПОСЛЕ создания — вторым источником мутаций (Debug API,
-          // restore из бэкапа), пока окно открыто. Тогда сборка деградирует
-          // цепочку с «имя уже занято», и узнать об этом здесь дешевле, чем
-          // по факту пропавшего маршрута.
+
+
+
+
+
           takenTags: _takenTags(),
           originalTag: widget.initial.tag,
         ),
       );
 
-  /// Теги, занятые кем-то ДРУГИМ: Направлениями, узлами конфига и прочими
-  /// цепочками. Свой тег сюда не попадает — цепочка занимает своё же имя.
+
+
   Set<String> _takenTags() => {
         for (final d in widget.directions) d.tag,
         for (final c in widget.chains)
@@ -239,9 +239,9 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
     }
   }
 
-  /// Сохранение заперто блокирующими находками (§393 L4): цепочка, на которой
-  /// ядро не стартует, отвергает конфиг ЦЕЛИКОМ — пользователь остался бы без
-  /// VPN, а не без одного маршрута.
+
+
+
   void _save() {
     final blockers = _issues().where((i) => i.blocks).toList();
     if (blockers.isNotEmpty) {
@@ -264,9 +264,9 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
     }
   }
 
-  /// Кандидаты пересобираются на КАЖДОЕ открытие пикера: галка detour у
-  /// Направления могла измениться, пока форма открыта (второе окно, Debug
-  /// API) — initState-снимок протухает (полевая находка оператора 25.08).
+
+
+
   void _refreshCandidates() {
     _cands = collectChainHopTargets(
       config: widget.config,
@@ -293,16 +293,16 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
     final picked = await showAppBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      // Кандидатов у живого профиля сотни (все узлы подписок) — без потолка
-      // лист накрывал весь экран. Директива оператора 24.08: не выше 3/4;
-      // внутри — собственный скролл листа.
+
+
+
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.75,
       ),
       builder: (ctx) => _HopPickerSheet(options: options),
     );
     if (picked == null || !mounted) return;
-    // §439 — кандидат знает свой адрес: в позицию уходит ссылка на узел.
+
     final link = _lookup[picked]?.address ?? NodeLink(tag: picked);
     setState(() => _hops = [..._hops, link]);
   }
@@ -314,19 +314,19 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
     });
   }
 
-  /// Reorder-колбэк `ReorderableListView` (§098-идиома: grab-strip слева,
-  /// как у правил роутинга/подписок). Порядок позиций — это маршрут пакета,
-  /// поэтому перестановка проходит через тот же `setState`, что и
-  /// добавление/удаление: дифф формы и находки пересчитываются на месте.
-  ///
-  /// Колбэк — `onReorderItem` (не устаревший `onReorder`): newIndex здесь уже
-  /// приведён к списку БЕЗ перетаскиваемого элемента, ручной сдвиг «-1 при
-  /// move вниз» не нужен.
-  /// Колбэк — `onReorderItem` (не устаревший `onReorder`): newIndex здесь уже
-  /// приведён к списку БЕЗ перетаскиваемого элемента, поэтому ручного сдвига
-  /// «-1 при move вниз» быть не должно — с ним позиция уезжала бы мимо места,
-  /// куда её отпустили. Порядок позиций и есть маршрут, так что ошибка на
-  /// единицу молча поменяла бы цепочку.
+
+
+
+
+
+
+
+
+
+
+
+
+
   void _reorderHop(int oldIndex, int newIndex) {
     if (oldIndex == newIndex) return;
     setState(() {
@@ -411,9 +411,9 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
             const SizedBox(height: 8),
             Text(getLocalText.s("Positions"),
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            // Подпись порядка — единственная защита от путаницы с detour
-            // (SPEC 110 T3): у одного стрелка смотрит от клиента, у другого
-            // к нему.
+
+
+
             Text(
                 getLocalText.s(
                     "In packet order: the first position is the hop closest to you, the last one is what the destination sees."),
@@ -493,9 +493,9 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
       );
     }
-    // Вложенный в скроллируемую форму список — как таб правил
-    // ([routing_tabs.dart]) и список DNS-правил: shrinkWrap + отключённый
-    // собственный скролл, drag-старт только с grab-strip.
+
+
+
     return ReorderableListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -523,9 +523,9 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
                 fontSize: 12,
                 color: lost ? cs.onErrorContainer : cs.onSecondaryContainer)),
       ),
-      // Строка позиции — ТОЛЬКО тег. Позиция это ссылка на тег, и именно его
-      // пользователь увидит в конфиге и в логе ядра; имя рядом удваивало бы
-      // строку почти дословно.
+
+
+
       title: Text(tag,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -541,8 +541,8 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
         onPressed: () => _removeHop(index),
       ),
     );
-    // §098 — grab-strip первым ребёнком Row внутри IntrinsicHeight: полоса
-    // тянется на высоту строки (тот же приём, что в custom_rule_tile).
+
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -555,8 +555,8 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
   }
 
   Widget _advancedSection(ColorScheme cs) {
-    // §57 — ключи, которые сборка снимет с патча ради звена: считает движок
-    // реестра по тем же телам, что и валидация формы.
+
+
     final state = ChainFormState.of(_snapshot(),
         pool: widget.pool, lists: widget.lists);
     final keptByHop = {
@@ -598,9 +598,9 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
                 getLocalText.s(
                     "One-way DPI tricks make no sense on a link that dials through the previous hop."),
                 style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-            // Трёхзначность модели наружу не течёт: пользователю показываем
-            // действующее значение (умолчание ядра = включено), а `null`
-            // остаётся только пока он к тумблеру не притронулся.
+
+
+
             value: _snapshot().stripEvasionEnabled,
             onChanged: (v) => setState(() => _stripEvasion = v),
           ),
@@ -614,15 +614,15 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
     );
   }
 
-  /// Строка каталога strip. Трёхзначная, как и данные: галка не тронута →
-  /// значение берётся из `strip_evasion` и умолчания каталога ядра; тронута →
-  /// уезжает в `strip` явным ключом. Двузначная галка не отличила бы «как
-  /// сейчас у ядра» от «я так решил» и молча меняла бы смысл при смене
-  /// умолчания ядра.
-  ///
-  /// Каталог, умолчания и описания — из реестра (`chain.json`). [kept] —
-  /// ключи, которые сборка снимет с патча ради звена (`on_hop_required`):
-  /// у них действующее значение «kept», что бы ни стояло в галке.
+
+
+
+
+
+
+
+
+
   Widget _stripTile(ChainStripKey entry, ColorScheme cs,
       {Set<String> kept = const {}}) {
     final key = entry.key;
@@ -641,7 +641,7 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
           entry.description(
               registryLangForTag(LocaleController.I.effectiveTag)),
           style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-      // null = «не тронуто»: действующее значение показано подписью справа.
+
       value: explicit,
       onChanged: (v) => setState(() {
         final next = {..._strip};
@@ -662,8 +662,8 @@ class _ChainEditScreenState extends State<ChainEditScreen> with SnackHelper {
 
 }
 
-/// Пикер позиции: список существующих целей с видом. Уже занятые исключены —
-/// ядро отвергает цепочку с дублем.
+
+
 class _HopPickerSheet extends StatelessWidget {
   const _HopPickerSheet({required this.options});
 
@@ -685,9 +685,9 @@ class _HopPickerSheet extends StatelessWidget {
             ),
           ),
           Flexible(
-            // Секции как в detour-пикере (директива оператора 25.08):
-            // Направления / встроенные / цепочки / группы / серверы, у каждой
-            // строки человеческая подпись + сабстрока с данными.
+
+
+
             child: ListView(
               shrinkWrap: true,
               children: [
@@ -701,12 +701,12 @@ class _HopPickerSheet extends StatelessWidget {
     );
   }
 
-  /// Секции в порядке пикера. Пустые не рисуются вовсе (ни заголовка, ни
-  /// отступа) — как подсекция Направлений в форме.
+
+
   List<List<Widget>> _sections(BuildContext context) {
-    // Типографика — байт-в-байт как у detour-пикера (§239/§248): секция
-    // titleSmall+primary, строки стандартного ListTile (не dense), сабстрока
-    // 12/muted — директива оператора 25.08 «как в detour».
+
+
+
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     List<Widget> group(String title, List<ChainHopCandidate> items) {
@@ -738,9 +738,9 @@ class _HopPickerSheet extends StatelessWidget {
 
     List<ChainHopCandidate> of(ChainHopKind k) =>
         [for (final c in options) if (c.kind == k) c];
-    // Директива оператора 25.08: в предложениях только detour-Направления и
-    // серверы; direct-out/группы/цепочки отфильтрованы offered-флагом ещё в
-    // targets — секции им не нужны.
+
+
+
     return [
       group(getLocalText.s("Directions"), of(ChainHopKind.direction)),
       group(getLocalText.s("Servers"), [
@@ -752,9 +752,9 @@ class _HopPickerSheet extends StatelessWidget {
   }
 }
 
-/// Подпись вида позиции. Для чтения списка важен не только тег, но и ЧТО за
-/// ним стоит: группа выбирает участника на лету, а вложенная цепочка законна
-/// только первой позицией.
+
+
+
 String chainHopKindText(ChainHopKind kind) => switch (kind) {
       ChainHopKind.node => getLocalText.s("node"),
       ChainHopKind.group => getLocalText.s("group"),

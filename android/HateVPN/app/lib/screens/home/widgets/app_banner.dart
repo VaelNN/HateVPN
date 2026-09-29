@@ -8,22 +8,22 @@ import '../core_reject_ui.dart';
 import '../../../models/home_state.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §116 — единый banner-механизм для home. Принцип: **баннер = чистая
-/// проекция наблюдаемого состояния**. Не отдельный стор и не императивный
-/// контроллер с замыканиями — источники правды это существующие notifier'ы
-/// (`HomeState`/`SubscriptionController`), баннеры деривятся из них на каждый
-/// rebuild через [activeBanners]. Единственная реальная машинерия —
-/// центральный auto-dismiss таймер в [BannerStack] (раньше размазан в
-/// `_onControllerChange`). Подробности — docs/spec/tasks/116.
-///
-/// SnackBar'ы (низ, `ScaffoldMessenger`) — иной UX (event vs state) и вне
-/// скоупа: их гоняет Flutter.
+
+
+
+
+
+
+
+
+
+
 
 enum BannerPalette { info, warning, error }
 
-/// Декриптор плашки — чистые данные, без поведения. `autoDismiss == null` →
-/// persistent (живёт, пока его guard в [activeBanners] истинен). `onDismiss`
-/// (если задан) рисует крестик и вызывается auto-dismiss таймером.
+
+
+
 class AppBanner {
   const AppBanner({
     required this.key,
@@ -38,11 +38,11 @@ class AppBanner {
     this.onDismiss,
   });
 
-  /// Фича 478 — заголовок плашки над текстом; пусто = плашка однострочная,
-  /// как все прежние.
+
+
   final String title;
 
-  /// Фича 478 — подпись кнопки действия; пусто = кнопки нет.
+
   final String actionLabel;
   final VoidCallback? onAction;
 
@@ -55,9 +55,9 @@ class AppBanner {
   final VoidCallback? onDismiss;
 }
 
-/// Действия, которые плашки диспатчат. Строятся в `home_controls` (есть
-/// context/controller) и прокидываются сюда, чтобы [activeBanners] оставалась
-/// чистой функцией без UI-зависимостей.
+
+
+
 class BannerActions {
   const BannerActions({
     required this.onRebuild,
@@ -73,24 +73,24 @@ class BannerActions {
   final VoidCallback onConfirmStop;
   final VoidCallback onClearError;
 
-  /// §316 — открыть/отдать краш-репорт ядра.
+
   final VoidCallback onShareCrash;
 
-  /// §316 — «понял, больше не напоминай про этот краш».
+
   final VoidCallback onDismissCrash;
 
-  /// Фича 478 — кнопка Show плашки: список выключенных ядром серверов.
+
   final VoidCallback onShowCoreRejected;
 
-  /// Фича 478 — крестик плашки.
+
   final VoidCallback onDismissCoreRejected;
 }
 
-/// Чистая проекция: состояние → упорядоченный список активных плашек. Guard'ы
-/// и есть «условия» (untilCondition/untilReload — это просто «пока guard
-/// истинен»). Порядок стабильный (как в исходном home_controls). `configDirty`/
-/// `busy` приходят из `SubscriptionController` плоскими bool'ами — функция
-/// чистая и тестируется без контроллера.
+
+
+
+
+
 List<AppBanner> activeBanners(
   HomeState s, {
   required bool configDirty,
@@ -102,9 +102,9 @@ List<AppBanner> activeBanners(
 }) {
   final a = actions;
   final out = <AppBanner>[];
-  // Фича 478 — ядро не приняло часть серверов, они выключены, VPN поднят.
-  // Живёт, пока человек не закроет крестиком; состояние плашки в бэкап не
-  // едет. Первой — это итог последнего нажатия Start.
+
+
+
   if (coreRejected.isNotEmpty) {
     out.add(AppBanner(
       key: 'core_rejected',
@@ -117,10 +117,10 @@ List<AppBanner> activeBanners(
       onDismiss: a.onDismissCoreRejected,
     ));
   }
-  // §316 — ядро упало в прошлой сессии. Плашка ОДНА на краш: `crashPending`
-  // гаснет, как только `CrashBannerState` записал штамп файла (тап или
-  // крестик). Первой в списке — это самое важное, что можно сказать
-  // пользователю про прошлый запуск.
+
+
+
+
   if (crashPending) {
     out.add(AppBanner(
       key: 'core_crash',
@@ -140,15 +140,15 @@ List<AppBanner> activeBanners(
       onTap: a.onRebuild,
     ));
   }
-  // §076: «restart» показываем только когда rebuild уже сделан
-  // (configDirty=false) но running config устарел.
-  //
-  // §338 — `autoApplying`: между saveParsedConfig (ставит needRestart) и
-  // завершением авто-reload'а (~1–3с) флаг честно взведён — но звать юзера
-  // перезапускать VPN, который вот-вот перезапустится сам, нельзя: мигание
-  // читается как «плашка выскочила, галка не работает». Если reload
-  // сорвётся (cooldown/не-connected), окно закроется с невзятым флагом — и
-  // плашка честно вернётся как fallback.
+
+
+
+
+
+
+
+
+
   if (s.tunnelUp && s.configChangedNeedRestart && !configDirty &&
       !autoApplying) {
     out.add(AppBanner(
@@ -159,8 +159,8 @@ List<AppBanner> activeBanners(
       onTap: a.onConfirmStop,
     ));
   }
-  // §116 — конфиг не прочёлся при живом туннеле: постоянная ошибка, тап =
-  // рестарт (в этом app «restart VPN» = confirmStop → юзер стартует заново).
+
+
   if (s.configLoadError) {
     out.add(AppBanner(
       key: 'config_load_error',
@@ -170,19 +170,19 @@ List<AppBanner> activeBanners(
       onTap: a.onConfirmStop,
     ));
   }
-  // §262 — детектор здоровья DNS рисует свой баннер в Live-профайлере
-  // (live_events_tab), не через этот верхний стек.
-  // §166 — lastError больше НЕ показывается верхним баннером: ошибки идут
-  // всплывашкой СНИЗУ (SnackBar в home_screen._onControllerChange). Баннер
-  // сверху перекрывал контент и был навязчив. config_load_error (выше) —
-  // отдельный actionable-баннер (рестарт), остаётся.
+
+
+
+
+
+
   return out;
 }
 
-/// Рендерит список плашек + централизованно держит auto-dismiss таймеры
-/// (по `key`; перезапускаются, если у того же ключа сменился `message` —
-/// новая ошибка ресетит 15с). Таймеры отменяются при исчезновении ключа и в
-/// `dispose`.
+
+
+
+
 class BannerStack extends StatefulWidget {
   const BannerStack({super.key, required this.banners});
 
@@ -209,7 +209,7 @@ class _BannerStackState extends State<BannerStack> {
 
   void _reconcileTimers() {
     final present = {for (final b in widget.banners) b.key: b};
-    // Снять таймеры исчезнувших ключей.
+
     _timers.removeWhere((k, e) {
       if (!present.containsKey(k)) {
         e.timer.cancel();
@@ -217,7 +217,7 @@ class _BannerStackState extends State<BannerStack> {
       }
       return false;
     });
-    // Запустить/перезапустить таймеры для autoDismiss-плашек.
+
     for (final b in widget.banners) {
       final d = b.autoDismiss;
       if (d == null) continue;
@@ -321,11 +321,11 @@ class _BannerStackState extends State<BannerStack> {
       ),
     );
     if (b.onTap == null) return content;
-    // §163 — `behavior: opaque`: ловить тап по ВСЕЙ площади плашки, включая
-    // padding и пустую зону справа от короткого текста. Дефолтный
-    // `deferToChild` регистрирует тап лишь при попадании точно в непрозрачный
-    // child (иконку/текст), из-за чего «tap to rebuild config» не реагировал
-    // на нажатие по большей части ширины (жалобы юзеров).
+
+
+
+
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: b.onTap,

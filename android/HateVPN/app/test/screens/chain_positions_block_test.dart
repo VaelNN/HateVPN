@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:async';
 
@@ -7,16 +7,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/probe/chain_layer_probe.dart';
 import 'package:lxbox/widgets/chain_positions_block.dart';
 
-/// Прогон-заглушка: отдаёт заданный отчёт (или бросает) и позволяет держать
-/// прогон незавершённым, чтобы проверить busy-состояние без сна.
+
+
 class _StubProbe extends ChainLayerProbe {
   _StubProbe({this.report, this.error, this.gate});
 
   final ChainProbeReport? report;
   final ChainProbeUnavailable? error;
 
-  /// Пока не завершён — прогон «идёт». Тест завершает его сам, вместо того
-  /// чтобы ждать фиксированный интервал.
+
+
   final Completer<void>? gate;
 
   int runs = 0;
@@ -39,8 +39,8 @@ class _StubProbe extends ChainLayerProbe {
   }
 }
 
-/// §394 — блок «Chain positions»: ЛОГИКА состояний (что показано при каком
-/// отчёте), без проверки вёрстки и подписей-констант.
+
+
 void main() {
   ChainProbeReport reportOf(List<ChainLayerResult> layers) => ChainProbeReport(
         chainTag: 'chain-1',
@@ -66,7 +66,7 @@ void main() {
         ),
       ));
 
-  /// Единственная кнопка блока — она же «пробить»/«пробить снова».
+
   final probeButton = find.byType(OutlinedButton);
 
   testWidgets('до прогона: позиции видны, замеров нет', (tester) async {
@@ -74,9 +74,9 @@ void main() {
     for (final tag in ['warp', 'al-france', 'masque']) {
       expect(find.text(tag), findsOneWidget);
     }
-    // Прочерк на каждую позицию — замера ещё не было. Это СОСТОЯНИЕ («цифр
-    // нет»), а не проверка подписи: пустая строка вместо прочерка выглядела
-    // бы как «замер прошёл и дал ничего».
+
+
+
     expect(find.text('—'), findsNWidgets(3));
   });
 
@@ -100,8 +100,8 @@ void main() {
     await tester.tap(probeButton);
     await tester.pumpAndSettle();
 
-    // Прочерков не осталось: измерены все три. Сами цифры и дельты — предмет
-    // теста сервиса (`chain_layer_probe_test`), не вёрстки.
+
+
     expect(find.text('—'), findsNothing);
     expect(find.text('error'), findsNothing);
     expect(find.text('not reached'), findsNothing);
@@ -130,7 +130,7 @@ void main() {
     expect(find.text('127 ms'), findsOneWidget);
     expect(find.text('error'), findsOneWidget);
     expect(find.text('not reached'), findsOneWidget);
-    // Текст ЯДРА показывается целиком и не переписывается.
+
     expect(find.text('position 1 (al-france): dial: i/o timeout'),
         findsOneWidget);
   });
@@ -144,7 +144,7 @@ void main() {
 
     expect(
         find.textContaining('Start the VPN to probe this chain'), findsOneWidget);
-    // Состав маршрута виден и без замеров — он не зависит от туннеля.
+
     expect(find.text('warp'), findsOneWidget);
     expect(find.text('—'), findsNWidgets(3));
   });
@@ -158,7 +158,7 @@ void main() {
     await tester.tap(probeButton);
     await tester.pump();
     expect(tester.widget<OutlinedButton>(probeButton).onPressed, isNull);
-    // Повторный тап во время прогона второго прогона НЕ запускает.
+
     await tester.tap(probeButton, warnIfMissed: false);
     await tester.pump();
     expect(stub.runs, 1);

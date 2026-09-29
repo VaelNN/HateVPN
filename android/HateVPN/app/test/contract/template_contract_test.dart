@@ -7,29 +7,29 @@ import '../contract_paths.dart';
 import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/builder/if_engine.dart';
 
-// Конформанс-раннер корпуса шаблонов (SPEC 103, фаза 3, D-047), сторона LxBox.
-// Аналог core/template/contract_template_test.go в singbox-launcher — гоняет
-// ТОТ ЖЕ корпус contract/corpus/template/** через walk()/makeResolver() и
-// сравнивает с <case>.expected.json.
-//
-// Ожидания здесь ОБЩИЕ с лаунчером (без per-app суффикса, в отличие от корпуса
-// URI): движок шаблонов унифицируется полностью (D-046) — расхождение между
-// приложениями = баг движка, а не разница платформ. Сами шаблоны при этом
-// остаются разными, поэтому корпус не зависит от словаря ни одного из них.
-//
-// Формат кейса — contract/corpus/template/README.md:
-//   <case>.template.json  {"vars": [...], "config": {...}, "_changed": "имя"}
-//   <case>.vars.json      {"имя": "строка"}  (null = optional-var)
-//   <case>.expected.json  {"config": {...}, "warnings": [...], "vars_after": {}}
 
-/// Корень скопированного контракта — кладёт tool/sync_contract.sh.
 
-// Warning'и кейса собирает накопитель движка ([TemplateWarnings]): коды с
-// параметрами и дедупом. Корпус сравнивает только коды — без параметров, без
-// дублей, по алфавиту ([TemplateWarnings.codes]); порядок контрактом не
-// нормируется.
 
-/// Разобранная тройка файлов кейса.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class _Case {
   _Case({
     required this.name,
@@ -44,11 +44,11 @@ class _Case {
   final List<WizardVar> vars;
   final dynamic config;
 
-  /// Имя переменной, которую «изменил пользователь» — включает проверку
-  /// on_change (§4.6). Пусто — обычный кейс подстановки.
+
+
   final String changed;
 
-  /// Значения переменных; null = optional-var (§5.1).
+
   final Map<String, String?> varValues;
 
   final Map<String, dynamic> expected;
@@ -79,22 +79,22 @@ _Case _loadCase(String base) {
   );
 }
 
-/// Резолвер по канону §5.2, поверх [makeResolver]:
-///   • имя НЕ объявлено → null (walk оставит плейсхолдер и сам поставит
-///     template_var_undeclared);
-///   • имя объявлено, значения нет → Dropped-каскад;
-///   • иначе — типизированное значение (int-коды ставит coerceVarValue).
+
+
+
+
+
 VarResolver _canonResolver(_Case c) {
   final nodes = {for (final v in c.vars) v.name: v};
   final declared = nodes.keys.toSet();
 
   return (String name) {
     if (!declared.contains(name)) {
-      return null; // плейсхолдер остаётся видимым (§5.2)
+      return null;
     }
     final raw = c.varValues[name];
     if (raw == null) {
-      // Объявлена, значения нет — штатная optional-var, а не опечатка.
+
       final fallback = nodes[name]?.defaultValue ?? '';
       if (fallback.isEmpty && c.varValues.containsKey(name)) {
         return Dropped.instance;
@@ -106,19 +106,19 @@ VarResolver _canonResolver(_Case c) {
   };
 }
 
-/// Прогоняет кейс и возвращает фактический результат в форме expected.
+
 Map<String, dynamic> _runCase(_Case c) {
   final warns = TemplateWarnings();
 
-  // Состояние переменных: null-значения не попадают (их отсутствие и есть
-  // сигнал Dropped), остальные — как есть.
+
+
   final state = <String, String>{
     for (final e in c.varValues.entries)
       if (e.value != null) e.key: e.value!,
   };
 
-  // on_change (§4.6) применяется ДО подстановки, в контексте нового значения
-  // изменённой переменной — как это делает UI при переключении.
+
+
   if (c.changed.isNotEmpty) {
     collectTemplateWarnings(
         warns, () => _applyOnChange(c.changed, c.vars, state));
@@ -137,7 +137,7 @@ Map<String, dynamic> _runCase(_Case c) {
     expected: c.expected,
   );
 
-  // Накопитель живёт в зоне вызова — в другие тесты не течёт.
+
   final resolved = collectTemplateWarnings(
     warns,
     () => walk(_deepCopy(c.config), _canonResolver(caseWithState)),
@@ -151,15 +151,15 @@ Map<String, dynamic> _runCase(_Case c) {
   return out;
 }
 
-/// Применяет on_change изменённой переменной (§4.6): каскад по цепочке целей
-/// с fixpoint-guard и жёстким предохранителем глубины.
+
+
 void _applyOnChange(
   String changed,
   List<WizardVar> vars,
   Map<String, String> state, {
   int depth = 0,
 }) {
-  if (depth > 16) return; // предохранитель на топологии, которые fixpoint не ловит
+  if (depth > 16) return;
   final node = vars.where((v) => v.name == changed).firstOrNull;
   final set = (node?.onChange?['#set'] ?? node?.onChange?['set']) as Map<String, dynamic>?;
   if (set == null) return;
@@ -172,9 +172,9 @@ void _applyOnChange(
 
     final resolve = makeResolver(state, nodes);
     final value = evalIfScalar(tree, resolve);
-    if (value == null) continue; // ветка не выбрана — цель не трогаем
+    if (value == null) continue;
 
-    // fixpoint-guard: значение не изменилось → записи нет, рекурсия обрывается.
+
     if (state[target] == value) continue;
     state[target] = value;
     _applyOnChange(target, vars, state, depth: depth + 1);
@@ -183,18 +183,18 @@ void _applyOnChange(
 
 dynamic _deepCopy(dynamic node) => jsonDecode(jsonEncode(node));
 
-/// Сравнение JSON-деревьев по значению, не по байтам (PARSING_PRINCIPLES §7).
+
 bool _jsonEqual(dynamic a, dynamic b) =>
     const DeepCollectionEquality().equals(a, b);
 
-/// Раннер раздела corpus/template/deps/ (SPEC 107 §8.1) — ИНОЙ формат:
-///
-///     <case>.cond.json      условие языка (§5.1) без обёртки
-///     <case>.expected.json  {"deps": ["a", "b"]}  — отсортированные имена
-///
-/// Тот же набор гоняет Go: извлечение зависимостей нормативно, потому что на
-/// нём стоит реактивный пересчёт — разъехавшиеся deps означают, что на одной
-/// платформе строка обновится при изменении переменной, а на другой нет.
+
+
+
+
+
+
+
+
 void _runDepsCorpus(Directory root) {
   final bases = root
       .listSync()
@@ -223,8 +223,8 @@ void main() {
 
   final root = Directory('$kVendorRoot/corpus/template');
   if (!root.existsSync()) {
-    // Контракт не синхронизирован — прогон пропускается, а не падает
-    // (tool/sync_contract.sh кладёт copy).
+
+
     return;
   }
 

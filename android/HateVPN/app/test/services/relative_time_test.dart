@@ -6,16 +6,16 @@ import 'package:lxbox/services/l10n/get_local_text.dart';
 import 'package:lxbox/services/l10n/plural_resolver.dart';
 import 'package:lxbox/services/relative_time.dart';
 
-/// §285 — relativeTime через getLocalText. Локализатор инъектируется (DI):
-/// en-группа не передаёт `t` → глобальный fallback печатает английский ключ;
-/// ru-группа передаёт GetLocalText, собранный из настоящего
-/// assets/l10n/ru/ui.json + RuPluralResolver (без глобального LocaleController).
+
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final now = DateTime(2026, 4, 22, 12, 0, 0);
 
   group('relativeTime en (night T6-1, §285 — natural keys, fallback)', () {
-    // Без `t`: глобальный getLocalText в тесте = fallback → английский ключ.
+
     String ago(Duration d) => relativeTime(now, now.subtract(d));
 
     test('<60 sec → "just now"', () {

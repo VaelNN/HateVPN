@@ -2,14 +2,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-// §417 — порядок старта в `main()`. `WorkspaceStore.I.recover()` доводит
-// загрузку слота, убитую посреди копирования, а `SettingsStorage._load` кладёт
-// сцену в кэш и мигрирует её форму (§439). Чтение настроек раньше recover
-// оставит в кэше старую сцену, и первое же сохранение ляжет поверх доведённого
-// слота. `SubscriptionIdentity.init` читает настройки через `getVar`.
-//
-// `AppLog.I.initPersistent()` — ДО recover: warning доводки пишет applog.txt
-// одной текущей сессией, записи убитой сессии пропали бы до чтения.
+
+
+
+
+
+
+
+
 void main() {
   test('main() runs WorkspaceStore.recover before any settings read', () {
     final src = File('lib/main.dart').readAsLinesSync();

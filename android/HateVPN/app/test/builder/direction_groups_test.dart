@@ -10,24 +10,24 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §125 F1/F2/F3 — билдер собирает outbound-группы из BuildSettings.directions:
-/// per-direction regex node-set, direct/auto-членство из галок, auto-двойник,
-/// default-regex. Проверяем через настоящий buildConfig (directions !== пусто →
-/// идёт по новому пути, минуя template-fallback).
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
-  // template без preset-групп: Направления целиком из settings.directions.
-  //
-  // Служебные outbound'ы — ОБА, как их эмитит боевой `wizard_template.json`
-  // (`magic_nodes.direct` = direct-out, `magic_nodes.block` = block). Раньше
-  // здесь стоял один `direct-out`, и фикстура была неверна: `includeBlock` и
-  // block-fallback пишут в состав селектора тег `block`, записи которого в
-  // конфиге не было. Граф-санитайзер (§393 A4) считает живость по ФАКТУ
-  // записи — ровно как `validator.dart` (`allTags`), — и такой `block`
-  // законно вылетал из состава как призрак.
+
+
+
+
+
+
+
+
+
   WizardTemplate template() => WizardTemplate(
         parserConfig: ParserConfigBlock(),
         groupTemplates: GroupTemplates(),
@@ -46,7 +46,7 @@ void main() {
         speedTestOptions: const {},
       );
 
-  // Узлы с разными «флагами» в tag для regex-проверок.
+
   Future<UserServer> nodes() async {
     final specs = [
       parseUri('vless://u1@h1.com:443?type=ws&security=tls#🇩🇪 Berlin')!,
@@ -65,7 +65,7 @@ void main() {
     );
   }
 
-  /// §322 — те же узлы + узел автовыбора в том же списке.
+
   Future<UserServer> nodesWithAutoGroup() async {
     final base = await nodes();
     final auto = AutoSelectSpec(
@@ -99,7 +99,7 @@ void main() {
   Map<String, dynamic> byTag(List<Map<String, dynamic>> outs, String tag) =>
       outs.firstWhere((o) => o['tag'] == tag);
 
-  // §200 — полный BuildResult (для проверки emitWarnings).
+
   Future<List<String>> warningsFor(List<Direction> directions) async {
     final r = await buildConfig(
       lists: [await nodes()],
@@ -161,7 +161,7 @@ void main() {
   group('F1 — auto-двойник', () {
     test('§322 — узел автовыбора в selector Направления есть, в двойнике нет',
         () async {
-      // urltest внутри urltest мерил бы уже выбранный группой узел.
+
       final r = await buildConfig(
         lists: [await nodesWithAutoGroup()],
         template: template(),
@@ -172,14 +172,14 @@ void main() {
       expect(r.validation.isOk, true, reason: r.validation.issues.join('\n'));
       final outs = (r.config['outbounds'] as List).cast<Map<String, dynamic>>();
 
-      // Группа собралась и попала в selector — выбрать её руками можно.
+
       expect(outs.any((o) => o['tag'] == 'Auto DE'), isTrue);
       expect(byTag(outs, 'vpn-1')['outbounds'], contains('Auto DE'));
 
-      // …но НЕ в urltest-двойник Направления.
+
       expect(byTag(outs, 'vpn-1-auto')['outbounds'],
           isNot(contains('Auto DE')));
-      // Обычные узлы в двойнике остались.
+
       expect(byTag(outs, 'vpn-1-auto')['outbounds'], contains('🇩🇪 Berlin'));
     });
 
@@ -208,10 +208,10 @@ void main() {
       expect(auto['tolerance'], 25);
       expect(auto['idle_timeout'], '15m');
       expect(auto['interrupt_exist_connections'], true);
-      // двойник — чистый urltest: без direct/auto-членов
+
       expect(auto['outbounds'], isNot(contains('direct-out')));
       expect(auto['outbounds'], isNot(contains('vpn-1-auto')));
-      expect((auto['outbounds'] as List).length, 4); // все 4 ноды
+      expect((auto['outbounds'] as List).length, 4);
     });
 
     test('auto == null → нет <tag>-auto', () async {
@@ -221,9 +221,9 @@ void main() {
       expect(outs.any((o) => o['tag'] == 'vpn-1-auto'), false);
     });
 
-    // §272 — passive_check (ядро SPEC 019): пишется в auto-двойник только при
-    // включённой настройке; выключено → поля нет (апстрим-поведение, и старое
-    // ядро без поля не падает на unknown field).
+
+
+
     test('§272 passiveCheck=true → passive_check в auto-двойнике', () async {
       final outs = await build(
         [const Direction(tag: 'vpn-1', label: 'X', auto: DirectionAuto())],
@@ -240,7 +240,7 @@ void main() {
           byTag(outs, 'vpn-1-auto').containsKey('passive_check'), false);
     });
 
-    // §208 — балансировщик round_robin
+
     test('leastTest (дефолт) → НЕТ mode/balancer (бит-в-бит апстрим)', () async {
       final outs = await build([
         const Direction(tag: 'vpn-1', label: 'X', auto: DirectionAuto()),
@@ -270,15 +270,15 @@ void main() {
       expect(bal['pool'], 5);
       expect(bal['pool_tolerance'], 30);
       expect(bal['sticky_hash'], ['process', 'domain']);
-      // апстрим-поля urltest остаются (tolerance тоже — ядро игнорит в rr)
+
       expect(auto['type'], 'urltest');
       expect(auto.containsKey('tolerance'), true);
     });
 
     test('round_robin + пустой stickyHash → sticky_hash ["none"] (липкость выкл)',
         () async {
-      // Контракт ядра rc.15: пустой [] ядро схлопывает в nil (badjson re-marshal)
-      // → дефолтит липкость. Выключение ТОЛЬКО через sentinel ["none"].
+
+
       final outs = await build([
         const Direction(
           tag: 'vpn-1',
@@ -317,7 +317,7 @@ void main() {
     test('§301 — nodeFilter регистронезависим: фильтр в другом регистре, '
         'чем теги, всё равно матчит (раньше — пустой набор)', () async {
       final outs = await build([
-        // теги: `🇩🇪 Berlin`, `🇺🇸 NYC` — фильтр нарочно в другом регистре.
+
         const Direction(tag: 'vpn-1', label: 'lower', nodeFilter: 'berlin'),
         const Direction(tag: 'vpn-2', label: 'lower', nodeFilter: 'nyc'),
       ]);
@@ -354,8 +354,8 @@ void main() {
 
     test('§197/§201 — invert исключает ВСЁ → fallback [block, direct-out]',
         () async {
-      // regex матчит всё (.) + invert → ничего не остаётся → block+direct
-      // fallback, default=block (§201).
+
+
       final outs = await build([
         const Direction(
             tag: 'vpn-1', label: 'x', nodeFilter: '.', nodeFilterInvert: true),
@@ -446,7 +446,7 @@ void main() {
     });
 
     test('первая по порядку при нескольких совпадениях', () async {
-      // обе 🇩🇪-ноды матчат '🇩🇪' — берём первую (Berlin идёт раньше)
+
       final outs = await build([
         const Direction(tag: 'vpn-1', label: 'X', defaultFilter: '🇩🇪'),
       ]);
@@ -475,7 +475,7 @@ void main() {
     });
 
     test('default обязан быть в node-set (не direct-out)', () async {
-      // фильтр оставляет 🇩🇪, но default-regex матчит 🇺🇸 (вне набора) → нет default
+
       final outs = await build([
         const Direction(
             tag: 'vpn-1',
@@ -511,7 +511,7 @@ void main() {
     test('route_final на удалённое Направление → vpn-1', () async {
       final cfg = await buildWith(
         [const Direction(tag: 'vpn-1', label: 'X')],
-        'vpn-7', // не существует
+        'vpn-7',
       );
       expect((cfg['route'] as Map)['final'], 'vpn-1');
     });
@@ -543,10 +543,10 @@ void main() {
       expect((cfg['route'] as Map)['final'], 'vpn-1-auto');
     });
 
-    // §219 — auto-двойник НЕ эмитится, если node-filter Направления отсёк все ноды
-    // (`auto != null`, но `nodes.isEmpty`). Раньше `<tag>-auto` безусловно
-    // попадал в validFinals → route_final на него давал висячую ссылку (fatal).
-    // Теперь validFinals = фактически эмитированные outbounds → деградация.
+
+
+
+
     test('route_final на auto-двойник с пустым node-set → vpn-1', () async {
       final cfg = await buildWith(
         [
@@ -554,15 +554,15 @@ void main() {
             tag: 'vpn-1',
             label: 'X',
             auto: DirectionAuto(),
-            nodeFilter: '____NOMATCH____', // не матчит ни одну ноду
+            nodeFilter: '____NOMATCH____',
           ),
         ],
         'vpn-1-auto',
       );
       final outbounds = (cfg['outbounds'] as List).cast<Map>();
-      // auto-двойник действительно не эмитирован
+
       expect(outbounds.any((o) => o['tag'] == 'vpn-1-auto'), false);
-      // route.final деградировал на неудаляемый vpn-1
+
       expect((cfg['route'] as Map)['final'], 'vpn-1');
     });
 
@@ -602,9 +602,9 @@ void main() {
 
     test('reorder-сценарий: Направление переехало ВЫШЕ своей цели → '
         'деградация с warning, конфиг валиден', () async {
-      // vpn-2 ссылался на vpn-1, пока стоял ниже; пользователь перетащил его
-      // наверх — ссылка стала forward-ref. Данные НЕ санитайзятся (лаунчер
-      // на reorder тоже только меняет порядок), деградирует ВЫХЛОП.
+
+
+
       final reordered = [
         const Direction(tag: 'vpn-2', label: 'B', include: ['vpn-1']),
         const Direction(tag: 'vpn-1', label: 'A'),
@@ -668,7 +668,7 @@ void main() {
             auto: DirectionAuto()),
       ]);
       expect(byTag(outs, 'vpn-2')['outbounds'], contains('vpn-1'));
-      // urltest внутри urltest мерил бы выбор группы, а не сервер (§322).
+
       expect(byTag(outs, 'vpn-2-auto')['outbounds'], isNot(contains('vpn-1')));
     });
 
@@ -689,8 +689,8 @@ void main() {
 
     test('пустое по фильтру Направление с include не уходит в block-fallback',
         () async {
-      // Ссылка на другое Направление — это тоже опция: селектор не пуст,
-      // значит fallback `[block, direct-out]` не нужен.
+
+
       final directions = [
         const Direction(tag: 'vpn-1', label: 'A'),
         const Direction(
@@ -700,7 +700,7 @@ void main() {
       final vpn2 = byTag(outs, 'vpn-2');
       expect(vpn2['outbounds'], ['vpn-1']);
       expect(vpn2.containsKey('default'), false);
-      // Про пустой фильтр всё равно предупреждаем, но исход — не «blocked».
+
       final w = await warningsFor(directions);
       expect(w.single, contains('falls back to "vpn-1"'));
     });
@@ -716,14 +716,14 @@ void main() {
   });
 
   group('§393 A3 — ПОРЯДОК состава: служебное и include ПЕРЕД узлами', () {
-    // Первый элемент состава = неявный default sing-box (селектор без поля
-    // `default` стартует на первой опции), поэтому порядок здесь —
-    // семантика, а не косметика. Норматив — corpus/direction.
+
+
+
 
     test('corpus include_earlier_direction: include-тег перед узлами', () async {
-      // Байт-в-байт состав из
-      // contract/corpus/direction/include_earlier_direction.expected.json
-      // (теги узлов подогнаны под узлы этого файла).
+
+
+
       final outs = await build([
         const Direction(tag: 'vpn-1', label: 'A', nodeFilter: '🇩🇪 Berlin'),
         const Direction(
@@ -737,8 +737,8 @@ void main() {
     });
 
     test('corpus include_direct_and_block: direct-out, block, узлы', () async {
-      // contract/corpus/direction/include_direct_and_block.expected.json:
-      // служебные опции первыми, direct раньше block.
+
+
       final outs = await build([
         const Direction(
             tag: 'vpn-1',
@@ -753,11 +753,11 @@ void main() {
 
     test('обе категории сразу: auto, direct, block, include, узлы '
         '(тай-брейк по лаунчеру — AddOutbounds одним списком)', () async {
-      // Кейса с include И служебными опциями в корпусе нет; порядок взят у
-      // лаунчера: форма собирает AddOutbounds как direct → block → прочие
-      // теги (edit_dialog.go), auto-двойник встаёт впереди
-      // (direction_twins.go prependUnique), и весь список эмитится ДО узлов
-      // (outbound_generator.go «Add addOutbounds first»).
+
+
+
+
+
       final outs = await build([
         const Direction(tag: 'vpn-1', label: 'A'),
         const Direction(
@@ -776,9 +776,9 @@ void main() {
 
     test('узел подписки не становится неявным умолчанием Направления, '
         'состоящего из ссылок', () async {
-      // Регресс порядка: пока узлы шли первыми, `outbounds.first` был
-      // произвольный сервер подписки — ядро выбирало его умолчанием, хотя
-      // пользователь включил direct-опцию/ссылку осознанно.
+
+
+
       final outs = await build([
         const Direction(tag: 'vpn-1', label: 'A'),
         const Direction(
@@ -805,12 +805,12 @@ void main() {
   group('§393 A3 — резерв тегов ВСЕХ Направлений, включая выключенные', () {
     test('узел-тёзка ВЫКЛЮЧЕННОГО Направления получает суффикс, а include '
         'на него не резолвится в узел', () async {
-      // Дыра до фикса: reservedTags строился по `enabled || isRequired`, тег
-      // выключенного vpn-2 не резервировался, узел подписки с меткой `vpn-2`
-      // занимал literal-тег — и ссылка `include: ['vpn-2']` находила в
-      // `emittedAbove`… нет, но узел с этим именем уже лежал в составе от
-      // nodesFor, так что пользователь видел «vpn-2» опцией, ведущей в
-      // чужой сервер вместо выключенного Направления.
+
+
+
+
+
+
       final specs = [
         parseUri('vless://u7@h7.com:443?type=ws&security=tls#vpn-2')!,
       ];
@@ -887,8 +887,8 @@ void main() {
 
     test('пустой фильтр + include с рабочей целью → warning-текст есть, '
         'в списке «без узлов» Направления НЕТ', () async {
-      // Состав НЕ деградировал: трафик идёт узлами цели, чинить нечего —
-      // SnackBar «Направления без узлов» звал бы к ложной тревоге.
+
+
       final directions = [
         const Direction(tag: 'vpn-1', label: 'A'),
         const Direction(
@@ -945,9 +945,9 @@ void main() {
   group('§351 — теги Направлений зарезервированы в аллокаторе', () {
     test('узлы-тёзки vpn-1 / vpn-1-auto получают суффикс, дублей нет',
         () async {
-      // До §351 селектор Направления эмитился с фиксированным `c.tag` МИМО
-      // allocateTag — узел подписки с меткой `vpn-1` давал два outbound
-      // с одним тегом → отказ ядра на старте.
+
+
+
       final specs = [
         parseUri('vless://u9@h9.com:443?type=ws&security=tls#vpn-1')!,
         parseUri('vless://u8@h8.com:443?type=ws&security=tls#vpn-1-auto')!,

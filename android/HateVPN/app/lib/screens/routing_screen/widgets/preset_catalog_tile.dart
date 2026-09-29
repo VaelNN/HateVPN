@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../models/parser_config.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// Каталог пресетов (read-only) на табе Presets. Tap на "Add to Rules" →
-/// клонирует в Rules через caller-callback. `existing == true` → кнопка
-/// disabled с лейблом "In Rules".
+
+
+
 class PresetCatalogTile extends StatelessWidget {
   const PresetCatalogTile({
     super.key,
@@ -16,10 +16,10 @@ class PresetCatalogTile extends StatelessWidget {
 
   final SelectableRule rule;
 
-  /// Правило уже скопировано в Rules (матч по `presetId`).
+
   final bool existing;
 
-  /// Вызывается по тапу "Add to Rules" (только когда `!existing`).
+
   final VoidCallback onCopy;
 
   @override

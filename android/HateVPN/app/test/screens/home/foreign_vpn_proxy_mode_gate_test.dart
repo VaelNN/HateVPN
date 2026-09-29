@@ -3,13 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/screens/home/home_dialogs.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §528 — issue #126: диалог «Another VPN is active» (§211) показывался и в
-/// proxy-режиме, где чужой туннель наш старт не трогает вовсе —
-/// `VpnService.prepare()` там не зовётся (§192, гейт по `hasTun`). Два гейта
-/// разошлись: prepare смотрел на режим, диалог — нет.
-///
-/// Здесь фиксируем оба конца: предикат режима и порядок обращений в гейте
-/// (в proxy native вообще не опрашивается).
+
+
+
+
+
+
+
 void main() {
   VpnModeConfig cfg(String mode) =>
       const VpnModeConfig.defaults().copyWith(mode: mode);
@@ -26,8 +26,8 @@ void main() {
   });
 
   group('§528 confirmForeignVpnOverride', () {
-    /// Прогон гейта на пустом экране: `context` нужен только для диалога,
-    /// который здесь подменён, поэтому реального `showDialog` не случается.
+
+
     Future<
         ({bool allowed, int foreignChecks, int dialogs})> run(
       WidgetTester tester, {

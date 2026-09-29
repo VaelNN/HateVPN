@@ -1,4 +1,4 @@
-/// Type-safe VPN tunnel status, mapped from native string events.
+
 library;
 
 import '../services/l10n/locale_controller.dart';
@@ -11,20 +11,20 @@ enum TunnelStatus {
   revoked,
   error,
 
-  /// Native прислал raw, который мы не знаем как мапить. Был раньше default
-  /// на `disconnected` — это ложно резолвило predicate'ы типа
-  /// `firstWhere(disconnected|revoked)` на мусор из stream'а. Отдельный
-  /// `unknown` позволяет `_handleStatusEvent` явно не делать cleanup и
-  /// просто залогировать событие (см. handler). В reconnect/pull — тоже
-  /// explicit no-op ветка.
+
+
+
+
+
+
   unknown;
 
   bool get isUp => this == connected;
 
-  /// §276 — [revoked] приходит отдельным флагом рядом со `Stopped`, а НЕ
-  /// статус-строкой: native-`VpnStatus` — это лишь 4 значения, `"Revoked"` он
-  /// не слал никогда (весь revoke-UX был мёртвым кодом). Терминальный статус
-  /// остаётся `Stopped`, иначе teardown в native виснет — см. EXTRA_REVOKED.
+
+
+
+
   static TunnelStatus fromNative(String raw, {bool revoked = false}) {
     return switch (raw) {
       'Started' => connected,
@@ -35,8 +35,8 @@ enum TunnelStatus {
     };
   }
 
-  /// §279 — display-label статуса (рендер по локали в момент показа).
-  /// Wire-литералы native ([fromNative]) не трогаются.
+
+
   String label() => switch (this) {
         disconnected => getLocalText.s("Disconnected"),
         connecting => getLocalText.s("Connecting…"),
@@ -48,15 +48,15 @@ enum TunnelStatus {
       };
 }
 
-/// Структурированное событие статуса VPN от native — заменяет
-/// `Map<String, dynamic>` на типизированный объект. Парсинг делается **раз**
-/// в `BoxVpnClient.onStatusChanged`, дальше в HomeController/UI едет уже
-/// готовый typed объект — нет дублирования `TunnelStatus.fromNative()` +
-/// `_extractStopReason()` логики по callsite'ам.
-///
-/// Native посылает `Map` вида `{"status": "Started"}` или с error/reason-
-/// дополнительными полями на стопе. `errorReason` собирается из первого
-/// непустого среди известных ключей (error/message/reason/details/description).
+
+
+
+
+
+
+
+
+
 class TunnelStatusEvent {
   const TunnelStatusEvent({
     required this.status,
@@ -65,26 +65,26 @@ class TunnelStatusEvent {
     this.coreError,
   });
 
-  /// Парсинг raw-события из native — fail-soft: если status неизвестен →
-  /// `TunnelStatus.unknown`, errorReason остаётся как есть. UI/HomeController
-  /// явно решат что делать с unknown (типично — лог, без mutation).
+
+
+
   factory TunnelStatusEvent.fromNative(Map<dynamic, dynamic> raw) {
     final rawStatus = raw['status']?.toString() ?? '';
     return TunnelStatusEvent(
-      // §276 — `revoked: true` рядом со `Stopped` = слот забрало другое
-      // VPN-приложение (native onRevoke), а не наш штатный стоп.
+
+
       status: TunnelStatus.fromNative(rawStatus, revoked: raw['revoked'] == true),
       raw: rawStatus,
       errorReason: _extractReason(raw),
-      // Фича 478 / Д-1 — отдельный ключ, НЕ из списка `_extractReason`:
-      // `errorReason` остаётся локализованной витриной для человека, а
-      // страховка разбирает сырой текст ядра.
+
+
+
       coreError: _nonEmpty(raw[_coreErrorKey]),
     );
   }
 
-  /// Empty fallback для случаев когда event-payload оказался пустым/мусорным
-  /// (defensive после `.timeout()` или ошибок десериализации).
+
+
   static const TunnelStatusEvent unknownEmpty = TunnelStatusEvent(
     status: TunnelStatus.unknown,
     raw: '',
@@ -92,21 +92,21 @@ class TunnelStatusEvent {
 
   final TunnelStatus status;
 
-  /// Оригинальный raw-string из native (для логов: "Started", "Stopping", …).
-  /// Сохраняем потому что `TunnelStatus.fromNative` lossy — `unknown` не
-  /// помнит исходник, а в дебаге надо знать что именно прилетело.
+
+
+
   final String raw;
 
-  /// Текст ошибки/причины остановки если native приложил. `null` если событие
-  /// без reason-полей (норма для `Started`/`Stopping`).
+
+
   final String? errorReason;
 
-  /// Фича 478 / Д-1 — СЫРОЙ текст ядра (`t.message` от
-  /// `startOrReloadService`), без обёртки `stop_alert_start_failed` и без
-  /// чего-либо ещё от приложения. Его и только его разбирает PARSING_PRINCIPLES §9:
-  /// [errorReason] локализован, и грамматика по нему зависела бы от языка
-  /// устройства. `null` — отказ не от ядра либо native старше этого поля
-  /// (тогда страховка откатывается на [errorReason], см. HomeController).
+
+
+
+
+
+
   final String? coreError;
 
   static const _coreErrorKey = 'core_error';

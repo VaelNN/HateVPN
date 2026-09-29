@@ -1,30 +1,30 @@
 import 'dart:convert';
 
-/// §302 — правило обработки узлов подписки на импорте/обновлении.
-///
-/// Живёт per-subscription (`SubscriptionServers.importRules`) и применяется к
-/// УЖЕ РАЗОБРАННЫМ узлам — к их каноническому sing-box JSON (`NodeSpec.emit`),
-/// а не к тексту тела. Это принципиально: `emit` одинаков для всех форматов
-/// подписки (URI-строки, Xray-JSON, INI/Amnezia), поэтому одно правило
-/// работает везде, а не требует отдельной реализации под каждый формат.
-///
-/// Структура правила:
-///
-///     if  <условия, объединённые AND | OR>
-///     then Disable | Replace <путь> = <значение с карманами>
-///
-/// Условие — `<путь> <оператор> <паттерн>`, оператор `contains` (дефолт) /
-/// `equals` / `matches` (regex), с необязательным отрицанием (`negate`).
-/// Карманы (`$1`…`$9`) дают группы захвата из `matches`-условия по ТОМУ ЖЕ
-/// пути, что и цель замены.
 
-/// Путь по JSON узла в точечной нотации: `tag`, `server_port`,
-/// `tls.utls.fingerprint`, `transport.headers.Host`.
-///
-/// Если путь указывает не на лист (например `tls.utls`), поддерево
-/// сериализуется в компактный JSON и правило работает с ним как с текстом.
-/// Несуществующий путь = `null`: условие по нему не матчится (кроме `negate`),
-/// замена по нему не применяется.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 typedef JsonPath = String;
 
 enum ImportRuleOperator {
@@ -35,15 +35,15 @@ enum ImportRuleOperator {
   static ImportRuleOperator fromName(String? s) => switch (s) {
         'equals' => ImportRuleOperator.equals,
         'matches' => ImportRuleOperator.matches,
-        _ => ImportRuleOperator.contains, // дефолт + толерантность к мусору
+        _ => ImportRuleOperator.contains,
       };
 }
 
 enum ImportRuleMatchMode {
-  /// Достаточно одного сработавшего условия.
+
   any,
 
-  /// Должны сработать все условия.
+
   all;
 
   static ImportRuleMatchMode fromName(String? s) =>
@@ -54,11 +54,11 @@ enum ImportRuleAction {
   replace,
   disable,
 
-  /// §332 — принудительно включить узел: снять disable-отметку, в том числе
-  /// ручную (§283). Правила последовательные, последнее сработавшее
-  /// enable/disable побеждает — «включить всё» первым правилом сбрасывает
-  /// прошлые отключения, дальше можно выборочно выключать (и наоборот:
-  /// «выключить всё» + точечные enable = whitelist).
+
+
+
+
+
   enable;
 
   static ImportRuleAction fromName(String? s) => switch (s) {
@@ -68,29 +68,29 @@ enum ImportRuleAction {
       };
 }
 
-/// Режим записи для [ImportRuleAction.replace].
+
 enum ImportRuleReplaceMode {
-  /// Записать значение целиком (с раскрытыми карманами).
+
   set,
 
-  /// Найти внутри текущего значения паттерн и заменить только его.
+
   substitute;
 
   static ImportRuleReplaceMode fromName(String? s) =>
       s == 'substitute' ? ImportRuleReplaceMode.substitute : ImportRuleReplaceMode.set;
 }
 
-/// Одно условие правила.
+
 class ImportRuleCondition {
   final JsonPath path;
   final ImportRuleOperator op;
   final String pattern;
 
-  /// Инвертировать результат («не содержит», «не равно», «не совпадает»).
+
   final bool negate;
 
-  /// Регистрозависимость. Дефолт `false` — согласуется с §301 (node-фильтры
-  /// регистронезависимы), но переопределяемо на условии.
+
+
   final bool caseSensitive;
 
   const ImportRuleCondition({
@@ -101,8 +101,8 @@ class ImportRuleCondition {
     this.caseSensitive = false,
   });
 
-  /// Компилированный regex для [ImportRuleOperator.matches]; `null` для
-  /// прочих операторов и при битом паттерне.
+
+
   RegExp? get compiledPattern {
     if (op != ImportRuleOperator.matches || pattern.isEmpty) return null;
     try {
@@ -112,9 +112,9 @@ class ImportRuleCondition {
     }
   }
 
-  /// Условие пригодно к применению: есть паттерн, а для `matches` он ещё и
-  /// компилируется. Пустой путь допустим — это поиск по всему JSON узла
-  /// (см. [readJsonPath]), удобно когда неизвестно, в каком поле искать.
+
+
+
   bool get isUsable {
     if (pattern.isEmpty) return false;
     if (op == ImportRuleOperator.matches) return compiledPattern != null;
@@ -170,26 +170,26 @@ class ImportRuleCondition {
 class ImportRule {
   final List<ImportRuleCondition> conditions;
 
-  /// Как объединяются [conditions]: все (`all`) или любое (`any`).
+
   final ImportRuleMatchMode matchMode;
 
   final ImportRuleAction action;
 
-  /// Цель замены — путь по JSON узла. Только для [ImportRuleAction.replace].
+
   final JsonPath targetPath;
 
-  /// Новое значение. Поддерживает карманы `$1`…`$9` из `matches`-условия по
-  /// тому же пути. Пустое в режиме [ImportRuleReplaceMode.set] очищает поле,
-  /// в `substitute` — вырезает найденный фрагмент.
+
+
+
   final String replacement;
 
   final ImportRuleReplaceMode replaceMode;
 
-  /// В режиме `substitute` — что именно искать внутри значения. Пусто →
-  /// берётся паттерн первого условия по тому же пути.
+
+
   final String substitutePattern;
 
-  /// Per-rule вкл/выкл (плюс общий тумблер набора на подписке).
+
   final bool enabled;
 
   const ImportRule({
@@ -203,14 +203,14 @@ class ImportRule {
     this.enabled = true,
   });
 
-  /// Правило участвует в применении: включено, есть хотя бы одно пригодное
-  /// условие, а для Replace — ещё и цель.
-  ///
-  /// §307 — пустая цель допустима в режиме `substitute`: это замена по всему
-  /// узлу (симметрия с пустым путём условия). Нужен паттерн поиска — явный
-  /// [substitutePattern] либо пригодное условие с пустым путём, иначе движку
-  /// нечего искать. В режиме `set` пустая цель по-прежнему непригодна
-  /// (весь узел строкой не затирается).
+
+
+
+
+
+
+
+
   bool get isUsable {
     if (!enabled) return false;
     if (!conditions.any((c) => c.isUsable)) return false;
@@ -223,7 +223,7 @@ class ImportRule {
     return true;
   }
 
-  /// Условия, годные к вычислению (битые молча пропускаются).
+
   List<ImportRuleCondition> get usableConditions =>
       conditions.where((c) => c.isUsable).toList();
 
@@ -240,10 +240,10 @@ class ImportRule {
       };
 
   factory ImportRule.fromJson(Map<String, dynamic> j) {
-    // Миграция v1 (§302 первая версия): плоское правило по ТЕКСТУ строки
-    // подписки — {action, pattern, replacement, is_regex, case_sensitive}.
-    // Переносим в условие по `tag`: текст строки пользователь писал, глядя на
-    // имя узла в списке, и именно оно живёт в tag готового JSON.
+
+
+
+
     if (j['conditions'] == null && j['pattern'] is String) {
       final legacyPattern = j['pattern'] as String;
       final isRegex = (j['is_regex'] as bool?) ?? false;
@@ -305,12 +305,12 @@ class ImportRule {
         enabled: enabled ?? this.enabled,
       );
 
-  /// Человекочитаемая сводка для списка правил («tag contains ⚡ → Disable»).
-  /// Английская — как все UI-строки; локализуется на стороне UI.
+
+
   String get summary {
     final parts = [
       for (final c in conditions)
-        // Пустой путь = весь узел, показываем как `*`.
+
         '${c.path.isEmpty ? '*' : c.path} '
             '${c.negate ? 'not ' : ''}${c.op.name} ${c.pattern}',
     ];
@@ -320,7 +320,7 @@ class ImportRule {
     final act = switch (action) {
       ImportRuleAction.disable => 'Disable',
       ImportRuleAction.enable => 'Enable',
-      // Пустая цель = substitute по всему узлу, показываем как `*` (§307).
+
       ImportRuleAction.replace =>
         '${targetPath.isEmpty ? '*' : targetPath} = $replacement',
     };
@@ -361,14 +361,14 @@ class ImportRule {
   }
 }
 
-/// Читает значение по [path] из JSON-мапы узла.
-///
-/// Возвращает текстовое представление: лист — как есть (числа/булевы через
-/// `toString`), не-лист (Map/List) — компактным JSON, чтобы правило могло
-/// работать с поддеревом как с текстом. `null` — пути нет.
+
+
+
+
+
 String? readJsonPath(Map<String, dynamic> map, JsonPath path) {
-  // Пустой путь = весь узел: сериализуем JSON целиком, чтобы условие искало
-  // по любому полю сразу («не знаю, где лежит — найди везде»).
+
+
   if (path.isEmpty) return jsonEncode(map);
   Object? cur = map;
   for (final seg in path.split('.')) {
@@ -391,19 +391,19 @@ String? readJsonPath(Map<String, dynamic> map, JsonPath path) {
   return cur.toString();
 }
 
-/// Записывает [value] по [path], создавая промежуточные мапы при
-/// необходимости. Возвращает `false`, если путь пройти нельзя (упирается в
-/// не-мапу) — вызывающий тогда ничего не меняет.
-///
-/// Тип значения сохраняется по месту: если текущее значение было числом или
-/// булевым, а новое парсится в тот же тип — пишем типизированно, иначе
-/// строкой. Иначе `server_port` превратился бы в строку и сломал конфиг.
+
+
+
+
+
+
+
 bool writeJsonPath(Map<String, dynamic> map, JsonPath path, String value) {
   if (path.isEmpty) return false;
   final segs = path.split('.');
-  // §350 — сегмент `//...` создал бы в emit-JSON узла ключ-комментарий, а
-  // strict-decode ядра на unknown-field роняет весь конфиг. Проверяем весь
-  // путь ДО мутаций — иначе промежуточные мапы успели бы создаться.
+
+
+
   if (segs.any((s) => s.isEmpty || s.startsWith('//'))) return false;
   Map<String, dynamic> cur = map;
   for (var i = 0; i < segs.length - 1; i++) {
@@ -416,7 +416,7 @@ bool writeJsonPath(Map<String, dynamic> map, JsonPath path, String value) {
       cur[seg] = created;
       cur = created;
     } else {
-      return false; // упёрлись в лист/список — не перезаписываем вслепую
+      return false;
     }
   }
   final last = segs.last;
@@ -424,9 +424,9 @@ bool writeJsonPath(Map<String, dynamic> map, JsonPath path, String value) {
   return true;
 }
 
-/// Приводит новое строковое значение к типу прежнего, когда это безопасно.
-/// Публична: whole-node substitute (§307, import_rules.dart) сохраняет типы
-/// листьев тем же правилом.
+
+
+
 Object? coerceJsonLike(Object? previous, String value) {
   if (previous is int) {
     final n = int.tryParse(value);

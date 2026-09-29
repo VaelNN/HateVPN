@@ -1,8 +1,8 @@
-// ignore_for_file: depend_on_referenced_packages
 
-// Ревью после v2.25.1, L2: `POST /action/start-vpn` без флага — прежний путь
-// §494 «байт в байт», и контроллер подписок ему не нужен. После §494 хелпер
-// требовал его ДО ветки guard и отвечал 409 там, где раньше стартовал.
+
+
+
+
 import 'dart:async';
 import 'dart:io';
 

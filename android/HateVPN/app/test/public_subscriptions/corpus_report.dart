@@ -1,16 +1,16 @@
-// §525 — отчёты и сверка с эталоном для корпуса публичных подписок.
-//
-// Живёт рядом с раннером, а не в `tool/`: конвейер разбора тянет Flutter
-// (`node_warning.dart` → l10n → `package:flutter/widgets.dart`), поэтому
-// запустить его голым `dart run` НЕЛЬЗЯ ни из какого каталога — единственный
-// путь это `flutter test`. Энтрипоинт — `public_subs_corpus_test.dart`.
+
+
+
+
+
+
 
 import 'dart:convert';
 import 'dart:io';
 
 import 'corpus_runner.dart';
 
-/// Записать `report.json` и `report.md` рядом с корпусом.
+
 void writeReports(List<SubscriptionResult> results) {
   File('$kCorpusRoot/report.json').writeAsStringSync(
       '${const JsonEncoder.withIndent('  ').convert({
@@ -21,7 +21,7 @@ void writeReports(List<SubscriptionResult> results) {
   File('$kCorpusRoot/report.md').writeAsStringSync(renderMarkdown(results));
 }
 
-/// Переписать эталон числами текущего прогона.
+
 void writeExpected(List<SubscriptionResult> results) {
   File('$kCorpusRoot/expected.json').writeAsStringSync(
       '${const JsonEncoder.withIndent('  ').convert({
@@ -32,7 +32,7 @@ void writeExpected(List<SubscriptionResult> results) {
           })}\n');
 }
 
-/// Построчные расхождения эталона и текущего прогона.
+
 List<String> diffExpected(
     Map<String, dynamic> expected, Map<String, Map<String, dynamic>> current) {
   final out = <String>[];
@@ -49,7 +49,7 @@ List<String> diffExpected(
     }
     final en = e['nodes_total'], cn = c['nodes_total'];
     if (en != cn) {
-      // Падение числа узлов — то, за чем корпус и заведён.
+
       final mark = (cn as int) < (en as int) ? ' ← УЗЛОВ СТАЛО МЕНЬШЕ' : '';
       out.add('$id: nodes_total $en → $cn$mark');
     }
@@ -70,7 +70,7 @@ String get contractVersion {
   return f.existsSync() ? f.readAsStringSync().trim() : 'unknown';
 }
 
-/// Сводка по всему корпусу.
+
 Map<String, dynamic> summaryOf(List<SubscriptionResult> rs) {
   final drop = <String, int>{}, warn = <String, int>{};
   final types = <String, int>{}, cover = <String, int>{};

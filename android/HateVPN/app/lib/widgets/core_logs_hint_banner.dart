@@ -6,25 +6,25 @@ import '../screens/app_settings_screen.dart';
 import '../vpn/box_vpn_client.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// Banner showing «DNS / router events off» when «Forward sing-box logs»
-/// (Diagnostics → §043) is disabled. Used in tabs that depend on core logs
-/// for full event attribution (Live tab, Per-app trace tab):
-///
-///   - Без core logs нет `dns: exchanged` / `dns: cached` events → DNS
-///     resolves пропадают.
-///   - Нет `router: found package name: ...` → process attribution
-///     ухудшается до Clash /connections poll'а только.
-///
-/// Hit-zones split:
-///  • Левая (i + «DNS / router events off») → tap = tooltip с
-///    объяснением.
-///  • Правая («turn on Forward sing-box logs» + chevron) → tap =
-///    deep-link в App Settings → Diagnostics с auto-scroll и подсветкой
-///    нужного toggle'а.
-///
-/// State auto-managed: подписывается на `AppLifecycleState.resumed`,
-/// re-fetches `getCoreLogsEnabled()` чтобы поймать toggle juзера и
-/// исчезнуть. Self-hides когда core logs forwarding включён.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class CoreLogsHintBanner extends StatefulWidget {
   const CoreLogsHintBanner({super.key});
 
@@ -35,7 +35,7 @@ class CoreLogsHintBanner extends StatefulWidget {
 class _CoreLogsHintBannerState extends State<CoreLogsHintBanner>
     with WidgetsBindingObserver {
   final BoxVpnClient _vpn = BoxVpnClient();
-  bool? _enabled; // null до первого load — banner скрыт
+  bool? _enabled;
 
   @override
   void initState() {
@@ -68,7 +68,7 @@ class _CoreLogsHintBannerState extends State<CoreLogsHintBanner>
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => const AppSettingsScreen(
-          initialTab: 3, // §541 — Diagnostics = 3 (General, Appearance, Subscriptions)
+          initialTab: 3,
           highlightCoreLogs: true,
         ),
       ),

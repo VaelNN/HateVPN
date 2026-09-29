@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/haptic_service.dart';
 
 void main() {
-  // Перехватываем платформенный канал — на host без вибро-мотора `HapticFeedback`
-  // швыряет MissingPluginException. В сервисном коде на устройстве Flutter сам
-  // глушит это, но в тесте — нет.
+
+
+
   TestWidgetsFlutterBinding.ensureInitialized();
   var platformCalls = 0;
   setUp(() {
@@ -28,7 +28,7 @@ void main() {
       h.onVpnConnected();
       h.onConnectTap();
       h.onHeartbeatFail();
-      // Дать tick'у пройти, async вызовы успевают добежать
+
       await Future<void>.delayed(Duration.zero);
       expect(platformCalls, 0);
     });
@@ -45,15 +45,15 @@ void main() {
         enabled: true,
         throttle: const Duration(milliseconds: 100),
       );
-      h.onVpnConnected();    // fires
-      h.onVpnConnected();    // throttled
-      h.onVpnConnected();    // throttled
-      h.onVpnDisconnected(); // throttled (any event uses common throttle)
+      h.onVpnConnected();
+      h.onVpnConnected();
+      h.onVpnConnected();
+      h.onVpnDisconnected();
       await Future<void>.delayed(Duration.zero);
       expect(platformCalls, 1);
 
       await Future<void>.delayed(const Duration(milliseconds: 120));
-      h.onVpnConnected(); // throttle прошёл
+      h.onVpnConnected();
       await Future<void>.delayed(Duration.zero);
       expect(platformCalls, 2);
     });
@@ -75,11 +75,11 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(platformCalls, 1);
       h.enabled = false;
-      h.onVpnConnected(); // skipped
+      h.onVpnConnected();
       await Future<void>.delayed(Duration.zero);
       expect(platformCalls, 1);
       h.enabled = true;
-      h.onVpnConnected(); // resumed
+      h.onVpnConnected();
       await Future<void>.delayed(Duration.zero);
       expect(platformCalls, 2);
     });
@@ -90,7 +90,7 @@ void main() {
       expect(HapticService.I.enabled, isFalse);
       HapticService.I.enabled = true;
       expect(HapticService.I.enabled, isTrue);
-      // restore
+
       HapticService.I.enabled = initial;
     });
   });

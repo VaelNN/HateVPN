@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:lxbox/services/builder/post_steps.dart';
 
-/// §419 — healDanglingDnsResolvers: `dns.final` / `route.default_domain_resolver`
-/// на исчезнувший сервер (пресет выключен/удалён) заменяются дефолтом шаблона
-/// в сборке, а не только при открытии экрана DNS (§121 слой D). Иначе каждая
-/// сборка — fatal DanglingDnsServerRef и вечная плашка «Settings changed».
+
+
+
+
 void main() {
   const defaults = {
     'dns_final': 'local_dns_resolver',

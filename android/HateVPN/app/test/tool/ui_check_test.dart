@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
-// §285 Ф3 — self-test AST-скана + валидации ui_check. Логика вынесена в
-// tool/l10n/src/ui_scan.dart ровно ради этого теста (entrypoint
-// tool/l10n/ui_check.dart стабилен для CI). Проверяем: экстракцию ключей из
-// call-site'ов (getLocalText/t/loc/GetLocalText.en, .s/.plural, int-индекс
-// формы, динамические ключи), и все ветки validateUiKeys (missing, orphan,
-// orphan-special, usage-conflict, shape, arity) на синтетическом словаре.
+
+
+
+
+
+
 
 import '../../tool/l10n/src/ui_scan.dart';
 
@@ -110,7 +110,7 @@ final b = getLocalText.s(label);
     test('.plural with incomplete plural forms fails', () {
       final v = validate([use('%d apps', plural: true)], {
         '%d apps': {
-          'value': {'one': '%d прил.', 'other': '%d прил.'} // missing few/many
+          'value': {'one': '%d прил.', 'other': '%d прил.'}
         },
       });
       final shapes = v.findings.where((f) => f.kind == UiFindingKind.shape);
@@ -148,7 +148,7 @@ final b = getLocalText.s(label);
   group('validation — special forms', () {
     test('special index used in code but absent in dict fails', () {
       final v = validate([use('App', form: 1)], {
-        'App': {'value': 'Приложение'}, // no special
+        'App': {'value': 'Приложение'},
       });
       expect(v.findings.any((f) => f.kind == UiFindingKind.shape), isTrue);
     });
@@ -182,7 +182,7 @@ final b = getLocalText.s(label);
   group('validation — placeholder arity', () {
     test('arity mismatch (key vs value) fails', () {
       final v = validate([use('%1\$s at %2\$s')], {
-        '%1\$s at %2\$s': {'value': 'только %1\$s'}, // dropped %2$s
+        '%1\$s at %2\$s': {'value': 'только %1\$s'},
       });
       expect(v.arityErrors, 1);
       expect(v.findings.single.kind, UiFindingKind.arity);
@@ -200,7 +200,7 @@ final b = getLocalText.s(label);
         '%d apps': {
           'value': {
             'one': '%d прил.',
-            'few': 'прил.', // missing %d
+            'few': 'прил.',
             'many': '%d прил.',
             'other': '%d прил.',
           }

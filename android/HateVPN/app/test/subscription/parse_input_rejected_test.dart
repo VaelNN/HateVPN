@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -47,9 +47,9 @@ const _badKeyUri =
     'wireguard://$_shortKey@198.51.100.13:51820?publickey=$_pub&address=10.0.0.2/32#wg-bad-key';
 
 void main() {
-  // Реестр нужен и контроллеру (разбор), и баннеру/шторке (тексты карточки).
-  // Грузим один раз на файл; в tearDownAll снимаем, чтобы не оставить
-  // синглтоны соседям в том же изоляте.
+
+
+
   setUpAll(loadEngineSections);
   tearDownAll(unloadEngineSections);
 
@@ -77,7 +77,7 @@ void main() {
       try {
         if (tempDir.existsSync()) await tempDir.delete(recursive: true);
       } on FileSystemException {
-        // ignore
+
       }
     });
 
@@ -204,7 +204,7 @@ void main() {
       try {
         if (tempDir.existsSync()) await tempDir.delete(recursive: true);
       } on FileSystemException {
-        // ignore
+
       }
     });
 
@@ -326,7 +326,7 @@ void main() {
       try {
         if (tempDir.existsSync()) await tempDir.delete(recursive: true);
       } on FileSystemException {
-        // ignore
+
       }
     });
 

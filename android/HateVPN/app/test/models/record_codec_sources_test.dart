@@ -17,9 +17,9 @@ import 'package:lxbox/services/parser/parse_all.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §439 §4.2 — кодек записей `sources[]`: подписка, одиночный сервер, папка и
-/// цепочка. Главное свойство — `fromRecord(toRecord(x)) == x` через JSON-текст
-/// файла: на нём держится совпадение `config.json` до и после миграции.
+
+
+
 
 const _uriAlpha = 'vless://11111111-1111-1111-1111-111111111111@198.51.100.1:443'
     '?type=ws&security=tls#Alpha';
@@ -34,7 +34,7 @@ const _wgIni = '[Interface]\n'
     'Endpoint = node.example.com:51820\n';
 const _jsonOutbound = '{"type":"tailscale","tag":"ts","auth_key":"k"}';
 
-/// Запись как её видит следующая загрузка: через текст файла.
+
 Map<String, dynamic> _viaFile(Map<String, dynamic> record) =>
     jsonDecode(jsonEncode(record)) as Map<String, dynamic>;
 
@@ -121,8 +121,8 @@ SubscriptionServers _richSubscription() => SubscriptionServers(
     );
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('круг кодека: fromRecord(toRecord(x)) == x', () {
@@ -130,7 +130,7 @@ void main() {
       final s = _richSubscription();
       final back = _sourceRoundTrip(s) as SubscriptionServers;
       expect(back, s);
-      // Поля, которые равенство сравнивает косвенно, — явно.
+
       expect(back.importRules, hasLength(2));
       expect(back.importRules[1].conditions.single.caseSensitive, isTrue);
       expect(back.identity, s.identity);
@@ -220,7 +220,7 @@ void main() {
         id: 'fold-1',
         name: 'Личные',
         enabled: true,
-        // Префикс, заданный через Debug API, с хвостовым пробелом.
+
         tagPrefix: 'F ',
         detourPolicy: const DetourPolicy(
             overrideDetour: NodeLink(tag: 'vpn-1'), registerDetourServers: true),
@@ -232,7 +232,7 @@ void main() {
           FolderMember(raw: _uriBeta, enabled: false),
           FolderMember(raw: 'foo://not-a-node'),
           FolderMember(raw: _jsonOutbound),
-          // §456 — тег INI-члена живёт в записи и возвращается nameHint'ом.
+
           FolderMember(raw: _wgIni, nameHint: 'WireGuard'),
         ],
       );
@@ -397,7 +397,7 @@ void main() {
     });
 
     test('ссылка на член папки читается парой как есть, без отметки', () {
-      // D-112 — пара — рабочая форма ссылки; разбирает её сборка.
+
       final notes = <String>[];
       final l = sourceFromRecord({
         'kind': 'server',
@@ -571,8 +571,8 @@ void main() {
     });
   });
 
-  // Фича 565 фаза B (§74) — свёртка `replace {mode, tag, auto}` у папки и
-  // подписки: одна форма в хранении и в бэкапе.
+
+
   group('replace', () {
     test('папка both с auto и подписка manual переживают перечитывание', () {
       final folder = FolderServers(
@@ -634,9 +634,9 @@ void main() {
     });
   });
 
-  // §576 п.3 — старые записи своего сервера и члена папки с документом или
-  // массивом в источнике при чтении получают голое тело узла записи. Тег,
-  // identity и тело для ядра не сдвигаются.
+
+
+
   group('§576 — старый источник сводится к телу узла', () {
     const trojan = {
       'type': 'trojan',
@@ -682,7 +682,7 @@ void main() {
             reason: 'identity узла не сдвигается');
         final body = verbatimBodyOf(u.rawBody, after)!;
         expect(body, {...trojan}, reason: 'в ядро то же тело, что и раньше');
-        // Запись пишется в новом виде при сохранении состояния.
+
         final rec = sourceToRecord(u);
         expect(sourceKindOf((rec['origin'] as Map)['raw'] as String),
             'singbox_outbound');

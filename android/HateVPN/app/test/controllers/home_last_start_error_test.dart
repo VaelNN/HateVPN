@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -21,20 +21,20 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationSupportPath() async => tempRoot;
 }
 
-/// §250 — `HomeState.lastStartError`/`lastStartErrorAt`: диагностический дубль
-/// `lastError` для Debug API. Прогоняем статус-события через реальный
-/// `_handleStatusEvent` (мост `debugHandleStatusEvent`) и проверяем контракт:
-/// пишется при аварийном stop/revoke, переживает UI-consume (`clearError`) и
-/// пустые повторные стопы, чистится ТОЛЬКО успешным стартом (connected).
+
+
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // Основной native-канал: connected-ветка асинхронно дёргает uptime/CC-методы.
-  // Default null достаточно (getTunnelUptimeMs → 0, cc* → no-op).
+
+
   const methods = MethodChannel('com.leadaxe.lxbox/methods');
-  // Control-каналы EventChannel'ов CommandClient: `_startCcStreams` вешает
-  // подписки → EventChannel шлёт 'listen'; мокаем, чтобы не сыпать
-  // MissingPluginException в консоль.
+
+
+
   const ccStatus = MethodChannel('lxbox/cc/status');
   const ccGroups = MethodChannel('lxbox/cc/groups');
 
@@ -45,9 +45,9 @@ void main() {
   late HomeController controller;
 
   TunnelStatusEvent event(TunnelStatus status, {String? reason}) {
-    // §276 — raw обязан совпадать с тем, что реально шлёт native: enum
-    // `VpnStatus` = 4 значения, строки 'Revoked' среди них нет. Revoke едет
-    // как `Stopped` + флаг `revoked`.
+
+
+
     final raw = switch (status) {
       TunnelStatus.connected => 'Started',
       TunnelStatus.connecting => 'Starting',
@@ -60,7 +60,7 @@ void main() {
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('last_start_error_test_');
     PathProviderPlatform.instance = _FakePathProvider(tempDir.path);
-    // Haptics дёргают SystemChannels.platform (unmocked) — глушим.
+
     HapticService.I.enabled = false;
     for (final ch in [methods, ccStatus, ccGroups]) {
       messenger.setMockMethodCallHandler(ch, (call) async => null);
@@ -69,10 +69,10 @@ void main() {
   });
 
   tearDown(() async {
-    // dispose гасит heartbeat/autoPing/transient/groupsPull таймеры,
-    // чтобы plain test() не ловил колбэки после завершения.
+
+
     controller.dispose();
-    // Дать хвостам unawaited-futures connected-ветки дотечь под живыми моками.
+
     await Future<void>.delayed(const Duration(milliseconds: 50));
     for (final ch in [methods, ccStatus, ccGroups]) {
       messenger.setMockMethodCallHandler(ch, null);
@@ -81,8 +81,8 @@ void main() {
   });
 
   test('аварийный stop с errorReason → lastStartError + lastStartErrorAt', () {
-    // Стартовое state = disconnected → сперва выходим из терминала (иначе
-    // stale-terminal guard проглотит событие).
+
+
     controller.debugHandleStatusEvent(event(TunnelStatus.connecting));
     controller.debugHandleStatusEvent(event(TunnelStatus.disconnected,
         reason: 'Failed to start service: X'));
@@ -90,7 +90,7 @@ void main() {
     expect(controller.state.lastStartError,
         'Stopped: Failed to start service: X');
     expect(controller.state.lastStartErrorAt, isNotNull);
-    // lastError (UI-поле) выставлен той же причиной.
+
     expect(controller.state.lastError?.renderEn(),
         'Stopped: Failed to start service: X');
   });
@@ -114,13 +114,13 @@ void main() {
         event(TunnelStatus.disconnected, reason: 'boom'));
     final at = controller.state.lastStartErrorAt;
 
-    // Дребезг teardown: повторный Stopped в терминале (stale-terminal guard).
+
     controller.debugHandleStatusEvent(event(TunnelStatus.disconnected));
     expect(controller.state.lastStartError, 'Stopped: boom');
     expect(controller.state.lastStartErrorAt, at);
 
-    // Полный цикл connecting → чистый Stopped (пустой reason в основной
-    // ветке) — тоже НЕ затирает (симметрично lastError).
+
+
     controller.debugHandleStatusEvent(event(TunnelStatus.connecting));
     controller.debugHandleStatusEvent(event(TunnelStatus.disconnected));
     expect(controller.state.lastStartError, 'Stopped: boom');

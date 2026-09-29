@@ -1,5 +1,5 @@
-// §567 — разбор ответа `getCurrentWifiInfo` (коды причин, поле `missing`)
-// и выбор подсказки секции Wi-Fi по коду.
+
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/screens/custom_rule_edit/sections/wifi_section.dart';

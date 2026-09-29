@@ -5,11 +5,11 @@ import 'package:lxbox/models/dns_ref.dart';
 import 'package:lxbox/services/dns/dns_backup.dart';
 import 'package:lxbox/services/lx_backup.dart';
 
-/// §439 §6.5 п. 12 — слияние DNS-правил секции `dns` (BACKUP.md §9 п. 5):
-/// файл — сериализация состояния, и одинаковые пользовательские правила в нём
-/// — разные правила состояния. Дубль ищется только среди правил, стоявших у
-/// приёмника ДО импорта (ключ — вид и тело); ссылки (`preset`, `template`)
-/// дублем не заводятся.
+
+
+
+
+
 
 const _corp = {
   'domain_suffix': ['.corp'],

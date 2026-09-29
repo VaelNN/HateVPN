@@ -9,11 +9,11 @@ import 'package:lxbox/services/lx_backup.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §439 N2 — член папки `autogroup://…` в LX Backup 0.x (`lx_backup: 1`).
-// Разбор текста снят, и до правки такой член ложился `kind: unsupported`
-// рядом с группой того же тега (проверка на AVD: папка «E439 Folder», член
-// «EF Auto»). Импорт переводит его тем же путём, что миграция хранения:
-// ключи состава → члены той же папки файла, группа ключуется тегом.
+
+
+
+
+
 
 const _alpha = 'vless://c3c3c3c3-0000-4000-8000-000000000070@198.51.100.70:443'
     '?encryption=none&security=tls&sni=alpha.e439.example&type=grpc'
@@ -65,9 +65,9 @@ final _stand = [
 }
 
 void main() {
-  // §480 — ввоз бэкапа разбирает ссылки узлов, а разбор исполняет секции
-  // реестра: без них узлов не получается вовсе (критерий 7 спеки 480), и
-  // ключи членов папки не находят никого — «matches no node».
+
+
+
   setUpAll(loadEngineSections);
 
   test('autogroup:// папки 0.x ввозится группой, ключи — пары на члены папки',

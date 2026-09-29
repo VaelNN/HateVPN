@@ -6,7 +6,7 @@ import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/models/dns_ref.dart';
 import 'package:lxbox/models/record_codec.dart';
 
-/// §435 — кодек записей ONE_NAMESPACE §1–§2: метаданные + `body` sing-box.
+
 void main() {
   group('§435 ruleToRecord / ruleFromRecord — inline', () {
     test('inline: тело в именах и типах sing-box, действие — outbound', () {
@@ -43,7 +43,7 @@ void main() {
         'domain_suffix': ['.lan'],
         'domain_keyword': ['nas'],
         'ip_cidr': ['100.64.0.0/10'],
-        'port': [80, 443], // `x` отброшен: sing-box ждёт числа
+        'port': [80, 443],
         'port_range': ['8000:9000'],
         'package_name': ['com.app'],
         'protocol': ['tls'],
@@ -137,9 +137,9 @@ void main() {
         ...rec,
         'body': {...rec['body'] as Map, 'rule_set': ['Geo', 'Geo-2']},
       });
-      // Норма B3 (14.09.2026): `rule_set` в теле записи сторона не переносит —
-      // ключ незнакомый, решение об отбросе принимает контекст (секции —
-      // запись целиком).
+
+
+
       expect(back.unknownKeys, ['rule_set']);
       expect((back.value! as CustomRuleSrs).srsUrls, r.srsUrls);
       expect(back.value!.ports, ['443']);
@@ -231,9 +231,9 @@ void main() {
     });
   });
 
-  // §439 §4.2 — путь хранения: `fromRecord(toRecord(x)) == x` для правил всех
-  // видов (с `unknownAsVerbatim`) и DNS-записей всех видов, через JSON-текст
-  // файла; вторая запись совпадает с первой.
+
+
+
   group('§439 круг кодека правил хранения', () {
     CustomRule viaStorage(CustomRule r) => ruleFromRecord(
           (jsonDecode(jsonEncode(ruleToRecord(r))) as Map)
@@ -289,8 +289,8 @@ void main() {
       test('${r.kind.name} "${r.name}"', () {
         final back = viaStorage(r);
         if (r is CustomRuleJson && r.json.startsWith('{not')) {
-          // Нечитаемый текст — маркер без тела: имя, id и ось на месте, тело
-          // пустое (текст остаётся в .v0.bak миграции).
+
+
           expect(back, isA<CustomRuleJson>());
           expect((back as CustomRuleJson).json, '');
           expect(back.id, r.id);
@@ -316,7 +316,7 @@ void main() {
       for (final part in split) {
         expect(viaStorage(part), part);
       }
-      // Без деления массив не пережил бы запись: тела у маркера нет.
+
       final unsplit = CustomRuleJson(name: 'raw', json: '[{"action":"sniff"}]');
       expect(ruleToRecord(unsplit).containsKey('body'), isFalse);
     });
@@ -395,11 +395,11 @@ void main() {
     }
   });
 
-  // §439 — тег preset-сервера DNS в модели — тег конфига (`<preset_id>:<тег
-  // внутри пресета>`, `namespacePresetTags`), `ref` записи — та же строка.
-  // Раньше кодек клеил `presetId` к тегу конфига второй раз и при чтении
-  // резал `ref` до тега внутри пресета: резолвер не узнавал сервер, заводил
-  // новый (включённый, без description) и писал `ru-direct:ru-direct:dns_ru`.
+
+
+
+
+
   group('§439 preset-сервер DNS: ref = тег конфига', () {
     Map<String, dynamic> viaFile(Map<String, dynamic> rec) =>
         (jsonDecode(jsonEncode(rec)) as Map).cast<String, dynamic>();
@@ -475,7 +475,7 @@ void main() {
       expect(back.enabled, isFalse);
       expect(back.description, 'd');
       expect(dnsServerToRecord(back)['ref'], 'ru-direct:dns_ru');
-      // Повтор в модели тоже не доезжает до записи.
+
       expect(
           dnsServerToRecord(const DnsServerPreset(
               enabled: true, tag: 'ru-direct:ru-direct:dns_ru'))['ref'],

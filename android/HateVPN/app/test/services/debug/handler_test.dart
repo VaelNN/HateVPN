@@ -9,11 +9,11 @@ import 'package:lxbox/services/debug/handlers/ping.dart';
 import 'package:lxbox/services/debug/transport/request.dart';
 import 'package:lxbox/services/debug/transport/response.dart';
 
-/// Handler-тесты без platform-зависимостей.
-///
-/// Покрываем `ping` (pure — использует только `ctx.now()`) и `logs`
-/// (использует [AppLog.I] singleton). Handler'ы с `ctx.requireHome()`
-/// требовали бы мок `HomeController` — отдельная история, не здесь.
+
+
+
+
+
 DebugContext _ctx({DateTime? fixedNow, DateTime? startedAt}) =>
     DebugContext(
       registry: DebugRegistry.I,
@@ -156,7 +156,7 @@ void main() {
     });
 
     test('q + level + source комбинируются (AND)', () async {
-      // 'third' — level=error, source=app → все три фильтра проходит
+
       final resp = await logsHandler(
         DebugRequest.forTest(
           method: 'GET',

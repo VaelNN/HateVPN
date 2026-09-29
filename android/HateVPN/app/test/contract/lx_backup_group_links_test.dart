@@ -15,13 +15,13 @@ import 'package:lxbox/services/dns/dns_backup.dart';
 import 'package:lxbox/services/lx_backup.dart';
 import 'package:lxbox/services/lx_backup_import.dart';
 
-// Контракт 1.0.1 — импорт групп `kind: auto` и полей стороны LxBox по норме
-// LxBox на файлах корпуса. Кейсы `v10_group_links` и `v10_dev_forms` раннер
-// корпуса сверяет по `.expected.lxbox.json` (selector читается urltest'ом с
-// `backup_group_degraded`, ответ 6, TASKS_LXBOX.md §17.8); здесь закреплена
-// перепись членов, позиций и dev-форм по модели. `v10_lxbox_fields` раннер
-// проходит, но поля стороны LxBox его ожидание не несёт: «раннер LxBox сверяет
-// их по своей модели» (README корпуса) — здесь.
+
+
+
+
+
+
+
 
 String get _corpus => '$kVendorRoot/corpus/backup';
 
@@ -33,7 +33,7 @@ typedef _Imported = ({
   List<DnsServerRef> dnsServers,
 });
 
-/// Импорт тем же планом, что приложение (`LxBackupImportService`).
+
 _Imported _import(String raw, {List<ServerList> lists = const []}) {
   final plan = planLxBackupImport(raw, LxImportReceiver(lists: lists));
   final file = plan.file;
@@ -90,13 +90,13 @@ void main() {
     expect([for (final m in work.members) m.node?.tag],
         ['local-at', 'de-1', 'de-2', 'Best']);
     final best = _group(work, 'Best');
-    // NODE_LINK §7.2 — folder_id файла переписан на локальный.
+
     expect((best.membership as ExplicitMembers).members, [
       NodeLink(folderId: work.id, tag: 'de-1'),
       NodeLink(folderId: work.id, tag: 'de-2'),
     ]);
     expect(best.genus, 'selector');
-    // Позиция на группу — пара с СЫРЫМ тегом группы и локальным id.
+
     expect(got.chains.single.hops, [
       const NodeLink(tag: 'relay-root'),
       NodeLink(folderId: work.id, tag: 'Best'),
@@ -136,10 +136,10 @@ void main() {
           useDetourServers: false,
           replaceDetourChain: true,
         ));
-    // Контракт 1.0.1: `import_rules` — anyOf [форма LxBox {conditions,
-    // action, …}, старая плоская форма {pattern, is_regex, action}]. Кейс
-    // несёт по правилу каждой формы, и применяются оба: старое переносится в
-    // условие по `tag` (миграция §302 v1).
+
+
+
+
     expect(sub.importRules, hasLength(2));
     final byConditions = sub.importRules[0];
     expect(byConditions.conditions, hasLength(2));
@@ -165,7 +165,7 @@ void main() {
 
     final server = got.lists.whereType<UserServer>().single;
     expect(server.detourPolicy, DetourPolicy.defaults);
-    // У LxBox tag_policy корневого сервера — префикс имени в списке.
+
     expect(server.tagPrefix, 'lx:');
 
     final work = _folder(got.lists, 'Work');
@@ -173,8 +173,8 @@ void main() {
     expect(work.pingUrl, 'https://example-2.com/generate_204');
     expect(work.pingTimeoutMs, 3000);
     final best = _group(work, 'Best');
-    // Непустой members сильнее members_rule (по схеме у группы-правила
-    // явного состава нет); pool_badge "" — без значков.
+
+
     expect((best.membership as ExplicitMembers).members, [
       NodeLink(folderId: work.id, tag: 'de-1'),
       NodeLink(folderId: work.id, tag: 'de-2'),

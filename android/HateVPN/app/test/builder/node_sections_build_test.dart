@@ -12,12 +12,12 @@ import 'package:lxbox/services/tailscale_state/state_keys.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §575 — секции узла упразднены (контракт 1.1.85): запись хранения с ключом
-/// `sections` читается, но её правила и DNS-записи в конфиг не попадают.
-/// Tailscale: `state_directory`, гейт ядра, пул Направлений.
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   final template = WizardTemplate(
@@ -48,8 +48,8 @@ void main() {
 
   const settings = BuildSettings(enabledGroups: {'vpn-1', kAutoOutboundTag});
 
-  // Секции в форме хранения (прежняя каноническая связка Tailscale плюс
-  // DNS-сервер `udp` через узел): после §575 кодек и сборка их не видят.
+
+
   const sectionsJson = <String, dynamic>{
     'rules': [
       {
@@ -109,9 +109,9 @@ void main() {
         nodes: [node],
       );
 
-  /// Запись хранения [list], прочитанная обратно кодеком; при [sections] —
-  /// с ключом `sections` у сервера или у каждого члена папки, как её оставила
-  /// прошлая версия.
+
+
+
   ServerList viaStore(ServerList list, {bool sections = true}) {
     final rec = sourceToRecord(list);
     if (sections && list is UserServer) rec['sections'] = sectionsJson;
@@ -200,7 +200,7 @@ void main() {
       );
       expect(endpoints(r).single['state_directory'],
           '/data/user/0/app/files/tailscale/${tailscaleStateDirName('🇩🇪 home ts/1')}');
-      // Флаг — два code point'а (regional indicators) → два `_`, как у Go по рунам.
+
       expect(tailscaleStateDirName('🇩🇪 home ts/1'), '___home_ts_1');
       expect(tailscaleStateDirName('///'), '___');
       expect(tailscaleStateDirName(''), 'tailscale');
@@ -239,7 +239,7 @@ void main() {
       expect(codes, ['tailscale_core_unsupported']);
       expect(old.validation.isOk, isTrue, reason: old.validation.issues.join('\n'));
 
-      // Встроенное ядро (дефолт BuildSettings) несёт тег — узел на месте.
+
       expect(kCoreBuildTags, contains('with_tailscale'));
       final fresh = await buildConfig(
         lists: [user(ts())],
@@ -249,7 +249,7 @@ void main() {
       expect(endpoints(fresh).single['tag'], 'home-ts');
       expect(fresh.emitWarnings, isEmpty);
 
-      // Теги неизвестны — гейт по тегу не применяется.
+
       final unknown = await buildConfig(
         lists: [user(ts())],
         template: template,
@@ -273,7 +273,7 @@ void main() {
       expect(members, contains('exit'));
       final auto = outs.firstWhere((o) => o['tag'] == 'vpn-1-auto');
       expect((auto['outbounds'] as List), isNot(contains('home-ts')));
-      // Узел при этом эмитирован — законная цель detour.
+
       expect(endpoints(r).map((e) => e['tag']), containsAll(['home-ts', 'exit']));
     });
   });

@@ -8,13 +8,13 @@ import 'package:lxbox/models/direction.dart';
 import 'package:lxbox/screens/subscription_detail_screen/tag_prefix_cascade.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §393 A6 — каскад смены `tag_prefix` подписки/папки на regex-фильтры
-/// Направлений НА УРОВНЕ STORAGE: однозначное вхождение обязано доехать до
-/// диска (через `DirectionMutations`, не мимо), неоднозначное — остаться на
-/// диске КАК БЫЛО и всплыть предупреждением.
-///
-/// Harness идентичен direction_heal_refs_test.dart: mock path_provider +
-/// изоляция tmp-dir + resetCacheForTesting.
+
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -43,7 +43,7 @@ void main() {
     } catch (_) {}
   });
 
-  /// Storage с одним Направлением vpn-1 и заданными фильтрами.
+
   Future<void> seed({required String nodeFilter, String defaultFilter = ''}) async {
     final data = {
       'directions_migrated': true,
@@ -77,7 +77,7 @@ void main() {
 
     expect(outcome.healed.map((d) => d.tag), ['vpn-1']);
     expect(outcome.ambiguous, isEmpty);
-    // Главное: на диске новый фильтр, а не в памяти вызывающего.
+
     expect((await vpn1()).nodeFilter, '^DE: ');
   });
 
@@ -131,8 +131,8 @@ void main() {
   });
 
   test('половина Направления чинится, половина — предупреждение', () async {
-    // nodeFilter литерален, defaultFilter — конструкция: обе половины правды
-    // обязаны дойти до пользователя, а фильтры — разойтись по судьбе.
+
+
     await seed(nodeFilter: '^RU: ', defaultFilter: 'RU:?');
 
     final outcome = await run('RU:', 'DE:');

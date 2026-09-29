@@ -6,10 +6,10 @@ import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/screens/home/node_list_presenter.dart';
 import 'package:lxbox/screens/home/widgets/node_list.dart';
 
-/// §446 — `poolBadgeOf` зовётся из `itemBuilder` на каждую видимую строку
-/// автовыбора каждый кадр, и раньше обходил ВСЕ узлы всех подписок. Теперь
-/// между вызовами живёт срез spec'ов автовыбора. Проверяем, что кэш не
-/// переживает смену состава подписок: иначе список показывал бы чужие значки.
+
+
+
+
 void main() {
   setUp(resetPoolBadgeCache);
   tearDown(resetPoolBadgeCache);
@@ -38,7 +38,7 @@ void main() {
 
   test('значок берётся у spec с суффиксным совпадением тега', () {
     final c = controllerWith([auto('auto-de', '🇩🇪')]);
-    // Итоговый тег несёт префикс контейнера — матчинг суффиксный.
+
     expect(poolBadgeOf(c, 'sub-1-auto-de'), '🇩🇪');
   });
 
@@ -56,7 +56,7 @@ void main() {
     final c = controllerWith([auto('auto-de', '🇩🇪')]);
     expect(poolBadgeOf(c, 'sub-1-auto-de'), '🇩🇪');
 
-    // Другой набор подписок: новый список узлов, новый значок у того же тега.
+
     c.debugSetEntries([
       SubscriptionEntry(list: listWith([auto('auto-de', '🇳🇱')])),
     ]);

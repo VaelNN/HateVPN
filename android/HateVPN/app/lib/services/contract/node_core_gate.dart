@@ -1,34 +1,34 @@
-/// Контракт 1.1.60 (§56 `TASKS_LXBOX.md`) — узловой гейт ядра по данным
-/// реестра.
-///
-/// Какому протоколу, полю или форме значения какой тег сборки и какая версия
-/// ядра нужны, говорит реестр (`build_tag`/`min_core` рядом с
-/// `on_core_unsupported`), а не код по имени протокола. Зеркало
-/// `nodeflow.NodeCoreRefusal` лаунчера.
-///
-/// Это УЗЛОВОЙ гейт: он снимает узел целиком, до санитайзера. Полевой гейт
-/// санитайзера (`min_core` без `on_core_unsupported`) — другой класс: снимает
-/// ключ, узел живёт.
-///
-/// Политика: деградируем только по положительному свидетельству. Теги сборки
-/// неизвестны (`null`) — гейт по тегу не применяется; версия неизвестна
-/// (пустая строка) — гейт по версии не применяется.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import 'body_sanitizer.dart' show coreAtLeast;
 import 'registry.dart';
 
-/// Ядро, под которое собирается конфиг.
+
 final class CoreInfo {
   const CoreInfo({this.version = '', this.tags});
 
-  /// Версия ядра форка (`1.14.2-lx.4`); пусто — неизвестна.
+
   final String version;
 
-  /// Теги сборки ядра; `null` — неизвестны.
+
   final Set<String>? tags;
 
-  /// Причина, по которой ядро не выполняет требование, или `null`.
+
   String? unmet(String? buildTag, String? minCore, String what) {
     final tags = this.tags;
     if (buildTag != null && buildTag.isNotEmpty && tags != null) {
@@ -47,28 +47,28 @@ final class CoreInfo {
   }
 }
 
-/// Почему узел этому ядру не по силам.
+
 final class CoreRefusal {
   const CoreRefusal({required this.code, required this.reason, this.path});
 
-  /// Код реестра из `on_core_unsupported.code`.
+
   final String code;
 
-  /// `null` — протокол целиком, иначе путь поля
-  /// (`peers[].persistent_keepalive_interval`).
+
+
   final String? path;
 
-  /// Причина словами (параметр `reason` кода, EN).
+
   final String reason;
 }
 
-/// Значение формы-диапазона `awg_range`: строка с дефисом (`"5-10"`).
+
 bool isAwgRangeValue(Object? v) => v is String && v.trim().contains('-');
 
-/// Годится ли узел схемы [scheme] с телом [body] ядру [core]. Не годится,
-/// когда требование с `on_core_unsupported: drop_node` не выполнено: у тела
-/// протокола, у заданного поля или у значения формы-диапазона
-/// (`range_form`). `null` — годится (или реестр/схема неизвестны).
+
+
+
+
 CoreRefusal? nodeCoreRefusal(
   String scheme,
   Map<String, dynamic> body,

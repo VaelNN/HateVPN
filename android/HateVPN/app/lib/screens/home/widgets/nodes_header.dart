@@ -7,13 +7,13 @@ import '../../routing_screen.dart';
 import '../node_filter_view_model.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// Заголовок секции нод на главном экране: «Nodes (N)», кнопка сортировки
-/// (tap = cycle режима, long-press = меню опций; amber-точка когда sort
-/// non-default, §070/§071) и toggle панели фильтров (§048). Long-press по
-/// всему заголовку открывает [RoutingScreen].
-///
-/// Перерисовывается родителем по [controller]/[filter]; [onSortLongPress]
-/// открывает sort-меню (живёт в `_HomeScreenState` — нужен его context).
+
+
+
+
+
+
+
 class NodesHeader extends StatelessWidget {
   const NodesHeader({
     super.key,
@@ -31,13 +31,13 @@ class NodesHeader extends StatelessWidget {
   static bool _isSortNonDefault(HomeState s) =>
       !s.pinDirect || !s.pinAuto || !s.resortOnManualPing;
 
-  /// Число узлов в заголовке: при псевдо-направлении NETWORKS (задача 579) —
-  /// его узлы, иначе узлы выбранного направления.
+
+
   static int listCount(HomeState s) =>
       s.showingNetworks ? s.networksNodes.length : s.nodes.length;
 
-  /// Кнопки сортировки и фильтров: у NETWORKS своего фильтра и сортировки
-  /// нет (задача 579), кнопки скрыты.
+
+
   static bool showsListTools(HomeState s) => !s.showingNetworks;
 
   @override
@@ -76,8 +76,8 @@ class NodesHeader extends StatelessWidget {
             ],
             const Spacer(),
             if (showsListTools(state)) ...[
-              // §070: sort = InkWell (tap=cycle, long-press=меню), не IconButton.
-              // Amber-точка когда sort non-default; иконка в `manual` = ⠿ (§071).
+
+
               Tooltip(
                 message: state.sortMode.label(),
                 child: Stack(
@@ -121,9 +121,9 @@ class NodesHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              // §048 / §044-new-profiler — toggle панели фильтров. Иконка
-              // `Icons.filter_list` (унифицирована с control-строкой профайлера).
-              // Primary-цвет + точка когда есть active match-filter (§095).
+
+
+
               IconButton(
                 tooltip: filter.panelExpanded
                     ? getLocalText.s("Hide filters")
@@ -152,7 +152,7 @@ class NodesHeader extends StatelessWidget {
                             height: 8,
                             decoration: const BoxDecoration(
                               color: Colors
-                                  .amber, // видимый маркер «фильтр активен»
+                                  .amber,
                               shape: BoxShape.circle,
                             ),
                           ),

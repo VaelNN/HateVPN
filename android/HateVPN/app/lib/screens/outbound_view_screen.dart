@@ -23,13 +23,13 @@ import 'owner_navigation.dart';
 import 'subscriptions_screen/entry_warnings.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// §258 — экран деталей outbound'а («View details» из меню ноды): вкладки
-/// **Overview** (основные параметры + рантайм-цепочка detour, хопы
-/// кликабельны → экран владельца) и **JSON** (прежний read-only дамп §099
-/// с Copy-аффордансом в AppBar). §355 — третья вкладка **Dependents**
-/// (кто зависит от этой ноды по detour/Направлениям) — видна только когда
-/// зависимые есть; ⚠-метка мёртвого корня в списке нод открывает экран
-/// сразу на ней ([openDependents]).
+
+
+
+
+
+
+
 class OutboundViewScreen extends StatefulWidget {
   const OutboundViewScreen({
     super.key,
@@ -45,31 +45,31 @@ class OutboundViewScreen extends StatefulWidget {
     this.openNetwork = false,
   });
 
-  /// Задача 581 — открыть сразу вкладку Network (экран открыт из строки
-  /// NETWORKS главного экрана). У узла не Tailscale вкладки нет — обычный
-  /// Overview.
+
+
+
   final bool openNetwork;
 
-  /// §355 — открыть сразу вкладку Dependents (тап по ⚠-метке). Если
-  /// зависимых нет (вкладка скрыта) — обычный Overview.
+
+
   final bool openDependents;
 
   final String tag;
   final String kind;
   final String json;
 
-  /// §099 — число detour-хопов у ноды (0 = нет). Определяет вид Copy-аффорданса
-  /// и лейбл «server + detour(s)».
+
+
   final int detourCount;
 
-  /// Копирование JSON-варианта (перенесено из контекстного меню ноды, §099).
-  /// `mode`: `'server'` | `'detour'` | `'both'` → `copyNodeJson`.
+
+
   final void Function(String mode) onCopy;
 
-  /// §258 — распарсенный собранный конфиг (источник параметров и цепочки).
+
   final ParsedConfig config;
 
-  /// §258 — навигация по хопам (openTagOwner) требует оба контроллера.
+
   final SubscriptionController subController;
   final HomeController homeController;
 
@@ -80,18 +80,18 @@ class OutboundViewScreen extends StatefulWidget {
 class _OutboundViewScreenState extends State<OutboundViewScreen> {
   late final TextEditingController _jsonCtrl;
 
-  // §258 — Направления: подпись Направлений хопов «⚙ label» + Направление-ветка
-  // навигации. Цепочка строится после загрузки (initState → _load).
+
+
   List<Direction> _directions = const [];
   List<RuntimeHop> _hops = const [];
 
-  /// §344 — живой пул round_robin-группы (§208 `getPool`). `null` = ещё не
-  /// спросили / клиент недоступен (туннель down, §209) — НЕ пустой пул.
-  /// Снимается один раз при открытии: unary-RPC, дёргать на ребилд нельзя.
+
+
+
   List<CcPoolSlot>? _pool;
 
-  /// §344 — режим группы (§322 §6.1: round_robin-Направление или `balancer{}` в
-  /// конфиге). Не-группа — всегда false.
+
+
   bool get _isBalancer =>
       _isGroupNode && widget.homeController.isRoundRobinAuto(widget.tag);
 
@@ -100,12 +100,12 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     return t != null && GroupGenus.isKnown(t);
   }
 
-  /// §565 — группа ручного рода: член выбирается вручную (`default`).
+
   bool get _isManualGroup =>
       widget.config[widget.tag]?.type == GroupGenus.manual;
 
-  /// §565 — выбранный член ручной группы: живой выбор ядра, без туннеля —
-  /// `default` конфига.
+
+
   String? get _manualSelected {
     if (!_isManualGroup) return null;
     final picked = _pickedMember;
@@ -116,25 +116,25 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     return def is String && def.isNotEmpty ? def : null;
   }
 
-  /// §394 — позиции цепочки из СОБРАННОГО конфига (`null` = узел не цепочка).
-  /// Оттуда, а не из списка источников: ядро запустило именно собранное, и
-  /// послойная проба обязана мерить работающий маршрут.
+
+
+
   List<String>? get _chainHops =>
       chainHopsFromConfig(widget.config[widget.tag]?.raw);
 
-  /// Задача 581 — узел Tailscale: у экрана вкладка Network.
+
   bool get _isTailscale => widget.config[widget.tag]?.type == 'tailscale';
 
-  /// Задача 581 — тело узла для вкладки Network: из собранного конфига, после
-  /// Save choice — с записанным `exit_node` (конфиг экрана — снимок).
+
+
   Map<String, dynamic>? _tailscaleBody;
 
   Map<String, dynamic> get _networkBody =>
       _tailscaleBody ?? widget.config[widget.tag]?.raw ?? const {};
 
-  /// Задача 581 — Save choice: только когда по тегу нашлась запись своего
-  /// сервера или члена папки ([exitNodeTargetForTag]); подписка и узел без
-  /// записи — `null`, кнопки нет.
+
+
+
   Future<void> Function(String?)? get _saveExitNode {
     if (exitNodeTargetForTag(widget.tag, widget.subController.entries) ==
         null) {
@@ -163,14 +163,14 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
         content: Text(err ?? getLocalText.s("Saved"))));
   }
 
-  /// §565 / задача 570 — член, выбранный на этом экране, пока ядро (или
-  /// пересборка) его не подтвердили.
+
+
   String? _pickedMember;
 
-  /// §565 / задача 570 — выбор члена ручной группы прямо на экране узла:
-  /// при туннеле — вживую через ядро (`selectOutbound`), выбор запоминается
-  /// у своей группы папки/подписки наблюдателем Home; без туннеля — сразу в
-  /// состояние, в конфиг он попадёт на следующей сборке.
+
+
+
+
   Future<void> _selectMember(String member) async {
     if (member == _manualSelected) return;
     final prev = _pickedMember;
@@ -211,8 +211,8 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
       _directions = directions;
       _hops = runtimeChainOf(widget.tag, widget.config, directions: directions);
     });
-    // §344 — живой состав пула. Только для round_robin: у least_test пул
-    // пуст по контракту ядра, спрашивать нечего.
+
+
     if (!_isBalancer) return;
     final pool = await widget.homeController.getPool(widget.tag);
     if (!mounted) return;
@@ -239,31 +239,31 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // §099 — лейбл «both»: единственное «detour» или «detours(N)» при N>1.
+
     final bothLabel = widget.detourCount > 1
         ? 'Copy server + detours(${widget.detourCount})'
         : 'Copy server + detour';
-    // §355 — вкладка Dependents: sick-срез (транзитивные жертвы мёртвого
-    // корня) приоритетнее статического «кто через меня ходит». Пусто → нет
-    // вкладки (не показываем пустую).
+
+
+
     final sickDependents =
         widget.homeController.state.sickRoots[widget.tag];
     final dependents = sickDependents ??
         widget.homeController.directDependentsOf(widget.tag);
     final hasDependents = dependents.isNotEmpty;
-    // §505 — тот же источник, что главный экран и NodeSettingsScreen.
+
     final warnings = warningsForConfigTag(
       widget.tag,
       widget.subController.entries,
       emittedTagMap: widget.subController.lastEmittedTagMap,
       buildWarningsByTag: widget.subController.lastBuildWarningsByTag,
     );
-    // Задача 581 — Network у узла Tailscale, перед Diagnostics.
+
     final tailscale = _isTailscale;
     final networkIndex = hasDependents ? 3 : 2;
     return DefaultTabController(
-      // §392 — +1 вкладка Diagnostics; Dependents по-прежнему условная, и
-      // индекс её открытия (openDependents) не меняется — она перед новой.
+
+
       length: 3 + (hasDependents ? 1 : 0) + (tailscale ? 1 : 0),
       initialIndex: (widget.openNetwork && tailscale)
           ? networkIndex
@@ -279,7 +279,7 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
             tabAlignment: TabAlignment.start,
             tabs: [
               Tab(text: getLocalText.s("Overview")),
-              // l10n-exempt: acronym, same in all locales
+
               const Tab(text: 'JSON'),
               if (hasDependents) Tab(text: getLocalText.s("Dependents")),
               if (tailscale) Tab(text: getLocalText.s("Network")),
@@ -287,8 +287,8 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
             ],
           ),
           actions: [
-            // §099 — без detour: простая кнопка Copy (JSON ноды). С detour:
-            // выпадашка (Copy server JSON / Copy detour / Copy server + detour(s)).
+
+
             if (widget.detourCount > 0)
               PopupMenuButton<String>(
                 tooltip: getLocalText.s("Copy"),
@@ -346,10 +346,10 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
                   body: _networkBody,
                   onSaveExitNode: _saveExitNode,
                 ),
-              // §392 — экран знает узел ТОЛЬКО по тегу собранного конфига
-              // (NodeSpec тут нет), поэтому probe-ветка недоступна: при
-              // выключенном VPN вкладка объяснит, откуда проверять.
-              // §394 — у цепочки сверху свой блок: послойная проба.
+
+
+
+
               NodeDiagnosticsTab(
                 liveTag: widget.tag,
                 warnings: warnings,
@@ -365,19 +365,19 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     );
   }
 
-  // ─── Dependents (§355) ─────────────────────────────────────────────────
 
-  /// Список зависимых: при [sick] — транзитивные жертвы мёртвого корня
-  /// (warning-тон), иначе — статический срез «кто через меня ходит».
-  /// Тап по ноде — навигация к владельцу (как хопы Overview); DNS-серверы
-  /// не кликабельны (у них нет экрана-владельца).
+
+
+
+
+
   Widget _buildDependentsTab(
     BuildContext context,
     List<DependentRef> dependents, {
     required bool sick,
   }) {
     final cs = Theme.of(context).colorScheme;
-    // DNS-жертвы сверху — они самые коварные (§355: тихо не резолвятся).
+
     final sorted = [...dependents]
       ..sort((a, b) {
         if (a.isDns != b.isDns) return a.isDns ? -1 : 1;
@@ -401,7 +401,7 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24), // bottom-inset: handled — body в SafeArea
+      padding: const EdgeInsets.only(bottom: 24),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -448,12 +448,12 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     );
   }
 
-  // ─── Overview ──────────────────────────────────────────────────────────
+
 
   Widget _buildOverviewTab(BuildContext context) {
     final node = widget.config[widget.tag];
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), // bottom-inset: handled — body в SafeArea
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
         _sectionHeader(context, 'Parameters'),
         ..._paramRows(context, node),
@@ -488,7 +488,7 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     );
   }
 
-  /// Основные параметры из `ConfigNode` (§091/§102/§103): без ре-парса JSON.
+
   List<Widget> _paramRows(BuildContext context, ConfigNode? node) {
     if (node == null) {
       return [_kvRow(context, 'Type', 'not in current config')];
@@ -499,9 +499,9 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     final members = raw['outbounds'];
     final typeLabel =
         node.kind == 'endpoint' ? '${node.type} · endpoint' : node.type;
-    // §344 — режим группы: least_test («один быстрейший») и round_robin
-    // («пул») ведут себя противоположно, а выглядели одинаково. Параметры
-    // балансировщика — из raw, они эмитятся только под round_robin (§208).
+
+
+
     final balancer = raw['balancer'];
     final pool = balancer is Map ? balancer['pool'] : null;
     final poolTolerance =
@@ -527,8 +527,8 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
       if (_isBalancer && poolTolerance is int && poolTolerance > 0)
         _kvRow(context, 'Pool tolerance', '$poolTolerance ms'),
       if (members is List) _membersTile(context, members),
-      // §557 — состояние и выключатель слушают контроллер: heartbeat и
-      // ответ выключателя обновляют их без перехода на экран заново.
+
+
       if (node.type == 'wireguard' || node.type == 'awg')
         ListenableBuilder(
           listenable: widget.homeController,
@@ -539,9 +539,9 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
 
   bool _endpointToggleBusy = false;
 
-  /// §557 (ядро SPEC 106) — строка состояния endpoint'а (§540) и выключатель
-  /// узла. Выключатель есть, только пока туннель поднят и ядро отдало
-  /// состояние узла. Выбранный в selector узел выключать можно (решение Б1).
+
+
+
   Widget _endpointBlock(BuildContext context, ConfigNode node) {
     final hs = widget.homeController.state;
     final st = hs.endpointStates[widget.tag] ?? '';
@@ -572,16 +572,16 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     if (mounted) setState(() => _endpointToggleBusy = false);
   }
 
-  /// §540 — полное состояние WG/AWG-endpoint'а (строка ядра, не переводится)
-  /// и простой для `asleep`. Источник — та же карта `HomeState`, что кормит
-  /// короткую подпись в строке списка (§535); второго pull'а нет.
-  /// `null` = узел не WG/AWG либо ядро состояния не дало.
+
+
+
+
   String? _endpointStateValue(ConfigNode node) {
     if (node.type != 'wireguard' && node.type != 'awg') return null;
     final hs = widget.homeController.state;
     final st = hs.endpointStates[widget.tag];
     if (st == null || st.isEmpty) return null;
-    // §557 — выключен вручную: своя подпись, простой не показываем.
+
     if (st == CcEndpointState.disabled) return getLocalText.s("off");
     final idle = hs.endpointIdleSince[widget.tag];
     if (st == CcEndpointState.asleep && idle != null && idle > 0) {
@@ -590,21 +590,21 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     return st;
   }
 
-  /// §344 — состав группы разворачиваемым списком (было мёртвое число).
-  ///
-  /// Источников ДВА и путать их нельзя (§322 §6.1): в конфиге весь состав,
-  /// а в работе у round_robin только `pool` штук. Показываем состав из
-  /// конфига и помечаем тех, кто сейчас в живом пуле (`getPool`) — показать
-  /// одно вместо другого было бы враньём.
+
+
+
+
+
+
   Widget _membersTile(BuildContext context, List<dynamic> members) {
     final cs = Theme.of(context).colorScheme;
     final slots = _pool ?? const <CcPoolSlot>[];
     final byTag = {for (final s in slots) s.tag: s};
     return Theme(
-      // убираем разделители ExpansionTile — раздел плотный, kv-строки рядом
+
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
-        // §565 / задача 570 — у ручной группы состав и есть переключатель.
+
         initiallyExpanded: _isManualGroup,
         tilePadding: EdgeInsets.zero,
         childrenPadding: const EdgeInsets.only(bottom: 4),
@@ -620,7 +620,7 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
             ),
             Expanded(
               child: Text(
-                // под балансировщиком — «состав · сколько в работе»
+
                 _isBalancer && slots.isNotEmpty
                     ? '${members.length} · '
                         '${getLocalText.plural("%d in pool", slots.length)}'
@@ -639,11 +639,11 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     );
   }
 
-  /// Строка участника: галка «сейчас в пуле» + тег + delay живого слота.
-  ///
-  /// Номера слотов здесь НЕ показываем (решение юзера 02.08.2026) — слот
-  /// это деталь ротации, она к месту в попапе «View pool», а в составе
-  /// группы важно лишь «в работе или нет». Клик ведёт на владельца.
+
+
+
+
+
   Widget _memberRow(BuildContext context, String tag,
       {CcPoolSlot? inPool, bool chosen = false}) {
     final cs = Theme.of(context).colorScheme;
@@ -653,8 +653,8 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
         padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(
           children: [
-            // §565 / задача 570 — у ручной группы переключатель: тап по
-            // кружку выбирает члена, тап по строке ведёт к его владельцу.
+
+
             if (_isManualGroup)
               InkResponse(
                 key: ValueKey('member-select-$tag'),
@@ -687,7 +687,7 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
             ),
             if (inPool != null && inPool.delay > 0) ...[
               const SizedBox(width: 8),
-              // l10n-exempt: unit symbol, same in all locales
+
               Text('${inPool.delay} ms',
                   style: TextStyle(
                       fontSize: 12,
@@ -722,21 +722,21 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     );
   }
 
-  /// Цепочка «по ходу пакета»: Phone → хопы → Internet. Обрыв на
-  /// неразрешённом селекторе (туннель down) / битом теге — строка-эллипсис
-  /// сразу после Phone (обрыв всегда на глубоком, Phone-краю цепочки).
-  /// Первый хоп-группа = выбор не разрешён: при известном выборе глубже
-  /// лежал бы сам pick. Битый тег (`isUnknown`) эллипсиса не получает — его
-  /// хоп-строка сама говорит «not in config» (и §172 такие detour лечит ещё
-  /// при сборке).
+
+
+
+
+
+
+
   List<Widget> _routeRows(BuildContext context) {
-    // §344 — у балансировщика одного выбранного НЕТ (§322 §6.3), поэтому
-    // цепочка обрывается на самой группе, и это не «обрыв» в смысле §258:
-    // эллипсис «подключитесь» тут был бы враньём — путь известен, он просто
-    // не единственный. Вместо него — свёрнутый хоп пула.
-    // §344 — под балансировщиком «выбранного» узла нет (§322 §6.3): хоп,
-    // добытый через выбор группы, из цепочки убираем — иначе экран говорит
-    // разом «трафик размазан по слотам» и «идёт вот через этот».
+
+
+
+
+
+
+
     final hops = _isBalancer
         ? [for (final h in _hops) if (!h.viaSelection) h]
         : _hops;
@@ -746,23 +746,23 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
       if (truncated) _ellipsisRow(context),
       for (var i = 0; i < hops.length; i++)
         _hopRow(context, hops[i], isSelf: i == hops.length - 1),
-      // Пул — ПОСЛЕ группы: пакет идёт Phone → группа → её пул → Internet.
+
       if (_isBalancer) _poolHopTile(context),
       _endpointRow(context, Icons.public, 'Internet'),
     ];
   }
 
-  /// §344 — пул как ОДНО звено пути с раскрытием (решение юзера 02.08.2026).
-  ///
-  /// Ветками слоты не рисуем: раздел обещает «живой путь в порядке следования
-  /// пакета», а пакет идёт через ОДИН узел пула — ветвление ломало бы это
-  /// обещание. Плюс на пулах в 20–30 узлов ветки растянули бы раздел на
-  /// несколько экранов, а большие пулы — целевой сценарий §208.
+
+
+
+
+
+
   Widget _poolHopTile(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final slots = _pool;
-    // Туннель down (§209 `null`) или пул пуст — состав неизвестен; звено
-    // всё равно показываем, оно часть пути.
+
+
     final count = slots?.length ?? 0;
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -824,8 +824,8 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
   Widget _hopRow(BuildContext context, RuntimeHop hop,
       {required bool isSelf}) {
     final cs = Theme.of(context).colorScheme;
-    // §274 — ⚙ по флагу Направления (displayLabel), а не по факту «хоп — Направление»:
-    // единый source-of-truth маркера.
+
+
     final ch = hop.direction;
     final title = ch != null ? ch.displayLabel : hop.tag;
     final subtitle = [
@@ -858,7 +858,7 @@ class _OutboundViewScreenState extends State<OutboundViewScreen> {
     );
   }
 
-  // ─── JSON ───────────────────────────────────────────────────────────────
+
 
   Widget _buildJsonTab(BuildContext context) {
     return Padding(

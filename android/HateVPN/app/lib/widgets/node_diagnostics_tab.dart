@@ -17,30 +17,30 @@ import '../vpn/cc_channel.dart';
 import 'banner_palette.dart';
 import 'safe_bottom.dart';
 
-/// §392 — вкладка Diagnostics: выпадающий список предопределённых чекеров,
-/// кнопка запуска и СЫРОЙ ответ в поле ниже.
-///
-/// Общий виджет на все три экрана деталей узла (у каждого свои вкладки, но
-/// диагностика одна и та же): разбор ноды подписки, настройки узла и просмотр
-/// outbound'а собранного конфига.
-///
-/// Тело ответа не интерпретируется вовсе — пользователь читает то, что прислал
-/// сервис. Формат чужого сервиса меняется — вкладка продолжает работать.
-///
-/// [node] — распарсенный узел; `null` для экранов, которые знают только тег в
-/// собранном конфиге. Без него probe-ветка (диагностика при ВЫКЛЮЧЕННОМ VPN)
-/// невозможна: временный конфиг не из чего собрать — тогда работает только
-/// боевая ветка, а при выключенном туннеле показывается пояснение.
-///
-/// [liveTag] — тег узла в БОЕВОМ конфиге (с префиксом списка). По нему ядро
-/// адресует узел, не переключая активный selector.
-///
-/// [warnings] — уведомления узла (§501): при непустом списке снизу секция
-/// Notifications (под Check/Endpoint/Run), иначе секция не показывается.
-///
-/// [scrollToNotifications] — после первого кадра прокрутить к секции (лист
-/// страховки и прочие переходы «к уведомлениям»); при обычном открытии вкладки
-/// — false.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class NodeDiagnosticsTab extends StatefulWidget {
   const NodeDiagnosticsTab({
     super.key,
@@ -53,8 +53,8 @@ class NodeDiagnosticsTab extends StatefulWidget {
     this.vpnUp,
   });
 
-  /// Тесты (§581): поток состояния Tailscale вместо [CcChannel] и VPN
-  /// включён / выключен без обращения к сервису.
+
+
   @visibleForTesting
   final Stream<List<CcTailscaleStatus>>? tailscaleStatusSource;
   @visibleForTesting
@@ -65,11 +65,11 @@ class NodeDiagnosticsTab extends StatefulWidget {
   final List<NodeWarning> warnings;
   final bool scrollToNotifications;
 
-  /// §394 — блок, специфичный для ЭТОГО вида узла, над общей секцией «Check».
-  /// Сейчас единственный такой блок — послойная проба цепочки (её показывает
-  /// только экран просмотра outbound'а типа `chain`). Слот, а не ветка внутри
-  /// вкладки: вкладка общая для трёх экранов, и знание о цепочках здесь
-  /// пришлось бы сопровождать всем трём.
+
+
+
+
+
   final Widget? header;
 
   @override
@@ -82,15 +82,15 @@ class _NodeDiagnosticsTabState extends State<NodeDiagnosticsTab> {
   bool _running = false;
   DiagnosticOutcome? _outcome;
 
-  /// Причина, по которой прогон не состоялся (узел-группа, ядро без метода,
-  /// не поднялась probe-сессия). Отличается от состоявшегося обмена с плохим
-  /// статусом — тот лежит в [_outcome] и ошибкой не считается.
+
+
+
   String _error = '';
 
   final _notificationsSectionKey = GlobalKey();
 
-  // §581 раздел 8 — у узла Tailscale без действующего exit node проверка
-  // запросом к внешнему адресу скрыта.
+
+
   bool _vpnUp = false;
   CcTailscaleStatus? _tsStatus;
   StreamSubscription<List<CcTailscaleStatus>>? _tsSub;
@@ -118,7 +118,7 @@ class _NodeDiagnosticsTabState extends State<NodeDiagnosticsTab> {
     }
     void onList(List<CcTailscaleStatus> list) {
       final next = list.where((s) => s.tag == widget.liveTag).firstOrNull;
-      // Перерисовка только при смене наличия выхода.
+
       if ((next?.exitNode == null) == (_tsStatus?.exitNode == null) &&
           (next == null) == (_tsStatus == null)) {
         _tsStatus = next;
@@ -161,8 +161,8 @@ class _NodeDiagnosticsTabState extends State<NodeDiagnosticsTab> {
 
   @override
   void dispose() {
-    // §286 — уход с экрана во время прогона: результат уже не нужен, а
-    // probe-сессия не должна пережить экран.
+
+
     _runner?.cancel();
     unawaited(_tsSub?.cancel());
     unawaited(_vpnSub?.cancel());
@@ -170,11 +170,11 @@ class _NodeDiagnosticsTabState extends State<NodeDiagnosticsTab> {
     super.dispose();
   }
 
-  /// Прогон выбранного чекера через ЭТОТ узел.
-  ///
-  /// Реальный трафик через узел (и пробуждение спящего WG), поэтому зовётся
-  /// только отсюда — из обработчика кнопки. Фоновых прогонов нет по
-  /// требованию ядра (kernel SPEC 058 §5).
+
+
+
+
+
   Future<void> _run() async {
     if (_running) return;
     setState(() {
@@ -257,8 +257,8 @@ class _NodeDiagnosticsTabState extends State<NodeDiagnosticsTab> {
                   final picked = kDiagnosticChecks.firstWhere(
                       (c) => c.id == id,
                       orElse: () => kDiagnosticChecks.first);
-                  // Прошлый ответ относится к прошлому адресу — снимаем,
-                  // чтобы он не читался как результат нового чекера.
+
+
                   setState(() {
                     _check = picked;
                     _outcome = null;
@@ -266,8 +266,8 @@ class _NodeDiagnosticsTabState extends State<NodeDiagnosticsTab> {
                   });
                 },
         ),
-        // Адрес виден ДО запуска: юзер знает, какому стороннему сервису
-        // достанется exit-IP узла.
+
+
         Padding(
           padding: const EdgeInsets.only(top: 8, bottom: 12),
           child: SelectableText(
@@ -320,9 +320,9 @@ class _NodeDiagnosticsTabState extends State<NodeDiagnosticsTab> {
               children: [
                 Expanded(
                   child: Text(
-                    // Не-2xx — результат, а не сбой: показываем статус ровно
-                    // так же, как 200 (kernel SPEC 058 §2.1).
-                    // l10n-exempt: HTTP-код + число мс, слов нет
+
+
+
                     '${outcome.result.status} · ${outcome.result.elapsedMs}ms',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -373,8 +373,8 @@ class _NodeDiagnosticsTabState extends State<NodeDiagnosticsTab> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  // Адрес ИЗНУТРИ туннеля (куда отрезолвилась цель), а не
-                  // exit-IP узла — тот несёт само тело ответа.
+
+
                   getLocalText.s("Connected to %s from inside the tunnel",
                       outcome.result.remoteAddr),
                   style: theme.textTheme.bodySmall
@@ -428,8 +428,8 @@ class _NodeDiagnosticsTabState extends State<NodeDiagnosticsTab> {
   }
 }
 
-/// §501 — подпись вкладки Diagnostics: текст + точка у правого верхнего края,
-/// если у узла есть уведомления (жёлтая, красная при error).
+
+
 class NodeDiagnosticsTabLabel extends StatelessWidget {
   const NodeDiagnosticsTabLabel({super.key, required this.warnings});
 

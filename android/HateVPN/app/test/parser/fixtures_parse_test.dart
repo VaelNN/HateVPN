@@ -7,8 +7,8 @@ import 'package:lxbox/models/node_spec.dart';
 import 'package:lxbox/models/template_vars.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// Smoke-tests: каждая фикстура парсится, emit() даёт валидный map,
-/// round-trip `parseUri(spec.toUri())` возвращает структурно тот же узел.
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -43,7 +43,7 @@ void main() {
           expect(entry.map['tag'], spec.tag);
           expect(entry.map['type'], isNotNull);
 
-          // Round-trip via toUri (пропускаем VMess legacy base64 — custom canonical).
+
           final uri2 = spec.toUri();
           expect(uri2, isNotEmpty);
           final spec2 = parseUri(uri2);
@@ -70,6 +70,6 @@ void _expectStructurallyEqual(NodeSpec a, NodeSpec b, String ctx) {
   expect(a.server, b.server, reason: '$ctx: server');
   expect(a.port, b.port, reason: '$ctx: port');
   expect(a.runtimeType, b.runtimeType, reason: '$ctx: type');
-  // label/tag can differ after URL-encoding normalization — check non-empty
+
   expect(a.tag, isNotEmpty, reason: '$ctx: tag not empty');
 }

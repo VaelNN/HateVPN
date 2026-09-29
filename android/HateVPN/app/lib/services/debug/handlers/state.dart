@@ -10,8 +10,8 @@ import '../serializers/subs.dart';
 import '../transport/request.dart';
 import '../transport/response.dart';
 
-/// Диспатчер `/state/*`. Подмаршруты читают разные части домена —
-/// home controller, subs, rules (из storage), storage cache, native VPN.
+
+
 Future<DebugResponse> stateHandler(DebugRequest req, DebugContext ctx) async {
   return switch (req.path) {
     '/state' => _root(req, ctx),
@@ -24,9 +24,9 @@ Future<DebugResponse> stateHandler(DebugRequest req, DebugContext ctx) async {
   };
 }
 
-/// §037: Текущее состояние lock'а auto-rebuild. Когда `locked: true` —
-/// `SubscriptionController.generateConfig()` возвращает null silently,
-/// pinned config через `PUT /config` не перетирается UI-действиями.
+
+
+
 Future<DebugResponse> _configLocked(DebugRequest req, DebugContext ctx) async {
   final locked = await SettingsStorage.getConfigLockedForDebug();
   return JsonResponse({'locked': locked});
@@ -35,8 +35,8 @@ Future<DebugResponse> _configLocked(DebugRequest req, DebugContext ctx) async {
 Future<DebugResponse> _root(DebugRequest req, DebugContext ctx) async {
   final home = ctx.requireHome();
   final json = serializeHomeState(home.state);
-  // §076: добавляем config_dirty из SubscriptionController (in-memory флаг,
-  // не в HomeState). Computed read-only для диагностики lazy rebuild flow.
+
+
   json['config_dirty'] = ctx.requireSub().configDirty;
   return JsonResponse(json);
 }
@@ -63,15 +63,15 @@ Future<DebugResponse> _storage(DebugRequest req, DebugContext ctx) async {
 
 Future<DebugResponse> _vpn(DebugRequest req, DebugContext ctx) async {
   final vpn = BoxVpnClient();
-  // §189 — persisted-настройки из JSON-зеркала native_prefs (истина).
+
   final autoStart =
       await SettingsStorage.getNativeBool(NativePrefsKeys.autoStart);
   final keepOnExit =
       await SettingsStorage.getNativeBool(NativePrefsKeys.keepOnExit);
   final allowBypass =
       await SettingsStorage.getNativeBool(NativePrefsKeys.allowBypass);
-  // §069 — runtime applied value, может отличаться от persisted allowBypass
-  // если юзер поменял toggle но не reload'нул VPN (это НЕ настройка — сессия).
+
+
   final currentSessionAllowBypass = await vpn.getCurrentSessionAllowBypass();
   final backgroundMode = BackgroundMode.fromNative(
       await SettingsStorage.getNativeBackgroundMode());

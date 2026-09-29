@@ -8,20 +8,20 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §480 W7 — СНЯТЬ ссылки РУКОПИСНЫМ `toUri` до его удаления.
-///
-/// Не проверка, а инструмент, и он ОДНОРАЗОВЫЙ по смыслу: как только
-/// рукописный эмит удалён, снять снимок «до» больше негде. Отсюда и порядок
-/// волны — сперва прогон этого дампа, и только потом правка `node_spec.dart`.
-///
-/// Снимок нужен ради критерия 5.2 спеки: `toUri()` у нас ОДНОВРЕМЕННО форма
-/// хранения ручного узла (`rawSource`), и ссылка, сохранённая прежними
-/// версиями приложения, обязана и дальше читаться в ТО ЖЕ тело. Новый вид
-/// ссылки при этом законен — проверяется чтение старой, а не совпадение
-/// текстов.
-///
-/// Запуск: `LX_EMIT_DUMP=1 flutter test test/parser/emit_before480_dump_test.dart`.
-/// Без переменной не делает ничего.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void main() {
   final on = Platform.environment['LX_EMIT_DUMP'] != null;
 
@@ -46,13 +46,13 @@ void main() {
         if (uri == null) continue;
         final spec = parseUri(uri);
         if (spec == null) continue;
-        // Ссылка, которую отдавал РУКОПИСНЫЙ эмит на этом теле.
+
         final oldUri = spec.toUri();
-        // И тело, в которое ЭТА ССЫЛКА читалась. Именно оно эталон: между
-        // ним и `body` лежит потеря рукописного эмита (он не умел писать
-        // `plugin`, `pinSHA256`, `disable_sni`, ронял `?ed=` в хвосте пути),
-        // и требовать от новой волны восстановить то, чего в тексте ссылки
-        // нет, было бы требованием невозможного.
+
+
+
+
+
         final reread = parseUri(oldUri);
         out[e.key] = {
           'body': jsonDecode(jsonEncode(c['body'])),

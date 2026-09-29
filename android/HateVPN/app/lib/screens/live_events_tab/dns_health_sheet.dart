@@ -1,16 +1,16 @@
-// §262 — лист-подсказка при деградации DNS (открывается тапом по
-// [DnsHealthBanner]).
-//
-// Детектор здоровья DNS в профайлере зажёг баннер: массовые fail-резолвы при
-// живой связи. Лист НЕ меняет настройки молча — он объясняет, что можно сделать,
-// и ведёт в нужный экран, где юзер решает сам:
-//
-//   • Open DNS settings — DNS-серверы (их outbound-Направление) + final resolver.
-//   • Enable FakeIP — каталог пресетов (таб Presets в Routing), где юзер
-//     добавляет FakeIP. Кнопка видна, только пока пресет не активирован.
-//
-// Навигация требует контроллеры (subController/homeController). Если их нет
-// (лист открыт вне home-контекста) — показываем только текст-подсказку.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import 'dart:async';
 
@@ -25,8 +25,8 @@ import '../routing_screen.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// Открыть лист-подсказку (выезжает снизу вверх). Контроллеры нужны для
-/// навигационных кнопок; без них лист чисто информационный.
+
+
 Future<void> showDnsHealthSheet(
   BuildContext context, {
   SubscriptionController? subController,
@@ -53,8 +53,8 @@ class _DnsHealthSheet extends StatefulWidget {
 }
 
 class _DnsHealthSheetState extends State<_DnsHealthSheet> {
-  /// Активирован ли уже пресет FakeIP — прячет кнопку «Enable FakeIP».
-  /// null = ещё считаем (async).
+
+
   bool? _fakeIpActive;
 
   bool get _canNavigate =>
@@ -102,7 +102,7 @@ class _DnsHealthSheetState extends State<_DnsHealthSheet> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    // Кнопку FakeIP показываем, только когда точно знаем, что он не активен.
+
     final showFakeIp = _canNavigate && _fakeIpActive == false;
     return SafeArea(
       child: Padding(

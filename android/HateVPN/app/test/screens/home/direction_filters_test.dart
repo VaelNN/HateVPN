@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/screens/home/direction_filters.dart';
 
-/// §083 — unit tests для `DirectionFilters` snapshot class.
+
 void main() {
   group('DirectionFilters — defaults', () {
     test('конструктор без аргументов = все дефолты', () {
@@ -92,14 +92,14 @@ void main() {
 
     test('Set передаётся копией из caller — снимок не мутируется '
         'извне (Set.of в _captureFilters)', () {
-      // DirectionFilters сам не копирует (immutable contract). Гарантия копии
-      // — на стороне _captureFilters (Set.of). Здесь проверяем что
-      // переданный Set хранится как есть.
+
+
+
       final protos = {'vless'};
       final f = DirectionFilters(protocols: protos);
       protos.add('vmess');
-      // Без Set.of снимок видит мутацию — это ожидаемо для immutable-by-
-      // contract класса; защита на стороне caller (_captureFilters).
+
+
       expect(f.protocols.contains('vmess'), true,
           reason: 'класс хранит ссылку; копию делает caller через Set.of');
     });

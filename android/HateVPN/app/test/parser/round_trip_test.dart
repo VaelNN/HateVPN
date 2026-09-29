@@ -7,9 +7,9 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 import 'parse_link_as.dart';
 import 'package:lxbox/models/node_spec.dart';
 
-/// Round-trip §4 спеки 026: `parseUri(spec.toUri()) ≈ spec`. Сравнение без
-/// `id`, `rawSource`, `warnings` — это ephemeral поля, не связанные со значением
-/// узла.
+
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -39,9 +39,9 @@ void main() {
     });
 
     test('§151 F2 — Trojan ALPN double-encoded (http%252F1.1) → чистый http/1.1', () {
-      // Нода из реальной подписки-агрегатора: alpn=http%252F1.1 (двойное
-      // percent-кодирование). Uri.queryParameters декодит один раз → 'http%2F1.1';
-      // _normalizeAlpn снимает остаточный %2F → 'http/1.1'.
+
+
+
       final a = parseLinkAs<TrojanSpec>(
         'trojan://p@h.example:443?type=ws&security=tls&alpn=http%252F1.1&sni=h.example#N',
       )!;
@@ -77,13 +77,13 @@ void main() {
       expect(b.tls.alpn, a.tls.alpn);
     });
 
-    // SPEC 103 D-016(в)/п.4 — канонический URI-ключ БЕЗ подчёркивания
-    // (`upmbps`/`downmbps`): единственная форма, которую понимает и читает,
-    // и пишет обратно референсный парсер (Go node_parser_hysteria2.go /
-    // shareuri_hysteria2.go — точное совпадение ключа, без queryGetFold).
-    // Было закреплено чтение `up_mbps` (с подчёркиванием) — то был неканоничный
-    // алиас: `up_mbps`/`down_mbps` это имя ПОЛЯ sing-box outbound JSON, не
-    // query-параметр URI; тест обновлён на канон.
+
+
+
+
+
+
+
     test('§084 H3 — Hysteria2 upmbps/downmbps round-trip', () {
       final a = parseLinkAs<Hysteria2Spec>(
         'hysteria2://secret@h:443?upmbps=100&downmbps=200&sni=h#H',
@@ -104,9 +104,9 @@ void main() {
       expect(b.downMbps, isNull);
     });
 
-    // §358 — obfs=gecko молча терялся на эмите: URI-round-trip его сохранял,
-    // а emitRaw писал секцию только для salamander. Инвариант ниже —
-    // parse → emitRaw, а не только parse → toUri → parse.
+
+
+
     test('§358 — Hysteria2 gecko: тип и размеры пакета доезжают до JSON', () {
       final a = parseLinkAs<Hysteria2Spec>(
         'hysteria2://secret@h:443?obfs=gecko&obfs-password=op'
@@ -136,9 +136,9 @@ void main() {
       expect(b.obfsMaxPacketSize, 1200);
     });
 
-    // §543 — ссылка 3x-ui (genHysteriaLink): security=tls в каждой ссылке,
-    // gecko-размеры парой minPacketSize/maxPacketSize (написание v2rayN).
-    // Контракт 1.1.54: алиасы читаются, security=tls молчит.
+
+
+
     test('§543 — Hysteria2 gecko из 3x-ui: camelCase-размеры и security=tls',
         () {
       final a = parseLinkAs<Hysteria2Spec>(
@@ -176,10 +176,10 @@ void main() {
         'hysteria2://secret@h:443?obfs=xyz&obfs-password=op&sni=h#H',
       )!;
       expect(a.obfs, isEmpty);
-      // §480 — отбраковку объявляет РЕЕСТР, и код приезжает `RegistryWarning`
-      // с тем же именем, под которым рукописный класс зарегистрирован в
-      // `warning_codes.dart`. Проверяется код, а не класс: классов у кодов
-      // реестра не бывает, а исход (obfs пуст, в теле ключа нет) прежний.
+
+
+
+
       expect(
         a.warnings.whereType<RegistryWarning>().map((w) => w.code),
         contains('obfs_unknown'),
@@ -196,7 +196,7 @@ void main() {
         'hysteria2://secret@h:443?obfs=gecko&sni=h#H',
       )!;
       expect(a.obfs, isEmpty);
-      // §480 — см. выше: код реестра вместо рукописного класса.
+
       expect(
         a.warnings.whereType<RegistryWarning>().map((w) => w.code),
         contains('obfs_password_missing'),
@@ -210,10 +210,10 @@ void main() {
 
     test('TUIC: all core fields preserved', () {
       final a = parseLinkAs<TuicSpec>(
-        // §480 — реестр объявляет у поля `format: uuid`, и заглушка `uuid-1`
-        // отбраковывается разбором (та же причина, что у tuic-кейсов §472
-        // шага 5). Проверяемое кейсом — круг URI → Spec → URI — от формы
-        // uuid не зависит.
+
+
+
+
         'tuic://8f2e1c44-0000-4000-8000-000000000001:secret@srv.example:443'
         '?congestion_control=bbr&udp_relay_mode=native&alpn=h3,h3-29'
         '&sni=srv.example&reduce_rtt=1#TUIC',

@@ -16,18 +16,18 @@ import 'package:lxbox/services/core_reject/core_reject_guard.dart';
 import 'package:lxbox/services/core_reject/core_reject_state.dart';
 import 'package:lxbox/services/l10n/locale_controller.dart';
 
-/// Фича 478 — рендер того, что человек видит: плашка «N servers disabled»
-/// (кнопка Show открывает список выключенных) и диалог предела кругов
-/// (Stop / Keep checking).
-///
-/// Рендером, а не проекцией: проекцию `activeBanners` закрывает
-/// `app_banner_test.dart`, а здесь вопрос другой — доходят ли тексты и
-/// действия до экрана. Реестр грузится из `assets/contract` (зеркало в git,
-/// едет в APK): шторка узла резолвит `core_rejected` по нему.
-///
-/// Последняя группа — отмена цикла: кнопку Start отдельно не пумпаем (ей
-/// нужны живые контроллеры главного экрана), проверяется связка, в которую
-/// она упирается.
+
+
+
+
+
+
+
+
+
+
+
+
 const _registryRoot = 'assets/contract';
 
 void main() {
@@ -102,8 +102,8 @@ void main() {
   }
 
   group('плашка «N servers disabled»', () {
-    /// Плашка в том же дереве, что на главном экране: проекция
-    /// `activeBanners` → `BannerStack`.
+
+
     Future<void> pumpBanner(
       WidgetTester tester,
       List<DisabledNode> nodes, {
@@ -176,8 +176,8 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, 'Show'));
       await tester.pumpAndSettle();
 
-      // Шторка: заголовок тот же, что у плашки, плюс строка на каждый узел
-      // с дословным текстом ядра.
+
+
       expect(find.text('3 servers disabled'), findsNWidgets(2));
       expect(find.widgetWithText(ListTile, 'Frankfurt'), findsOneWidget);
       expect(find.text('parse encryption: bad'), findsOneWidget);
@@ -195,7 +195,7 @@ void main() {
   });
 
   group('диалог предела кругов', () {
-    /// Открывает диалог; ответ дописывается в [into], когда человек ответил.
+
     Future<void> pumpPrompt(
       WidgetTester tester,
       List<CoreRejectPrompt> into,
@@ -250,8 +250,8 @@ void main() {
     testWidgets('закрытие мимо кнопок читается как Stop', (tester) async {
       final answers = <CoreRejectPrompt>[];
       await pumpPrompt(tester, answers);
-      // Тап по барьеру — то же, что системная «назад»: молчание не согласие
-      // на долгую проверку.
+
+
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
 
@@ -259,10 +259,10 @@ void main() {
     });
   });
 
-  // Отмена: кнопка Start в фазе цикла рисуется по `checking` и зовёт
-  // `cancelRun()`. Рендер самой кнопки требует живых контроллеров главного
-  // экрана, поэтому здесь проверяется то, во что она упирается — связка
-  // состояния с автоматом.
+
+
+
+
   group('отмена прогона', () {
     setUp(CoreRejectState.I.resetForTest);
     tearDown(CoreRejectState.I.resetForTest);

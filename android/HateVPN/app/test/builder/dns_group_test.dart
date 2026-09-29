@@ -4,8 +4,8 @@ import 'package:lxbox/models/validation.dart';
 import 'package:lxbox/services/builder/post_steps.dart';
 import 'package:lxbox/services/builder/validator.dart';
 
-/// §312 — DNS-группы (kernel SPEC 033): эмиссионный фильтр членов +
-/// validator (EmptyDnsGroup / BadDnsGroupMember / DnsGroupCycle).
+
+
 void main() {
   DnsServerRef inlineRef(String tag, Map<String, dynamic> body,
           {bool enabled = true}) =>
@@ -43,12 +43,12 @@ void main() {
       expect(warnings, isEmpty);
     });
 
-    // §319 — жалоба 4PDA: «группа работает только с direct; переключишь на
-    // proxy — start падает с ошибкой». У группы нет своего транспорта:
-    // запросы несут участники. Ядро принимает у `type: group` ровно
-    // {servers, mode, error_ttl, win_ttl} (SPEC 033) и роняет конфиг на
-    // лишнем ключе. Чистим на билде, а не только в форме: у пострадавших
-    // detour уже лежит в storage.
+
+
+
+
+
+
     test('§319 detour у группы вычищается из эмиссии', () {
       final out = emit([
         inlineRef('a', {'type': 'udp', 'server': '1.1.1.1'}),
@@ -84,8 +84,8 @@ void main() {
       final grp = out.firstWhere((b) => b['tag'] == 'grp');
       expect(grp['servers'], ['a'], reason: 'b выключен → дроп из эмиссии');
       expect(warnings, ["DNS group 'grp': member 'b' dropped (disabled)"]);
-      // Storage-ref не мутируется — фильтр только на эмиссии (проверка от
-      // регресса «кнопка мутирует молча»).
+
+
     });
 
     test('unknown / self / duplicate — свои причины в warning', () {
@@ -193,8 +193,8 @@ void main() {
     });
   });
 
-  // §384 — тот же запрет ядра, но для resolver-ссылок: ядро отвечает
-  // `initialize DNS server: default server cannot be fakeip` (device-verified).
+
+
   group('§384 resolver type gate', () {
     Map<String, dynamic> cfg({
       String? dnsFinal,

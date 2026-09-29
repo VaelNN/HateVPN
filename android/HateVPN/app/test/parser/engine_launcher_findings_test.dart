@@ -8,10 +8,10 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import 'engine_test_setup.dart';
 
-/// §492 — дефекты движка, найденные лаунчером на том же реестре.
-///
-/// Живые входы (ссылка, тело подписки) — здесь; синтетические примитивы
-/// (`merge`, `label.value_map`, `on_len_gt`) — в `engine_primitives_test`.
+
+
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -22,8 +22,8 @@ void main() {
 
   group('merge append — два писателя в один путь-список', () {
     test('authority и mport оба доезжают в server_ports', () {
-      // Реестр: `$multiport` читает диапазон из authority, `mport` — из
-      // query, `merge: append`. Форма ядра — `low:high`.
+
+
       final spec = parseUri(
         'hysteria2://pw@h.example:20000-30000'
         '?mport=40000-50000&sni=x.example#n',

@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 @Timeout(Duration(seconds: 60))
 library;
 
@@ -17,9 +17,9 @@ import 'package:lxbox/services/settings_storage.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-// §558 — ссылка на цепочку из окна узла (View-экран, detour-cycle sheet)
-// ведёт в редактор цепочки. До §558 `openTagOwner` искал владельца только
-// среди `entries`, цепочки там нет — срабатывал fallback «Source not found».
+
+
+
 
 class _FakePathProvider extends PathProviderPlatform
     with MockPlatformInterfaceMixin {
@@ -58,7 +58,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -69,8 +69,8 @@ void main() {
     final ctx = await _pumpHost(tester);
     var notFound = false;
 
-    // Файловый I/O в fake-async зоне testWidgets не завершается — storage
-    // трогаем только в runAsync.
+
+
     await tester.runAsync(() async {
       await SettingsStorage.addChain(tag: 'via-de');
       await SettingsStorage.updateChain(const SourceChain(

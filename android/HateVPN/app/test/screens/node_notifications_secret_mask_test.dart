@@ -8,16 +8,16 @@ import 'package:lxbox/screens/subscription_detail_screen/widgets/node_notificati
 import 'package:lxbox/services/contract/registry.dart';
 import 'package:lxbox/services/contract/registry_warning.dart';
 
-// §511 l1 — маска секретов стоит в общем компоненте карточки, а не только на
-// пути отказа ввода. Ни один код реестра сейчас не подставляет `{value}`,
-// поэтому тест кладёт в копию зеркала контракта код-образец, текст которого
-// значение подставляет: первый такой код на секретном поле показал бы секрет
-// на всех экранах, кроме листа отказа.
+
+
+
+
+
 
 const _probeCode = 'secret_value_probe';
 const _secret = 'hunter2-secret-password';
 
-/// Копия `assets/contract` во временный каталог с кодом-образцом.
+
 Future<Directory> _registryWithProbe() async {
   final tmp = await Directory.systemTemp.createTemp('lx_secret_mask_');
   final src = Directory('assets/contract');
@@ -111,14 +111,14 @@ void main() {
         ),
       ),
     ));
-    // Единственная плитка (группа) развёрнута сразу.
+
     await tester.pumpAndSettle();
 
     expect(find.textContaining(_secret), findsNothing);
     expect(find.textContaining('other-secret'), findsNothing);
     const row0 = ValueKey('notification-group-row-warning-$_probeCode-0');
     expect(tester.widget<Text>(find.byKey(row0)).data, 'password = ***');
-    // После маски значения совпали — подстановка обычная, не «…».
+
     expect(find.text('Value *** was replaced'), findsOneWidget);
   });
 }

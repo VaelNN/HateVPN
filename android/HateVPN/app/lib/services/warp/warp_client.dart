@@ -11,13 +11,13 @@ import 'masquerade_params.dart';
 import 'warp_account.dart';
 import 'warp_endpoint_picker.dart';
 
-/// §025 — клиент регистрации Cloudflare WARP.
-///
-/// Делает то же, что официальный клиент / `wgcf`: генерит X25519-пару НА
-/// УСТРОЙСТВЕ и регистрирует только публичный ключ через API Cloudflare
-/// (хосты — `assets/warp_endpoints.json` → `api.hosts`, см. [WarpApi]).
-/// Приватник не покидает телефон. НЕ ходим на
-/// сторонние воркеры-генераторы — они отдают приватник со своего сервера.
+
+
+
+
+
+
+
 class WarpException implements Exception {
   WarpException(this.message);
   final String message;
@@ -25,15 +25,15 @@ class WarpException implements Exception {
   String toString() => 'WarpException: $message';
 }
 
-/// Версия пути и заголовок клиента. ВЫНЕСЕНО в одно место намеренно: Cloudflare
-/// периодически бампает версию, тогда правка — здесь. Перед релизом сверять с
-/// актуальным `wgcf`/`warp-cli`.
+
+
+
 class WarpApi {
-  /// §418 — хосты API по порядку предпочтения. Боевой источник — asset
-  /// `warp_endpoints.json` (`api.hosts`, читается через [WarpEndpointPicker]);
-  /// этот список — запасной на случай битого/старого asset и ДОЛЖЕН совпадать
-  /// с ним. Порядок: `api.devices.cloudflare.com` первым — из РФ доступен
-  /// напрямую (04.09.2026), `api.cloudflareclient.com` там таймаутит на TCP.
+
+
+
+
+
   static const List<String> fallbackHosts = [
     'https://api.devices.cloudflare.com',
     'https://api.cloudflareclient.com',
@@ -46,7 +46,7 @@ class WarpApi {
   static Uri account(String base, String deviceId) =>
       Uri.parse('$base/$version/reg/$deviceId/account');
 
-  /// §130 — PATCH `/reg/{id}` для MASQUE-enroll (смена ключа на ECDSA).
+
   static Uri device(String base, String deviceId) =>
       Uri.parse('$base/$version/reg/$deviceId');
 
@@ -59,13 +59,13 @@ class WarpApi {
 }
 
 class WarpClient {
-  /// [apiHosts] — §418: хосты API по порядку предпочтения. null → из asset
-  /// (`api.hosts`), при битом asset — [WarpApi.fallbackHosts].
+
+
   WarpClient({http.Client? client, Duration? timeout, List<String>? apiHosts})
       : _client = client ?? http.Client(),
-        // §418 — таймаут на ОДИН запрос к одному хосту (не на весь перебор):
-        // глухой хост из РФ молчит до таймаута, 5 с — цена перехода к
-        // запасному. Здоровый ответ /reg укладывается в 0.5–4 с.
+
+
+
         _timeout = timeout ?? const Duration(seconds: 5),
         _apiHosts = apiHosts;
 
@@ -73,9 +73,9 @@ class WarpClient {
   final Duration _timeout;
   final List<String>? _apiHosts;
 
-  /// §418 — хост, ответивший на POST /reg в этом потоке. Все следующие вызовы
-  /// (PATCH enroll, license, account) идут на него же: устройство и token
-  /// выданы им, на другой хост их не носим.
+
+
+
   String? _activeHost;
 
   Future<List<String>> _hosts() async {
@@ -85,16 +85,16 @@ class WarpClient {
     return fromAsset.isNotEmpty ? fromAsset : WarpApi.fallbackHosts;
   }
 
-  /// Хост для вызовов после регистрации. До неё — первый из списка.
+
   String get _host =>
       _activeHost ??
       ((_apiHosts?.isNotEmpty ?? false)
           ? _apiHosts!.first
           : WarpApi.fallbackHosts.first);
 
-  /// §418 — POST /reg с перебором хостов. Сетевая ошибка или таймаут →
-  /// следующий хост; любой HTTP-ответ (включая 4xx/5xx) — итог, дальше не
-  /// идём: хост жив, проблема не в доступности. Победитель → [_activeHost].
+
+
+
   Future<http.Response> _postReg(String body) async {
     final hosts = await _hosts();
     final failed = <String>[];
@@ -117,9 +117,9 @@ class WarpClient {
     throw WarpException('network error: ${failed.join('; ')}');
   }
 
-  /// Генерирует X25519-пару. Возвращает (privateBase64, publicBase64) — оба
-  /// raw 32 байта в standard base64 (формат, который ждёт Cloudflare и
-  /// WireGuard).
+
+
+
   static Future<({String priv, String pub})> genKeypair() async {
     final algo = X25519();
     final pair = await algo.newKeyPair();
@@ -131,13 +131,13 @@ class WarpClient {
     );
   }
 
-  /// §126/§136 — AmneziaWG preset (без `i1` — он генерится на устройстве).
-  ///
-  /// Только поля, которые НЕ ломают WG: `s1=s2=0` (handshake без magic-префикса)
-  /// + `h1..h4=1,2,3,4` (стандартные WG message-types) → init/response пакеты
-  /// бит-в-бит как plain WireGuard, Cloudflare принимает. `jc`+`i1` (junk до
-  /// handshake) сбивают DPI-сигнатуру. [jc]/[jmin]/[jmax] — настраиваемые
-  /// (§136 Advanced), дефолт 4/40/70. См. [docs/spec/tasks/126], [136].
+
+
+
+
+
+
+
   static Map<String, Object> amneziaPreset({
     int jc = 4,
     int jmin = 40,
@@ -155,15 +155,15 @@ class WarpClient {
         'h4': 4,
       };
 
-  /// §143 — собирает [Awg] для obfuscate-ветки через masquerade `id/ip/ib`
-  /// (ядро 009 само разворачивает в `i1`; LxBox `i1` НЕ генерит).
-  ///
-  /// - `ip` = протокол ([QuicParams.ip]: quic/dns/stun/sip).
-  /// - `id` = домен ([QuicParams.sni], пустой → `www.google.com`); на провод идёт
-  ///   только для `dns` (QNAME) / `sip` (host), для quic/stun декоративен.
-  /// - `ib` = браузер ([QuicParams.ib]) — только при `ip=quic`.
-  ///
-  /// **Не пишем `i1`** — `id/ip/ib` взаимоисключающи с явным `i1` (ядро отвергает оба).
+
+
+
+
+
+
+
+
+
   static Awg buildAmneziaAwg(QuicParams params) {
     final sni = params.sni.trim();
     final domain = sni.isEmpty ? 'www.google.com' : sni;
@@ -179,17 +179,17 @@ class WarpClient {
     return Awg(fields);
   }
 
-  /// Регистрирует устройство. Опциональный [licenseKey] — WARP+; если задан,
-  /// после /reg делается PATCH account (ошибка PATCH НЕ роняет регистрацию —
-  /// возвращается free-аккаунт с warpPlus=false).
-  ///
-  /// §126/§143 — если [obfuscate] true, в аккаунт кладётся [Awg] из preset +
-  /// masquerade `id/ip/ib` из [quicParams] (i1 генерит ядро). Сама регистрация
-  /// в Cloudflare не меняется (обфускация — чисто клиентский конфиг).
-  ///
-  /// §136 — [randomEndpoint] (если задан): когда obfuscate=true И [endpoint]
-  /// дефолтный, endpoint заменяется на рандомный `ip:port` из зашитых
-  /// Cloudflare-блоков (заблокированный `engage…:2408` обходится без скана).
+
+
+
+
+
+
+
+
+
+
+
   Future<WarpAccount> register({
     String? licenseKey,
     String endpoint = WarpAccount.defaultEndpoint,
@@ -225,8 +225,8 @@ class WarpClient {
       throw WarpException('bad response: not JSON');
     }
 
-    // §136 — рандомный endpoint при обфускации + дефолтном endpoint. Юзер
-    // вписал свой (не дефолт) → уважаем его (§135), рандом не применяем.
+
+
     var effectiveEndpoint = endpoint;
     if (obfuscate &&
         endpoint == WarpAccount.defaultEndpoint &&
@@ -269,13 +269,13 @@ class WarpClient {
     }
     final clientId = (config['client_id'] as String?) ?? '';
 
-    // §135 — кастомный endpoint из Advanced ПРИОРИТЕТНЕЕ ответа Cloudflare.
-    // Cloudflare всегда возвращает `peer.endpoint.host` = дефолтный
-    // `engage.cloudflareclient.com:2408`; раньше он безусловно затирал ввод
-    // юзера → Advanced-поле Endpoint было мёртвым (юзер вписывал
-    // `188.114.97.6:988`, в конфиг шёл дефолт). Теперь: юзер явно задал
-    // не-дефолтный endpoint → уважаем его, ответ API игнорируем. Оставил
-    // дефолт → берём `host` из ответа Cloudflare как fallback.
+
+
+
+
+
+
+
     final userPickedEndpoint = endpoint != WarpAccount.defaultEndpoint;
     final peersRaw = config['peers'];
     String peerPub = '';
@@ -320,15 +320,15 @@ class WarpClient {
     );
   }
 
-  /// §130 — регистрирует MASQUE-устройство. ДВА шага (usque/mihomo):
-  ///   1. POST /reg с фиктивным WG-ключом → `id` + `token`.
-  ///   2. PATCH /reg/{id} (Bearer) с ECDSA-паблик, `key_type=secp256r1`,
-  ///      `tunnel_type=masque` → серверный pubkey + interface addresses + endpoint.
-  ///
-  /// Приватник ECDSA генерится на устройстве ([MasqueKeys]) и не покидает телефон.
-  ///
-  /// §393 — транспорт (h3/h2) здесь не участвует: регистрация от него не зависит,
-  /// он выбирается при сборке узла.
+
+
+
+
+
+
+
+
+
   Future<MasqueAccount> registerMasque({
     required String nowIso8601,
     String? sni,
@@ -337,9 +337,9 @@ class WarpClient {
   }) async {
     final keys = MasqueKeys.generate();
 
-    // Шаг 1 — обычный POST /reg (mimic Android app). Ключ — настоящий X25519
-    // (одноразовый, дальше не используется): API может проверять точку на
-    // кривой, случайные 32 байта ловили 401 «Invalid public key» (§418).
+
+
+
     final regBody = jsonEncode({
       'key': (await genKeypair()).pub,
       'install_id': '',
@@ -368,7 +368,7 @@ class WarpClient {
       throw WarpException('bad response: missing id/token for MASQUE enroll');
     }
 
-    // Шаг 2 — PATCH enroll: подменяем ключ на ECDSA, тип на masque.
+
     final patchBody = jsonEncode({
       'key': keys.publicKeyDer,
       'key_type': 'secp256r1',
@@ -424,7 +424,7 @@ class WarpClient {
       throw WarpException('bad response: missing config (MASQUE)');
     }
 
-    // interface addresses (наш ip/ipv6)
+
     String v4 = '', v6 = '';
     final iface = config['interface'];
     if (iface is Map) {
@@ -438,7 +438,7 @@ class WarpClient {
       throw WarpException('bad response: missing interface address (MASQUE)');
     }
 
-    // peers[0]: серверный pubkey + data-plane endpoint
+
     String serverPub = '';
     String server = MasqueAccount.defaultServer;
     int port = MasqueAccount.defaultPort;
@@ -462,7 +462,7 @@ class WarpClient {
 
     return MasqueAccount(
       privKeyDer: privKeyDer,
-      // CF отдаёт серверный pubkey как PEM → чистый base64(DER) для ядра.
+
       serverPubDer: MasqueKeys.normalizeServerPubKey(serverPub),
       clientV4: v4,
       clientV6: v6,
@@ -477,15 +477,15 @@ class WarpClient {
     );
   }
 
-  /// Снимает `:0`-заглушку с endpoint (`162.159.198.1:0` → `162.159.198.1`).
+
   static String _stripEndpointHost(String raw) {
     final i = raw.lastIndexOf(':');
     if (i <= 0) return raw;
     return raw.substring(0, i);
   }
 
-  /// PATCH account с license. Безопасный: при любой ошибке возвращает исходный
-  /// (free) аккаунт — узел всё равно добавится, просто без WARP+.
+
+
   Future<WarpAccount> _applyLicenseSafe(
       WarpAccount acc, String license) async {
     if (acc.deviceId.isEmpty || acc.token.isEmpty) {

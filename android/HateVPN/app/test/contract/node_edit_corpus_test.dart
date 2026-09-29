@@ -15,26 +15,26 @@ import '../contract_paths.dart';
 import '../parser/engine_test_setup.dart';
 import 'corpus_warnings.dart';
 
-// §576 — раннер корпуса `corpus/node_edit/` (контракт 1.1.88–1.1.89,
-// TASKS_LXBOX §85–§86): правка вкладки JSON окна узла → источник записи.
-//
-// `<case>.edit.json`: `container` (`own` | `folder` | `subscription`), прежний
-// `origin` (`kind`, `raw`), `input` — текст вкладки JSON.
-// `<case>.expected.json`: `origin` после правки (`raw` JSON-источника —
-// объектом, сравнение по значению; прочий — строкой), `authored`,
-// `rest_not_kept`, необязательно `warnings` (`code`, `path`, `applied`).
-//
-// Свой сервер и член папки: текст идёт через `prepareNodeDocumentForSave` —
-// ту же функцию, что у экрана. Узел подписки: экран источник подписки не
-// пишет (источник подписки — ответ провайдера), источник не меняется.
-//
-// §577 — у предупреждения сверяются `code`, `path` и `applied` (отсутствие
-// = `true`).
-//
-// Раздел `corpus/authored/` (контракт 1.1.87–1.1.88): `<case>.body` — голое
-// тело, сохранённое как свой сервер; ожидание — результат разбора с
-// `meta.container: own`. Сверка СТРОГАЯ: тело (через ту же точку правки,
-// что у сборки, `settleSanitized`), `warnings[]` с `applied`, `dropped[]`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void main() {
   if (corpusSuiteUnavailable('test/contract/node_edit_corpus_test.dart')) {
     return;
@@ -149,9 +149,9 @@ void main() {
         final expected = jsonDecode(File('$base.expected.json')
             .readAsStringSync()) as Map<String, dynamic>;
         expect((expected['meta'] as Map?)?['container'], 'own');
-        // §582 (контракт 1.1.96) — кейс схемы, которой у LxBox нет по
-        // контракту (`meta.extension: desktop` — hysteria v1), пропускается,
-        // как в раннере корпуса body.
+
+
+
         final ext = (expected['meta'] as Map?)?['extension'];
         if (ext is String && ext.isNotEmpty && ext != 'lxbox') {
           markTestSkipped('meta.extension=$ext — схемы у LxBox нет');

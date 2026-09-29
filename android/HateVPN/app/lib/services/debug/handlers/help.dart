@@ -4,19 +4,19 @@ import '../context.dart';
 import '../transport/request.dart';
 import '../transport/response.dart';
 
-/// `GET /help` — самодокументируемая карта Debug API. Без auth (как `/ping`),
-/// чтобы агент мог discover-нуть capability-карту до подсовывания токена.
-///
-/// Два формата:
-/// - `?format=text` (default) — markdown-текст, удобно для LLM-агента
-///   читать прямо из ответа.
-/// - `?format=json` — структурированный JSON со списком endpoint'ов,
-///   их методов, параметров и описаний. Для auto-tooling (генерация
-///   MCP-обёртки, OpenAPI-spec'а etc.).
-///
-/// Содержимое hand-maintained — синхронизировано с реальными handler'ами
-/// при добавлении endpoint'а. Не auto-generated через reflection: проще
-/// отредактировать строку, чем строить interrop с router'ом.
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> helpHandler(DebugRequest req, DebugContext ctx) async {
   final format = req.q('format') ?? 'text';
   if (format == 'json') {
@@ -35,11 +35,11 @@ Future<DebugResponse> helpHandler(DebugRequest req, DebugContext ctx) async {
   );
 }
 
-// ─── Hand-maintained capability map ─────────────────────────────────────
-//
-// При добавлении / удалении / переименовании endpoint'а — обновить здесь.
-// Это **единственный источник правды** о публичной поверхности Debug API
-// для LLM-агентов, шпаргалок, и потенциальных wrapper'ов (MCP etc.).
+
+
+
+
+
 
 const _capabilityText = '''
 === L×Box Debug API ===
@@ -672,32 +672,32 @@ const Map<String, dynamic> _capabilityJson = {
     'host_check': 'Host header must be 127.0.0.1 or localhost (DNS-rebind defense)',
   },
   'endpoints': [
-    // Health
+
     {'method': 'GET', 'path': '/ping', 'auth': false, 'description': 'Health-check', 'response': '{"pong":true,"server":"lxbox-debug","uptime_seconds":N}'},
     {'method': 'GET', 'path': '/help', 'auth': false, 'description': 'This capability map', 'params': {'format': 'text|json (default text)'}},
-    // State
+
     {'method': 'GET', 'path': '/state', 'description': 'HomeState dump (tunnel, groups, nodes, traffic). last_start_error/last_start_error_at — last VPN start/stop failure reason; cleared only by a successful start; in-memory (empty after process restart)'},
     {'method': 'GET', 'path': '/state/subs', 'params': {'reveal': 'true|false (default false → URLs masked)'}, 'description': 'Subscriptions list'},
     {'method': 'GET', 'path': '/state/rules', 'description': 'CustomRule[] sealed (inline|srs|preset)'},
     {'method': 'GET', 'path': '/state/storage', 'description': 'Raw SettingsStorage._cache JSON'},
     {'method': 'GET', 'path': '/state/vpn', 'description': 'auto_start, keep_on_exit, allow_bypass, current_session_allow_bypass, background_mode, is_ignoring_battery_optimizations'},
     {'method': 'GET', 'path': '/state/config_locked', 'description': '{locked: bool} — auto-rebuild lock state'},
-    // Device
+
     {'method': 'GET', 'path': '/device', 'description': 'Android version, model, ABI, app version, network, uptime'},
-    // Config
+
     {'method': 'GET', 'path': '/config', 'description': 'Saved sing-box JSON (raw)'},
     {'method': 'PUT', 'path': '/config', 'body': 'raw sing-box JSON (Map)', 'description': 'Overwrite config.json + reload sing-box. Temporary unless /settings/config_locked=true.'},
     {'method': 'GET', 'path': '/config/pretty', 'description': 'Indent-formatted'},
     {'method': 'GET', 'path': '/config/path', 'description': 'On-device file path'},
     {'method': 'GET', 'path': '/config/running', 'description': 'Config of the running kernel (SPEC 036); 409 when unavailable'},
-    // Pool (§208)
+
     {'method': 'GET', 'path': '/pool', 'params': {'tag': '<autoTag> (e.g. vpn-1-auto)'}, 'description': 'Snapshot of a round_robin urltest pool → {tag,count,slots:[{slot,tag,delay,alive}]}. Non-round_robin group → slots:[]; tunnel down → 409'},
-    // Logs
+
     {'method': 'GET', 'path': '/logs', 'params': {'limit': 'N (default 200)', 'source': 'app|core', 'q': 'substring search', 'level': 'comma-separated: error,warning,info,debug'}, 'description': 'AppLog entries'},
     {'method': 'GET', 'path': '/logs/app', 'description': 'Alias for /logs?source=app (same params)'},
     {'method': 'GET', 'path': '/logs/core', 'description': 'Alias for /logs?source=core (same params)'},
     {'method': 'POST', 'path': '/logs/clear', 'description': 'Clear AppLog'},
-    // Actions
+
     {'method': 'POST', 'path': '/action/start-vpn', 'description': 'Start tunnel (via Activity, may show consent)'},
     {'method': 'POST', 'path': '/action/start-vpn-headless', 'params': {'guard': 'true|false (default false)'}, 'description': 'Start without Activity/consent (needs permission granted) → {started,needs_consent}. guard=true (feature 478): start through the core-reject guard asynchronously with headless real starts → {guard:true, started:true, async:true}; read phase/outcome via GET /core_reject (409 if already running). Queue POST /core_reject/prompt?answer=keep before or while awaiting the round-limit dialog.'},
     {'method': 'POST', 'path': '/action/check-config', 'params': {'timeout_ms': 'N (default 10000, capped by the request timeout)'}, 'body': 'optional raw sing-box config JSON (checks this text; omit → built config on disk)', 'description': 'Run Libbox.checkConfig — the same check the guard loops on, once, without a tunnel → {config_ok, error, ms, bytes}. error is the core RAW text (what PARSING_PRINCIPLES §9 parses). 409 on timeout.'},
@@ -719,9 +719,9 @@ const Map<String, dynamic> _capabilityJson = {
     {'method': 'POST', 'path': '/action/toast', 'params': {'msg': 'text', 'duration': 'short|long'}, 'description': 'Android toast (sanity-check)'},
     {'method': 'POST', 'path': '/action/emulate-error', 'params': {'kind': 'socket|timeout|http-401|http-404|http-410|http-429|http-503|format|fs|plain|all'}, 'description': 'Demo humanizeError in /logs'},
     {'method': 'POST', 'path': '/action/check-updates', 'description': 'Force update check (bypass cap + toggle); returns {kind,tag,html_url,...}'},
-    // WARP
+
     {'method': 'POST', 'path': '/warp', 'params': {'rebuild': 'true|false'}, 'body': '{licenseKey?, endpoint?, obfuscate?, forceNew?, includeReserved?, quicParams?:{sni,ip,ib,jc,jmin,jmax}}', 'description': 'Register Cloudflare WARP node (same path as Get WARP wizard). All fields optional. obfuscate=true → QUIC masquerade via quicParams. ?rebuild=true regenerates config.'},
-    // Rules
+
     {'method': 'GET', 'path': '/rules', 'description': 'Alias /state/rules'},
     {'method': 'GET', 'path': '/rules/{id}', 'description': 'Single rule'},
     {'method': 'POST', 'path': '/rules', 'params': {'rebuild': 'true|false'}, 'body': 'CustomRule JSON (kind: inline|srs|preset)', 'description': 'Create'},
@@ -729,7 +729,7 @@ const Map<String, dynamic> _capabilityJson = {
     {'method': 'DELETE', 'path': '/rules/{id}', 'params': {'rebuild': 'true|false'}, 'description': 'Delete'},
     {'method': 'POST', 'path': '/rules/reorder', 'body': '{"order":[id,...]}', 'description': 'Reorder (all ids required). Renumbers the num axis so the order survives a reload.'},
     {'method': 'POST', 'path': '/rules/move', 'body': '{"id":"<uuid>","after":"<uuid>"|null}', 'description': '§370 — move one rule along the num axis; mirrors the UI drag (lazy neighbour shift, pinned rules refuse).'},
-    // Subscriptions CRUD (user servers + subscriptions)
+
     {'method': 'GET', 'path': '/subs', 'params': {'reveal': 'true|false (default false → URLs masked)'}, 'description': 'Alias /state/subs'},
     {'method': 'GET', 'path': '/subs/{id}', 'params': {'reveal': 'true|false', 'warnings': 'true|false (default false)'}, 'description': 'Single entry. warnings=true (feature 478): adds origin_kind, source_kind and per-node PARSE warnings under `warnings` — {tag: [{code, severity, path, value, params, title_en, text_en}]}, pinned English; every node present, empty list when none. code/path/value/title_en are null for app-local warnings; text_en is always there. Off by default — on 500 nodes it is dead weight.'},
     {'method': 'POST', 'path': '/subs', 'params': {'rebuild': 'true|false'}, 'body': '{"input":"<url|URI|WG-conf|JSON-outbounds>"}', 'description': 'Create via parser pipeline (JSON may create several entries). Rejected input → 400 with top-level dropped[] (parse reasons), nothing created'},
@@ -737,30 +737,30 @@ const Map<String, dynamic> _capabilityJson = {
     {'method': 'DELETE', 'path': '/subs/{id}', 'params': {'rebuild': 'true|false'}, 'description': 'Remove entry'},
     {'method': 'POST', 'path': '/subs/{id}/refresh', 'description': 'Force HTTP re-fetch (SubscriptionServers only). Fire-and-forget.'},
     {'method': 'POST', 'path': '/subs/reorder', 'body': '{"order":[id,...]}', 'description': 'Reorder (exactly the current ids)'},
-    // Import rules CRUD (per subscription)
+
     {'method': 'GET', 'path': '/subs/{id}/rules', 'description': 'List import rules: {import_rules_enabled, rules:[{index,usable,...}]}. Non-subscription entry → 409.'},
     {'method': 'POST', 'path': '/subs/{id}/rules', 'params': {'index': 'insert position (default: append)', 'rebuild': 'true|false'}, 'body': '{conditions:[{path,op:contains|equals|matches,pattern,negate,case_sensitive}],match:all|any,action:replace|disable|enable,target_path,replacement,replace_mode:set|substitute,substitute,enabled}', 'description': 'Create rule (201). Applied on the NEXT refresh — existing nodes are not re-parsed. "usable":false = parses but will be skipped on apply (allowed, e.g. Replace without target_path).'},
     {'method': 'GET', 'path': '/subs/{id}/rules/{idx}', 'description': 'Single rule by position'},
     {'method': 'PATCH', 'path': '/subs/{id}/rules/{idx}', 'params': {'rebuild': 'true|false'}, 'body': 'Any subset of the rule shape', 'description': 'Partial update of one rule'},
     {'method': 'DELETE', 'path': '/subs/{id}/rules/{idx}', 'params': {'rebuild': 'true|false'}, 'description': 'Remove rule. Indexes shift — rebuild the next call from the returned "rules".'},
     {'method': 'POST', 'path': '/subs/{id}/rules/reorder', 'params': {'rebuild': 'true|false'}, 'body': '{"order":[old indexes in new order]}', 'description': 'Reorder (full permutation of 0..n-1). Order matters: rules apply sequentially, last enable/disable wins.'},
-    // Nodes (the emitter's side)
+
     {'method': 'GET', 'path': '/nodes/link', 'params': {'tag': '<tag> (required)', 'reveal': 'true|false (default false)'}, 'description': 'Export the node as a link — exactly what Copy link puts on the clipboard (NodeSpec.toUri()). tag is taken either as it stands in the config (with the subscription prefix) or bare; chain hops are searched too. uri carries credentials → only with reveal=true → {tag, protocol, uri, private_key}. Without reveal → {tag, protocol, private_key, error:"reveal required"}. Found but not expressible as a link (app-built nodes, groups) → {tag, protocol, error:"node has no link form"}, not a 404. No such node → 404.'},
-    // Directions CRUD (routing directions)
+
     {'method': 'GET', 'path': '/directions', 'description': 'List routing directions (storage shape, snake_case)'},
     {'method': 'GET', 'path': '/directions/{tag}', 'description': "Single direction (tag = the direction's outbound tag, e.g. vpn-1 or a custom one)"},
     {'method': 'POST', 'path': '/directions', 'params': {'rebuild': 'true|false'}, 'body': 'optional {"label":"...","tag":"..."} + any PATCH field', 'description': 'Create direction. No tag → first free vpn-N; a custom tag is accepted as-is. No cap on the number of directions. Rejected tag → 409 with the machine reason: empty|reserved|duplicate|auto_twin.'},
     {'method': 'PATCH', 'path': '/directions/{tag}', 'params': {'rebuild': 'true|false'}, 'body': 'Any subset: {label,enabled,include_direct,include_block,node_filter,node_filter_invert,default_filter,include,interrupt_exist_connections,auto,detour}', 'description': 'Partial update. auto merges into current urltest options; "auto":null disables the twin. tag immutable; vpn-1 cannot be disabled. detour:true = direction selectable as detour target (stays a valid rule target; include_block allowed); vpn-1+detour → 409; detour:false resets detour references to None. Toggling detour renames the direction: the reserved gear prefix is added to/stripped from the stored label — responses carry the normalized label. Mutation responses carry "healed":{rules,detours,includes,chain_positions,dns_servers}.'},
     {'method': 'DELETE', 'path': '/directions/{tag}', 'params': {'rebuild': 'true|false'}, 'description': 'Remove direction. vpn-1 not deletable (409). Rule references degrade to vpn-1; detour references reset to None; the tag is stripped from every other direction include[]; outbound-type variables of template DNS servers and rule presets, and body.detour of user DNS servers, degrade to vpn-1. Response carries "healed":{rules,detours,includes,chain_positions,dns_servers}.'},
     {'method': 'POST', 'path': '/directions/reorder', 'params': {'rebuild': 'true|false'}, 'body': '{"order":[tag,...]}', 'description': 'Reorder (exactly the current tags). Order = emit order in config.'},
-    // Chains CRUD (hop chains, SPEC 110)
+
     {'method': 'GET', 'path': '/chains', 'description': 'List hop chains in storage order: tag, label, enabled + source_chain.schema.json canon. The list order is normative: a chain may reference only chains declared above it.'},
     {'method': 'GET', 'path': '/chains/{tag}', 'description': 'Single chain (404 if unknown)'},
     {'method': 'POST', 'path': '/chains', 'params': {'rebuild': 'true|false'}, 'body': 'optional {"tag":"...","label":"..."} + any PATCH field', 'description': 'Create chain → 201. No tag → first free chain-N. Tag is checked against BOTH chains and directions; rejected → 409 with the machine reason: empty|reserved|duplicate|auto_twin. A body without hops creates an empty chain (same as the UI).'},
     {'method': 'PATCH', 'path': '/chains/{tag}', 'params': {'rebuild': 'true|false'}, 'body': 'Any subset: {label,enabled,hops,idle_timeout,strip_evasion,strip,rewrite}', 'description': 'Partial update. tag is immutable (400). hops = positions in PACKET order ([0] = first hop from the client), each a node link {folder_id?, tag} (a string is read as {tag}). strip_evasion is a tristate: omit = keep, null = core default, bool = explicit. strip replaces the map, keys only from the contract strip catalogue (tls.fragment|multiplex.padding|xhttp.padding|tls.utls at contract 1.1.70). rewrite = RFC 7396 merge-patch per outbound type, kept verbatim. Writes pass the same gate as the edit form; a blocking finding → 400 with its code: tooFewHops|emptyHop|duplicateHop|selfReference|nestedNotFirst|forwardChainReference|tagEmpty|tagTaken.'},
     {'method': 'DELETE', 'path': '/chains/{tag}', 'params': {'rebuild': 'true|false'}, 'description': 'Remove chain. Positions of other chains pointing at it are NOT cleaned (the build degrades such a chain as a whole, "chain_hop_missing"); the response lists them in "dangling_refs".'},
     {'method': 'GET', 'path': '/chains/{tag}/probe', 'params': {'url': 'probe URL (default: global ping_options)', 'timeout_ms': 'per-layer budget (default: global ping_options)'}, 'description': 'Layer-by-layer probe: measures PREFIXES of the route (layer k = path from the client through position k) via the tag the core registers for it, "<chain>#<k>" — the same scheme as the launcher (config.ChainLayerTag). A hop price is the difference of neighbouring layers, never a measurement of its own. Needs a running VPN (409 otherwise): those tags exist only in the running core. Positions come from the BUILT config; 409 if the chain is not in it (disabled, degraded, never built). Sequential — worst case positions × timeout_ms. Response: layers[{pos, tag, probe_tag, cumulative_ms?, delta_ms?, error?, not_reached?}]; the first failing layer carries the core text and everything behind it is not_reached.'},
-    // Folders CRUD (server folders)
+
     {'method': 'GET', 'path': '/folders', 'params': {'reveal': 'true|false (raw carries credentials, hidden by default)'}, 'description': 'List folder entries + members (members addressed by positional index)'},
     {'method': 'POST', 'path': '/folders', 'params': {'rebuild': 'true|false'}, 'body': '{"name":"..."}', 'description': 'Create empty folder → 201. Folder meta is edited via PATCH /subs/{id}.'},
     {'method': 'GET', 'path': '/folders/{id}', 'params': {'reveal': 'true|false'}, 'description': 'Single folder + members'},
@@ -773,7 +773,7 @@ const Map<String, dynamic> _capabilityJson = {
     {'method': 'POST', 'path': '/folders/{id}/members/{idx}/move', 'params': {'rebuild': 'true|false'}, 'body': '{"to":"<folder id>"}', 'description': 'Move member to another folder'},
     {'method': 'POST', 'path': '/folders/{id}/move-server', 'params': {'rebuild': 'true|false'}, 'body': '{"server_id":"<subs entry id>"}', 'description': 'Move a standalone single server INTO the folder (splits 1:1 by nodes)'},
     {'method': 'POST', 'path': '/folders/{id}/probe', 'body': 'optional {"url":"...","timeout_ms":N} (defaults = global ping_options)', 'description': 'Headless Test servers run, results in response. Statuses: ok|failed|broken|invalid|not_in_config|pending. Synchronous — lower timeout_ms for big folders (30s request timeout).'},
-    // Core-rejected nodes (auto-disable guard, feature 478)
+
     {'method': 'GET', 'path': '/core_reject', 'description': 'Guard state of the current/last run: {phase, round, round_limit, disabled:[{tag,reason}], outcome, error}. phase: idle|signal_start|checking|awaiting_prompt|final_start|done. outcome (null until a run finished): started_clean|started_with_disabled|failed|stopped_by_user. disabled = nodes THIS run turned off, in the order the core named them. One Start does two real core starts (signal + final) with a silent check loop between them.'},
     {'method': 'GET', 'path': '/core_reject/nodes', 'description': 'Every verdict standing in storage (survives a process restart, unlike the run state): [{source, tag, reason}]. source = display name of the subscription/folder/server (for a single server — node label/tag, not the empty list.name).'},
     {'method': 'GET', 'path': '/core_reject/banner', 'description': '"N disabled" banner: {visible, count, nodes:[{tag,reason}]}. Raised only on outcome=started_with_disabled.'},
@@ -784,12 +784,12 @@ const Map<String, dynamic> _capabilityJson = {
     {'method': 'POST', 'path': '/core_reject/reset', 'description': 'Reset in-memory run state (phase→idle, round→0). Stored verdicts and the banner are NOT cleared. → {ok:true, action:"core-reject-reset"}. 409 if a run is in flight.'},
     {'method': 'POST', 'path': '/core_reject/enable', 'params': {'tag': 'core tag of the node'}, 'body': '{"tag":"..."} (alternative to the query param)', 'description': 'Re-enable a node by its core tag — emitted tag (with subscription prefix) or raw identity tag (same lookup as disable). → {enabled, tag}; 404 when no node carries that tag.'},
     {'method': 'GET', 'path': '/core_reject/notifications', 'params': {'tag': 'core tag (omit for every node with stored warnings)'}, 'description': 'What the node row and card will render, without a screenshot: [{code, severity, params, title_en, text_en}]. Texts come from the contract registry, pinned English (a machine surface must not depend on the device locale). No tag → a map {tag: [...]}. 404 when the given tag has no stored warnings.'},
-    // Wi-Fi history (saved networks for routing rule editor)
+
     {'method': 'GET', 'path': '/wifi_history', 'description': 'List [{ssid, bssid, last_seen}], cap 50'},
     {'method': 'POST', 'path': '/wifi_history', 'body': '{"ssid":"...","bssid":"..."}', 'description': 'Upsert entry; bssid lower-cased'},
     {'method': 'DELETE', 'path': '/wifi_history', 'body': '{"ssid":"...","bssid":"..."}', 'description': 'Remove specific entry'},
     {'method': 'DELETE', 'path': '/wifi_history/all', 'description': 'Clear all entries'},
-    // Files
+
     {'method': 'GET', 'path': '/files/srs/list', 'description': 'Cached SRS [{rule_id,size,mtime}]'},
     {'method': 'GET', 'path': '/files/srs', 'params': {'ruleId': 'id'}, 'description': 'Binary SRS dump'},
     {'method': 'GET', 'path': '/files/local', 'params': {'name': 'cache.db|stderr.log|CrashReport-lxbox.log'}, 'description': 'Whitelisted internal-storage files (filesDir); CrashReport-lxbox.log[.old] = Go panics of the core (§316). `/files/external` — legacy alias.'},
@@ -797,25 +797,25 @@ const Map<String, dynamic> _capabilityJson = {
     {'method': 'GET', 'path': '/files/crash', 'params': {'name': '<file>'}, 'description': 'Body of an archived core crash report (§316)'},
     {'method': 'GET', 'path': '/files/oom/list', 'description': 'Core OOM snapshots [{name,size,mtime,memory_usage,heap_inuse,num_goroutine}], newest first (§318)'},
     {'method': 'GET', 'path': '/files/oom', 'params': {'name': '<snapshot>', 'file': 'metadata.json|heap.pb|allocs.pb|go.log'}, 'description': 'File of an OOM snapshot; default metadata.json (§318)'},
-    // Profiler (system-wide)
+
     {'method': 'POST', 'path': '/profiler/live/start', 'description': 'startGlobalRecording (system-wide). Idempotent.'},
     {'method': 'POST', 'path': '/profiler/live/stop', 'description': 'stopGlobalRecording. Idempotent.'},
     {'method': 'GET', 'path': '/profiler/live/state', 'description': '{recording,started_at,buffer_count,unattributed_count,banner_active}'},
     {'method': 'GET', 'path': '/profiler/live', 'params': {'seconds': 'window (default 60)'}, 'description': 'Global rolling buffer snapshot — TCP/UDP open/close + DNS resolves of all packages.'},
     {'method': 'GET', 'path': '/profiler/live/stream', 'description': 'SSE — system-wide events live.'},
     {'method': 'GET', 'path': '/profiler/live/unattributed', 'description': 'Recent unattributed ring (DNS-fail / TCP without attribution).'},
-    // Support feed (§356/§357)
+
     {'method': 'GET', 'path': '/support/state', 'description': 'support_state.json (read/baseline/snooze/active) + app_version + total_active_seconds'},
     {'method': 'POST', 'path': '/support/reset', 'params': {'keep_active': 'true|false'}, 'description': 'Wipe read/baseline/snooze/cache; keep_active=false also zeroes the activity counter'},
     {'method': 'POST', 'path': '/support/preview', 'params': {'dry': 'true|false', 'snooze_hours': 'N'}, 'description': 'Body = one feed-format message → immediate fullscreen show, gates bypassed; dry=true (default) does not persist markRead/snooze'},
-    // Diagnostics
+
     {'method': 'GET', 'path': '/diag/dump', 'description': 'Full DumpBuilder JSON-pack'},
     {'method': 'GET', 'path': '/diag/exit-info', 'description': 'ApplicationExitInfo entries (API 30+; empty on lower)'},
     {'method': 'GET', 'path': '/diag/logcat', 'params': {'count': '50..5000', 'level': 'V|D|I|W|E|F'}, 'description': 'Logcat tail of our process'},
     {'method': 'GET', 'path': '/diag/stderr', 'description': 'filesDir/stderr.log content (Go panic stacktrace)'},
     {'method': 'GET', 'path': '/diag/applog', 'params': {'prev': 'true|false|all'}, 'description': 'AppLog entries (filter by fromPreviousSession)'},
     {'method': 'GET', 'path': '/diag/pprof', 'params': {'profile': 'goroutine|profile|heap|allocs|block|mutex|threadcreate', 'query': 'raw pprof query w/o ? (gc=1, debug=1, seconds=20); default per profile'}, 'description': 'pprof snapshot via libbox PProfServer (tunnel must be up)'},
-    // Settings (scoped writes)
+
     {'method': 'PUT', 'path': '/settings/route_final', 'body': '{"outbound":"..."}', 'description': 'Set route.final outbound'},
     {'method': 'GET|PUT', 'path': '/settings/interrupt_on_switch', 'body': '{"enabled":bool}', 'description': 'Toggle interrupt connections on node switch'},
     {'method': 'GET|PUT', 'path': '/settings/node_sort', 'body': '{"mode":"latency|manual|","order"?:[...]}', 'description': 'Node-list sort mode + manual order'},
@@ -839,17 +839,17 @@ const Map<String, dynamic> _capabilityJson = {
     {'method': 'PUT', 'path': '/settings/vpn/keep_on_exit', 'body': '{"enabled":true|false}', 'description': 'Toggle keep-on-exit'},
     {'method': 'GET', 'path': '/settings/vpn/background_mode', 'description': 'tunnel sleep mode (never|lazy|always)'},
     {'method': 'PUT', 'path': '/settings/vpn/background_mode', 'body': '{"mode":"never|lazy|always"}', 'description': 'Set tunnel sleep mode — apply on next VPN connect'},
-    // Backup
+
     {'method': 'GET', 'path': '/backup/export', 'params': {'include': 'storage,vpn_settings (default both)', 'from': 'v0_bak (storage from lxbox_settings.json.v0.bak, 404 without a copy)'}, 'description': 'Pure-data snapshot (no diag noise)'},
     {'method': 'POST', 'path': '/backup/import', 'params': {'merge': 'true|false', 'rebuild': 'true|false'}, 'body': '{storage?, vpn_settings?}', 'description': 'Restore from export; a storage block without storage_version is migrated (applied.migrated, applied.migration)'},
-    // Action additions
+
     {'method': 'POST', 'path': '/action/preview-empty-state', 'params': {'on': 'true|false'}, 'description': 'Toggle empty-state preview in HomeScreen UI without losing data'},
   ],
   'errors': {
     'envelope': '{"error": {"code": "...", "message": "..."}}',
     'dropped': 'optional top-level array next to "error" on a rejected POST /subs (400): parse reasons {code, path, value, title_en}',
-    // Ключи — строки: JsonEncoder требует String-ключи (int-ключи роняли
-    // весь /help?format=json на "Converting object ... failed: _ConstMap").
+
+
     'codes': {
       '400': 'BadRequest',
       '401': 'Unauthorized (no/wrong token)',

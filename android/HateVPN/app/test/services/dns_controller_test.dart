@@ -9,9 +9,9 @@ import 'package:lxbox/services/builder/preset_expand.dart' show PresetNode;
 import 'package:lxbox/services/dns/dns_controller.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §300 — DnsController.stage(): byte-identical staged-запись DNS-секции
-/// (замена stageChanges). Пишет dns_servers/dns_rules/dns-vars c flush:false;
-/// custom_rules НЕ трогает (это §295).
+
+
+
 void main() {
   late Directory tmp;
   const pathChannel = MethodChannel('plugins.flutter.io/path_provider');
@@ -58,7 +58,7 @@ void main() {
   });
 
   test('stage() НЕ трогает custom_rules (§295 device-scope)', () async {
-    // Заранее положим custom_rules; stage() не должен их стереть/тронуть.
+
     await SettingsStorage.saveCustomRules(const []);
     final before = await SettingsStorage.getCustomRules();
     await DnsController.stage(
@@ -71,11 +71,11 @@ void main() {
       defaultResolver: 'r',
     );
     final after = await SettingsStorage.getCustomRules();
-    expect(after.length, before.length); // не тронуты
+    expect(after.length, before.length);
   });
 
-  // §327 — дефолты резолверов приходят из `default_value` шаблона, а не из
-  // литералов в коде. Регрессия на «после чистой установки оба поля пусты».
+
+
   group('§327 дефолты из шаблона', () {
     Future<Map<String, String>> templateDefaults() async {
       final raw = await rootBundle.loadString('assets/wizard_template.json');
@@ -99,20 +99,20 @@ void main() {
 
     test('чистая установка — Final/Resolver/Strategy = default_value шаблона',
         () async {
-      // Storage пуст: ни одного dns-var юзер не сохранял.
+
       final snap = await DnsController.load();
       final defaults = await templateDefaults();
 
       expect(snap.dnsFinal, defaults['dns_final']);
       expect(snap.defaultResolver, defaults['dns_default_domain_resolver']);
       expect(snap.strategy, defaults['dns_strategy']);
-      // Не «выберите» — главный симптом §327.
+
       expect(snap.dnsFinal, isNotEmpty);
       expect(snap.defaultResolver, isNotEmpty);
     });
 
     test('пустая строка в storage трактуется как «не задано»', () async {
-      // Тот самый осадок от stage(): '' — не отсутствие ключа, но и не выбор.
+
       await SettingsStorage.setVar('dns_final', '');
       await SettingsStorage.setVar('dns_default_domain_resolver', '');
 
@@ -149,9 +149,9 @@ void main() {
     });
   });
 
-  // §578 — серверы пресета с `for_each` видны на экране DNS как серверы
-  // остальных пресетов; запись хранения без `preset_id` (тег `<узел>-dns`
-  // без пространства), владелец — из пометки `_preset_id` тела.
+
+
+
   group('§578 пресет с for_each', () {
     Future<void> seedTailscalePreset() async {
       await SettingsStorage.saveCustomRules([
@@ -180,7 +180,7 @@ void main() {
           .where((s) => s.tag.endsWith('-ts-dns'))
           .toList();
       expect([for (final s in stored) s.tag], ['home-ts-dns', 'work-ts-dns']);
-      // Тег не достроен до `tailscale:<тег>`.
+
       expect(stored.every((s) => !s.tag.startsWith('tailscale:')), isTrue);
     });
 
@@ -196,7 +196,7 @@ void main() {
     });
   });
 
-  // §580 — кэш DNS: три переменные новые, у сохранённого состояния их нет.
+
   group('§580 кэш DNS', () {
     test('сохранённое состояние без переменных — значения по умолчанию',
         () async {

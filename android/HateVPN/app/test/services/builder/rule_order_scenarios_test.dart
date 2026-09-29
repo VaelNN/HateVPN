@@ -5,9 +5,9 @@ import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/builder/rule_order.dart';
 
-/// §370 — сценарные тесты оси порядка: не отдельные вызовы, а работа
-/// пользователя целиком (серии drag'ов, добавления, удаления, перезапуски).
-/// Ловят вырождение оси и дрейф якорей, которых поштучные проверки не видят.
+
+
+
 void main() {
   group('§370 сценарий: раскладка реального устройства', () {
     test('разметка storage без num даёт ровно раскладку §2', () {
@@ -56,8 +56,8 @@ void main() {
           id: _byId(rules, id).orderNum,
       };
 
-      // Детерминированная псевдослучайность: без Random (запрещён в скриптах,
-      // и тест обязан быть воспроизводимым).
+
+
       var seed = 7;
       int next(int mod) => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) % mod;
 
@@ -70,7 +70,7 @@ void main() {
         placeRuleAfter(rules, moved, target, isSortable: _sortable);
         rules = sortRulesByNum(rules);
         moves++;
-        // Инвариант держится ПОСЛЕ КАЖДОГО хода, не только в конце.
+
         expect(_byId(rules, 'traffic-processing').orderNum, 0,
             reason: 'ход $i: шапка обязана быть на нуле');
         expect(rules.first.presetId, 'traffic-processing',
@@ -78,9 +78,9 @@ void main() {
       }
 
       expect(moves, greaterThan(40), reason: 'ходы реально случились');
-      // Дрейф якорей допустим (drag мог целиться прямо в них — это законное
-      // уплотнение в точке перетаскивания), но ось обязана остаться
-      // строго возрастающей и без коллапса зон.
+
+
+
       final nums = [for (final r in rules) r.orderNum!];
       for (var i = 1; i < nums.length; i++) {
         expect(nums[i], greaterThanOrEqualTo(nums[i - 1]),
@@ -93,7 +93,7 @@ void main() {
 
     test('20 drag-ов одного правила в одну точку — ось не вырождается', () {
       var rules = normalizeRuleOrder(_deviceStorage(), _fullCatalog(), _template());
-      final target = _byId(rules, 'bittorrent'); // 980
+      final target = _byId(rules, 'bittorrent');
       final victim = _byId(rules, 'Warp');
 
       for (var i = 0; i < 20; i++) {
@@ -101,14 +101,14 @@ void main() {
         rules = sortRulesByNum(rules);
       }
 
-      // Каждый раз want=981 свободен (victim сам его и занимает) → сдвига нет.
+
       expect(victim.orderNum, 981);
       expect(_byId(rules, 'ru-direct').orderNum, 1120, reason: 'якорь цел');
       expect(_byId(rules, 'vowifi').orderNum, 990, reason: 'якорь цел');
     });
 
     test('уплотнение: набиваем сплошной блок, якорь за дыркой не двигается', () {
-      // a..e подряд 1000..1004, якорь на 1120.
+
       final a = _inline('a')..orderNum = 1000;
       final b = _inline('b')..orderNum = 1001;
       final c = _inline('c')..orderNum = 1002;
@@ -117,7 +117,7 @@ void main() {
       final moved = _inline('moved')..orderNum = 1090;
       var rules = [a, b, c, d, anchor, moved];
 
-      // Тащим moved за `a` — want=1001 занят, блок 1001..1003 сплошной.
+
       placeRuleAfter(rules, moved, a, isSortable: _sortable);
       rules = sortRulesByNum(rules);
 
@@ -160,17 +160,17 @@ void main() {
         expect(r.orderNum, before[key],
             reason: '$key: удаление соседа не должно менять номера');
       }
-      // Дырка 1001 переиспользуется? Нет — новый идёт в конец занятой зоны.
+
       expect(nextUserRuleNum(rules), 1005);
     });
 
     test('пресет из каталога садится на шаблонный num даже среди пользовательских',
         () {
-      // Юзер удалил vowifi, потом добавил обратно из каталога.
+
       var rules = normalizeRuleOrder(_deviceStorage(), _fullCatalog(), _template());
       rules = rules.where((r) => r.presetId != 'vowifi').toList();
 
-      final readded = _preset('vowifi')..orderNum = 990; // как делает _copyPreset
+      final readded = _preset('vowifi')..orderNum = 990;
       rules = sortRulesByNum([...rules, readded]);
 
       final idx = rules.indexWhere((r) => r.presetId == 'vowifi');
@@ -202,8 +202,8 @@ void main() {
       expect(rules.first.presetId, 'traffic-processing');
       expect(moved.orderNum, kUserRuleNumStart,
           reason: 'бросок в начало = старт пользовательской зоны');
-      // Выше него остаются только шаблонные пресеты зоны 950..990 — они
-      // объявлены выше 1000 намеренно, это не нарушение.
+
+
       final above = rules.takeWhile((r) => !identical(r, moved));
       expect(above.every((r) => (r.orderNum ?? 0) < kUserRuleNumStart), isTrue);
     });
@@ -225,27 +225,27 @@ void main() {
   group('§370 сценарий: storage round-trip', () {
     test('ось переживает сохранение и загрузку целиком', () {
       var rules = normalizeRuleOrder(_deviceStorage(), _fullCatalog(), _template());
-      // Пользователь подвигал.
+
       placeRuleAfter(rules, _byId(rules, 'Warp'), _byId(rules, 'private-ip'),
           isSortable: _sortable);
       rules = sortRulesByNum(rules);
       final expected = _axis(rules);
 
-      // Сохранили → загрузили.
+
       final json = [for (final r in rules) ruleToRecord(r)];
       final loaded = [
         for (final j in json) ruleFromRecord(j, unknownAsVerbatim: true).value!,
       ];
 
       expect(_axis(sortRulesByNum(loaded)), expected);
-      // И повторная нормализация после загрузки ничего не ломает.
+
       expect(_axis(normalizeRuleOrder(loaded, _fullCatalog(), _template())),
           expected);
     });
   });
 }
 
-// ─── helpers ───
+
 
 bool _sortable(CustomRule r) => r.presetId != 'traffic-processing';
 
@@ -263,8 +263,8 @@ CustomRulePreset _preset(String id) =>
 
 CustomRuleInline _inline(String name) => CustomRuleInline(name: name);
 
-/// Снимок storage с эмулятора (§369 §0) + vowifi: 13 правил без `num`,
-/// в том порядке, в каком они там лежали.
+
+
 List<CustomRule> _deviceStorage() => [
       _preset('traffic-processing'),
       _preset('block-ads'),
@@ -283,7 +283,7 @@ List<CustomRule> _deviceStorage() => [
       _preset('ru-inside'),
     ];
 
-/// Полный каталог по раскладке §370 §2 + §371 (vowifi).
+
 List<SelectableRule> _fullCatalog() => [
       _spec('traffic-processing', 0, sortable: false),
       _spec('private-ip', 950),

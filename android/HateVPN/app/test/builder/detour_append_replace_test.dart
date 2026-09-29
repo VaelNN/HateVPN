@@ -14,23 +14,23 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §073 — detour APPEND (default) vs REPLACE (toggle) tests на уровне
-/// `buildConfig`. Pure model→config rebuild без UI/storage.
-///
-/// Сценарии:
-///   1. Empty chain (single VLESS) + override + append/replace → 1-hop
-///   2. Empty chain + override + replace=true → 1-hop (same as #1)
-///   3. Default detour-empty config + override → override at tail of main
+
+
+
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   final template = WizardTemplate(
     parserConfig: ParserConfigBlock(),
-    // §267 — group_templates: vpn-1 Направление (direct+auto), auto-подгруппа.
-    // ('jump-out' был в старом addOutbounds, но seed-логика его не читала —
-    // мёртвый элемент; в новой схеме отсутствует.)
+
+
+
     groupTemplates: GroupTemplates(
       direction: DirectionTemplate(
         include: const ['direct', 'auto'],
@@ -48,8 +48,8 @@ void main() {
     config: {
       'outbounds': [
         {'tag': 'direct-out', 'type': 'direct'},
-        // 'jump-out' — обычный outbound, который юзер выбирает как
-        // override detour target.
+
+
         {
           'tag': 'jump-out',
           'type': 'vless',
@@ -137,8 +137,8 @@ void main() {
         name: 'Test',
         enabled: true,
         tagPrefix: '',
-        // useDetourServers default true, overrideDetour empty → main без
-        // detour (нет цепочки в config'е, нет override).
+
+
         detourPolicy: const DetourPolicy(),
         origin: UserSource.paste,
         nodes: [spec],
@@ -197,10 +197,10 @@ void main() {
   });
 
   group('§080 — overrideDetour ссылается на prefixed-form целевого outbound', () {
-    // Target UserServer с непустым tagPrefix='Home' и нодой 'WG' →
-    // эмитится в config как outbound с tag '🏠'-prefixed = 'Home WG'.
-    // Consumer UserServer выбирает её как detour. Picker (§080) сохраняет
-    // **display-form** 'Home WG' — это совпадает с эмитированным tag'ом.
+
+
+
+
 
     UserServer targetWG() => UserServer(
           id: 'wg-target',
@@ -219,7 +219,7 @@ void main() {
         name: 'Consumer',
         enabled: true,
         tagPrefix: '',
-        // §080: picker сохраняет display-form 'Home WG' (= _withPrefix).
+
         detourPolicy: const DetourPolicy(overrideDetour: NodeLink(tag: 'Home WG')),
         origin: UserSource.paste,
         nodes: [parseUri('vless://u1@h1.com:443?type=ws&security=tls#Main')!],
@@ -238,9 +238,9 @@ void main() {
           reason: result.validation.issues.join('\n'));
       final outs = (result.config['outbounds'] as List).cast<Map>();
       final main = outs.firstWhere((o) => o['tag'] == 'Main');
-      // detour указывает на 'Home WG' …
+
       expect(main['detour'], 'Home WG');
-      // … и такой outbound реально существует в конфиге (no dangling ref).
+
       final tags = outs.map((o) => o['tag']).toSet();
       expect(tags.contains('Home WG'), true,
           reason: 'целевой outbound эмитится как prefixed-form "Home WG"');
@@ -253,8 +253,8 @@ void main() {
         name: 'Consumer',
         enabled: true,
         tagPrefix: '',
-        // Pre-§080 поведение: picker сохранял bare 'WG'. Целевой outbound
-        // эмитится как 'Home WG' → 'WG' не существует → dangling reference.
+
+
         detourPolicy: const DetourPolicy(overrideDetour: NodeLink(tag: 'WG')),
         origin: UserSource.paste,
         nodes: [parseUri('vless://u1@h1.com:443?type=ws&security=tls#Main')!],
@@ -271,9 +271,9 @@ void main() {
 
       final outs = (result.config['outbounds'] as List).cast<Map>();
       final tags = outs.map((o) => o['tag']).toSet();
-      // §439 — корневая ссылка 'WG' не разрешается (корневой узел эмитится
-      // как 'Home WG'). Узел с неразрешённым detour не эмитится: напрямую
-      // трафик не уходит (до §439 §172 снимал detour, и узел шёл напрямую).
+
+
+
       expect(tags.contains('Main'), false,
           reason: 'носитель висячей ссылки выпадает, а не идёт напрямую');
       expect(tags.contains('Home WG'), true, reason: 'цель на месте');
@@ -331,9 +331,9 @@ void main() {
 
     test('disabled target UserServer не эмитит outbound (picker должен '
         'был его skip\'нуть)', () async {
-      // Подтверждает review finding #7: disabled UserServer → no outbounds.
-      // Picker фильтрует disabled (см. _showOverrideDetourPicker / _load),
-      // здесь — builder-side инвариант: disabled list не в config.
+
+
+
       final disabledTarget = UserServer(
         id: 'wg-disabled',
         name: 'WG',
@@ -363,17 +363,17 @@ void main() {
       );
 
       final outs = (result.config['outbounds'] as List).cast<Map>();
-      // disabled target НЕ в config → 'Home WG' отсутствует → если бы picker
-      // его предложил, был бы dangling. Picker теперь его skip'ает.
+
+
       expect(outs.map((o) => o['tag']).toSet().contains('Home WG'), false,
           reason: 'disabled UserServer не эмитит outbound');
     });
   });
 
-  // §574 (контракт 1.1.84, §81) — `tls.fragment` уступает `detour`,
-  // назначенному сборкой: снимается с кодом `detour_with_tls_fragment`,
-  // код виден в предупреждениях узла. `record_fragment` связи с detour не
-  // имеет.
+
+
+
+
   group('§574 — tls.fragment под detour сборки', () {
     NodeSpec xrayFragmentNode() => parseXrayElement({
           'remarks': 'X',
@@ -542,7 +542,7 @@ void main() {
           'register_detour_servers': true,
           'register_detour_in_auto': false,
           'use_detour_servers': true,
-          // no 'replace_detour_chain' key
+
         },
       });
       expect(policy.replaceDetourChain, false);
@@ -576,7 +576,7 @@ void main() {
       final b = a.copyWith(replaceDetourChain: true);
       expect(b.replaceDetourChain, true);
       expect(b.overrideDetour, NodeLink.none);
-      // == check: разные → not equal
+
       expect(b == a, false);
     });
   });

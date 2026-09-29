@@ -1,8 +1,8 @@
-// §048 — warning banner для unattributed events в Live system-wide tab.
-//
-// Extracted из `live_events_tab.dart` (behavior-preserving). Показывает
-// сколько DNS/TCP event'ов sing-box не смог attribute к owner package за
-// последние 30s. Виден только когда [TrafficProfiler.I.unattributedBannerActive].
+
+
+
+
+
 
 import 'package:flutter/material.dart';
 

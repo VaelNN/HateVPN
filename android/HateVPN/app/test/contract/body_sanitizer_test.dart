@@ -1,9 +1,9 @@
-// §460 W1 — санитайзер тела узла по схеме реестра: по кейсу на строку
-// таблицы 2.2 спеки.
-//
-// Проверяем не «функция что-то сделала», а норму контракта: какое поле
-// снято, с каким кодом и что осталось нетронутым. Мусор в теле роняет ВЕСЬ
-// конфиг ядра (24.1.3), поэтому важна каждая строка.
+
+
+
+
+
+
 
 import 'package:flutter_test/flutter_test.dart';
 import '../contract_paths.dart';
@@ -12,8 +12,8 @@ import 'package:lxbox/services/contract/body_sanitizer.dart';
 import 'package:lxbox/services/contract/registry.dart';
 
 
-/// Пин ядра, на котором сверена схема (`body.core` реестра): под ним
-/// проходят все поля, кроме явно более новых.
+
+
 const _core = '1.14.1-lx.4';
 
 SanitizeResult _san(
@@ -25,7 +25,7 @@ SanitizeResult _san(
     RegistrySanitizer.sanitize(body,
         scheme: scheme, coreVersion: core, platform: platform);
 
-/// Минимальное валидное тело vless — к нему кейсы добавляют своё поле.
+
 Map<String, dynamic> _vless([Map<String, dynamic> extra = const {}]) => {
       'type': 'vless',
       'tag': 'n1',
@@ -54,22 +54,22 @@ void main() {
       expect(r.body!.containsKey('foo'), isFalse);
       expect(_codes(r), contains('unknown_key'));
       expect(_byCode(r, 'unknown_key').path, 'foo');
-      // Остальное тело цело.
+
       expect(r.body!['uuid'], '11111111-1111-1111-1111-111111111111');
     });
 
-    // §470 — `unknown_key` несёт и СНЯТОЕ ЗНАЧЕНИЕ: результат разбора корпуса называет
-    // его (`body/singbox/manual_object_junk`), и лаунчер печатает `src[name]`
-    // (`nodeflow/sanitize.go`). Без `value` человек узнавал, что ключ снят,
-    // но не ЧТО снято, а body-раннер расходился с контрактом молча — ровно
-    // тот дефект, ради которого §470 включил сверку `warnings[]`.
+
+
+
+
+
     test('unknown_key несёт снятое значение', () {
       final r = _san(_vless({'totally_unknown_key': 'whatever'}));
       expect(_byCode(r, 'unknown_key').value, 'whatever');
     });
 
-    // Форма `value` нормативна (PARSING_PRINCIPLES §6): объект — `map[k:v k:v]` с ключами
-    // по алфавиту, и у снятого ключа она та же, что у прочих кодов.
+
+
     test('unknown_key печатает объект по канону корпуса', () {
       final r = _san(_vless({
         'totally_unknown_key': {'b': 2, 'a': true}
@@ -78,7 +78,7 @@ void main() {
     });
 
     test('type: строка вместо порта не приводится → drop_node', () {
-      // server_port: on_invalid = drop_node, code = port_invalid.
+
       final r = _san(_vless({'server_port': 'x'}));
       expect(r.body, isNull, reason: 'узел уходит целиком');
       expect(_codes(r), contains('port_invalid'));
@@ -144,12 +144,12 @@ void main() {
       expect(_codes(r), contains('reality_key_share_invalid'));
       expect(_byCode(r, 'reality_key_share_invalid').path,
           'tls.reality.key_share');
-      // REALITY жив — снято одно поле, не блок.
+
       expect(reality['enabled'], isTrue);
     });
 
     test('format: мусорный server_name снимается', () {
-      // tls.server_name: format=host, on_invalid=drop/type_invalid.
+
       final r = _san(_vless({
         'tls': {'enabled': true, 'server_name': 'a b c'}
       }));
@@ -185,17 +185,17 @@ void main() {
 
     test('required внутри объекта: reality без public_key → снят БЛОК, узел жив',
         () {
-      // §472 шаг 5 — единица отказа у вложенного `required` это САМ ОБЪЕКТ, а
-      // не узел. Реестр пишет это прямо (`tls.json` → `reality.public_key`,
-      // impl): «public_key здесь required, поэтому мусорный pbk снимает блок
-      // целиком и узел деградирует до plain TLS».
-      //
-      // Прежнее ожидание («drop_node») читало правило корневым и роняло весь
-      // узел. Тем же чтением ронялся hysteria2 без `obfs-password`, хотя и
-      // реестр, и текст кода `obfs_password_missing`, и ожидание корпуса
-      // (`uri/hysteria2/obfs_no_password_dropped`) говорят «узел живёт без
-      // обфускации». На корне правило не изменилось — тест выше
-      // («vless без uuid → drop_node») зелёный.
+
+
+
+
+
+
+
+
+
+
+
       final r = _san(_vless({
         'tls': {
           'enabled': true,
@@ -211,17 +211,17 @@ void main() {
     });
 
     test('secret: значение в предупреждении маскируется', () {
-      // trojan.password — secret; мусорное значение даёт код, но не течёт.
+
       final schema = ContractRegistry.I.schemaFor('vless')!;
       expect(schema.fields['uuid']!.secret, isTrue,
           reason: 'uuid объявлен secret — на нём и проверяем маскирование');
 
-      // Поле с secret и заданным on_invalid: shadowsocks.password.
+
       final ss = ContractRegistry.I.schemaFor('shadowsocks')!;
       expect(ss.fields['password']!.secret, isTrue);
 
-      // Маскирование — свойство рендера значения: код с secret-полем несёт
-      // ***, а не сам секрет.
+
+
       const w = RegistryWarning(
           code: 'type_invalid', path: 'password', value: '***');
       expect(w.value, '***');
@@ -240,39 +240,39 @@ void main() {
         }
       }));
       final tls = r.body!['tls'] as Map;
-      // §474 (контракт 1.1.6) — снимается ДЕКЛАРАНТ, то есть поле, у которого
-      // правило записано. Пара симметричная: `conflicts` есть у обоих, обход
-      // идёт по `order`, и первым разбирается `ech` (25) — он и уступает.
-      // `reality` (27) к своей очереди соседа уже не видит и остаётся.
-      //
-      // До §474 тут снималось «младшее по order» — то есть `reality`, — и это
-      // было ошибкой прочтения контракта: лаунчер (`nodeflow/sanitize.go` →
-      // `relationsOK`) всегда снимал сторону-декларанта. Тело узла от смены
-      // не пострадало ни в корпусе, ни в golden: пар, где заданы обе стороны,
-      // там нет вовсе — единственный `field_conflict` корпуса
-      // (`certificate_public_key_sha256`) обе семантики решают одинаково.
+
+
+
+
+
+
+
+
+
+
+
       expect((tls['ech'] as Map).containsKey('enabled'), isFalse);
       expect((tls['reality'] as Map)['enabled'], isTrue);
-      // Код ровно ОДИН: снятый декларант перестаёт быть соседом, и второй
-      // участник пары своего правила не исполняет.
+
+
       expect(r.warnings.where((w) => w.code == 'field_conflict').length, 1);
       expect(_byCode(r, 'field_conflict').path, 'tls.ech.enabled');
       expect(_byCode(r, 'field_conflict').params['with'], 'tls.reality.enabled');
     });
 
     test('requires: key_share при невалидном public_key снимается МОЛЧА', () {
-      // public_key мусорный → снят своим кодом; key_share осмысленен только
-      // вместе с ним, поэтому уходит следом.
-      //
-      // §472 шаг 3 — СЛЕДОМ И МОЛЧА. Второго кода потеря зависимого поля не
-      // заслуживает: человек уже прочёл, почему ушёл `public_key`, а
-      // «`key_share` требует `public_key`» добавляет к этому только шум.
-      // Корпус нормирует ровно так — у `vless/reality_pbk_junk_degrade`,
-      // `tls_pbk_junk_enabled` и `reality_key_share_without_pbk_ignored` в
-      // ожидании ОДИН код, `reality_pbk_invalid`, а комментарий последнего
-      // говорит прямо: «снят не он, а весь блок, поэтому кода
-      // reality_key_share_invalid НЕТ». До шага 3 расхождение было латентным:
-      // на URI-вход санитайзер не смотрел, а в JSON-корпусе такого тела нет.
+
+
+
+
+
+
+
+
+
+
+
+
       final r = _san(_vless({
         'tls': {
           'enabled': true,
@@ -284,17 +284,17 @@ void main() {
           },
         }
       }));
-      // §472 шаг 5 — блок уходит ЦЕЛИКОМ (`public_key` у него `required`), и
-      // это ровно то, что говорит комментарий корпуса выше: «снят не он, а
-      // весь блок». Код по-прежнему один.
+
+
+
       expect((r.body!['tls'] as Map).containsKey('reality'), isFalse);
       expect(_codes(r), ['reality_pbk_invalid']);
     });
 
     test('requires: поля, которого НЕ БЫЛО, объясняет только field_requires',
         () {
-      // Обратная граница к тесту выше: `spoof` в теле не писали вовсе, и
-      // другого объяснения потере `spoof_method` нет — код обязан быть.
+
+
       final r = _san(_vless({
         'tls': {'enabled': true, 'spoof_method': 'wrong-checksum'}
       }));
@@ -328,7 +328,7 @@ void main() {
       }, scheme: 'naive');
       final tls = r.body!['tls'] as Map;
       expect(tls.containsKey('alpn'), isFalse);
-      // certificate naive читает — оно целое.
+
       expect(tls['certificate'], '-----BEGIN CERTIFICATE-----');
       expect(_codes(r), contains('tls_field_unsupported_naive'));
       expect(_byCode(r, 'tls_field_unsupported_naive').path, 'tls.alpn');
@@ -351,7 +351,7 @@ void main() {
       final oldReality = (old.body!['tls'] as Map)['reality'] as Map;
       expect(oldReality.containsKey('key_share'), isFalse,
           reason: 'ключ неизвестен ядру lx.3 — эмиттер его опускает');
-      // Гейт версии кода НЕ даёт: узел в порядке, причина уходит в лог.
+
       expect(_codes(old), isNot(contains('reality_key_share_invalid')));
 
       final now = _san(body(), core: '1.14.1-lx.4');
@@ -386,11 +386,11 @@ void main() {
       expect(_byCode(r, 'ss_method_legacy').severity, WarningSeverity.info);
     });
 
-    // §467 — `all_or_nothing` действия санитайзера НЕ влечёт.
-    //
-    // Атрибут читался наоборот. Ядро при частично заданной секции оставляет
-    // незаданные поля нулями (= без лимита), поэтому дописывание дефолтов
-    // навязывало узлу лимиты, которых у него не было (контракт §24.9).
+
+
+
+
+
     test('all_or_nothing: частичный xmux проходит как есть, без дефолтов', () {
       final r = _san(_vless({
         'transport': {
@@ -408,11 +408,11 @@ void main() {
       expect(_codes(r), isEmpty);
     });
 
-    // §467 — `conflicts` судит ЗНАЧЕНИЕ, а не наличие ключа (контракт §24.9).
+
     group('§467 conflicts по значению', () {
       test('xmux в полной форме с нулями: конфликта нет, тело не изменено', () {
-        // Ровно та секция, на которой у лаунчера испортились 13 живых узлов:
-        // провайдер выписывает незаданные поля нулями.
+
+
         final xmuxIn = {
           'max_concurrency': '16-32',
           'max_connections': '0',
@@ -444,7 +444,7 @@ void main() {
         }));
         expect(_codes(r), contains('field_conflict'));
         final xmux = ((r.body!['transport'] as Map)['xmux']) as Map;
-        // Снимается младшее по порядку схемы, старшее остаётся.
+
         expect(
             xmux.containsKey('max_concurrency') &&
                 xmux.containsKey('max_connections'),
@@ -465,9 +465,9 @@ void main() {
     });
 
     test('порядок ключей — входящий: гард не переставляет валидное тело', () {
-      // `order` реестра нормирует ЭМИТТЕР (24.1.1); гард §460 — второй эшелон
-      // над уже собранным телом, и перестановка ключей меняла бы конфиг
-      // (эталоны rich_v0/avd_v0). Схемный порядок приедет с W2.
+
+
+
       final src = {
         'flow': 'xtls-rprx-vision',
         'uuid': '11111111-1111-1111-1111-111111111111',
@@ -496,7 +496,7 @@ void main() {
 
     test('дефолты не материализуются (PARSING_PRINCIPLES §2.4)', () {
       final r = _san(_vless());
-      // packet_encoding, flow, network в теле не заданы — и не появляются.
+
       expect(r.body!.containsKey('packet_encoding'), isFalse);
       expect(r.body!.containsKey('flow'), isFalse);
       expect(r.body!.containsKey('network'), isFalse);
@@ -510,8 +510,8 @@ void main() {
     });
 
     test('реестр не загружен — тело возвращается как есть', () {
-      // Эмулируем отсутствие схемы чужим типом: путь тот же, что у
-      // незагруженного реестра.
+
+
       final body = {'type': 'shadowtls', 'tag': 't', 'whatever': 1};
       final r = _san(body, scheme: 'shadowtls');
       expect(r.body, same(body));
@@ -523,9 +523,9 @@ void main() {
         'type': 'wireguard',
         'tag': 'wg1',
         'address': ['10.0.0.2/32'],
-        // §464 — ключи ровно 32 байта после декода (format base64_32):
-        // прежние 34/35-байтовые ядро отвергало фаталом на весь конфиг, и
-        // санитайзер теперь снимает узел целиком, не дойдя до junk_key.
+
+
+
         'private_key': 'cHJpdmF0ZUtleUJhc2U2NEV4YW1wbGVWYWx1ZTEyMzQ=',
         'peers': [
           {
@@ -556,14 +556,14 @@ void main() {
     });
   });
 
-  // §464 — выражения реестра, приехавшие с W2d лаунчера. По кейсу на
-  // выражение: реестр нормативен для обеих сторон, и «санитайзер молча не
-  // знает правила» неотличимо от «правила нет».
-  // §470 — форма `value` нормативна для ВСЕХ реализаций (PARSING_PRINCIPLES §6, лаунчер
-  // `8068f7a0`): корпус сверяет её побайтно, и своего смысла у неё нет —
-  // это Go-печать `%v`, которую не-Go сторона воспроизводит сама. Кейс на
-  // каждое правило текста канона: скаляр, объект, массив, вложенность,
-  // обрезка по рунам, `secret`.
+
+
+
+
+
+
+
+
   group('renderWarningValue — PARSING_PRINCIPLES §6', () {
     test('скаляр — как есть, без кавычек', () {
       expect(RegistrySanitizer.renderWarningValue(true), 'true');
@@ -596,7 +596,7 @@ void main() {
     });
 
     test('обрезка — 64 РУНЫ и многоточие U+2026', () {
-      // Ровно 64 руны не трогаются; 65-я даёт хвост `…`.
+
       final exact = 'a' * 64;
       expect(RegistrySanitizer.renderWarningValue(exact), exact);
       final long = 'a' * 65;
@@ -604,8 +604,8 @@ void main() {
     });
 
     test('обрезка считает РУНЫ, а не кодовые единицы UTF-16', () {
-      // Эмодзи вне BMP = две кодовые единицы на руну: по байтам строка из 64
-      // эмодзи давно перевалила бы лимит, по рунам — ровно на границе.
+
+
       final runes64 = '🙂' * 64;
       expect(RegistrySanitizer.renderWarningValue(runes64), runes64);
       expect(RegistrySanitizer.renderWarningValue('🙂' * 65), '$runes64…');
@@ -621,8 +621,8 @@ void main() {
 
   group('RegistrySanitizer — выражения W2d (§464)', () {
     test('format base64_32: ключ не 32 байта после декода — REALITY снят', () {
-      // `enabled` — валидный base64 на 5 байт: прежний format base64 его
-      // пропускал, и ядро отвечало «invalid public_key» на ВЕСЬ конфиг.
+
+
       final r = _san(_vless({
         'tls': {
           'enabled': true,
@@ -631,17 +631,17 @@ void main() {
       }));
       expect(_byCode(r, 'reality_pbk_invalid').path, 'tls.reality.public_key');
       expect(_byCode(r, 'reality_pbk_invalid').value, 'enabled');
-      // §472 шаг 5 — снимается ВЕСЬ блок, а не одно поле: `public_key` у
-      // REALITY `required`, и реестр пишет исход прямо (`tls.json` →
-      // `reality.public_key`, impl): «мусорный pbk снимает блок целиком и
-      // узел деградирует до plain TLS». Прежде оставался блок без ключа —
-      // форма, которую ядро не принимает.
+
+
+
+
+
       expect(r.body, isNotNull, reason: 'узел жив, деградировал до plain TLS');
       expect((r.body!['tls'] as Map).containsKey('reality'), isFalse);
     });
 
     test('format base64_32: ровно 32 байта проходят в любом написании', () {
-      // Одни и те же 32 байта: base64url без паддинга и base64 std с ним.
+
       for (final key in const [
         'AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw',
         'cHVibGljS2V5QmFzZTY0RXhhbXBsZVZhbHVlMTIzNDU=',
@@ -659,12 +659,12 @@ void main() {
 
     test('format base64_32: НЕКАНОНИЧЕСКАЯ последняя группа — годный ключ',
         () {
-      // D-030 — `…ccC=` и `…ccA=` декодируют в ОДНИ И ТЕ ЖЕ 32 байта: в
-      // последней группе значащих бит 6, остальные не используются, и ядро
-      // (Go `encoding/base64`) такую форму принимает. Строгий `dart:convert`
-      // бросает на ней `FormatException`, и санитайзер, судивший им, ронял
-      // ЗАКОННЫЙ ключ — корпус `uri_psk_keepalive` (ключи в query) переставал
-      // разбираться целиком.
+
+
+
+
+
+
       final r = _san(_vless({
         'tls': {
           'enabled': true,
@@ -675,14 +675,14 @@ void main() {
         }
       }));
       expect(_codes(r), isNot(contains('reality_pbk_invalid')));
-      // Контракт 1.1.40 — у `public_key` REALITY объявлен ещё и
-      // `normalize: base64_rawurl`, поэтому годный ключ приводится к форме
-      // ЯДРА: url-safe алфавит без паддинга. Ядро декодирует этот ключ только
-      // `RawURLEncoding`, и std-написание роняет ВЕСЬ конфиг.
-      //
-      // Проверяется ровно то, ради чего кейс заведён: ленивый декодер СУДИТ
-      // неканоническую последнюю группу так же, как ядро, — а нормализация,
-      // признав ключ годным, записывает его канон.
+
+
+
+
+
+
+
+
       expect(
         ((r.body?['tls'] as Map?)?['reality'] as Map?)?['public_key'],
         'ccccccccccccccccccccccccccccccccccccccccccA',
@@ -690,10 +690,10 @@ void main() {
     });
 
     test('int_array: границы min/max относятся к ЭЛЕМЕНТУ', () {
-      // `peers[].reserved` — три БАЙТА (`min: 0, max: 255, len: 3`). Прежде
-      // ветка списка проверяла только длину и возвращалась, границы не
-      // смотрел никто: `reserved=1,2,999` уезжал в ядро целым числом,
-      // которое в байт не влезает.
+
+
+
+
       Map<String, dynamic> wg(List<Object> reserved) => {
             'type': 'wireguard',
             'tag': 'wg',
@@ -718,7 +718,7 @@ void main() {
         reason: 'элемент вне 0..255 — поле снято целиком',
       );
 
-      // Контраст: те же три элемента внутри границ проходят нетронутыми.
+
       final ok = _san(wg([1, 2, 3]), scheme: 'wireguard');
       expect(_codes(ok), isNot(contains('type_invalid')));
       expect(((ok.body?['peers'] as List).first as Map)['reserved'],
@@ -726,9 +726,9 @@ void main() {
     });
 
     test('normalize base64_std: неканоническая форма приводится к канону', () {
-      // Та же пара байт, но у поля объявлен `normalize: base64_std` — здесь
-      // канон ОБЯЗАН встать, иначе одна нода даёт два identity-хеша (D-030).
-      // Канон и суд читают значение одним ленивым декодером.
+
+
+
       final r = _san({
         'type': 'wireguard',
         'tag': 'wg',
@@ -762,9 +762,9 @@ void main() {
         }
       }));
       final reality = (r.body!['tls'] as Map)['reality'] as Map;
-      // Не-hex руны сняты, регистр опущен: `0x1a2` → `01a2`.
+
       expect(reality['short_id'], '01a2');
-      // Код — на ИСХОДНОМ значении: человеку нужно видеть, что он написал.
+
       final w = _byCode(r, 'reality_short_id_invalid');
       expect(w.path, 'tls.reality.short_id');
       expect(w.value, '0x1a2');
@@ -799,12 +799,12 @@ void main() {
       final w = _byCode(withReality, 'reality_fp_not_chrome');
       expect(w.path, 'tls.utls.fingerprint');
       expect(w.value, 'qq');
-      // Поле НЕ меняется: выбор автора ссылки уезжает в конфиг как есть.
+
       expect(
           ((withReality.body!['tls'] as Map)['utls'] as Map)['fingerprint'],
           'qq');
 
-      // `when` не выполнен — REALITY на узле нет, и код про него бессмыслен.
+
       final plain = _san(_vless({'tls': tls(reality: false)}));
       expect(_codes(plain), isNot(contains('reality_fp_not_chrome')));
     });
@@ -843,7 +843,7 @@ void main() {
       expect(_byCode(r, 'field_requires').path, 'obfs.min_packet_size');
       final obfs = r.body!['obfs'] as Map;
       expect(obfs.containsKey('min_packet_size'), isFalse);
-      // Сама обфускация цела — снято только поле не своего типа.
+
       expect(obfs['type'], 'salamander');
     });
 
@@ -862,8 +862,8 @@ void main() {
     });
 
     test('default_when: полоса hysteria v1 материализуется без кода', () {
-      // Без up_mbps ядро отвечает «missing upload speed» и не поднимает
-      // outbound — фатал на ВЕСЬ конфиг, а ссылки v1 полосу не несут.
+
+
       final r = _san({
         'type': 'hysteria',
         'tag': 'h1',
@@ -910,8 +910,8 @@ void main() {
       expect(awg.body!['mtu'], 1280);
       expect(_codes(awg), isEmpty, reason: 'дефолт — не замена, кода нет');
 
-      // Обычному WireGuard поля не достаётся: ядро берёт свой 1408, и наш
-      // дефолт спорил бы с ним и ломал identity-хеш (PARSING_PRINCIPLES §2.4).
+
+
       final plain = _san(wg(), scheme: 'wireguard');
       expect(plain.body!.containsKey('mtu'), isFalse);
       expect(_codes(plain), isEmpty);
@@ -935,8 +935,8 @@ void main() {
             ],
           };
 
-      // Вход не из `except_sources` — замена с warning-кодом на ИСХОДНОМ
-      // значении.
+
+
       final clamped = RegistrySanitizer.sanitize(body(1420),
           scheme: 'wireguard', coreVersion: _core);
       expect(clamped.body!['mtu'], 1280);
@@ -944,7 +944,7 @@ void main() {
       expect(clamped.warnings.single.path, 'mtu');
       expect(clamped.warnings.single.value, '1420');
 
-      // Вход `singbox` — значение цело, код info.
+
       final kept = RegistrySanitizer.sanitize(body(1420),
           scheme: 'wireguard',
           coreVersion: _core,
@@ -953,7 +953,7 @@ void main() {
       expect(kept.warnings.single.code, 'awg_mtu_high');
       expect(kept.warnings.single.value, '1420');
 
-      // Обычный WireGuard — правила нет ни на каком входе.
+
       for (final src in BodySource.values) {
         final plain = RegistrySanitizer.sanitize(body(1420, awg: false),
             scheme: 'wireguard', coreVersion: _core, source: src);
@@ -961,7 +961,7 @@ void main() {
         expect(plain.warnings, isEmpty, reason: '$src');
       }
 
-      // Значение НИЖЕ потолка правило не трогает: потолок, а не дефолт.
+
       final low = RegistrySanitizer.sanitize(body(1200),
           scheme: 'wireguard', coreVersion: _core);
       expect(low.body!['mtu'], 1200);
@@ -986,13 +986,13 @@ void main() {
         };
 
     test('§473 any_set судит НАЛИЧИЕ ключа, а не заданность значения', () {
-      // Пара к §467: `conflicts`/`requires` судят значение, и `jc: 0` для них
-      // «не задано». Здесь ровно наоборот — `jc: 0` значит «мусорные пакеты
-      // выключены» у настоящего AmneziaWG, и потолок обязан остаться.
-      // Смешай предикаты — туннель молча перестал бы нести данные.
-      //
-      // §552 — пустая строка из списка ушла: с контракта 1.1.56 она не
-      // выполняет `any_set` (норма 3 §547), см. тест ниже.
+
+
+
+
+
+
+
       for (final marker in const [0, false, <String>[]]) {
         final r = RegistrySanitizer.sanitize(awgBody(marker),
             scheme: 'wireguard', coreVersion: _core);
@@ -1004,9 +1004,9 @@ void main() {
 
     test('§552 any_set: пустая строка — не наличие ключа (контракт 1.1.56)',
         () {
-      // Норма 3 §547: пустая строка не выполняет `any_set`, для ядра это
-      // отсутствие ключа; число 0 — значение (тест выше). `jc: ""` снимается
-      // молча, узел остаётся обычным WireGuard, потолка AWG нет.
+
+
+
       final r = RegistrySanitizer.sanitize(awgBody(''),
           scheme: 'wireguard', coreVersion: _core);
       expect(r.body!['mtu'], 1420);
@@ -1015,9 +1015,9 @@ void main() {
     });
 
     test('grpc service_name: нормализации нет — значение как есть', () {
-      // §468 (контракт 1.1.3): правило `normalize: grpc_service_name` снято
-      // целиком. Ведущий «/» разбирает ядро v1.14.1-lx.8 само, и любая
-      // правка значения на нашей стороне сломала бы готовый путь.
+
+
+
       for (final v in const [
         'abcde',
         '/abcde',
@@ -1041,9 +1041,9 @@ void main() {
         'tag': 'wg1',
         'address': ['10.0.0.2/32'],
         'private_key': 'cHJpdmF0ZUtleUJhc2U2NEV4YW1wbGVWYWx1ZTEyMzQ=',
-        // §481 — значения НЕ пересекаются намеренно: пересечение h1..h4 теперь
-        // роняет узел связью `ranges_disjoint` (свой кейс ниже), и старая пара
-        // «5-10» + 7 проверяла бы уже не форму awg_range.
+
+
+
         'h1': '5-10',
         'h2': 20,
         'h3': 'junk',
@@ -1056,22 +1056,22 @@ void main() {
           }
         ],
       }, scheme: 'wireguard', core: '1.14.0-lx.40');
-      // Форма прибытия законна ОБЕ и не подменяется: `"5-10"` осталось
-      // строкой, `7` — числом.
+
+
       expect(r.body!['h1'], '5-10');
       expect(r.body!['h2'], 20);
       expect(r.body!.containsKey('h3'), isFalse);
-      // §481 (контракт 1.1.11): у h1..h4 появился свой `on_invalid` —
-      // негодное значение снимает поле с awg_header_invalid, а не с общим
-      // type_invalid.
+
+
+
       expect(_byCode(r, 'awg_header_invalid').path, 'h3');
     });
 
-    // ───── §481 (контракт 1.1.11) — четыре новых атрибута ─────
-    //
-    // Все четыре завёл один заход лаунчера, и все четыре — ОБЩИЕ выражения
-    // движка: `if scheme == 'wireguard'` нигде не появляется, схема лишь
-    // объявляет их у своих полей.
+
+
+
+
+
 
     Map<String, dynamic> wgBody([Map<String, dynamic> extra = const {}]) => {
           'type': 'wireguard',
@@ -1097,7 +1097,7 @@ void main() {
       expect(r.body!['h1'], '10-40',
           reason: 'порядок границ смысла не несёт — ядро выбирает значение ИЗ '
               'диапазона, и [10,40] = [40,10]');
-      // Кода нет: это перевод НАПИСАНИЯ, как trim, а не замена значения.
+
       expect(_codes(r), isEmpty);
     });
 
@@ -1129,19 +1129,19 @@ void main() {
     });
 
     test('ranges_disjoint: незаданный заголовок участвует ДЕФОЛТОМ ядра', () {
-      // h2 не задан, ядро читает его как 2 — и h1=2 с ним пересекается.
+
       final r = sanWg({'h1': 2});
       expect(r.body, isNull);
       expect(_codes(r), contains('awg_headers_overlap'));
-      // А непересекающийся с дефолтами набор живёт.
+
       expect(sanWg({'h1': 100}).body, isNotNull);
     });
 
     test('ranges_disjoint читает ЧИСТУЮ карту: снятое поле не «пересекается»',
         () {
-      // Ловушка, на которую наступил лаунчер: загляни связь в ИСХОДНОЕ тело,
-      // снятый за негодное значение h1 продолжал бы спорить с соседями, и
-      // вина уехала бы не на того.
+
+
+
       final r = sanWg({'h1': '1-4294967296', 'h2': 2});
       expect(r.body, isNotNull);
       expect(_codes(r), isNot(contains('awg_headers_overlap')));
@@ -1179,7 +1179,7 @@ void main() {
     });
 
     test('pattern у header_protection_key: все нули роняют УЗЕЛ', () {
-      // 32 нулевых байта и есть строка из одних `A` с паддингом.
+
       final r = sanWg({
         'header_protection_key': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
         's1': 20,
@@ -1201,7 +1201,7 @@ void main() {
       expect(short.explicitDropNode, isTrue);
       final w = _byCode(short, 'wg_key_invalid');
       expect(w.path, 'private_key');
-      // `secret: true` — значение в предупреждении маскируется.
+
       expect(w.value, '***');
     });
 
@@ -1215,7 +1215,7 @@ void main() {
       expect(_codes(r), contains('wg_key_invalid'));
     });
 
-    // ───── §481 (контракт 1.1.12, PARSING_PRINCIPLES §6.1) — `absent_when` ─────
+
 
     test('absent_when: tls{enabled:false} снимается ЦЕЛИКОМ и ТИХО', () {
       final r = _san(_vless({
@@ -1224,7 +1224,7 @@ void main() {
       expect(r.body!.containsKey('tls'), isFalse,
           reason: 'у ядра это «TLS не задан», а не «TLS с выключенным флагом»: '
               'явный disabled-блок ронял ядра lx.5..lx.18 в SIGSEGV');
-      // Кода нет: запись «настройки нет» — не деградация.
+
       expect(_codes(r), isEmpty);
     });
 
@@ -1281,7 +1281,7 @@ void main() {
       expect(r.body, isNotNull);
       expect((r.body!['peers'] as List).first['allowed_ips'],
           ['0.0.0.0/0', '::/0']);
-      // Кода нет — это дефолт-конвенция, а не замена значения.
+
       expect(_codes(r), isEmpty);
     });
 
@@ -1311,8 +1311,8 @@ void main() {
     });
 
     test('неизвестное выражение реестра не роняет и не портит значение', () {
-      // Контракт может уехать вперёд кода: выражение, которого санитайзер не
-      // знает, обязано остаться незамеченным, а не съесть поле.
+
+
       final r = _san(_vless({'transport': {'type': 'ws', 'path': '/x'}}));
       expect((r.body!['transport'] as Map)['path'], '/x');
     });
@@ -1325,15 +1325,15 @@ void main() {
       expect(coreAtLeast('1.14.1-lx.10', '1.14.1-lx.9'), isTrue,
           reason: 'строкой lx.10 < lx.9 — сравнение обязано быть числовым');
       expect(coreAtLeast('1.14.0-lx.32', '1.14.1-lx.4'), isFalse);
-      // Суффикса lx нет = 0: upstream старше любого форкового пина.
+
       expect(coreAtLeast('1.14.1', '1.14.1-lx.1'), isFalse);
       expect(coreAtLeast('1.14.2', '1.14.1-lx.1'), isTrue);
-      // Версия неизвестна — гейт не применяем.
+
       expect(coreAtLeast('', '1.14.1-lx.4'), isTrue);
     });
   });
 
-  // §556 (контракт 1.1.57) — `on_invalid: unwrap`, общий обход атрибута.
+
   group('on_invalid unwrap', () {
     Map<String, dynamic> hy(Object obfs) => {
           'type': 'hysteria',
@@ -1369,7 +1369,7 @@ void main() {
     });
   });
 
-  // §574 (контракт 1.1.84, §81).
+
   group('RegistrySanitizer — фрагментация TLS: detour и системный движок', () {
     test('fragment + record_fragment при engine apple — сняты, движок остаётся',
         () {

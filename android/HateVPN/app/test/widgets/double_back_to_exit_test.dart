@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/widgets/double_back_to_exit.dart';
 
-/// Задача 583 — выход с главного экрана по двойному нажатию «назад».
+
 void main() {
   late int exits;
 
@@ -63,7 +63,7 @@ void main() {
     await pump(tester);
     await back(tester);
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
-    // Окно истекло, сообщение ушло.
+
     await tester.pump(const Duration(milliseconds: 2100));
     await tester.pumpAndSettle();
     expect(find.text(message), findsNothing);
@@ -83,7 +83,7 @@ void main() {
     expect(scaffoldKey.currentState!.isDrawerOpen, isFalse);
     expect(find.text(message), findsNothing);
     expect(exits, 0);
-    // Меню закрыто — правило снова действует.
+
     await back(tester);
     expect(find.text(message), findsOneWidget);
     expect(exits, 0);

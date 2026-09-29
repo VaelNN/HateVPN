@@ -9,11 +9,11 @@ import '../../parser/engine_test_setup.dart';
 import 'package:lxbox/models/node_spec.dart';
 import '../../parser/parse_link_as.dart';
 
-/// §284 — сборка URI-узла кандидата из WARP-аккаунта (переиспользование кредов
-/// одной регистрации на любом IP:port).
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   WarpAccount warp() => const WarpAccount(
@@ -52,8 +52,8 @@ void main() {
   });
 
   test('§305 MASQUE h3 И h2 → IP:port кандидата (форсинг h3→server снят)', () {
-    // Боевой тест (пинг через рабочий туннель) опроверг привязку h3 к серверу
-    // реги: h3 живёт на чужих IP блока. Оба транспорта берут endpoint кандидата.
+
+
     final b = ScanNodeBuilder(masque: masque());
 
     final h3 = b.uriFor(
@@ -86,7 +86,7 @@ void main() {
           awgParams: const AwgParams(ip: 'quic', jc: 4, jmin: 40, jmax: 70),
         );
 
-    /// URI узла → эмит sing-box (то, что реально уйдёт в ядро).
+
     Map<String, dynamic> emitOf(String uri) =>
         parseLinkAs<WireguardSpec>(uri)!.emit(TemplateVars.empty).map;
 

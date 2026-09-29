@@ -1,29 +1,29 @@
-/// Резолв ссылок на узлы в финальные теги конфига (D-112, NODE_LINK §5).
-///
-/// Порт `core/config/nodelink_resolve.go` лаунчера на модели LxBox. Резолв
-/// один на все носители (detour источника и члена, позиции цепочек) и идёт
-/// ВТОРЫМ проходом: словарь целей заполняет `ServerListBuild.build`, когда
-/// узел получил финальный тег, а разрешение начинается после того, как
-/// собраны все источники, — цель вправе стоять в списке ниже ссылающегося.
-///
-/// Словарь:
-/// - `byFolder[id][сырой тег]` — узлы папок И подписок (NODE_LINK §2.2);
-/// - корневые узлы — финальные теги узлов одиночных серверов;
-/// - корневые имена — Направления и их `-auto`, служебные outbound'ы шаблона,
-///   цепочки, объявленные выше.
-///
-/// Fail-closed (§5.1, §5.2): не разрешившаяся ссылка никогда не превращается
-/// в прямое соединение. Носитель detour выпадает из конфига с предупреждением
-/// (каскадом — и те, кто ходил через него; кольцо — все участники), цепочка —
-/// целиком (`chain_nodes.dart`).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../models/node_link.dart';
 import '../../models/node_spec.dart';
 import '../../models/singbox_entry.dart';
 
-/// Исход разрешения одной ссылки: финальный тег или причина отказа (тексты
-/// лаунчера, `core/config/emission_warning.go`).
+
+
 final class NodeLinkResolution {
   const NodeLinkResolution.ok(String this.tag) : reason = '';
   const NodeLinkResolution.fail(this.reason) : tag = null;
@@ -34,16 +34,16 @@ final class NodeLinkResolution {
   bool get ok => tag != null;
 }
 
-/// Цели ссылок одной сборки (или превью экрана — `node_link_pool.dart`).
+
 class NodeLinkTargets {
   final _byFolder = <String, Map<String, String>>{};
 
-  /// S3: контейнер → финальная форма тега группы (префикс + сырой тег) →
-  /// финальные теги групп с этой формой.
+
+
   final _groupForms = <String, Map<String, List<String>>>{};
 
-  /// `id` контейнера → имя для текста предупреждения. Контейнеры сборки,
-  /// включая выключенные: их ссылка — «нет узла», а не «источник удалён».
+
+
   final _containers = <String, String>{};
 
   final _rootNodes = <String>{};
@@ -51,12 +51,12 @@ class NodeLinkTargets {
   final _dropped = <String>{};
   final _linkByFinal = <String, NodeLink>{};
 
-  /// Контейнер [id] участвует в сборке (папка или подписка).
+
   void noteContainer(String id, String name) => _containers[id] = name;
 
-  /// Узел контейнера [containerId] с сырым тегом [rawTag] эмитирован под
-  /// [finalTag]. Первый сырой тег побеждает (тёзки уникализирует
-  /// `containerRawTags`).
+
+
+
   void noteMember(String containerId, String rawTag, String finalTag) {
     if (rawTag.isEmpty || finalTag.isEmpty) return;
     final byRaw = _byFolder.putIfAbsent(containerId, () => {});
@@ -66,8 +66,8 @@ class NodeLinkTargets {
         finalTag, () => NodeLink(folderId: containerId, tag: rawTag));
   }
 
-  /// Группа контейнера: адресуется сырым тегом, а для S3 запоминается её
-  /// финальная форма [finalForm].
+
+
   void noteGroup(
     String containerId,
     String rawTag,
@@ -80,43 +80,43 @@ class NodeLinkTargets {
         .add(finalTag);
   }
 
-  /// Узел одиночного сервера эмитирован под [finalTag].
+
   void noteRootNode(String finalTag) {
     if (finalTag.isEmpty) return;
     _rootNodes.add(finalTag);
     _linkByFinal.putIfAbsent(finalTag, () => NodeLink(tag: finalTag));
   }
 
-  /// Корневые имена: Направления, служебные outbound'ы, цепочки.
+
   void addRootNames(Iterable<String> tags) {
     for (final t in tags) {
       if (t.isNotEmpty) _rootNames.add(t);
     }
   }
 
-  /// Узлы, выпавшие из конфига на этой сборке: ссылка на них больше не
-  /// разрешается.
+
+
   void markDropped(Iterable<String> finalTags) => _dropped.addAll(finalTags);
 
-  /// Имя контейнера для текста; неизвестный — его `id`.
+
   String containerName(String id) {
     final name = _containers[id] ?? '';
     return name.isNotEmpty ? name : id;
   }
 
-  /// Ссылка на эмитированный узел под финальным тегом [finalTag]; для
-  /// корневого имени и неизвестного тега — корневая ссылка.
+
+
   NodeLink linkOfFinal(String finalTag) =>
       _linkByFinal[finalTag] ?? NodeLink(tag: finalTag);
 
-  /// Финальный тег узла по ссылке без проверки корневых имён; `null` — не
-  /// эмитирован.
+
+
   String? finalOf(NodeLink link) {
     if (link.isRoot) return _rootNodes.contains(link.tag) ? link.tag : null;
     return _byFolder[link.folderId]?[link.tag];
   }
 
-  /// NODE_LINK §5.1 — ссылка → финальный тег.
+
   NodeLinkResolution resolve(NodeLink link) {
     if (link.tag.trim().isEmpty) {
       return const NodeLinkResolution.fail('the reference is empty');
@@ -127,8 +127,8 @@ class NodeLinkTargets {
       }
       var tag = _byFolder[link.folderId]?[link.tag];
       if (tag == null) {
-        // S3 — пара с финальным тегом группы вместо сырого: только при
-        // единственном кандидате.
+
+
         final forms = _groupForms[link.folderId]?[link.tag];
         if (forms != null && forms.length == 1) tag = forms.single;
       }
@@ -152,13 +152,13 @@ class NodeLinkTargets {
         'Directions and folder replacements');
   }
 
-  /// Ссылка для текста предупреждения: `"tag"` или `"tag" in "источник"`.
+
   String describe(NodeLink link) => link.isRoot
       ? '"${link.tag}"'
       : '"${link.tag}" in "${containerName(link.folderId)}"';
 }
 
-/// detour-ссылка узла, отложенная до второго прохода.
+
 final class DeferredDetour {
   const DeferredDetour({
     required this.holder,
@@ -168,22 +168,22 @@ final class DeferredDetour {
     required this.node,
   });
 
-  /// Entry, чей `detour` получит финальный тег: сам узел или последнее звено
-  /// его родной цепочки (APPEND, §073).
+
+
   final SingboxEntry holder;
 
   final NodeLink link;
 
-  /// Узел-носитель ссылки: его финальный тег называет предупреждение.
+
   final SingboxEntry carrier;
 
-  /// Все entries узла (сам узел и звенья родной цепочки): выпадают вместе.
+
   final List<SingboxEntry> entries;
 
   final NodeSpec node;
 }
 
-/// Итог второго прохода detour-ссылок.
+
 final class DeferredDetourReport {
   const DeferredDetourReport({
     required this.droppedEntries,
@@ -191,24 +191,24 @@ final class DeferredDetourReport {
     required this.warnings,
   });
 
-  /// Entries выпавших носителей — сборка убирает их из конфига.
+
   final Set<SingboxEntry> droppedEntries;
 
   final Set<NodeSpec> droppedNodes;
 
-  /// EN-строки для `emitWarnings`, одна на выпавший узел.
+
   final List<String> warnings;
 }
 
-/// Второй проход detour-ссылок: финальный тег в `detour` держателя или
-/// выпадение носителя (NODE_LINK §5.1, строгость ребра «detour узла»):
-///
-/// 1. ссылка не разрешилась или указывает на сам узел — носитель выпадает;
-/// 2. кольцо detour-ссылок — выпадают все участники;
-/// 3. каскад до неподвижной точки: носитель, чья цель выпала, выпадает сам.
-///
-/// Выпавшие теги помечаются в [targets]: позиции цепочек на них не
-/// разрешатся.
+
+
+
+
+
+
+
+
+
 DeferredDetourReport resolveDeferredDetours(
   List<DeferredDetour> pending,
   NodeLinkTargets targets,
@@ -219,7 +219,7 @@ DeferredDetourReport resolveDeferredDetours(
   }
   final target = <DeferredDetour, String>{};
   final reason = <DeferredDetour, String>{};
-  // Финальный тег entry → носитель, которому entry принадлежит.
+
   final ownerOf = <String, DeferredDetour>{};
   for (final p in pending) {
     for (final e in p.entries) {
@@ -238,7 +238,7 @@ DeferredDetourReport resolveDeferredDetours(
     }
   }
 
-  // Кольца: идём по цепочке носителей от каждого; вернулись в себя — кольцо.
+
   for (final p in pending) {
     if (reason.containsKey(p)) continue;
     final seen = <DeferredDetour>{p};
@@ -256,7 +256,7 @@ DeferredDetourReport resolveDeferredDetours(
     }
   }
 
-  // Каскад.
+
   final droppedTags = <String>{
     for (final p in reason.keys)
       for (final e in p.entries) e.tag,
@@ -277,8 +277,8 @@ DeferredDetourReport resolveDeferredDetours(
     }
   }
 
-  // §377 — одна строка на ссылку и причину, а не на узел: папка генератора
-  // на 138 узлов с одной висячей ссылкой дала бы 138 строк на каждую сборку.
+
+
   final carriersByCause = <(String, String), List<String>>{};
   final droppedEntries = Set<SingboxEntry>.identity();
   final droppedNodes = Set<NodeSpec>.identity();
@@ -305,8 +305,8 @@ DeferredDetourReport resolveDeferredDetours(
   );
 }
 
-/// Строка о носителях [carriers], выпавших из-за одной ссылки [link] с одной
-/// причиной [why]. Формат перечня — §377: первые пять имён, остаток счётчиком.
+
+
 String _unresolvedDetourLine(List<String> carriers, String link, String why) {
   const tail = 'is not emitted, so its traffic never goes direct.';
   if (carriers.length == 1) {

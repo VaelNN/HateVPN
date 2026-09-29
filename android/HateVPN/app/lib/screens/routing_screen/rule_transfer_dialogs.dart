@@ -6,11 +6,11 @@ import '../../services/format_utils.dart' show formatDateTime;
 import '../../services/l10n/locale_controller.dart';
 import '../../services/rule_transfer.dart';
 
-/// §396 — диалоги экспорта/импорта правил. Чистая презентация (стиль
-/// `routing_screen_menus.dart` / `import_preview_dialog.dart` бэкапа):
-/// показывают диалог и возвращают выбор, state-мутации остаются в экране.
 
-/// Итог экспорт-флоу: выбранные правила + DNS-сущности второго экрана.
+
+
+
+
 class RuleExportSelection {
   const RuleExportSelection({
     required this.rules,
@@ -23,16 +23,16 @@ class RuleExportSelection {
   final List<DnsRuleRef> dnsRules;
 }
 
-/// Экран выбора правил на экспорт (шаг 1) → экран DNS (шаг 2, §4.2 п.2
-/// спеки §396). [displayNames] позиционно выровнен с [rules] (live-label'ы
-/// пресетов — `ruleDisplayNames` §279). Полноэкранный (решение владельца:
-/// попап для списка правил тесен), по умолчанию НИЧЕГО не выбрано, над
-/// списком тумблер Select all / Deselect all.
-///
-/// [dnsServers] — DNS-серверы без preset-refs; [dnsRules] — только
-/// inline/srs (фильтрует вызывающий).
-/// [templateServerTags] — для предотметки на шаге 2 (referenced-теги,
-/// которых нет в шаблоне). Возвращает составной выбор или null (отмена).
+
+
+
+
+
+
+
+
+
+
 Future<RuleExportSelection?> showRuleExportPicker(
   BuildContext context, {
   required List<CustomRule> rules,
@@ -75,8 +75,8 @@ class _RuleExportScreen extends StatefulWidget {
 }
 
 class _RuleExportScreenState extends State<_RuleExportScreen> {
-  // Решение владельца: стартуем с пустого выбора — экспорт осознанный,
-  // «отдать всё» это один тап по Select all.
+
+
   final _selected = <String>{};
 
   bool get _allSelected =>
@@ -97,15 +97,15 @@ class _RuleExportScreenState extends State<_RuleExportScreen> {
       for (final r in widget.rules)
         if (_selected.contains(r.id)) r
     ];
-    // Нечего показывать на шаге 2 → сразу отдаём выбор правил. §398 — если
-    // и правил не выбрано, экспортировать нечего: остаёмся на месте.
+
+
     if (widget.dnsServers.isEmpty && widget.dnsRules.isEmpty) {
       if (picked.isEmpty) return;
       Navigator.pop(context, RuleExportSelection(rules: picked));
       return;
     }
-    // Предотметка: серверы, на которые ссылаются выбранные правила и
-    // которых нет в шаблоне получателя (шаблонные у него есть всегда).
+
+
     final referenced = referencedDnsServerTags(picked)
         .difference(widget.templateServerTags);
     final dns = await Navigator.of(context).push<(List<int>, List<int>)>(
@@ -118,7 +118,7 @@ class _RuleExportScreenState extends State<_RuleExportScreen> {
         ),
       ),
     );
-    if (dns == null || !mounted) return; // back — остаёмся на шаге 1
+    if (dns == null || !mounted) return;
     final (serverIdx, ruleIdx) = dns;
     Navigator.pop(
       context,
@@ -156,8 +156,8 @@ class _RuleExportScreenState extends State<_RuleExportScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
-                    // §398 — пресеты в обмене не участвуют; если своих правил
-                    // нет, экспортировать можно только DNS (шаг 2).
+
+
                     getLocalText.s(
                         "No rules to export — presets stay with the app. You can still bundle DNS on the next step."),
                     textAlign: TextAlign.center,
@@ -203,8 +203,8 @@ class _RuleExportScreenState extends State<_RuleExportScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: FilledButton(
-            // §398 — DNS-only экспорт: идти дальше можно и без выбранных
-            // правил, решение о содержимом файла принимается на шаге 2.
+
+
             onPressed: _next,
             child: Text(getLocalText.s("Continue")),
           ),
@@ -214,8 +214,8 @@ class _RuleExportScreenState extends State<_RuleExportScreen> {
   }
 }
 
-/// Шаг 2 экспорта — DNS-сущности в файл. Возвращает (индексы серверов,
-/// индексы правил) или null (back — вернуться к выбору правил).
+
+
 class _DnsExportScreen extends StatefulWidget {
   const _DnsExportScreen({
     required this.servers,
@@ -228,8 +228,8 @@ class _DnsExportScreen extends StatefulWidget {
   final List<DnsRuleRef> rules;
   final Set<String> preselectedServerTags;
 
-  /// §398 — выбраны ли правила на шаге 1. false + пустой DNS-выбор → кнопка
-  /// экспорта серая: пустой файл создавать незачем.
+
+
   final bool hasRules;
 
   @override
@@ -329,8 +329,8 @@ class _DnsExportScreenState extends State<_DnsExportScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: FilledButton(
-            // §398 — экспортировать нечего (ни правил на шаге 1, ни DNS
-            // здесь) → кнопка серая, пустой файл не создаём.
+
+
             onPressed: (total == 0 && !widget.hasRules)
                 ? null
                 : () => Navigator.pop(context,
@@ -345,7 +345,7 @@ class _DnsExportScreenState extends State<_DnsExportScreen> {
   }
 }
 
-/// Итог превью импорта: выбранные правила + выбранные DNS-сущности.
+
 class RuleImportSelection {
   const RuleImportSelection({
     required this.rules,
@@ -358,9 +358,9 @@ class RuleImportSelection {
   final List<DnsRuleRef> dnsRules;
 }
 
-/// Превью импорта: шапка (когда/чем создан) + чекбокс на правило с итогом
-/// санации + DNS-секции файла (если есть). Неимпортируемые (§5.3/§5.3a
-/// спеки) — disabled с причиной. Возвращает выбор или null (отмена).
+
+
+
 Future<RuleImportSelection?> showRuleImportPreview(
   BuildContext context, {
   required List<SanitizedImportRule> items,
@@ -588,7 +588,7 @@ String _rejectText(ImportRuleRejectReason r) => switch (r) {
         getLocalText.s("Unsupported entry — skipped"),
       ImportRuleRejectReason.unknownPreset =>
         getLocalText.s("Unknown preset (newer app version?)"),
-      // §398 — пресеты вне обмена.
+
       ImportRuleRejectReason.presetNotTransferable =>
         getLocalText.s("Presets are not transferable — this app has its own"),
       ImportRuleRejectReason.nameExists =>

@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/memory_limit_setting.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §271 — memory_limit в §189 native_prefs: default, write-through (JSON +
-/// method direction), нормализация мусора, участие в backup-блоке vpn_settings.
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Directory tmp;
@@ -16,7 +16,7 @@ void main() {
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   final nativeCalls = <MethodCall>[];
-  // Эмуляция native prefs: setMemoryLimit пишет, getMemoryLimit читает.
+
   String nativeValue = MemoryLimitSetting.auto;
 
   setUp(() async {
@@ -77,14 +77,14 @@ void main() {
 
   test('write-through: JSON-истина + зеркало в native', () async {
     await SettingsStorage.setNativeMemoryLimit('512');
-    // JSON — источник истины.
+
     final data = await readFile();
     final section = data['native_prefs'] as Map<String, dynamic>;
     expect(section['memory_limit'], '512');
-    // Native получил тот же wire.
+
     final set = nativeCalls.where((c) => c.method == 'setMemoryLimit');
     expect(set.single.arguments, {'value': '512'});
-    // Чтение возвращает записанное.
+
     expect(await SettingsStorage.getNativeMemoryLimit(), '512');
   });
 
@@ -118,9 +118,9 @@ void main() {
       () async {
     await SettingsStorage.setNativeMemoryLimit('384');
     final n = await SettingsStorage.applyNativePrefsBackup(
-        {'auto_start': true}); // бэкап от версии до §271
+        {'auto_start': true});
     expect(n, 1);
-    // Прежнее значение не затёрто.
+
     expect(await SettingsStorage.getNativeMemoryLimit(), '384');
   });
 }

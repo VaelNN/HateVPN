@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Centered empty-state placeholder text used across the per-app trace
-/// sub-views (Live / Domains / IPs / Connections).
+
+
 class EmptyView extends StatelessWidget {
   const EmptyView({super.key, required this.text});
   final String text;

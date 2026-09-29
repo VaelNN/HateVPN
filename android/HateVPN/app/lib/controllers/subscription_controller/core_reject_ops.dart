@@ -1,14 +1,14 @@
-/// Фича 478 — применение и снятие вердикта ядра над записями источников.
-///
-/// Чистые функции над моделями: контроллер зовёт их и персистит результат.
-/// Так автомат страховки (`core_reject_guard.dart`) остаётся без знания о
-/// форме хранения, а хранение — без знания об автомате.
-///
-/// Снимают вердикт РОВНО два события (PARSING_PRINCIPLES §9.4):
-/// 1. тело узла изменилось — запись стирается И узел включается обратно;
-/// 2. человек включил узел обратно — запись стирается.
-///
-/// Смена версии ядра вердикты НЕ снимает (решение владельца).
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import 'dart:convert';
@@ -22,19 +22,19 @@ import '../../services/core_reject/core_reject_guard.dart';
 import '../../services/node_hash.dart';
 import '../../services/tag_resolver.dart';
 
-/// Каноническая форма тела узла для сравнения «то же тело / другое тело».
-///
-/// Сравнивается `emit()` с СОРТИРОВКОЙ ключей, а не тег-идентичность (она от
-/// тела не зависит) и не `nodeIdentityKey` (он не видит TLS и транспорт, а
-/// негодным бывает именно там). Сравнение семантическое: нормализация,
-/// прошедшая через модель, обе стороны меняет одинаково.
+
+
+
+
+
+
 String canonicalNodeBody(NodeSpec node) {
   try {
-    // emit() отдаёт одноразовую карту — её никто дальше не мутирует.
+
     return jsonEncode(_sortKeys(node.emit(const TemplateVars()).map));
   } catch (_) {
-    // Узел, который не эмитится, сравнивать нечем: пусть считается другим —
-    // лишняя проверка ядром дешевле починенного узла, оставшегося выключенным.
+
+
     return '';
   }
 }
@@ -48,10 +48,10 @@ Object? _sortKeys(Object? v) {
   return v;
 }
 
-/// Результат применения вердикта к источнику.
+
 typedef VerdictApply = ({ServerList list, bool changed});
 
-/// §503 — цель навигации из листа страховки.
+
 typedef CoreRejectNavigationTarget = ({
   int entryIndex,
   int? memberIndex,
@@ -60,22 +60,22 @@ typedef CoreRejectNavigationTarget = ({
   ServerList list,
 });
 
-/// §503 — источник и ключ узла для вердикта / [DisabledNode].
+
 CoreRejectNodeRef? nodeRefFor(ServerList list, NodeSpec node) {
   final key = nodeKeyFor(list, node);
   if (key == null) return null;
   return CoreRejectNodeRef(sourceId: list.id, nodeKey: key);
 }
 
-/// Ключ узла внутри источника: идентичность подписки, адрес члена папки,
-/// bare-тег ручного сервера.
-///
-/// Ключ обязан быть УНИКАЛЬНЫМ внутри источника — по нему лист страховки
-/// открывает узел (§503). У члена папки это сырой тег, уникализированный по
-/// источнику (`X`, `X-2`, [folderMemberKeys]) — тот же адрес, что у ссылки
-/// `{folder_id, tag}` (NODE_LINK §2.2). Голый тег (как было до ревью после
-/// v2.25.1, M3) у двух тёзок совпадал, и тап по второму открывал первого.
-/// У члена с уникальным именем ключ прежний — старые вердикты читаются.
+
+
+
+
+
+
+
+
+
 String? nodeKeyFor(ServerList list, NodeSpec node) {
   switch (list) {
     case SubscriptionServers():
@@ -93,7 +93,7 @@ String? nodeKeyFor(ServerList list, NodeSpec node) {
   }
 }
 
-/// Уникальные ключи членов папки (см. [nodeKeyFor]).
+
 Map<NodeSpec, String> folderMemberKeys(FolderServers list) => sourceNodeRawTags([
       for (final m in list.members)
         if (m.node != null) m.node!,
@@ -123,8 +123,8 @@ NodeSpec? _sourceNodeOf(NodeSpec node, ServerList list) {
   return null;
 }
 
-/// §503 — найти узел в хранилище по идентичности вердикта, не по карте
-/// текущей сборки. [entries] — `(index, id, list)` из контроллера.
+
+
 CoreRejectNavigationTarget? resolveCoreRejectNode(
   List<(int index, String id, ServerList list)> entries,
   DisabledNode disabled, {
@@ -145,13 +145,13 @@ CoreRejectNavigationTarget? resolveCoreRejectNode(
   return _resolveByTagAmongDisabled(entries, disabled.tag);
 }
 
-/// Ref из хранимого вердикта — для строки листа без своего ref.
-///
-/// Причина — текст ядра, и узла она НЕ называет: провайдер, выкативший
-/// негодное поле, выкатывает его на пачку узлов, и у всех причина одна.
-/// Поэтому ref берётся, только если причина ОДНОЗНАЧНА — ровно один узел с
-/// таким вердиктом. Иначе `null`, и узел ищется по тегу строки (ревью после
-/// v2.25.1, M3: первый совпавший по тексту вёл на чужой узел).
+
+
+
+
+
+
+
 CoreRejectNodeRef? _refFromStoredVerdict(
   List<(int index, String id, ServerList list)> entries,
   DisabledNode disabled,
@@ -202,8 +202,8 @@ CoreRejectNavigationTarget? _resolveByRef(
           }
         }
       case FolderServers():
-        // Уникальный ключ члена ([nodeKeyFor]); голый тег — запасной путь
-        // для ключей, записанных до ревью после v2.25.1 (M3).
+
+
         final keys = folderMemberKeys(list);
         for (final byKey in [true, false]) {
           for (var mi = 0; mi < list.members.length; mi++) {
@@ -361,9 +361,9 @@ CoreRejectNavigationTarget? _resolveByTagAmongDisabled(
   return null;
 }
 
-/// Выключить узел [node] источника [list] и записать рядом вердикт
-/// [reason]. `changed: false` — узла в источнике нет либо выключить его
-/// нечем (служебная запись): автоматики нет.
+
+
+
 VerdictApply applyVerdict(ServerList list, NodeSpec node, String reason) {
   final verdict =
       StoredWarning.coreRejected(reason, ref: nodeRefFor(list, node));
@@ -404,7 +404,7 @@ VerdictApply applyVerdict(ServerList list, NodeSpec node, String reason) {
   }
 }
 
-/// Снять вердикт с узла [node] и включить его обратно — зеркало [applyVerdict].
+
 VerdictApply revertVerdict(ServerList list, NodeSpec node) {
   switch (list) {
     case SubscriptionServers():
@@ -455,7 +455,7 @@ VerdictApply revertVerdict(ServerList list, NodeSpec node) {
   }
 }
 
-/// GC оверлея `warnings` вместе с `disabledHashes` (спека 478 §3b).
+
 Map<String, List<StoredWarning>> gcNodeWarnings(
   Map<String, List<StoredWarning>> warnings,
   Map<String, DateTime> disabled,
@@ -469,7 +469,7 @@ Map<String, List<StoredWarning>> gcNodeWarnings(
   };
 }
 
-/// Снять вердикт с узла подписки по его идентичности (ручное включение).
+
 SubscriptionServers clearSubscriptionVerdict(
     SubscriptionServers list, String identity) {
   final cur = list.nodeWarnings[identity];
@@ -484,15 +484,15 @@ SubscriptionServers clearSubscriptionVerdict(
   return list.copyWith(nodeWarnings: next);
 }
 
-/// PARSING_PRINCIPLES §9.4 п. 1 — тело узла изменилось: вердикт недействителен, запись
-/// стирается И узел включается обратно. Оживает ТОЛЬКО узел, выключенный
-/// страховкой; выключенный человеком сменой тела не включается.
-///
-/// [oldBodies] — канонические тела прошлого набора по идентичности;
-/// пустая карта значит «старого тела нет» → вердикт снимается (лучше лишняя
-/// проверка ядром, чем починенный узел, оставшийся выключенным).
-///
-/// Возвращает НОВЫЕ карты `disabled` и `warnings` для `copyWith`.
+
+
+
+
+
+
+
+
+
 ({Map<String, DateTime> disabled, Map<String, List<StoredWarning>> warnings})
     refreshSubscriptionVerdicts({
   required Map<String, DateTime> disabled,
@@ -512,13 +512,13 @@ SubscriptionServers clearSubscriptionVerdict(
     }
     final oldBody = oldBodies[id];
     final newBody = newBodies[id];
-    // Узел из набора ушёл — трогать нечего, запись доживёт до GC оверлея.
+
     if (newBody == null) {
       nextWarnings[id] = e.value;
       continue;
     }
-    // Тело то же → вердикт держится. Тело другое ИЛИ старого тела нет →
-    // вердикт снимается и узел включается обратно.
+
+
     if (oldBody != null && oldBody == newBody) {
       nextWarnings[id] = e.value;
       continue;
@@ -530,40 +530,40 @@ SubscriptionServers clearSubscriptionVerdict(
   return (disabled: nextDisabled, warnings: nextWarnings);
 }
 
-/// PARSING_PRINCIPLES §9.4 п. 1 для ОДНОГО узла — ручная правка тела в редакторе (член
-/// папки, ручной сервер). Подписка сравнивается картами (`refreshSubscription\
-/// Verdicts`): там узлов много и они приходят пачкой с сети; здесь правится
-/// ровно один, и сравнивать надо его самого.
-///
-/// Сравнение — тем же `canonicalNodeBody`, что и на refetch: один вопрос —
-/// одна функция, иначе редактор и подписка разошлись бы в том, что считать
-/// «тем же телом».
-///
-/// `true` — вердикт снимается И узел включается обратно (ровно то, что делает
-/// ручное включение: `enabled: true` + [dropVerdict]). `false` — тело то же
-/// либо вердикта на узле и не было, трогать нечего.
-///
-/// Узел без вердикта не оживает: смена тела включает только то, что выключила
-/// страховка, выключенное человеком остаётся выключенным.
-///
-/// Переименование узла для этой функции — тоже смена тела: `emit()` включает
-/// `tag`. Сужать не стали — на refetch подписки действует ровно та же
-/// функция, и ответ на один вопрос должен быть один; цена ошибки
-/// несимметрична (лишняя проверка ядром дешевле починенного узла,
-/// оставшегося выключенным).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool verdictDroppedByEdit({
   required List<StoredWarning> warnings,
   required NodeSpec? before,
   required NodeSpec? after,
 }) {
   if (!warnings.any((w) => w.isCoreRejected)) return false;
-  // Узла не стало (или не было) — сравнивать нечем: вердикт снимается.
-  // Лишняя проверка ядром дешевле починенного узла, оставшегося выключенным.
+
+
   if (before == null || after == null) return true;
   return canonicalNodeBody(before) != canonicalNodeBody(after);
 }
 
-/// Канонические тела набора по идентичности узла — для сравнения «до/после».
+
 Map<String, String> bodiesByIdentity(List<NodeSpec> nodes) {
   final ids = sourceNodeIdentities(nodes);
   return {
@@ -571,16 +571,16 @@ Map<String, String> bodiesByIdentity(List<NodeSpec> nodes) {
   };
 }
 
-/// Проставить хранимые вердикты на разобранные узлы подписки.
-///
-/// Предупреждения узла в LxBox не хранятся — они вычисляются при разборе
-/// (`parse_all.dart`), и любой пересчёт замещает их целиком. Вердикт ядра
-/// пересчётом по телу НЕ воспроизводится (PARSING_PRINCIPLES §9.4: запись авторитетна),
-/// поэтому его дописывает сюда единственное место-правило — иначе каждая
-/// точка пересчёта стирала бы причину молча.
-///
-/// Дедуп по `(code, path)`: вердикт без пути, второго такого на узле не
-/// бывает. Вердикт идёт ПЕРВЫМ — это приговор уровня узла.
+
+
+
+
+
+
+
+
+
+
 void stampStoredVerdicts(
   List<NodeSpec> nodes,
   Map<String, List<StoredWarning>> stored,
@@ -594,7 +594,7 @@ void stampStoredVerdicts(
   }
 }
 
-/// То же для одного узла (член папки, ручной сервер).
+
 void stampNodeWarnings(NodeSpec node, List<StoredWarning> stored) {
   for (final w in stored) {
     final made = w.toWarning();
@@ -604,18 +604,18 @@ void stampNodeWarnings(NodeSpec node, List<StoredWarning> stored) {
   }
 }
 
-/// Снять с разобранного узла вердикт `core_rejected` — зеркало [stampNodeWarnings]
-/// для ручного включения: хранилище уже очищено [dropVerdict], а
-/// `NodeSpec.warnings` иначе держал бы значок до следующего разбора.
+
+
+
 void unstampCoreRejected(NodeSpec node) {
   node.warnings.removeWhere((x) =>
       x is RegistryWarning && x.code == kCoreRejectedCode && x.path == null);
 }
 
-/// Хранимые вердикты + предупреждения разбора без мутации [node].
-///
-/// Та же логика, что [stampNodeWarnings], для отрисовки строк источников и
-/// секции Notifications (вкладка Diagnostics) у ручного сервера / члена папки.
+
+
+
+
 List<NodeWarning> mergedNodeWarnings(
   NodeSpec node,
   List<StoredWarning> stored,

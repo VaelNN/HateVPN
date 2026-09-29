@@ -6,18 +6,18 @@ import 'package:lxbox/models/dns_ref.dart';
 import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/rule_transfer.dart';
 
-/// §396 — экспорт/импорт правил файлом: конверт, парс, санация ссылок,
-/// вставка (имя/num). Схема wire-формата — в спеке §396 §3.
-/// Элемент `rules[]` файла правил — ровно то, что пишет экспорт (`format: 2`,
-/// запись хранения 1.0). Чтение `format: 1` — `rule_transfer_format1_test.dart`.
+
+
+
+
 Map<String, dynamic> _fileEntry(CustomRule r) =>
     ((jsonDecode(buildRulesExport([r])) as Map)['rules'] as List).single
         as Map<String, dynamic>;
 
 void main() {
-  // Шаблон получателя: один пресет с remote rule_set (block-ads, num 960)
-  // и один чисто-inline (private-ip, num 950) — хватает для preset-веток.
-  // dns_options — один шаблонный сервер google_udp (для DNS-санации §5.3a).
+
+
+
   final template = WizardTemplate.fromJson({
     'dns_options': {
       'servers': [
@@ -117,7 +117,7 @@ void main() {
       final s = sanitize(contents.rawRules.single);
       expect(s.importable, isTrue);
       final imported = s.rule!;
-      // Эквивалентность полей — id намеренно ДРУГОЙ (перегенерация).
+
       expect(imported.id, isNot(rule.id));
       final a = _fileEntry(imported)..remove('id');
       final b = _fileEntry(rule)..remove('id');
@@ -218,7 +218,7 @@ void main() {
       expect(dns.serverTag, '');
       expect(dns.forceIpv4, isTrue);
       expect(s.warnings.single.kind, ImportRuleWarningKind.dnsServerMissing);
-      // DNS-лечение не выключает правило целиком.
+
       expect(s.rule!.enabled, isTrue);
     });
 
@@ -241,7 +241,7 @@ void main() {
       )));
       final resolve = s.rule!.resolve!;
       expect(resolve.serverTag, '');
-      expect(resolve.strategy, 'ipv4_only'); // остальное не тронуто
+      expect(resolve.strategy, 'ipv4_only');
       expect(
           s.warnings.single.kind, ImportRuleWarningKind.resolveServerMissing);
     });
@@ -256,7 +256,7 @@ void main() {
       )));
       expect(s.rule!.enabled, isFalse);
       expect(s.needsSrsDownload, isTrue);
-      expect(s.warnings, isEmpty); // штатное поведение, не warning
+      expect(s.warnings, isEmpty);
     });
 
   });
@@ -265,7 +265,7 @@ void main() {
     test('чужой num из файла не переносится — правило садится в свою зону', () {
       final target = <CustomRule>[];
       final raw = _fileEntry(CustomRuleInline(name: 'A', domains: ['a.com']))
-        ..['num'] = 5; // чужая ось
+        ..['num'] = 5;
       final s = sanitize(raw);
       final inserted = insertImportedRule(target, s.rule!, template: template);
       expect(inserted.orderNum, kUserRuleNumStart);
@@ -315,7 +315,7 @@ void main() {
       final contents = parseRulesImport(json);
       expect(contents.rawDnsServers, hasLength(1));
       expect(contents.rawDnsRules, hasLength(1));
-      // Файл без секций → пустые списки, не ошибка.
+
       final bare = parseRulesImport(
           buildRulesExport([CustomRuleInline(name: 'R')]));
       expect(bare.rawDnsServers, isEmpty);
@@ -426,7 +426,7 @@ void main() {
           DnsRuleInline(name: 'ntc', rule: {'domain': 'ntc.party'}),
         ]);
         expect(s.skipReason, ImportDnsSkipReason.alreadyExists);
-        // Тумблер — часть дубля: выключенная копия у получателя не дубль.
+
         expect(
             rule(entry, existing: const [
               DnsRuleInline(

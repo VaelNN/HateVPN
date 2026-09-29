@@ -5,13 +5,13 @@ import 'package:lxbox/services/parser/engine/trace.dart';
 
 import 'engine_test_setup.dart';
 
-/// §480 — ТРАССА: формат согласован с лаунчером ради МЕХАНИЧЕСКОЙ СВЕРКИ
-/// Go↔Dart обычным диффом (`MAPPER_ENGINE.md`, приложение «ТРАССА»).
-///
-/// Проверяется не «трасса есть», а именно то, на чём сверка ломается:
-/// порядок ключей, отсутствие пробелов, отсутствие HTML-экранирования,
-/// числа без экспоненты, не-ASCII как есть. Любая из этих мелочей даёт
-/// ложное расхождение на каждой строке.
+
+
+
+
+
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -25,7 +25,7 @@ void main() {
           '{"a":2,"b":1}');
     });
 
-    // У Go это SetEscapeHTML(false); без него каждая строка с `&` расходится.
+
     test('БЕЗ HTML-экранирования', () {
       expect(MapperTrace.encode('a<b>&c'), '"a<b>&c"');
     });
@@ -112,8 +112,8 @@ void main() {
 
     test('без коллектора движок не строит ни строки', () {
       final section = MapperSections.I.sectionFor('uri', 'trojan')!;
-      // Коллектор опционален и выключен по умолчанию: проверяем, что путь
-      // без него отрабатывает и даёт тот же результат.
+
+
       final withTrace = MapperTrace();
       final a = runSection(section, 'trojan://pw@h.com:443#n');
       final b = runSection(section, 'trojan://pw@h.com:443#n',
@@ -136,22 +136,22 @@ void main() {
         for (final l in trace.lines)
           RegExp(r'"stage":"([a-z_]+)"').firstMatch(l)!.group(1)!,
       ];
-      // `result` — в самом конце, `label` — прямо перед ним, а записи полей
-      // идут раньше обоих. `unknown` в этом прогоне может и не появиться:
-      // секция реестра сегодня не объявляет кода (наш оверлей его снял).
+
+
+
       expect(stages.last, 'result');
       expect(stages[stages.length - 2], 'label');
       expect(stages.indexOf('field'), lessThan(stages.indexOf('label')));
     });
   });
 
-  /// §480 — трасса снимается НА ВСЕХ ТРЁХ входах движка, а не только на
-  /// ссылке. Сверка Go↔Dart идёт обычным диффом, и вход, который трассы не
-  /// пишет, из неё просто выпадает: расхождение на нём не видно вовсе.
+
+
+
   group('трасса на объектном и текстовом входе', () {
     test('объектный вход (JSON элемента) пишет ту же трассу', () {
       final section = MapperSections.I.sectionFor('xray', 'vless');
-      if (section == null) return; // секции нет — проверять нечего
+      if (section == null) return;
       final trace = MapperTrace();
       final res = runSectionOnJson(
         section,

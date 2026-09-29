@@ -11,19 +11,19 @@ import '../../vpn/box_vpn_client.dart';
 import '../home/source_lookup.dart';
 import 'node_document.dart';
 
-/// §581 — запись источника узла Tailscale, куда Save choice вкладки Network
-/// кладёт `exit_node`: свой сервер или член папки. Узел подписки сюда не
-/// попадает: его источник — ответ сервера подписки.
+
+
+
 class ExitNodeTarget {
   final int entryIndex;
 
-  /// Индекс члена папки; `null` — свой сервер.
+
   final int? memberIndex;
 
-  /// Текст источника записи: raw члена папки или `rawBody` своего сервера.
+
   final String raw;
 
-  /// Узел Tailscale этой записи.
+
   final TailscaleSpec node;
 
   const ExitNodeTarget({
@@ -34,9 +34,9 @@ class ExitNodeTarget {
   });
 }
 
-/// Запись источника по тегу собранного конфига ([ownerOfTag]: префикс
-/// записи, суффикс дедупликации). `null` — владелец не найден, это подписка
-/// или найденный узел не Tailscale.
+
+
+
 ExitNodeTarget? exitNodeTargetForTag(
     String tag, List<SubscriptionEntry> entries) {
   final owner = ownerOfTag(tag, entries);
@@ -71,11 +71,11 @@ ExitNodeTarget? exitNodeTargetForTag(
   return null;
 }
 
-/// Save choice: `exit_node` = [value] (`null` — поле убирается) в теле узла,
-/// дальше путь JSON-ветки Save вкладки Source экрана узла: тег в тело
-/// (`prepareNodeDocumentForSave`), проверка ядром (`CheckConfig`), запись
-/// (`updateMemberAt` / `updateConnectionAt`). Тег узла не меняется.
-/// Возвращает `null` при успехе, иначе текст ошибки для пользователя.
+
+
+
+
+
 Future<String?> storeExitNodeChoice(SubscriptionController sub,
     ExitNodeTarget target, String? value) async {
   final raw = target.raw.trim();
@@ -95,7 +95,7 @@ Future<String?> storeExitNodeChoice(SubscriptionController sub,
   final payload = checkPayloadFor(toStore);
   if (payload != null) {
     final check = await BoxVpnClient.I.checkConfig(payload);
-    // null — мост недоступен: проверять нечем, запись не блокируем.
+
     if (check != null && !check.ok) {
       return getLocalText.s("The core rejected the node: %s", check.error);
     }

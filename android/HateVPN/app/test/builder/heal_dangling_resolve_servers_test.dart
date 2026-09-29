@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:lxbox/services/builder/post_steps.dart';
 
-/// §247 — healDanglingResolveServers: битая `server`-ссылка resolve-правила
-/// деградирует (server снимается → DNS-роутинг), а не валит каждое
-/// сматчившееся соединение лениво («DNS server not found» в ядре).
+
+
+
 void main() {
   Map<String, dynamic> cfg({
     List<Map<String, dynamic>> servers = const [],
@@ -37,8 +37,8 @@ void main() {
 
   test('resolve со ссылкой на отсутствующий сервер → server снят + запись',
       () {
-    // Сценарий ru-direct: DNS-аспект выключен → yandex_udp не в dns.servers,
-    // а route-аспект всё равно эмитит resolve с server.
+
+
     final config = cfg(
       servers: [
         {'tag': 'google_udp', 'type': 'udp', 'server': '8.8.8.8'},

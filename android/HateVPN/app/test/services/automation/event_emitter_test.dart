@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/automation/event_emitter.dart';
 
-/// §047 — AutomationEventEmitter: gate-toggles, throttle policy.
+
 void main() {
   late List<(String, Map<String, Object?>)> sent;
 
@@ -10,10 +10,10 @@ void main() {
 
   setUp(() => sent = []);
 
-  // AutomationEventEmitter.I — синглтон: сбрасываем перехват/гейты после
-  // каждого теста, чтобы состояние не протекало в другие тест-файлы
-  // (иначе редкий cross-file flaky, когда шард стартует automation-тест
-  // до его setUp с чужим _sendOverride).
+
+
+
+
   tearDown(() => AutomationEventEmitter.I.debugConfigureForTest());
 
   group('gates', () {
@@ -29,19 +29,19 @@ void main() {
       AutomationEventEmitter.I
           .debugConfigureForTest(lifecycle: true, onSend: capture);
       AutomationEventEmitter.I.emitVpnConnected();
-      AutomationEventEmitter.I.emitNodeChanged(null, 'n', 'g', 'user'); // gated off
-      AutomationEventEmitter.I.emitSubRefreshed('s', 1, 1); // gated off
+      AutomationEventEmitter.I.emitNodeChanged(null, 'n', 'g', 'user');
+      AutomationEventEmitter.I.emitSubRefreshed('s', 1, 1);
       expect(sent.map((e) => e.$1), ['VPN_CONNECTED']);
     });
 
     test('VPN_ERROR gated by lifecycle, carries code/message', () {
-      // §290 — ядро request-response: провал команды идёт как VPN_ERROR под
-      // Lifecycle. При State-only (без Lifecycle) — молчит (см. F2/хинт в UI).
+
+
       AutomationEventEmitter.I
           .debugConfigureForTest(state: true, onSend: capture);
       AutomationEventEmitter.I.emitVpnError('conflict', 'tunnel not connected');
-      expect(sent, isEmpty); // State включён, Lifecycle нет → дроп
-      // теперь под Lifecycle
+      expect(sent, isEmpty);
+
       AutomationEventEmitter.I
           .debugConfigureForTest(lifecycle: true, onSend: capture);
       AutomationEventEmitter.I.emitVpnError('conflict', 'tunnel not connected');
@@ -53,7 +53,7 @@ void main() {
     test('state gate emits node/group only', () {
       AutomationEventEmitter.I
           .debugConfigureForTest(state: true, onSend: capture);
-      AutomationEventEmitter.I.emitVpnConnected(); // off
+      AutomationEventEmitter.I.emitVpnConnected();
       AutomationEventEmitter.I.emitNodeChanged('old', 'new', 'grp', 'user');
       AutomationEventEmitter.I.emitGroupChanged('g1', 'g2', 'user');
       expect(sent.map((e) => e.$1), ['ACTIVE_NODE_CHANGED', 'ACTIVE_GROUP_CHANGED']);
@@ -65,11 +65,11 @@ void main() {
     });
 
     test('node-already-active gated by state, carries tag/group', () {
-      // §290 — off без State-гейта.
+
       AutomationEventEmitter.I.debugConfigureForTest(onSend: capture);
       AutomationEventEmitter.I.emitNodeAlreadyActive('n', 'g');
       expect(sent, isEmpty);
-      // on под State.
+
       AutomationEventEmitter.I
           .debugConfigureForTest(state: true, onSend: capture);
       AutomationEventEmitter.I.emitNodeAlreadyActive('🇫🇮node', 'grp');
@@ -89,16 +89,16 @@ void main() {
   });
 
   group('throttle', () {
-    // §219 — проверяем МЕХАНИКУ throttle (дубль в окне режется, per-key
-    // изоляция), а не точную 60с-границу: у emitter нет инъекции часов, а оба
-    // emit идут в одном синхронном блоке (разница « 60с) — тест не флаки от
-    // настенного времени. Проверка именно 60с потребовала бы Clock-seam.
+
+
+
+
     test('SUB_REFRESH_FAILED capped 1/min per sub_id', () {
       AutomationEventEmitter.I
           .debugConfigureForTest(subs: true, onSend: capture);
       AutomationEventEmitter.I.emitSubRefreshFailed('sub-1', 'err');
-      AutomationEventEmitter.I.emitSubRefreshFailed('sub-1', 'err2'); // throttled
-      // другой sub_id — отдельный ключ, проходит.
+      AutomationEventEmitter.I.emitSubRefreshFailed('sub-1', 'err2');
+
       AutomationEventEmitter.I.emitSubRefreshFailed('sub-2', 'err');
       expect(sent.length, 2);
       expect(sent[0].$2['sub_id'], 'sub-1');

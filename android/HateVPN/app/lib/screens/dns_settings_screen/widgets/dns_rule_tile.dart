@@ -6,11 +6,11 @@ import '../dns_body_dialogs.dart';
 import '../dns_format.dart';
 import 'dns_badge.dart';
 
-/// §033: builds a tile for a single DNS rule entry ([DnsRuleRef]).
-///
-/// Lookup maps
-/// (`templateRulesByName`/`presetRulesByPresetId`/`presetLabelByPresetId`) и
-/// mutating-actions переданы из state.
+
+
+
+
+
 class DnsRuleTile extends StatelessWidget {
   const DnsRuleTile({
     required super.key,
@@ -25,12 +25,12 @@ class DnsRuleTile extends StatelessWidget {
     this.dragIndex,
   });
 
-  /// Индекс записи в **storage**-списке (`_rules`) — для mutating-callbacks.
+
   final int index;
 
-  /// §117: индекс в **display**-списке ReorderableListView — для grab-strip.
-  /// null = строка не draggable (preset-записи внутри атомарной
-  /// mirror-группы, решение №6).
+
+
+
   final int? dragIndex;
 
   final DnsRuleRef entry;
@@ -47,11 +47,11 @@ class DnsRuleTile extends StatelessWidget {
     final enabled = entry.enabled;
     final theme = Theme.of(context);
 
-    // §033: title для kind=preset рендерится динамически из текущего шаблона
-    // (storage хранит presetId), для остальных — берётся из entry.name.
+
+
     final String displayTitle;
     Map<String, dynamic>? body;
-    // §253: preset может нести несколько DNS-правил — превью/диалог по списку.
+
     List<Map<String, dynamic>>? bodies;
     switch (entry) {
       case DnsRuleInline(:final name, :final rule):
@@ -65,8 +65,8 @@ class DnsRuleTile extends StatelessWidget {
         bodies = presetRulesByPresetId[presetId];
       case DnsRuleSrs(:final name, :final srsUrl, :final server):
         displayTitle = name;
-        // body: показываем сам entry как preview (срz config'а здесь нет — body
-        // строится builder'ом при emit'е). Достаточно для UI.
+
+
         body = {
           'srsUrl': srsUrl,
           'server': server,
@@ -90,11 +90,11 @@ class DnsRuleTile extends StatelessWidget {
       _ => theme.colorScheme.secondary,
     };
 
-    // §098 — grab-strip слева (как в routing rules). §117-fix: полоса через
-    // Stack+Positioned, БЕЗ IntrinsicHeight. `ListTile` под IntrinsicHeight
-    // занижает intrinsic-высоту при переносе заголовка на 2 строки и режет
-    // низ контента (overflow). Stack даёт тайлу натуральную высоту, полоса
-    // тянется Positioned(top:0,bottom:0).
+
+
+
+
+
     final tile = Card(
       child: ListTile(
         onTap: () => showRuleBodyDialog(
@@ -118,14 +118,14 @@ class DnsRuleTile extends StatelessWidget {
             color: theme.colorScheme.onSurfaceVariant,
             fontFamily: 'monospace',
           ),
-          // §253: по 2 строки на правило у многоправильного пресета.
+
           maxLines: (bodies != null && bodies.length > 1)
               ? 2 * bodies.length
               : 2,
           overflow: TextOverflow.ellipsis,
         ),
-        // Badge над action-кнопками. У kind:inline — edit/delete; у
-        // template/preset/srs — только badge (не редактируются).
+
+
         trailing: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -156,7 +156,7 @@ class DnsRuleTile extends StatelessWidget {
     );
 
     if (dragIndex == null) return tile;
-    // Полоса 18px + горизонтальные margin 6+6 = 30px gutter слева.
+
     return Stack(
       children: [
         Padding(

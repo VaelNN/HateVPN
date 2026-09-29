@@ -8,33 +8,33 @@ import '../transport/request.dart';
 import '../transport/response.dart';
 import '_shared.dart';
 
-/// `POST /warp` — регистрирует Cloudflare WARP узел тем же путём, что кнопка
-/// «Get WARP» в визарде (`SubscriptionController.addWarp`). Узел добавляется в
-/// подписки автоматически (`addWarp` сам зовёт `_addWarpObfuscated/_Plain`).
-///
-/// Нужен для device-тестов обфускации без UI: приватник генерится на
-/// устройстве, регистрация идёт в Cloudflare (как обычно). Доступен только
-/// через Debug API (§031), не влияет на прод-поток.
-///
-/// Body (все поля опциональны, дефолты = как в визарде):
-/// ```jsonc
-/// {
-///   "licenseKey": "...",        // null/пусто → free WARP
-///   "endpoint": "IP:port",      // дефолт engage.cloudflareclient.com:2408
-///   "obfuscate": true,          // §126 AmneziaWG обфускация
-///   "forceNew": false,          // игнорировать кеш, регать заново
-///   "includeReserved": false,   // §142; null → дефолт по obfuscate
-///   "quicParams": {             // §143 masquerade (при obfuscate)
-///     "sni": "www.google.com",  // пусто → рандом из пула
-///     "ip": "quic",             // quic|dns|stun|sip
-///     "ib": "chrome",           // chrome|firefox|curl (только quic)
-///     "jc": 4, "jmin": 40, "jmax": 70
-///   }
-/// }
-/// ```
-///
-/// `?rebuild=true` — после успеха регенерит config + reload ядра (узел в
-/// рантайме без отдельного rebuild-config).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> warpHandler(DebugRequest req, DebugContext ctx) async {
   if (req.path != '/warp') throw NotFound('warp path: ${req.path}');
   if (req.method != 'POST') {
@@ -80,9 +80,9 @@ Future<DebugResponse> warpHandler(DebugRequest req, DebugContext ctx) async {
   }, status: 201);
 }
 
-/// Собирает [QuicParams] из вложенного объекта `quicParams` (если есть).
-/// Отсутствующие поля → дефолты [QuicParams]. Неверный тип → [BadRequest]
-/// (через `fieldString/fieldInt`).
+
+
+
 QuicParams _parseQuicParams(Map<String, dynamic> body) {
   if (!body.containsKey('quicParams')) return const QuicParams();
   final v = body['quicParams'];

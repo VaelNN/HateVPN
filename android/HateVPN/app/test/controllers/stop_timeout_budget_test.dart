@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -20,15 +20,15 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationSupportPath() async => tempRoot;
 }
 
-/// §415 — контракт «Stop timed out» ровно один: ошибку показываем ТОЛЬКО когда
-/// native вернул `false` (штатная остановка не уложилась в нативный бюджет).
-/// Медленная, но успешная остановка (тяжёлый туннель, teardown ~5.2с на замере)
-/// ошибки давать не должна — раньше давала, потому что нативный бюджет 5с
-/// истекал раньше конца teardown'а.
-///
-/// Нативный бюджет (`BoxVpnService.STOP_AWAIT_TIMEOUT_MS`) тестами отсюда не
-/// покрывается — это Kotlin/coroutines, за границей MethodChannel. Здесь
-/// проверяется Dart-контракт над его ответом.
+
+
+
+
+
+
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -42,8 +42,8 @@ void main() {
   late Directory tempDir;
   late HomeController controller;
 
-  /// Ставит мок native-канала, где `stopVPN` отвечает [stopResult] через
-  /// [delay] (эмуляция медленного teardown'а).
+
+
   void mockStop({required bool stopResult, Duration delay = Duration.zero}) {
     messenger.setMockMethodCallHandler(methods, (call) async {
       if (call.method == 'stopVPN') {
@@ -84,8 +84,8 @@ void main() {
 
   test('медленный, но успешный стоп (teardown с задержкой) — тоже без ошибки',
       () async {
-    // Ключевой кейс §415: native отвечает не мгновенно, но УСПЕХОМ. Пока он
-    // укладывается в Dart-бюджет `_Timeouts.stopVpn`, ошибки быть не должно.
+
+
     mockStop(stopResult: true, delay: const Duration(milliseconds: 300));
 
     await controller.stop();
@@ -106,10 +106,10 @@ void main() {
   test(
       'эскалация stopping-таймаута больше Dart-бюджета stopVPN — '
       'force-stop не гонится со штатной остановкой', () async {
-    // Лестница бюджетов §415: native 9с < Dart stopVPN 10с < эскалация 12с.
-    // Проверяем нижнюю границу эскалации: она обязана быть строго больше
-    // Dart-бюджета, иначе force-stop прилетит поверх ещё живой штатной
-    // остановки (ровно тот баг, из-за которого юзер видел ложную ошибку).
+
+
+
+
     const dartStopBudget = Duration(seconds: 10);
     final stoppingMs = controller.debugTransientTimeouts.stoppingMs;
 

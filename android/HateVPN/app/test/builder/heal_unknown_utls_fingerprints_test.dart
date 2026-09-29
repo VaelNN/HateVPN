@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/tls_spec.dart';
 import 'package:lxbox/services/builder/post_steps.dart';
 
-/// §281 — страховочный post-step: fingerprint вне словаря ядра заменяется
-/// на chrome (мусор — с записью для emitWarnings, псевдонимы — молча),
-/// а не роняет весь конфиг «unknown uTLS fingerprint» на старте.
+
+
+
 void main() {
   group('healUnknownUtlsFingerprints', () {
     Map<String, dynamic> outbound(String tag, String fp) => {
@@ -33,7 +33,7 @@ void main() {
         };
         expect(healUnknownUtlsFingerprints(config), isEmpty, reason: type);
       }
-      // Контракт границы: карта модели изменяема и своя у каждого вызова.
+
       final a = TlsSpec.disabled.toSingbox()..['x'] = 1;
       expect(TlsSpec.disabled.toSingbox(), isEmpty);
       expect(a, {'x': 1});
@@ -113,9 +113,9 @@ void main() {
       expect(healUnknownUtlsFingerprints(config), isEmpty);
     });
 
-    // §444 (D-119 лаунчера, заменил D-104): явный отпечаток REALITY-узла
-    // уходит в конфиг как есть; `chrome` — только вместо пустого и `random`
-    // (дефолт парсера, в модели от явного неотличим).
+
+
+
     Map<String, dynamic> realityOutbound(String tag, String fp) => {
           'tag': tag,
           'type': 'vless',

@@ -6,8 +6,8 @@ import 'package:lxbox/services/debug/serializers/home_state.dart';
 import 'package:lxbox/services/tailscale_network.dart';
 import 'package:lxbox/vpn/cc_channel.dart';
 
-/// Задача 581 — разбор состояния, exit node, запись в тело, порядок
-/// устройств, сводка Debug API.
+
+
 void main() {
   Map<String, Object> peer(
     String id,

@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -23,22 +23,22 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §243 — имя файла становится tag'ом при импорте WG/AWG `.conf`:
-/// одиночный путь (B1 — правка tag снова видна в списке) и папочный (B5 —
-/// члены получают имена файлов, а не «WireGuard»).
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
 
-  // SPEC 103 D-023/D-030 — normalizeWGKey требует РОВНО 32 байта base64;
-  // короткие плейсхолдеры вроде "pk"/"pubk" больше не парсятся (null-skip).
+
+
   const testPriv = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA=';
   const testPub = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbA=';
 
-  // Обычный WG-экспорт (Proton-стиль) и awg2-экспорт с обфускацией.
+
   final wgIni = '[Interface]\n'
       'PrivateKey = $testPriv\n'
       'Address = 10.0.0.2/32\n'
@@ -70,7 +70,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -82,8 +82,8 @@ void main() {
       expect(c.lastError, isNull);
       final entry = c.entries.single;
       expect(entry.list, isA<UserServer>());
-      expect(entry.name, ''); // §234-renameAt в name больше нет
-      // §090 G2b — авто-эмодзи: WG без эмодзи в теге получает 🏠-префикс.
+      expect(entry.name, '');
+
       expect(entry.list.nodes.single.tag, '🏠 proton-nl-42');
       expect(entry.displayName, '🏠 proton-nl-42');
     });
@@ -107,7 +107,7 @@ void main() {
       final c = SubscriptionController();
       await c.addFromInput(wgIni, nameHint: 'home-wg');
       final us = c.entries.single.list as UserServer;
-      // Путь рестарта: UserServer персистит только rawBody, ноды ре-деривятся.
+
       final reloaded =
           sourceFromRecord(sourceToRecord(us)).value! as UserServer;
       expect(reloaded.nodes.single.tag, '🏠 home-wg');
@@ -118,7 +118,7 @@ void main() {
         'name затирается', () async {
       final c = SubscriptionController();
       await c.addFromInput(wgIni, nameHint: 'home-wg');
-      // Пересохранение из Node Settings (JSON-таб) с новым tag'ом.
+
       const json = '{"type":"vless","tag":"Renamed ⚡","server":"h.example",'
           '"server_port":443,"uuid":"u-1"}';
       await c.updateConnectionAt(0, [json]);
@@ -130,11 +130,11 @@ void main() {
         () async {
       final c = SubscriptionController();
       await c.addFromInput(wgIni, nameHint: 'home-wg');
-      // Симуляция старой записи: v2.11.0-импорт писал имя файла в name.
+
       await c.renameAt(0, 'legacy-file-name');
       expect(c.entries.single.name, 'legacy-file-name');
       expect(c.entries.single.displayName, '🏠 home-wg');
-      // Пересохранение сервера затирает залежавшийся name.
+
       const json = '{"type":"vless","tag":"Fresh","server":"h.example",'
           '"server_port":443,"uuid":"u-1"}';
       await c.updateConnectionAt(0, [json]);
@@ -171,7 +171,7 @@ void main() {
       final node = folder.members.single.node;
       expect(node, isNotNull);
       expect(node!.tag, 'proton-nl-1');
-      // Имя живёт в raw члена (фрагмент) — переживает persist.
+
       final reloaded =
           (sourceFromRecord(sourceToRecord(folder)).value! as FolderServers)
               .members

@@ -9,14 +9,14 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §480 W4 — СНЯТЬ новые значения кейсов-дельт прогоном движка.
-///
-/// Не проверка, а инструмент, как `engine_delta_dump_test.dart` у пилота:
-/// снимок обязан описывать ПОВЕДЕНИЕ, а не намерение, поэтому ожидания
-/// разрешённой дельты берутся прогоном, а не вписываются руками.
-///
-/// Запуск: `LX_SCHEME=<схема> LX_CASES=<кейс,кейс> LX_DUMP=<файл>`.
-/// Без `LX_DUMP` не делает ничего.
+
+
+
+
+
+
+
+
 void main() {
   final out = Platform.environment['LX_DUMP'];
   final scheme = Platform.environment['LX_SCHEME'] ?? '';

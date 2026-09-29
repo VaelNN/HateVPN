@@ -19,26 +19,26 @@ import '../services/subscription/subscription_identity.dart';
 import '../widgets/safe_bottom.dart';
 import '../models/tailscale_bundle.dart';
 
-// SocksSpec.emit() требует TemplateVars — для wizard-created SOCKS5 без
-// substitution используем пустые. Это match'ит manual UserServer pattern
-// (no template processing).
+
+
+
 final TemplateVars _emptyVars = TemplateVars.empty;
 
-/// §074 — Add server wizard. Full-screen route с 5 tabs: SOCKS5 form,
-/// HTTP form (§222), Paste URI, Paste JSON, Tailscale form (§435).
-/// Открывается long-press'ом на «+» в Subscriptions screen.
-///
-/// Submit поведение:
-///   - SOCKS5 / HTTP tabs → конструируют `SocksSpec`/`HttpSpec` +
-///     `UserServer`, через `subController.addUserServer(...)`.
-///   - URI / JSON tabs → text идёт в `subController.addFromInput(...)`
-///     (тот же путь что у tap-«+»).
-///   - Tailscale tab (§435) → `TailscaleSpec` + `UserServer`, через
-///     `addUserServer`. Связку tailnet (маршрут, MagicDNS) даёт пресет
-///     шаблона `tailscale` (§578), не узел (§575).
-///
-/// После successful add → callback [onAdded] (regenerate config + save +
-/// snackbar в parent screen).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class AddServerWizardScreen extends StatefulWidget {
   const AddServerWizardScreen({
     super.key,
@@ -57,18 +57,18 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     with SingleTickerProviderStateMixin, SnackHelper {
   late final TabController _tab;
 
-  // Дефолтные tag'и при пустом поле Tag (поле опционально с §243).
+
   static const _kDefaultSocksTag = 'local-socks5-out';
   static const _kDefaultHttpTag = 'local-http-out';
 
-  // SOCKS5 tab controllers.
-  //
-  // §243 — отдельного поля «Display name» (= UserServer.name) больше нет:
-  // заголовок записи в списке Servers — это tag узла (displayName игнорирует
-  // UserServer.name), поэтому поле Tag — единственный источник имени. Поле
-  // опционально: пусто → _kDefaultSocksTag. SocksSpec.label = tag для
-  // lossless serialization через JSON outbound (parseSingboxEntry читает
-  // tag, label = tag) — tag переживает рестарт через re-parse rawBody.
+
+
+
+
+
+
+
+
   final _socksTag = TextEditingController();
   final _socksHost = TextEditingController(text: '127.0.0.1');
   final _socksPort = TextEditingController(text: '1080');
@@ -76,7 +76,7 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
   final _socksPass = TextEditingController();
   final _socksFormKey = GlobalKey<FormState>();
 
-  // HTTP tab controllers (§222) — зеркало SOCKS5-формы + TLS switch.
+
   final _httpTag = TextEditingController();
   final _httpHost = TextEditingController(text: '127.0.0.1');
   final _httpPort = TextEditingController(text: '8080');
@@ -85,17 +85,17 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
   final _httpFormKey = GlobalKey<FormState>();
   bool _httpTls = false;
 
-  // Paste URI tab controller (multi-line text area). §333 — построчный
-  // редактор: сюда вставляют и простыни на тысячи ссылок.
+
+
   final _uriCtrl = CodeLineEditingController();
 
-  // Paste JSON tab controller.
+
   final _jsonCtrl = CodeLineEditingController();
 
-  // §435 — Tailscale tab (NODE_SECTIONS.md §6 «конструктор»). Тело
-  // endpoint'а собирается из полей как есть: пустые не пишутся, булевы —
-  // только `true` (дефолт ядра — false). Auth key — секрет: в лог не идёт,
-  // поле маскировано с show/hide.
+
+
+
+
   static const _kDefaultTailscaleTag = 'tailscale';
   final _tsTag = TextEditingController();
   final _tsAuthKey = TextEditingController();
@@ -113,9 +113,9 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
   void initState() {
     super.initState();
     _tab = TabController(length: 5, vsync: this);
-    _tab.addListener(() => setState(() {})); // обновить Add button enabled
-    // §449 — hostname узла Tailscale: дефолт видно до создания узла, юзер его
-    // правит или стирает (пусто = имя выбирает tsnet, как было).
+    _tab.addListener(() => setState(() {}));
+
+
     _tsHostname.text =
         defaultTailscaleHostname(SubscriptionIdentity.effectiveDeviceModel);
   }
@@ -164,12 +164,12 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     }
   }
 
-  /// §435 — узел Tailscale: `TailscaleSpec` с телом из полей формы и голый
-  /// `UserServer`. Маршрут и DNS даёт пресет шаблона `tailscale` (§578), не
-  /// узел. `rawBody` = `toUri()` — компактный JSON endpoint'а с `tag`:
-  /// `UserServer.fromJson` ре-парсит его как `singboxOutbound`, tag
-  /// переживает рестарт. Без `exit_node` узел не кандидат Направлений (это
-  /// делает сборка).
+
+
+
+
+
+
   Future<void> _submitTailscale() async {
     if (!(_tsFormKey.currentState?.validate() ?? false)) return;
     final tagInput = _tsTag.text.trim();
@@ -191,7 +191,7 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
         if (exitNode.isNotEmpty) 'exit_node': exitNode,
       },
     );
-    // §243 — name всегда пуст: заголовок записи = tag узла.
+
     final us = UserServer(
       id: newUuidV4(),
       name: '',
@@ -208,13 +208,13 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
 
   Future<void> _submitSocks() async {
     if (!(_socksFormKey.currentState?.validate() ?? false)) return;
-    // §243 — пустое поле Tag → дефолтный tag (поле опционально).
+
     final tagInput = _socksTag.text.trim();
     final tag = tagInput.isNotEmpty ? tagInput : _kDefaultSocksTag;
     final host = _socksHost.text.trim();
-    // Defensive parse — validator уже отфильтровал, но int.parse бросит
-    // на любой raceconditional edge. tryParse ?? 0 + дополнительная
-    // проверка returns раньше чем мы упрёмся в SocksSpec assertion'ы.
+
+
+
     final port = int.tryParse(_socksPort.text.trim()) ?? 0;
     if (port < 1 || port > 65535) {
       showSnack(getLocalText.s("Invalid port"));
@@ -223,10 +223,10 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     final user = _socksUser.text;
     final pass = _socksPass.text;
 
-    // Construct SocksSpec с label = tag — иначе round-trip ломается:
-    // URI persists fragment (label) и tag re-derive'ится из fragment'а
-    // на reload, теряя original tag. JSON-outbound persistence — label
-    // = tag нативно. Сохраняем lossless для обоих путей.
+
+
+
+
     final spec = SocksSpec(
       id: newUuidV4(),
       tag: tag,
@@ -237,11 +237,11 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
       username: user,
       password: pass,
     );
-    // rawBody = JSON outbound (sing-box format). UserServer.fromJson
-    // re-parsит rawBody через parseSingboxEntry → tag preserved exactly.
-    // Альтернатива (toUri) теряет tag в URI fragment round-trip.
-    // §243 — name всегда пуст: заголовок записи = tag узла (displayName
-    // игнорирует UserServer.name).
+
+
+
+
+
     final outboundJson = spec.emit(_emptyVars).map;
     final us = UserServer(
       id: newUuidV4(),
@@ -257,11 +257,11 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     await _afterAdd(addedTag: tag);
   }
 
-  /// §222 — зеркало [_submitSocks] для HTTP(S)-прокси. Тот же lossless-путь:
-  /// label = tag, rawBody = JSON outbound (parseSingboxEntry сохраняет tag).
+
+
   Future<void> _submitHttp() async {
     if (!(_httpFormKey.currentState?.validate() ?? false)) return;
-    // §243 — пустое поле Tag → дефолтный tag (поле опционально).
+
     final tagInput = _httpTag.text.trim();
     final tag = tagInput.isNotEmpty ? tagInput : _kDefaultHttpTag;
     final host = _httpHost.text.trim();
@@ -280,12 +280,12 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
       rawSource: '',
       username: _httpUser.text,
       password: _httpPass.text,
-      // Тонкая настройка TLS (sni/insecure/alpn) — через JSON-редактор ноды.
+
       tls: _httpTls
           ? TlsSpec(enabled: true, serverName: host)
           : TlsSpec.disabled,
     );
-    // §243 — name всегда пуст: заголовок записи = tag узла.
+
     final outboundJson = spec.emit(_emptyVars).map;
     final us = UserServer(
       id: newUuidV4(),
@@ -311,14 +311,14 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     await _afterAdd(addedTag: null);
   }
 
-  /// После successful add: regenerate config через callback, snack, pop.
-  ///
-  /// Snackbar показывает tag, который **юзер ввёл**, не финальный после
-  /// builder'а. `EmitContext.allocateTag` может суффиксовать `-1`/`-2` при
-  /// коллизии — но это происходит в build pipeline уже после add'а,
-  /// controller'у не возвращается. Если потребуется показать final tag —
-  /// нужно plumbing'ть addUserServer чтобы возвращал диагностику от
-  /// builder'а. Сейчас trade-off: проще + честно (юзер видит свой ввод).
+
+
+
+
+
+
+
+
   Future<void> _afterAdd({String? addedTag}) async {
     if (!mounted) return;
     final err = widget.subController.lastError;
@@ -328,7 +328,7 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     }
     await widget.onAdded();
     if (!mounted) return;
-    // §585 — комментарии вставки убраны: одно сообщение вместо «Added».
+
     final msg = widget.subController.lastCommentsRemoved
         ? getLocalText.s("Comments were removed.")
         : addedTag != null && addedTag.isNotEmpty
@@ -338,7 +338,7 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     Navigator.of(context).pop();
   }
 
-  // §219 — _showSnack вынесен в SnackHelper.showSnack (services/ui_helpers.dart).
+
 
   @override
   Widget build(BuildContext context) {
@@ -367,8 +367,8 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
             Tab(text: getLocalText.s("HTTP")),
             Tab(text: getLocalText.s("Paste URI")),
             Tab(text: getLocalText.s("Paste JSON")),
-            // §435 — последней, чтобы индексы прежних вкладок не поехали.
-            // l10n-exempt: protocol name
+
+
             const Tab(text: 'Tailscale'),
           ],
         ),
@@ -386,7 +386,7 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     );
   }
 
-  /// §435 — вставка эмодзи из пикера в позицию курсора поля Tag (Tailscale).
+
   void _insertTailscaleTagEmoji(String emoji) {
     final text = _tsTag.text;
     final sel = _tsTag.selection;
@@ -401,9 +401,9 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     setState(() {});
   }
 
-  /// §435 — форма Tailscale (NODE_SECTIONS.md §6): Tag, Auth key (секрет,
-  /// обязателен, с подсказкой про одноразовый ключ и каталог состояния),
-  /// Control URL, Hostname, Ephemeral, Accept routes, Exit node.
+
+
+
   Widget _buildTailscaleForm(BuildContext context) {
     final hintStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -504,7 +504,7 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     );
   }
 
-  /// §090 G2b — вставка эмодзи из пикера в позицию курсора поля Tag (SOCKS).
+
   void _insertSocksTagEmoji(String emoji) {
     final text = _socksTag.text;
     final sel = _socksTag.selection;
@@ -528,8 +528,8 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // §243 — tag = заголовок записи; поле опционально (пусто →
-            // дефолтный tag). Отдельного «Display name» больше нет.
+
+
             _label(getLocalText.s("Tag (optional)")),
             TextFormField(
               controller: _socksTag,
@@ -588,7 +588,7 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
     );
   }
 
-  /// §222 — вставка эмодзи из пикера в позицию курсора поля Tag (HTTP).
+
   void _insertHttpTagEmoji(String emoji) {
     final text = _httpTag.text;
     final sel = _httpTag.selection;
@@ -612,8 +612,8 @@ class _AddServerWizardScreenState extends State<AddServerWizardScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // §243 — tag = заголовок записи; поле опционально (пусто →
-            // дефолтный tag). Отдельного «Display name» больше нет.
+
+
             _label(getLocalText.s("Tag (optional)")),
             TextFormField(
               controller: _httpTag,

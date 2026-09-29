@@ -11,8 +11,8 @@ import '../../services/node_hash.dart';
 import '../../services/tag_resolver.dart';
 import '../../widgets/banner_palette.dart';
 
-/// Сводка actionable-предупреждений (error/warning) у записи списка
-/// источников: счётчик и старший уровень для значка на строке подписки/папки.
+
+
 class EntryWarningSummary {
   const EntryWarningSummary({
     required this.actionableCount,
@@ -23,11 +23,11 @@ class EntryWarningSummary {
   final WarningSeverity topSeverity;
 }
 
-/// Есть ли у узла предупреждение, требующее действия (error/warning).
+
 bool nodeHasActionableWarnings(List<NodeWarning> warnings) =>
     warnings.any((w) => w.severity != WarningSeverity.info);
 
-/// Старший уровень среди уведомлений узла; `null` — список пуст.
+
 WarningSeverity? topWarningSeverity(List<NodeWarning> warnings) {
   if (warnings.isEmpty) return null;
   return warnings
@@ -35,8 +35,8 @@ WarningSeverity? topWarningSeverity(List<NodeWarning> warnings) {
       .reduce((a, b) => a.index > b.index ? a : b);
 }
 
-/// Все уведомления узла по эмитированному config-тегу. Паритет с Servers и
-/// Diagnostics (§505): разбор + вердикт из хранилища + предупреждения сборки.
+
+
 List<NodeWarning> warningsForConfigTag(
   String emittedTag,
   List<SubscriptionEntry> entries, {
@@ -72,8 +72,8 @@ List<NodeWarning> _mergeBuildWarnings(
   return out;
 }
 
-/// Все уведомления узла по эмитированному [node]: разбор + хранимый вердикт
-/// страховки. Предпочтительнее [warningsForConfigTag] по config-тегу (§505).
+
+
 List<NodeWarning> warningsForEmittedNode(
   NodeSpec node,
   List<SubscriptionEntry> entries,
@@ -98,8 +98,8 @@ List<NodeWarning> warningsForEmittedNode(
   return mergedNodeWarnings(source, stored);
 }
 
-/// Текст inline-строки предупреждения в списке. У `core_rejected` — дословная
-/// причина ядра; у остальных — заголовок кода реестра ([NodeWarning.message]).
+
+
 String inlineWarningMessage(NodeWarning w) {
   if (w is RegistryWarning && w.code == kCoreRejectedCode) {
     final reason = w.params[kCoreRejectedReasonParam];
@@ -108,7 +108,7 @@ String inlineWarningMessage(NodeWarning w) {
   return w.message();
 }
 
-/// Все предупреждения одиночного сервера: разбор + вердикт + сборка.
+
 List<NodeWarning> userServerWarnings(
   UserServer list,
   List<SubscriptionEntry> entries, {
@@ -123,7 +123,7 @@ List<NodeWarning> userServerWarnings(
   );
 }
 
-/// Сводка actionable-предупреждений по записи (подписка / папка / одиночный).
+
 EntryWarningSummary? entryWarningSummary(SubscriptionEntry entry) {
   var actionable = 0;
   WarningSeverity? top;
@@ -161,7 +161,7 @@ EntryWarningSummary? entryWarningSummary(SubscriptionEntry entry) {
   return EntryWarningSummary(actionableCount: actionable, topSeverity: top!);
 }
 
-/// Значок старшего уровня и счётчик actionable-узлов у строки подписки/папки.
+
 class EntryWarningBadge extends StatelessWidget {
   const EntryWarningBadge(this.summary, {super.key});
 
@@ -179,7 +179,7 @@ class EntryWarningBadge extends StatelessWidget {
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 2),
           Text(
-            '${summary.actionableCount}', // l10n-exempt: число рядом со значком
+            '${summary.actionableCount}',
             style: TextStyle(fontSize: 12, color: color),
           ),
         ],
@@ -188,6 +188,6 @@ class EntryWarningBadge extends StatelessWidget {
   }
 }
 
-/// У одиночного сервера есть вердикт страховки (подпись протокола заменяется).
+
 bool userServerHasCoreRejected(UserServer list) =>
     list.warnings.any((w) => w.isCoreRejected);

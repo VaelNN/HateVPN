@@ -44,7 +44,7 @@ namespace Tunnel
                     bytes = new byte[_lastGetGuess];
                     if (getConfiguration(_handle, bytes, ref _lastGetGuess))
                         break;
-                    if (Marshal.GetLastWin32Error() != 234 /* ERROR_MORE_DATA */)
+                    if (Marshal.GetLastWin32Error() != 234  )
                         throw new Win32Exception();
                 }
                 fixed (void* start = bytes)

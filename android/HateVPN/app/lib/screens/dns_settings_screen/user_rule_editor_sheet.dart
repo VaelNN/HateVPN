@@ -7,11 +7,11 @@ import '../../services/error_format.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// Bottom-sheet editor for an inline user DNS rule ([DnsRuleInline]).
-///
-/// `existing` — текущее правило при edit (null при add). `onSave` получает уже
-/// собранное правило (caller решает insert vs replace). `context` —
-/// screen context (для `ScaffoldMessenger` снаружи sheet'а).
+
+
+
+
+
 void showUserRuleEditor(
   BuildContext context, {
   required bool isNew,
@@ -66,7 +66,7 @@ void showUserRuleEditor(
           ),
           const SizedBox(height: 8),
           const Text(
-            // l10n-exempt: JSON shape example (literal braces)
+
             'sing-box DNS rule shape: {rule_set, domain, domain_suffix, server, ...}',
             style: TextStyle(fontSize: 11, color: Colors.grey),
           ),

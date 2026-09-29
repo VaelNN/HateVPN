@@ -4,22 +4,22 @@ import 'package:flutter/material.dart';
 
 import '../services/l10n/locale_controller.dart';
 
-/// Задача 583 — выход с главного экрана по двойному нажатию «назад».
-///
-/// Первое нажатие показывает «Press back again to exit» и на [window]
-/// разрешает выход; второе в этом окне уходит системе, и приложение
-/// закрывается, как раньше. После окна нажатие снова считается первым.
-///
-/// `PopScope.canPop` управляется состоянием: пока выход не разрешён, система
-/// знает, что «назад» обрабатывает приложение, и предиктивный жест Android 13+
-/// не показывает анимацию закрытия.
-///
-/// Боковое меню — не отдельный маршрут, а запись истории текущего: при
-/// `canPop: false` «назад» его бы не закрыл. Поэтому, пока меню открыто,
-/// `canPop` истинно, и «назад» закрывает меню без сообщения. Состояние меню
-/// приходит через `onDrawerChanged` из [builder] (его отдают в
-/// `Scaffold.onDrawerChanged`). Диалоги, листы, выпадающие списки и экраны
-/// поверх — свои маршруты: «назад» до этого экрана не доходит.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class DoubleBackToExit extends StatefulWidget {
   const DoubleBackToExit({
     super.key,
@@ -33,7 +33,7 @@ class DoubleBackToExit extends StatefulWidget {
   )
   builder;
 
-  /// Окно второго нажатия; столько же держится сообщение.
+
   final Duration window;
 
   @override
@@ -57,7 +57,7 @@ class _DoubleBackToExitState extends State<DoubleBackToExit> {
   }
 
   void _onBack(bool didPop, Object? _) {
-    // didPop — закрылось меню (запись истории маршрута): сообщения нет.
+
     if (didPop || _drawerOpen) return;
     _disarm?.cancel();
     setState(() => _armed = true);

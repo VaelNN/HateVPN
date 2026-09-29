@@ -9,19 +9,19 @@ import '../settings_storage.dart';
 import '../template_loader.dart';
 import 'workspace_store.dart';
 
-/// §417 — оркестрация Workspaces над [WorkspaceStore]: справочник для UI,
-/// цикл загрузки и Save as.
-///
-/// Загрузка (спека §417 п. 2.3): стоп VPN (колбэк `HomeScreen`, он владеет
-/// контроллером) → flush стораджа → файлы ([WorkspaceStore.load]) →
-/// перечитать состояние ([_reloadStateFromDisk]) → [generation]++ →
-/// `LxBoxApp` пересоздаёт `HomeScreen` со всеми его контроллерами → новый
-/// `HomeScreen` на bootstrap'е видит «грязно», пересобирает конфиг и, если
-/// VPN был поднят ([takePendingAutoConnect]), поднимает его снова.
-///
-/// Перезапуск процесса не нужен (спека п. 2.6): всё живое состояние либо
-/// принадлежит `HomeScreen`, либо восстанавливается статическими вызовами
-/// бутстрапа, либо от workspace не зависит.
+
+
+
+
+
+
+
+
+
+
+
+
+
 class WorkspaceController extends ChangeNotifier {
   WorkspaceController._();
 
@@ -31,16 +31,16 @@ class WorkspaceController extends ChangeNotifier {
 
   WorkspaceManifest _manifest = WorkspaceManifest.initial();
 
-  /// Последний прочитанный справочник. Обновляется [refresh] и после каждой
-  /// операции.
+
+
   WorkspaceManifest get manifest => _manifest;
   String get current => _manifest.current;
   List<WorkspaceSlot> get slots => _manifest.slots;
 
   int _generation = 0;
 
-  /// Ключ `HomeScreen` в `LxBoxApp`: инкремент = пересоздать экран и все
-  /// контроллеры, которыми он владеет.
+
+
   int get generation => _generation;
 
   bool _busy = false;
@@ -48,13 +48,13 @@ class WorkspaceController extends ChangeNotifier {
 
   String? _loadingName;
 
-  /// Имя загружаемого слота на время операции (для прогресса в UI).
+
   String? get loadingName => _loadingName;
 
   bool _pendingAutoConnect = false;
 
-  /// Одноразовый флаг «VPN был поднят до загрузки — поднять снова». Читает
-  /// новый `HomeScreen` после bootstrap-пересборки.
+
+
   bool takePendingAutoConnect() {
     final v = _pendingAutoConnect;
     _pendingAutoConnect = false;
@@ -66,8 +66,8 @@ class WorkspaceController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Загрузить слот [name]. [stopVpn] — колбэк экрана: остановить пробы и
-  /// туннель, вернуть «был ли туннель поднят».
+
+
   Future<WorkspaceLoadOutcome> load(
     String name, {
     required Future<bool> Function() stopVpn,
@@ -84,11 +84,11 @@ class WorkspaceController extends ChangeNotifier {
       await SettingsStorage.flushToDisk();
       final changed = await _store.load(target);
       if (!changed) return WorkspaceLoadOutcome.alreadyCurrent;
-      // §447 — на сцене настройки другого слота, конфиг от прежнего: флаг
-      // поднимается явно, ДО перечитывания. Одного mtime-признака (шаг 8)
-      // мало: flush выше выровнял mtime конфига в ту же секунду, что и touch
-      // настроек, а любой `_save()` при снятом флаге выравнивает его снова —
-      // новый HomeScreen видел «чисто» и стартовал с конфигом прежнего слота.
+
+
+
+
+
       SettingsStorage.markConfigDirty();
       await _reloadStateFromDisk();
       _manifest = await _store.readManifest();
@@ -98,13 +98,13 @@ class WorkspaceController extends ChangeNotifier {
     } finally {
       _busy = false;
       _loadingName = null;
-      // Один notify: новый generation и снятый busy приходят вместе —
-      // пересозданный HomeScreen сразу без индикатора загрузки.
+
+
       notifyListeners();
     }
   }
 
-  /// Скопировать сцену в слот [name] и сделать его `current`.
+
   Future<void> saveAs(String name) async {
     await SettingsStorage.flushToDisk();
     await _store.saveAs(name);
@@ -121,12 +121,12 @@ class WorkspaceController extends ChangeNotifier {
     await refresh();
   }
 
-  /// Статические шаги бутстрапа (`main.dart`), которые читают сторадж и
-  /// не принадлежат `HomeScreen`. Каждый best-effort — как и в `main()`:
-  /// провал одного не должен оставить сцену наполовину перечитанной.
+
+
+
   static Future<void> _reloadStateFromDisk() async {
-    // Первое чтение после сброса кэша идёт через `_load()`: файл слота формы
-    // 2.23.2 мигрирует там же (§439 §3.3).
+
+
     SettingsStorage.clearCache();
     await _step('native prefs', SettingsStorage.bootstrapAndSyncNativePrefs);
     await _step('locale', LocaleController.I.reloadFromStorage);

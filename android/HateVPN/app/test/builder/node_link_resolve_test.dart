@@ -12,11 +12,11 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §439 (D-112), NODE_LINK §5 — резолв ссылок на узлы вторым проходом
-// настоящего `buildConfig`: пара члена папки и узла подписки — финальный тег
-// с префиксом контейнера, корневая ссылка — корневой узел или корневое имя,
-// группа подписки — по сырому тегу группы. Не разрешилось — fail-closed:
-// носитель detour не эмитится (каскадом и кольцом тоже), цепочка — целиком.
+
+
+
+
+
 
 NodeSpec _node(String tag, int i) => parseUri(
     'vless://u$i@h$i.example:443?type=ws&security=tls#${Uri.encodeComponent(tag)}')!;
@@ -109,8 +109,8 @@ Map<String, dynamic>? _out(BuildResult r, String tag) {
 }
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('разрешается в финальный тег', () {
@@ -130,7 +130,7 @@ void main() {
         ],
       );
       expect(r.emitWarnings.where((w) => w.contains('resolve')), isEmpty);
-      // Префикс контейнера — в финальном теге, ссылка его не несёт.
+
       expect(_out(r, 'route')!['outbounds'], ['F A', 'S N1', 'R']);
       expect(_out(r, 'F A')!['detour'], 'S N2');
       expect(_out(r, 'R')!['detour'], 'F B');
@@ -171,7 +171,7 @@ void main() {
       tagPrefix: 'S',
       detourPolicy: DetourPolicy.defaults,
       url: 'https://example.com/sub',
-      // Группа выше узла-тёзки: её сырой тег всё равно N1-2.
+
       nodes: [
         AutoSelectSpec(
           id: 'g',
@@ -263,7 +263,7 @@ void main() {
 
     test('кольцо через контейнеры — выпадают все участники, каскадом и '
         'остальные узлы подписки', () async {
-      // R → N1 (пара), подписка S целиком → R (общий detour): N1 → R → N1.
+
       final r = await _build([
         _sub(policy: const DetourPolicy(overrideDetour: NodeLink(tag: 'R'))),
         _root('R', detour: const NodeLink(folderId: 's1', tag: 'N1')),

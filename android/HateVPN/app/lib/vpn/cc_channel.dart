@@ -3,20 +3,20 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 import '../services/platform_channels.dart';
-import '../services/selector_info.dart'; // §251 — fold «селектор (выбор)»
+import '../services/selector_info.dart';
 
-/// §122 Фаза 1a — Dart-клиент нативного libbox `CommandClient`-канала
-/// (`BoxCommandClient.kt`, Фаза 0). Замена `ClashApiClient` (HTTP-петли).
-///
-/// **Модель** (§2.2): не pull-снапшоты по таймеру, а **push-стримы** —
-/// ядро эмитит изменения, UI подписывается. Императивы (`urlTestOutbound`,
-/// `selectOutbound`, …) — через MethodChannel.
-///
-/// **Lifecycle стримов** управляется на native (§2.8: status always-on,
-/// screen/profiler — по сигналу). Тут — broadcast-стримы поверх EventChannel:
-/// подписчик получает последний снапшот, когда канал активен.
-///
-/// Singleton: один набор каналов на процесс.
+
+
+
+
+
+
+
+
+
+
+
+
 class CcChannel {
   CcChannel._();
 
@@ -38,28 +38,28 @@ class CcChannel {
   );
   static const EventChannel _dnsChannel = EventChannel(
     PlatformChannels.ccDns,
-  ); // §180
+  );
   static const EventChannel _tailscaleChannel = EventChannel(
     PlatformChannels.ccTailscale,
-  ); // §579
+  );
   static const EventChannel _tailscalePingChannel = EventChannel(
     PlatformChannels.ccTailscalePing,
-  ); // §581
+  );
 
-  // ─────────────────────────── Streams ───────────────────────────
-  //
-  // §122 КРИТИЧНО: каждый EventChannel держит РОВНО ОДИН native sink
-  // (`BoxVpnService.cc*Sink`). Если разные потребители (главный экран +
-  // StatsScreen + ConnectionsView) делают независимый `EventChannel
-  // .receiveBroadcastStream().listen()`, их cancel'ы (dispose Stats) шлют
-  // `onCancel` → native обнуляет sink → стрим главного экрана умирает →
-  // watchdog видит «тишину» → ложный dead-tunnel/revoke. Симптом: «при заходе
-  // в Statistics слетает VPN».
-  //
-  // Решение: ОДИН внутренний listen на EventChannel, фан-аут через
-  // `StreamController.broadcast`. Native sink ставится при появлении первого
-  // Dart-подписчика и снимается, только когда ушёл ПОСЛЕДНИЙ (onListen/onCancel
-  // контроллера). Несколько потребителей больше не воюют за sink.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   late final Stream<CcStatus> _statusStream = _sharedStream<CcStatus>(
     _statusChannel,
@@ -79,78 +79,78 @@ class CcChannel {
         _connectionsChannel,
         (e) => _asList(e).map((m) => CcConnection.fromMap(_asMap(m))).toList(),
       );
-  // §180 — DNS-журнал (SPEC 018). Батч событий списком (EventEmitter native).
+
   late final Stream<List<CcDnsQuery>> _dnsQueriesStream =
       _sharedStream<List<CcDnsQuery>>(
         _dnsChannel,
         (e) => _asList(e).map((m) => CcDnsQuery.fromMap(_asMap(m))).toList(),
       );
 
-  /// Статус-снапшот (always-on, §2.8): скорость, объём, память, число
-  /// соединений. Shared — главный экран (watchdog/traffic_bar) + StatsScreen.
+
+
   Stream<CcStatus> get status => _statusStream;
 
-  /// Плоский список ВСЕХ узлов (outbound + endpoint, §2.4): tag/type/delay.
+
   Stream<List<CcOutbound>> get outbounds => _outboundsStream;
 
-  /// Дерево групп (§2.4): группа → items, selectable/selected.
+
   Stream<List<CcGroup>> get groups => _groupsStream;
 
-  /// Снапшот активных соединений (дельты → native-аккумулятор → снапшот, §3.2).
-  /// Shared — StatsScreen + ConnectionsView одновременно.
+
+
   Stream<List<CcConnection>> get connections => _connectionsStream;
 
-  /// §180 — DNS-журнал из ядра (SPEC 018): батч `CcDnsQuery` на резолв(ы).
-  /// Структурная замена текстового парсинга core-лога. Потребитель — профайлер.
+
+
   Stream<List<CcDnsQuery>> get dnsQueries => _dnsQueriesStream;
 
-  // §579 — состояние узлов Tailscale: снапшот списком на каждое обновление.
+
   late final Stream<List<CcTailscaleStatus>> _tailscaleStream =
       _sharedStream<List<CcTailscaleStatus>>(
         _tailscaleChannel,
         CcTailscaleStatus.listFrom,
       );
 
-  /// §579 — поток ядра `SubscribeTailscaleStatus`: записи endpoint'ов
-  /// Tailscale (тег, `BackendState`, `StateText`). Подписку в ядре держат
-  /// [startTailscaleStatus]/[stopTailscaleStatus]; слушать до старта.
+
+
+
   Stream<List<CcTailscaleStatus>> get tailscaleStatus => _tailscaleStream;
 
-  // §581 — ответы проверки устройства: по одному событию на ответ. Без кэша
-  // последнего значения (новая проверка не должна увидеть ответ прежней);
-  // потребитель один — лист проверки.
+
+
+
   late final Stream<CcTailscalePingResult> _tailscalePingStream =
       _tailscalePingChannel.receiveBroadcastStream().map(
             (e) => CcTailscalePingResult.fromMap(_asMap(e)),
           );
 
-  /// §581 — поток ответов [startTailscalePing]. Слушать до старта.
+
   Stream<CcTailscalePingResult> get tailscalePing => _tailscalePingStream;
 
-  /// §122 — shared-стрим с КЭШЕМ последнего снапшота.
-  ///
-  /// Два требования, которые наивный `broadcast` ломал → «при старте главный
-  /// экран пустой»:
-  ///  1. **Постоянный** upstream-listen (НЕ ленивый): EventChannel слушается
-  ///     один раз на всю жизнь процесса. Иначе uptream снимался при уходе
-  ///     последнего подписчика (rebuild/навигация) и РАЗОВЫЙ снапшот `groups`
-  ///     (ядро шлёт его один раз при подключении screenClient) терялся, пока
-  ///     никто не слушал.
-  ///  2. **Replay последнего значения** новому подписчику: `groups`/`status`
-  ///     приходят редко/периодично; подписчик, вставший ПОСЛЕ снапшота, иначе
-  ///     ждал бы следующего. Кэшируем last и отдаём его сразу в onListen.
-  ///
-  /// Native sink (`BoxVpnService.cc*Sink`) держится один раз — несколько
-  /// потребителей (главный + Stats + Conns) больше не воюют за него.
-  /// Колбэки очистки кэшей `_sharedStream` — зовутся из [resetCaches] на
-  /// disconnect, чтобы новый подписчик после reconnect НЕ получил replay'ем
-  /// устаревший снапшот прошлой сессии (старые группы/соединения мигнули бы до
-  /// прихода свежих).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   final List<void Function()> _cacheResetters = [];
 
-  /// §122 — сбросить replay-кэши групп/нод/соединений. Зовётся из
-  /// `_stopCcStreams` (disconnect). `status`-кэш тоже чистится — свежий статус
-  /// придёт следующим тиком (1s), а устаревшая скорость мёртвой сессии не нужна.
+
+
+
   void resetCaches() {
     for (final reset in _cacheResetters) {
       reset();
@@ -161,13 +161,13 @@ class CcChannel {
     T? last;
     var hasLast = false;
     final controller = StreamController<T>.broadcast(
-      onListen: () {}, // upstream уже активен (поднят ниже, постоянно)
+      onListen: () {},
     );
     _cacheResetters.add(() {
       last = null;
       hasLast = false;
     });
-    // Постоянная подписка на EventChannel — поднимается сразу, не снимается.
+
     channel.receiveBroadcastStream().listen(
       (e) {
         last = decode(e);
@@ -178,8 +178,8 @@ class CcChannel {
         if (!controller.isClosed) controller.addError(err, st);
       },
     );
-    // Каждому новому подписчику — немедленно последний кэшированный снапшот,
-    // затем живой поток из broadcast-контроллера.
+
+
     return Stream<T>.multi((sub) {
       if (hasLast) sub.add(last as T);
       final inner = controller.stream.listen(
@@ -191,14 +191,14 @@ class CcChannel {
     });
   }
 
-  // ─────────────────────── Lifecycle signals ───────────────────────
-  // §2.8 — screen/profiler клиенты поднимаются/гасятся по сигналу из Dart.
 
-  /// §185 — cold-start Flutter после swipe-keep (туннель жив, native CC жив,
-  /// движок переподнялся). Сбросить протухший native screenRefs + закрыть
-  /// осиротевшие screen/profiler-клиенты ПЕРЕД connectScreen — иначе протухший
-  /// refcount не даст переподнять screenClient на свежий движок (пустой UI).
-  /// Идемпотентно: на штатном старте (refs уже 0) — no-op.
+
+
+
+
+
+
+
   Future<void> resyncForReopen() => _invoke('ccResyncForReopen');
 
   Future<void> connectScreen() => _invoke('ccConnectScreen');
@@ -206,13 +206,13 @@ class CcChannel {
   Future<void> connectProfiler() => _invoke('ccConnectProfiler');
   Future<void> disconnectProfiler() => _invoke('ccDisconnectProfiler');
 
-  // §259 — refcount поверх profilerClient. У profiler-стрима (в т.ч.
-  // DNS-журнала §180) теперь ДВА потенциальных держателя: traffic_profiler
-  // (recording/live) и dns-direct-детектор (окно после старта). Голый
-  // `disconnectProfiler()` одного держателя оборвал бы native-подписку
-  // другому. acquire/release ведут счётчик: native connect зовётся на 0→1,
-  // native disconnect — на 1→0. Идемпотентно на уровне вызывающих (у каждого
-  // своё «взял/отдал»); отрицательный дисбаланс защищён clamp'ом.
+
+
+
+
+
+
+
   int _profilerRefs = 0;
   Future<void> acquireProfiler() async {
     _profilerRefs++;
@@ -220,22 +220,22 @@ class CcChannel {
   }
 
   Future<void> releaseProfiler() async {
-    if (_profilerRefs == 0) return; // защита от лишнего release
+    if (_profilerRefs == 0) return;
     _profilerRefs--;
     if (_profilerRefs == 0) await disconnectProfiler();
   }
 
-  /// §175 — отмена масс-пинга: disconnect отдельного pingClient → ядро рвёт
-  /// per-call ctx in-flight URLTest'ов (не дожидаясь TCPTimeout), не задевая
-  /// status/screen/profiler-стримы. Следующий urlTestOutbound поднимет свежий.
+
+
+
   Future<void> cancelPing() => _invoke('ccCancelPing');
 
-  /// §579 — поднять / снять подписку ядра на состояние узлов Tailscale.
+
   Future<void> startTailscaleStatus() => _invoke('ccStartTailscaleStatus');
   Future<void> stopTailscaleStatus() => _invoke('ccStopTailscaleStatus');
 
-  /// §581 — подписку ядра держат несколько потребителей (главный экран для
-  /// NETWORKS, вкладка Network узла): поднимается на 0→1, снимается на 1→0.
+
+
   int _tailscaleRefs = 0;
   Future<void> acquireTailscaleStatus() async {
     _tailscaleRefs++;
@@ -248,24 +248,24 @@ class CcChannel {
     if (_tailscaleRefs == 0) await stopTailscaleStatus();
   }
 
-  /// Переподнять подписку, если её кто-то держит (reload ядра).
+
   Future<void> restartTailscaleStatus() async {
     if (_tailscaleRefs > 0) await startTailscaleStatus();
   }
 
-  /// §581 — выбор exit node на ходу (`stableId`; пусто — снять). Тело узла
-  /// не меняется. `null` — успех, иначе текст ошибки ядра.
+
+
   Future<String?> setTailscaleExitNode(String tag, String stableId) =>
       _invokeError('ccSetTailscaleExitNode', {
         'tag': tag,
         'stable_id': stableId,
       });
 
-  /// §581 — выход узла из аккаунта. `null` — успех, иначе текст ошибки.
+
   Future<String?> tailscaleLogout(String tag) =>
       _invokeError('ccTailscaleLogout', {'tag': tag});
 
-  /// §581 — проверка устройства: ответы идут в [tailscalePing].
+
   Future<void> startTailscalePing(String tag, String peerIp) async {
     try {
       await _methods.invokeMethod<void>('ccStartTailscalePing', {
@@ -273,9 +273,9 @@ class CcChannel {
         'peer_ip': peerIp,
       });
     } on PlatformException {
-      // сервис не поднят — ответов не будет
+
     } on MissingPluginException {
-      // юнит-тест / native не готов
+
     }
   }
 
@@ -291,30 +291,30 @@ class CcChannel {
     }
   }
 
-  // §164 — энергомодель CC-клиентов.
-  /// FAST (0.1с) — Stats открыт (плавность); NORMAL (0.5с) — главный экран.
-  /// Пересоздаёт statusClient с новым интервалом (см. feature 123 §3).
+
+
+
   Future<void> setStatusFast(bool fast) async {
     try {
       await _methods.invokeMethod<void>('ccSetStatusFast', {'fast': fast});
     } catch (_) {
-      /* native не готов — игнор, не критично */
+
     }
   }
 
-  /// Фон (onAppPaused): гасим status+screen клиенты (0 тиков/0 drain).
-  /// profilerClient НЕ трогаем — recording живёт в фоне. Выключение VPN ловит
-  /// нативный broadcast, не CC (feature 123 §1.1/§4).
+
+
+
   Future<void> pauseClients() => _invoke('ccPauseClients');
 
-  /// Возврат из фона (onAppResumed): поднимаем status(NORMAL)+screen(если refs>0).
+
   Future<void> resumeClients() => _invoke('ccResumeClients');
 
-  // ─────────────────────────── Imperatives ───────────────────────────
 
-  /// §4.6 — per-node delay. Возвращает `(delay, error)`. ИНВАРИАНТ: `error` —
-  /// единственный признак провала; `delay==0 && error==''` = успех 0мс.
-  /// `timeoutMs` — миллисекунды (0 → дефолт ядра).
+
+
+
+
   Future<CcDelayResult> urlTestOutbound(
     String tag, {
     String link = '',
@@ -327,19 +327,19 @@ class CcChannel {
     return CcDelayResult.fromMap(_asMap(r ?? const {}));
   }
 
-  /// §308 — групповой URLTest: ядро force-тестит ВСЕХ членов группы её
-  /// конфиг-URL'ом (`urltest_url` шаблона, не ping settings) и делает
-  /// переселект на живой узел. Fire-and-forget: `true` = команда принята;
-  /// результаты приедут стримами (groups → selected, history → делеи).
+
+
+
+
   Future<bool> urlTestGroup(String tag) async =>
       await _methods.invokeMethod<bool>('ccUrlTestGroup', {'tag': tag}) ??
       false;
 
-  // ─── §236 — headless probe-сессия (Test servers при выключенном VPN) ───
 
-  /// Стартует probe-инстанс ядра (конфиг БЕЗ tun). Возвращает '' при успехе,
-  /// текст ошибки иначе (в т.ч. «VPN is running…» — тогда caller уходит на
-  /// ветку [urlTestOutbound] через боевое ядро).
+
+
+
+
   Future<String> probeStart(String config) async {
     final r = await _methods.invokeMethod<String>('probeStart', {
       'config': config,
@@ -347,8 +347,8 @@ class CcChannel {
     return r ?? '';
   }
 
-  /// Тест одной ноды в probe-сессии. Семантика результата как у
-  /// [urlTestOutbound] (Variant B: провал — только в `error`).
+
+
   Future<CcDelayResult> probeUrlTest(
     String tag, {
     String link = '',
@@ -361,8 +361,8 @@ class CcChannel {
     return CcDelayResult.fromMap(_asMap(r ?? const {}));
   }
 
-  /// §392 — диагностический GET через узел в probe-сессии (VPN выключен).
-  /// Семантика результата — см. [getUrlViaOutbound].
+
+
   Future<CcGetUrlResult> probeGetUrl(
     String tag, {
     required String link,
@@ -376,17 +376,17 @@ class CcChannel {
     return CcGetUrlResult.fromMap(_asMap(r ?? const {}));
   }
 
-  /// Гасит probe-сессию (идемпотентно).
+
   Future<void> probeStop() => _methods.invokeMethod<void>('probeStop');
 
-  /// §392 — диагностический HTTP GET через узел боевого ядра, адресуемый тегом
-  /// (kernel SPEC 058). В отличие от [urlTestOutbound] возвращает ТЕЛО ответа:
-  /// отвечает не на «жив ли узел», а на «что видно через него» (exit-IP, гео,
-  /// `warp=`). Активный selector не переключается.
-  ///
-  /// `maxBytes` 0 → дефолт ядра 256 KiB (потолок 1 MiB); `timeoutMs` 0 →
-  /// ограничен только вызовом. Реальный трафик через узел — зовётся ТОЛЬКО по
-  /// явному действию юзера, фоновые обходы списка запрещены (kernel SPEC 058 §5).
+
+
+
+
+
+
+
+
   Future<CcGetUrlResult> getUrlViaOutbound(
     String tag, {
     required String link,
@@ -400,77 +400,77 @@ class CcChannel {
     return CcGetUrlResult.fromMap(_asMap(r ?? const {}));
   }
 
-  /// §4.7 — снапшот route+DNS правил (диагностика).
+
   Future<List<CcRule>> getRules() async {
     final r = await _methods.invokeMethod<List<dynamic>>('ccGetRules');
     return (r ?? const []).map((m) => CcRule.fromMap(_asMap(m))).toList();
   }
 
-  /// §122/SPEC015 — unary pull-снапшот групп. Закрывает дыру pull-vs-push:
-  /// если стартовый `SubscribeGroups`-push потерялся (гонка waitForStarted), тут
-  /// перечитываем дерево групп синхронно, не пересоздавая screenClient. `null` =
-  /// ядро не смогло отдать (не-STARTED/нет клиента) — отличаем от `[]` (групп
-  /// нет): на null caller НЕ трогает state, на [] — тоже (пустых при connected
-  /// не бывает, см. _onCcGroups). Формат Map идентичен groups-стриму → CcGroup.fromMap.
+
+
+
+
+
+
   Future<List<CcGroup>?> getGroups() async {
     final r = await _methods.invokeMethod<List<dynamic>>('ccGetGroups');
     if (r == null) return null;
     return r.map((m) => CcGroup.fromMap(_asMap(m))).toList();
   }
 
-  /// §535 (ядро SPEC 097) — unary pull плоского списка outbound'ов и
-  /// endpoint'ов. ЕДИНСТВЕННЫЙ источник `endpointState`/`idleSinceSeconds`:
-  /// ядро заполняет их только в ответе `GetOutbounds`, поток `outbounds` и
-  /// дерево `groups` их не несут. `null` = не смогли прочитать (не-STARTED /
-  /// нет клиента), `[]` = список пуст — caller различает, как в [getGroups].
+
+
+
+
+
   Future<List<CcOutbound>?> getOutbounds() async {
     final r = await _methods.invokeMethod<List<dynamic>>('ccGetOutbounds');
     if (r == null) return null;
     return r.map((m) => CcOutbound.fromMap(_asMap(m))).toList();
   }
 
-  /// §311 — unary снапшот конфига РАБОТАЮЩЕГО ядра (kernel SPEC 036
-  /// `GetRunningConfig`; javap rc.3: `String getRunningConfig() throws`).
-  /// Захвачен ядром один раз на старте, отдача — копия строки.
-  ///
-  /// КОНТРАКТ (модель §209): `null` = недоступен по ЛЮБОЙ причине — сервис
-  /// down, ядро без метода (< rc.3 / без with_lx_command → Unimplemented),
-  /// attached-путь (Unavailable), гонка старта (FailedPrecondition), старый
-  /// native без handler'а (MissingPlugin). Caller деградирует к saved-файлу.
-  /// Пустую строку native не отдаёт (SPEC 036: Unavailable вместо "").
+
+
+
+
+
+
+
+
+
   Future<String?> getRunningConfig() async {
     try {
       final r = await _methods.invokeMethod<String>('ccGetRunningConfig');
       return (r == null || r.isEmpty) ? null : r;
     } on PlatformException {
-      return null; // ядро не STARTED / RPC-ошибка — не фатально
+      return null;
     } on MissingPluginException {
-      return null; // юнит-тест / native не готов
+      return null;
     }
   }
 
-  /// §208/§209 — unary снапшот пула round_robin-группы [tag]. Слоты
-  /// `[{slot,tag,delay}]` в фиксированном порядке слота. `delay`==0 → мёртвая/не
-  /// измерена.
-  ///
-  /// КОНТРАКТ (§209): `null` = CC-клиент недоступен (сервис down / pingClient не
-  /// поднялся) — НЕ путать с пустым пулом. `[]` = пул пуст (группа не
-  /// round_robin / нет данных). Идёт через незасыпающий pingClient (native), так
-  /// что в фоне отдаёт данные, а не молчит.
+
+
+
+
+
+
+
+
   Future<List<CcPoolSlot>?> getPool(String tag) async {
     final r = await _methods.invokeMethod<List<dynamic>>('ccGetPool', {
       'tag': tag,
     });
-    if (r == null) return null; // клиент недоступен (§209)
+    if (r == null) return null;
     return r.map((m) => CcPoolSlot.fromMap(_asMap(m))).toList();
   }
 
-  /// §312 — unary снапшот состояния DNS-групп (kernel SPEC 035
-  /// `GetDNSGroups`; тип сервера `group`, SPEC 033).
-  ///
-  /// КОНТРАКТ (модель §209): `null` = недоступен (сервис down / ядро без
-  /// метода / attached-путь / Unimplemented) — НЕ путать с `[]` = группы в
-  /// конфиге отсутствуют. Через незасыпающий pingClient — отдаёт и в фоне.
+
+
+
+
+
+
   Future<List<CcDnsGroup>?> getDnsGroups() async {
     try {
       final r = await _methods.invokeMethod<List<dynamic>>('ccGetDnsGroups');
@@ -480,9 +480,9 @@ class CcChannel {
           if (e is Map) CcDnsGroup.fromMap(_asMap(e)),
       ];
     } on PlatformException {
-      return null; // RPC-ошибка / не-STARTED — не фатально
+      return null;
     } on MissingPluginException {
-      return null; // юнит-тест / native не готов
+      return null;
     }
   }
 
@@ -493,11 +493,11 @@ class CcChannel {
       }) ??
       false;
 
-  /// §557 (ядро SPEC 106) — вкл/выкл WG/AWG-endpoint'а на лету. Возвращает
-  /// состояние узла после вызова (строки [CcEndpointState]). Отказ ядра —
-  /// [PlatformException] с кодом `not_found` / `invalid_argument` /
-  /// `failed_precondition` / `unavailable` / `error`. Ядро выключатель не
-  /// сохраняет: reload стартует все узлы включёнными.
+
+
+
+
+
   Future<String> setEndpointEnabled(String tag, bool enabled) async =>
       await _methods.invokeMethod<String>('ccSetEndpointEnabled', {
         'tag': tag,
@@ -516,9 +516,9 @@ class CcChannel {
     try {
       await _methods.invokeMethod<void>(method);
     } on PlatformException {
-      // Канал недоступен (туннель down / сервис не поднят) — не фатально.
+
     } on MissingPluginException {
-      // Плагин не зарегистрирован (юнит-тест / native не готов) — не фатально.
+
     }
   }
 
@@ -532,14 +532,14 @@ class CcChannel {
   static List<dynamic> _asList(Object? e) => e is List ? e : const [];
 }
 
-// ═══════════════════════════ Models ═══════════════════════════
 
-/// §579/§581 — запись `TailscaleEndpointStatus` ядра: тег endpoint'а,
-/// `BackendState` (`Running`, `NeedsLogin`, `Stopped`, …), `StateText` и
-/// (§581) полное состояние для вкладки Network.
-///
-/// Имена устройств, адреса, имя сети и ссылка входа — данные пользователя: в
-/// журнал, дамп поддержки и Debug API не попадают (§581 раздел 9).
+
+
+
+
+
+
+
 class CcTailscaleStatus {
   const CcTailscaleStatus({
     required this.tag,
@@ -562,16 +562,16 @@ class CcTailscaleStatus {
   final String magicDnsSuffix;
   final bool keyAuth;
 
-  /// Свой узел.
+
   final CcTailscalePeer? self;
 
-  /// Действующий exit node; `null` — выхода нет.
+
   final CcTailscalePeer? exitNode;
 
-  /// Устройства сети по владельцам (свой узел сюда не входит).
+
   final List<CcTailscaleUserGroup> userGroups;
 
-  /// Все устройства сети без своего узла.
+
   List<CcTailscalePeer> get peers => [
         for (final g in userGroups) ...g.peers,
       ];
@@ -597,8 +597,8 @@ class CcTailscaleStatus {
     );
   }
 
-  /// Сообщение канала — список map'ов; всё прочее и записи без тега
-  /// отбрасываются.
+
+
   static List<CcTailscaleStatus> listFrom(Object? e) => [
         for (final m in CcChannel._asList(e))
           if (m is Map)
@@ -606,8 +606,8 @@ class CcTailscaleStatus {
       ].where((s) => s.tag.isNotEmpty).toList();
 }
 
-/// §581 — устройство сети Tailscale (`TailscalePeer` ядра). Времена —
-/// Unix-секунды ядра, 0 — значения нет.
+
+
 class CcTailscalePeer {
   const CcTailscalePeer({
     this.stableId = '',
@@ -630,10 +630,10 @@ class CcTailscalePeer {
   final String os;
   final bool online;
 
-  /// Устройство — действующий exit node этого узла.
+
   final bool exitNode;
 
-  /// Устройство предлагает себя как exit node.
+
   final bool exitNodeOption;
   final bool shareeNode;
   final bool expired;
@@ -641,11 +641,11 @@ class CcTailscalePeer {
   final int lastSeen;
   final List<String> ips;
 
-  /// MagicDNS-имя без точки в конце.
+
   String get dnsNameClean =>
       dnsName.endsWith('.') ? dnsName.substring(0, dnsName.length - 1) : dnsName;
 
-  /// Первый адрес (IPv4 идёт первым у ядра); пусто — адресов нет.
+
   String get firstIp => ips.isEmpty ? '' : ips.first;
 
   static int _int(Object? v) => v is num ? v.toInt() : 0;
@@ -669,7 +669,7 @@ class CcTailscalePeer {
       );
 }
 
-/// §581 — владелец устройств сети (`TailscaleUserGroup` ядра).
+
 class CcTailscaleUserGroup {
   const CcTailscaleUserGroup({
     this.userId = 0,
@@ -683,7 +683,7 @@ class CcTailscaleUserGroup {
   final String displayName;
   final List<CcTailscalePeer> peers;
 
-  /// Заголовок группы: `DisplayName`, при пустом — `LoginName`.
+
   String get title => displayName.isNotEmpty ? displayName : loginName;
 
   factory CcTailscaleUserGroup.fromMap(Map<String, dynamic> m) =>
@@ -698,8 +698,8 @@ class CcTailscaleUserGroup {
       );
 }
 
-/// §581 — ответ проверки устройства (`TailscalePingResult` ядра). Непустой
-/// [error] — ответа нет.
+
+
 class CcTailscalePingResult {
   const CcTailscalePingResult({
     this.latencyMs = 0,
@@ -727,8 +727,8 @@ class CcTailscalePingResult {
       );
 }
 
-/// §3.1 — статус от `writeStatus`. `uplink`/`downlink` — байтовая дельта за
-/// интервал (B/s при interval=1s); `*Total` — накопленный объём.
+
+
 class CcStatus {
   const CcStatus({
     this.uplink = 0,
@@ -750,8 +750,8 @@ class CcStatus {
   final int connectionsIn;
   final int connectionsOut;
 
-  /// §3.1 — НЕ сумма in+out вслепую (могут двоить); для бейджа активных
-  /// предпочтительнее длина connections-снапшота. Здесь — справочно.
+
+
   int get connectionsTotal => connectionsIn + connectionsOut;
 
   factory CcStatus.fromMap(Map<String, dynamic> m) => CcStatus(
@@ -766,7 +766,7 @@ class CcStatus {
   );
 }
 
-/// §2.4 — плоский узел из `writeOutbounds` (outbound ИЛИ endpoint).
+
 class CcOutbound {
   const CcOutbound({
     required this.tag,
@@ -780,21 +780,21 @@ class CcOutbound {
   final String tag;
   final String type;
 
-  /// Задержка в мс. 0 = не тестирован / не ответил — различать по `urlTestTime`.
+
   final int urlTestDelay;
 
-  /// Unix-время последнего теста (0 = не тестирован).
+
   final int urlTestTime;
 
-  /// §535 (ядро SPEC 097) — состояние WG/AWG-endpoint'а:
-  /// `never_built` / `building` / `up` / `asleep` / `torn_down` / `down`.
-  ///
-  /// Пусто у всего остального И на любом пути, кроме `getOutbounds()`: поток
-  /// `writeOutbounds` и дерево групп поле не несут (ядро заполняет его только
-  /// в ответе `GetOutbounds`). Пусто = «состояние неизвестно», не ошибка.
+
+
+
+
+
+
   final String endpointState;
 
-  /// §535 — секунд с последнего дайла через endpoint (0 вне `getOutbounds()`).
+
   final int idleSinceSeconds;
 
   factory CcOutbound.fromMap(Map<String, dynamic> m) => CcOutbound(
@@ -802,44 +802,44 @@ class CcOutbound {
     type: m['type']?.toString() ?? '',
     urlTestDelay: _int(m['urlTestDelay']),
     urlTestTime: _int(m['urlTestTime']),
-    // no-throw: старое ядро/поток без ключей → '' и 0 (состояние неизвестно).
+
     endpointState: m['endpointState']?.toString() ?? '',
     idleSinceSeconds: _int(m['idleSinceSeconds']),
   );
 }
 
-/// §535 — состояния WG/AWG-endpoint'а из `CcOutbound.endpointState`
-/// (ядро SPEC 097). Строки ядра, не переводятся и в UI не показываются.
+
+
 abstract final class CcEndpointState {
-  /// Ленивый endpoint, дайлов ещё не было.
+
   static const neverBuilt = 'never_built';
 
-  /// Идёт сборка (включая ожидание бюджета).
+
   static const building = 'building';
 
-  /// Устройство собрано и бодрствует.
+
   static const up = 'up';
 
-  /// Устройство собрано, уведено в Down.
+
   static const asleep = 'asleep';
 
-  /// Устройство освобождено (разборка по idle_teardown или бюджетом).
+
   static const tornDown = 'torn_down';
 
-  /// Ещё не стартовал или закрыт.
+
   static const down = 'down';
 
-  /// §557 (SPEC 106) — выключен вручную: дайлы отвергаются, ничто его не
-  /// будит до включения. Не «соберётся при дайле», поэтому не [isNotBuilt].
+
+
   static const disabled = 'disabled';
 
-  /// Узел не поднят: ядро соберёт его при первом дайле (0,5–1 с).
-  /// Это состояние, а не сбой, — UI не показывает тут таймаут.
+
+
   static bool isNotBuilt(String s) => s == neverBuilt || s == tornDown;
 }
 
-/// §2.4 — группа из `writeGroups` (дерево). `selectable` заменяет `type=='Selector'`,
-/// `selected` заменяет clash-поле `now`.
+
+
 class CcGroup {
   const CcGroup({
     required this.tag,
@@ -869,13 +869,13 @@ class CcGroup {
   );
 }
 
-/// §3.1/§3.2 — соединение из аккумулятора. `closedAt`>0 = закрытое (closed-история).
-///
-/// §122 — `uplink`/`downlink` = НАКОПЛЕННЫЙ итог (`getUplinkTotal/DownlinkTotal`),
-/// сколько ВСЕГО передано за соединение. `uplinkDelta`/`downlinkDelta` = байт за
-/// последний тик статуса (мгновенная скорость; у idle = 0). `outbound`/
-/// `outboundType` — выбранная нода/тип; `chains` — полная outbound-цепочка
-/// (Clash `chains`, §174: ядро отдаёт через `Connection.chain()`-итератор).
+
+
+
+
+
+
+
 class CcConnection {
   const CcConnection({
     required this.id,
@@ -904,30 +904,30 @@ class CcConnection {
   final String destination;
   final String rule;
 
-  /// Накопленный итог за соединение (всего передано). `getUplinkTotal`.
+
   final int uplink;
   final int downlink;
 
-  /// Байт за последний тик (мгновенная скорость). `getUplink`. 0 у idle.
+
   final int uplinkDelta;
   final int downlinkDelta;
 
-  /// Выбранная нода/тип (libbox `getOutbound`/`getOutboundType`).
+
   final String outbound;
   final String outboundType;
   final String protocol;
 
-  /// §174 — полная outbound-цепочка (Clash `chains`): selector→urltest→node.
-  /// Из `Connection.chain()`-итератора ядра. Пусто для прямого outbound.
+
+
   final List<String> chains;
 
-  /// §178 — detour-хвост финального outbound (ядро SPEC 017, `Connection.detour()`).
-  /// Транспортная ось (куда физически ныряет пакет: `node → WARP`), порядок
-  /// node→наружу. Пусто: прямой outbound / block / dns / ядро без поля 23.
-  /// НЕ дублирует `chains` — node там, detour-теги тут.
+
+
+
+
   final List<String> detours;
 
-  /// App-attribution из `getProcessInfo()`: package (для иконки) + путь процесса.
+
   final String packageName;
   final String processPath;
 
@@ -936,27 +936,27 @@ class CcConnection {
 
   bool get isClosed => closedAt > 0;
 
-  /// §204 — routing-строка в нотации §252 (эволюция §181), идентичная
-  /// `TrafficEvent.routingLineOf`: `[net] rule ⇒ группы : транспорт-вход → …
-  /// → выход (селектор (выбор)) → dest` — справа от `:` физический путь
-  /// пакета (вход первым, выход перед целью).
-  /// `chains`/`detours` приходят из ТОГО ЖЕ источника ядра, что
-  /// `TrafficEvent.outboundChain`/`detourChain` (`Connection.chain()`/`.detour()`),
-  /// порядок идентичен (`[node, …selectors]` / `[node→наружу]`) — поэтому логика
-  /// копируется 1:1.
-  ///
-  /// Отличия от TrafficEvent (намеренно): process НЕ включаем (у ряда Conns своя
-  /// app-строка); duration НЕ дописываем (§204 D — таймер рендерится отдельным
-  /// виджетом справа в ряду / секцией Timing в detail, не внутри строки).
-  ///
-  /// [compact] — для ряда: опускает префикс `[net]` (дублирует бейдж/иконку),
-  /// строка начинается с `rule`.
-  /// [ruleLabel] — резолвленное человекочитаемое имя правила (UI-слой
-  /// `RuleNameResolver`); если передано — используется вместо сырого `rule`
-  /// (модель vpn не знает про резолвер). Пусто → берётся `rule` или `final`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   String routingLineOf({bool compact = false, String? ruleLabel}) {
     final sb = StringBuffer();
-    // Ось решения (⇒): [net] rule → селекторы (сверху вниз = chains[1:].reversed).
+
     final inner = <String>[];
     final ruleText = (ruleLabel != null && ruleLabel.isNotEmpty)
         ? ruleLabel
@@ -966,11 +966,11 @@ class CcConnection {
     );
     if (chains.length > 1) inner.addAll(chains.sublist(1).reversed);
     sb.write(inner.join(' ⇒ '));
-    // §252 — физический путь (→ по ходу пакета): транспорт изнутри наружу
-    // (detour-ось развёрнута: вход первым) → выход ОДНИМ элементом
-    // `селектор (…вложенно… (node))` (свёртка ПО СТРУКТУРЕ chains
-    // `[node, …selectors]`, не через SelectorInfo; пустые chains —
-    // outbound-fallback) → назначение.
+
+
+
+
+
     final phys = <String>[...foldSelectorPairs(detours).reversed];
     final exitChain = chains.isNotEmpty
         ? chains
@@ -988,7 +988,7 @@ class CcConnection {
     return sb.toString();
   }
 
-  /// Host из `destination` (`host:port` → `host`); IPv6 в `[..]:port` сохраняем.
+
   String get _hostOfDestination {
     final d = destination;
     if (d.isEmpty) return '';
@@ -1024,10 +1024,10 @@ class CcConnection {
   );
 }
 
-/// §180 — структурное DNS-событие из ядра (SPEC 018 v2, §261: команда
-/// `CommandDNS` в мультиплексе profilerClient, приходит через `writeDNSQuery`).
-/// Заменяет текстовый парсинг core-лога: атрибуция к приложению (`packageName`)
-/// приходит ИЗ ЯДРА (processInfo), не сшивается по connId.
+
+
+
+
 class CcDnsQuery {
   const CcDnsQuery({
     required this.domain,
@@ -1049,79 +1049,79 @@ class CcDnsQuery {
     this.survival = false,
   });
 
-  /// Запрошенный домен (оригинал, не финальный CNAME-target).
+
   final String domain;
 
-  /// qtype: 1=A, 28=AAAA, 5=CNAME, 65=HTTPS, 33=SRV, … (DNS RR type).
+
   final int queryType;
 
-  /// Q1 (SPEC 018): `-1` = НЕТ ОТВЕТА (timeout), физически ≠ 65535. Иначе —
-  /// реальный response.Rcode (0=NOERROR, 3=NXDOMAIN…). НЕ кастить в unsigned:
-  /// ядро отдаёт signed, `_int` знак сохраняет.
+
+
+
   final int rcode;
 
   final int ttl;
 
-  /// exchanged/cached/optimistic/refreshed/rejected/failed (источник ответа).
+
   final String source;
 
-  /// Q2 (SPEC 018): true на провале (timeout/SERVFAIL/rejected/loopback).
-  /// failed-событие → профайлер делает `dnsFail`.
+
+
   final bool failed;
 
-  /// Причина провала ("timeout"/"loopback"/"rejected"…); "" на успехе.
+
   final String error;
 
-  /// Атрибуция к приложению ИЗ ЯДРА (processInfo). Часто непуст — в отличие от
-  /// connId-сшивки текстового пути (корень §177-баннера).
+
+
   final String packageName;
   final String processPath;
 
-  /// rc.10 (SPEC 018+) — какой DNS-сервер резолвил запрос (на всех путях, вкл.
-  /// провалы). Пусто на старом ядре / если ядро не отдало.
+
+
   final String dnsServer;
 
-  /// rc.10 — тип DNS-сервера (udp/tcp/tls/https/quic/…).
+
   final String dnsServerType;
 
-  /// rc.10 — outbound-канал DNS-сервера (селектор развёрнут в активный узел
-  /// через Now() server-side), список как chain/detour. ПУСТО на cached
-  /// (cache-hit без сетевого пути).
+
+
+
   final List<String> outbound;
 
-  /// Q3 (SPEC 018): ВЕСЬ response.Answer (CNAME-hops + финальные A/AAAA) в
-  /// исходном порядке. Пусто если подписка без includeAnswers. cnameChain
-  /// собирается из элементов с type==CNAME(5).
+
+
+
   final List<CcDnsAnswer> answers;
 
-  /// §315 (kernel SPEC 035) — путь DNS-групп ИЗНУТРИ НАРУЖУ; пусто = запрос
-  /// шёл мимо группы. При вложенности: `[inner, outer]`.
+
+
   final List<String> groupPath;
 
-  /// §315 — хронология проб ЭТОГО запроса: кто опрошен, с каким исходом и
-  /// RTT. Пусто на кеш-попадании и на не-групповых путях. Опоздавшие ответы
-  /// веера сюда НЕ попадают (их не было на момент эмита) — полная картина
-  /// живёт в state-RPC `getDnsGroups` (§312).
+
+
+
+
   final List<CcDnsGroupAttempt> attempts;
 
-  /// §315 — в запросе был веер (спасение после сбоя цели / выборы `fastest` /
-  /// любой запрос `parallel`).
+
+
   final bool fanned;
 
-  /// §315 — режим выживания: чистых членов не осталось, ответ получен одной
-  /// попыткой к наименее грязному. Красный флаг здоровья группы.
+
+
   final bool survival;
 
-  /// Q1-helper: ответа от сервера не было (timeout).
+
   bool get noAnswer => rcode == -1;
 
-  /// §315 — запрос шёл через DNS-группу.
+
   bool get viaGroup => groupPath.isNotEmpty;
 
   factory CcDnsQuery.fromMap(Map<String, dynamic> m) => CcDnsQuery(
     domain: m['domain']?.toString() ?? '',
     queryType: _int(m['queryType']),
-    rcode: _int(m['rcode']), // знак сохраняется → -1 остаётся -1 (Q1)
+    rcode: _int(m['rcode']),
     ttl: _int(m['ttl']),
     source: m['source']?.toString() ?? '',
     failed: m['failed'] == true,
@@ -1145,7 +1145,7 @@ class CcDnsQuery {
             )
             .toList() ??
         const [],
-    // §315 — трасса группы; на старом ядре/нативе ключей нет → пустые дефолты.
+
     groupPath:
         (m['groupPath'] as List?)
             ?.map((e) => e.toString())
@@ -1167,7 +1167,7 @@ class CcDnsQuery {
   );
 }
 
-/// §315 (kernel SPEC 035) — одна проба DNS-группы из трассы запроса.
+
 class CcDnsGroupAttempt {
   const CcDnsGroupAttempt({
     required this.server,
@@ -1176,16 +1176,16 @@ class CcDnsGroupAttempt {
     required this.rttMs,
   });
 
-  /// Тег опрошенного участника (лист — не группа).
+
   final String server;
 
-  /// Тип транспорта участника (udp/tls/https/…).
+
   final String serverType;
 
-  /// `answered` · `timeout` · `network_error` · `servfail`.
+
   final String outcome;
 
-  /// RTT пробы, мс.
+
   final int rttMs;
 
   bool get answered => outcome == 'answered';
@@ -1199,7 +1199,7 @@ class CcDnsGroupAttempt {
       );
 }
 
-/// §180 — одна DNS-запись ответа (RR). Часть `CcDnsQuery.answers`.
+
 class CcDnsAnswer {
   const CcDnsAnswer({
     required this.name,
@@ -1209,12 +1209,12 @@ class CcDnsAnswer {
   });
 
   final String name;
-  final int type; // RR type (5=CNAME, 1=A, 28=AAAA…)
-  final String rdata; // значение записи (target для CNAME, IP для A/AAAA)
+  final int type;
+  final String rdata;
   final int ttl;
 
   bool get isCname => type == 5;
-  bool get isAddress => type == 1 || type == 28; // A / AAAA
+  bool get isAddress => type == 1 || type == 28;
 
   factory CcDnsAnswer.fromMap(Map<String, dynamic> m) => CcDnsAnswer(
     name: m['name']?.toString() ?? '',
@@ -1224,7 +1224,7 @@ class CcDnsAnswer {
   );
 }
 
-/// §4.6 — результат `urlTestOutbound`. Источник истины провала — `error`.
+
 class CcDelayResult {
   const CcDelayResult({required this.delay, required this.error});
 
@@ -1233,7 +1233,7 @@ class CcDelayResult {
 
   bool get ok => error.isEmpty;
 
-  /// Маппинг в UI-контракт `lastDelay` (§4.6): ok → delay (вкл. 0мс); fail → -1.
+
   int get lastDelayValue => ok ? delay : -1;
 
   factory CcDelayResult.fromMap(Map<String, dynamic> m) => CcDelayResult(
@@ -1242,18 +1242,18 @@ class CcDelayResult {
   );
 }
 
-/// §392 — результат диагностического GET через узел (kernel SPEC 058).
-///
-/// ИНВАРИАНТ: `error` — единственный признак несостоявшегося обмена (тег не
-/// найден, dial/TLS, таймаут). **Не-2xx статус ошибкой НЕ является**: 403 от
-/// Cloudflare или 429 от гео-сервиса — ровно те данные, ради которых проба и
-/// существует, они приезжают с `error == ''` и заполненным телом.
-///
-/// [remoteAddr] — адрес, куда цель отрезолвилась ИЗНУТРИ туннеля, а НЕ exit-IP
-/// узла: exit-IP несёт тело ответа (строка `ip=` у cdn-cgi/trace).
-///
-/// [elapsedMs] — время всего обмена вместе с чтением тела; это не замер
-/// задержки, и в историю urltest ядро его не пишет.
+
+
+
+
+
+
+
+
+
+
+
+
 class CcGetUrlResult {
   const CcGetUrlResult({
     required this.status,
@@ -1273,7 +1273,7 @@ class CcGetUrlResult {
   final int elapsedMs;
   final String error;
 
-  /// Обмен состоялся (ответ получен, любым статусом).
+
   bool get ok => error.isEmpty;
 
   factory CcGetUrlResult.fromMap(Map<String, dynamic> m) => CcGetUrlResult(
@@ -1287,9 +1287,9 @@ class CcGetUrlResult {
   );
 }
 
-/// §208 (SPEC 019 V2) — один слот пула round_robin-группы (`getPool`). Слоты
-/// фиксированы по `slot`; нода в слоте может меняться (дотест). `delay`==0 →
-/// мёртвая / не измерена (живая всегда ≥1 — ядро клампит на чтении).
+
+
+
 class CcPoolSlot {
   const CcPoolSlot({
     required this.slot,
@@ -1299,9 +1299,9 @@ class CcPoolSlot {
 
   final int slot;
   final String tag;
-  final int delay; // мс, 0 = мёртвая/не измерена
+  final int delay;
 
-  /// true → нода в слоте жива (есть замер). false → мёртвая/не измерена.
+
   bool get alive => delay > 0;
 
   factory CcPoolSlot.fromMap(Map<String, dynamic> m) => CcPoolSlot(
@@ -1311,7 +1311,7 @@ class CcPoolSlot {
   );
 }
 
-/// §312 — член DNS-группы из `getDNSGroups` (kernel SPEC 035, схема v3).
+
 class CcDnsGroupMember {
   const CcDnsGroupMember({
     required this.tag,
@@ -1326,12 +1326,12 @@ class CcDnsGroupMember {
 
   final String tag;
   final String serverType;
-  final bool clean; // ноль живых ошибок
+  final bool clean;
   final int liveErrors;
-  final int lastErrorAgeMs; // возраст последней живой ошибки; -1 = нет
-  final int liveWins; // только fastest
-  final bool current; // текущая цель группы
-  final int lastRttMs; // последняя успешная проба; 0 = не мерялся
+  final int lastErrorAgeMs;
+  final int liveWins;
+  final bool current;
+  final int lastRttMs;
 
   factory CcDnsGroupMember.fromMap(Map<String, dynamic> m) => CcDnsGroupMember(
     tag: m['tag']?.toString() ?? '',
@@ -1345,7 +1345,7 @@ class CcDnsGroupMember {
   );
 }
 
-/// §312 — снапшот состояния DNS-группы из `getDNSGroups` (kernel SPEC 035).
+
 class CcDnsGroup {
   const CcDnsGroup({
     required this.tag,
@@ -1355,8 +1355,8 @@ class CcDnsGroup {
   });
 
   final String tag;
-  final String mode; // stable | fastest | parallel
-  final String current; // '' = ещё не выбиралась / parallel
+  final String mode;
+  final String current;
   final List<CcDnsGroupMember> members;
 
   factory CcDnsGroup.fromMap(Map<String, dynamic> m) => CcDnsGroup(
@@ -1370,7 +1370,7 @@ class CcDnsGroup {
   );
 }
 
-/// §4.7 — правило из `getRules` (route+DNS).
+
 class CcRule {
   const CcRule({
     required this.type,

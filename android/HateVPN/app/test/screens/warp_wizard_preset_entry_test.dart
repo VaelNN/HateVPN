@@ -15,7 +15,7 @@ void main() {
     expect(plain.label, 'b.example');
     expect(plain.labelWidget, isNull);
 
-    // Пустой recommended → пометок нет ни у кого.
+
     expect(warpPresetEntry('', '', mark).labelWidget, isNull);
   });
 
@@ -38,8 +38,8 @@ void main() {
     ));
     await tester.tap(find.byType(TextField));
     await tester.pumpAndSettle();
-    // В меню пометка видна (DropdownMenu держит вторую, невидимую копию
-    // пунктов для замера ширины — потому findsWidgets, не findsOneWidget).
+
+
     expect(find.text('consumer-masque.cloudflareclient.com $mark'),
         findsWidgets);
     await tester

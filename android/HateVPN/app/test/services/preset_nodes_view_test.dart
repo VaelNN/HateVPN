@@ -9,8 +9,8 @@ import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/services/node_hash.dart';
 import 'package:lxbox/services/preset_nodes_view.dart';
 
-/// §578 — узлы для пресетов с `for_each` на экранах, обслуживаемые узлы
-/// строки пресета и видимость переключателя `Skip presets`.
+
+
 void main() {
   final shipped = jsonDecode(
           File('assets/wizard_template.json').readAsStringSync())

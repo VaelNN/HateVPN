@@ -10,17 +10,17 @@ import '../../../services/l10n/locale_controller.dart';
 import '../../../services/subscription/import_rules.dart';
 import '../../../widgets/safe_bottom.dart';
 
-/// §302 — «Filters» tab: per-subscription import-rules (REPLACE + DISABLE +
-/// ENABLE §332),
-/// применяемые к телу подписки на импорте/обновлении. CRUD + drag-reorder +
-/// общий тумблер набора. Правила вступают в силу на следующем refresh —
-/// после каждой правки показываем snackbar с кнопкой Refresh, а редактор
-/// правила даёт живой предпросмотр эффекта на тестовой строке.
-///
-/// Самодостаточна (как Source-tab): читает правила из `entry.list`, мутирует
-/// через `entry.updateImportRules` / `entry.importRulesEnabled` и persist'ит
-/// через `controller.persistSources()`. Слушает `entry` (ChangeNotifier),
-/// чтобы фоновый refresh/rename не рассинхронил список.
+
+
+
+
+
+
+
+
+
+
+
 class SubscriptionFiltersTab extends StatefulWidget {
   const SubscriptionFiltersTab({
     super.key,
@@ -46,20 +46,20 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
 
   void _persist() => unawaited(widget.controller.persistSources());
 
-  /// Идёт применение (перезагрузка тела подписки) — блокирует кнопку Apply
-  /// и показывает прогресс, чтобы двойной тап не запускал два фетча.
+
+
   bool _applying = false;
 
-  /// Есть несохранённый эффект: правила правились после последнего применения.
-  /// Подсвечивает кнопку Apply (filled вместо tonal) — визуальный намёк
-  /// «нажми, чтобы увидеть результат».
+
+
+
   bool _dirty = false;
 
-  /// Применить правила = перезагрузить тело подписки. Правила работают на
-  /// этапе загрузки (decode → applyImportRules → parseAll), поэтому применить
-  /// «на месте», не обращаясь к источнику, архитектурно невозможно: уже
-  /// разобранные NodeSpec задним числом не переписываются. Тот же путь, что
-  /// кнопка обновления в AppBar (`updateAt`).
+
+
+
+
+
   Future<void> _applyNow() async {
     if (_applying) return;
     final idx = widget.controller.entries.indexOf(widget.entry);
@@ -78,9 +78,9 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
     }
   }
 
-  /// Итог применения — сколько нод пришло и сколько из них выключено
-  /// правилами/вручную. Отвечает на «сработало или нет» без ухода на вкладку
-  /// Nodes.
+
+
+
   void _showApplyResult() {
     final sub = _sub;
     if (sub == null) return;
@@ -103,9 +103,9 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
     );
   }
 
-  /// Правила меняются — существующие ноды не переразбираются задним числом.
-  /// Помечаем набор «грязным» (кнопка Apply подсвечивается) и показываем
-  /// snackbar с быстрым Apply — чтобы «когда сработает» было очевидно.
+
+
+
   void _notifyChanged() {
     if (!mounted) return;
     setState(() => _dirty = true);
@@ -165,8 +165,8 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
     _notifyChanged();
   }
 
-  /// Вызывается из `onReorderItem`: newIndex уже нормализован под удалённый
-  /// элемент, ручной сдвиг «-1 при move вниз» не нужен.
+
+
   void _reorder(int oldIndex, int newIndex) {
     final next = [..._rules];
     final moved = next.removeAt(oldIndex);
@@ -177,8 +177,8 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
     _notifyChanged();
   }
 
-  /// Открывает полноэкранный редактор правила (add/edit). Возвращает
-  /// `ImportRule` или `null` (отмена/системный back).
+
+
   Future<ImportRule?> _openRuleEditor(ImportRule? initial) {
     return Navigator.of(context).push<ImportRule>(
       MaterialPageRoute(
@@ -206,9 +206,9 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
     );
   }
 
-  /// Нижняя панель: «Apply rules» (перезагрузка тела подписки) + «Add rule».
-  /// Закреплена под списком — обе кнопки всегда на виду и ничего не
-  /// перекрывают (раньше FAB висел поверх последнего правила).
+
+
+
   Widget _bottomBar(BuildContext context, ThemeData theme) {
     final applyLabel = _applying
         ? getLocalText.s("Applying…")
@@ -266,7 +266,7 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Общий тумблер набора.
+
         SwitchListTile(
           value: _setEnabled,
           onChanged: (v) {
@@ -280,8 +280,8 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
               "Rewrite or disable nodes when the subscription is imported")),
         ),
         const Divider(height: 1),
-        // Правила применяются на импорте — существующие ноды не меняются
-        // задним числом. Подсказываем, что нужно обновить.
+
+
         Container(
           width: double.infinity,
           color: theme.colorScheme.surfaceContainerHighest,
@@ -317,9 +317,9 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
                   ),
                 )
               : ReorderableListView.builder(
-                  // Нижний отступ под FAB больше не нужен — кнопки уехали в
-                  // закреплённую панель под списком.
-                  padding: EdgeInsets.zero, // bottom-inset: handled — ниже bottom bar с SafeArea
+
+
+                  padding: EdgeInsets.zero,
                   itemCount: rules.length,
                   onReorderItem: _reorder,
                   itemBuilder: (context, i) =>
@@ -336,8 +336,8 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
     final invalid =
         rule.enabled && rule.conditions.isNotEmpty && !rule.isUsable;
     final isReplace = rule.action == ImportRuleAction.replace;
-    // Цвет бейджа действия: Replace — синий, Disable — оранжевый,
-    // Enable (§332) — зелёный.
+
+
     final badgeColor = switch (rule.action) {
       ImportRuleAction.replace => Colors.blue,
       ImportRuleAction.disable => Colors.orange,
@@ -348,7 +348,7 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
       ImportRuleAction.disable => getLocalText.s("Disable"),
       ImportRuleAction.enable => getLocalText.s("Enable"),
     };
-    // Сводка условий: «tag contains ⚡», несколько — через AND/OR.
+
     final condText = rule.conditions.isEmpty
         ? getLocalText.s("(no conditions)")
         : rule.conditions
@@ -365,7 +365,7 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
       ),
       title: Row(
         children: [
-          // Бейдж действия.
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
@@ -391,7 +391,7 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
       subtitle: Text(
         [
           if (isReplace)
-            // Пустая цель = замена по всему узлу, показываем как `*` (§307).
+
             '${rule.targetPath.isEmpty ? '*' : rule.targetPath} = ${rule.replacement.isEmpty ? getLocalText.s("(remove)") : rule.replacement}',
           if (invalid) getLocalText.s("invalid pattern — skipped"),
         ].join('  ·  '),
@@ -427,21 +427,21 @@ class _SubscriptionFiltersTabState extends State<SubscriptionFiltersTab> {
   }
 }
 
-/// §302 — полноэкранный редактор одного правила (add/edit). Возвращает
-/// `ImportRule` через `Navigator.pop` или `null` (Cancel/системный back).
-///
-/// Правило: условия (`путь оператор паттерн`, объединённые AND/OR) → действие
-/// (Disable либо Replace `путь = значение`). Работает над готовым JSON узла
-/// (`NodeSpec.emit`), поэтому пути одинаковы для всех форматов подписки.
-///
-/// Вкладка «Matches» прогоняет правило по узлам подписки тем же движком, что
-/// и импорт (`applyRulesToNode`) — предпросмотр совпадает с результатом.
+
+
+
+
+
+
+
+
+
 class _RuleEditorScreen extends StatefulWidget {
   const _RuleEditorScreen({this.initial, this.nodes = const []});
 
   final ImportRule? initial;
 
-  /// Узлы подписки — для предпросмотра и подсказок по путям.
+
   final List<NodeSpec> nodes;
 
   @override
@@ -506,11 +506,11 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
         enabled: widget.initial?.enabled ?? true,
       );
 
-  /// null = сохранять можно; иначе причина, по которой Save заблокирован.
+
   String? get _saveBlocker {
     final rule = _current();
-    // Условие определяется паттерном, а не путём: пустой путь = поиск по
-    // всему JSON узла (валидный сценарий «не знаю, в каком поле искать»).
+
+
     if (!rule.conditions.any((c) => c.pattern.isNotEmpty)) {
       return getLocalText.s("Add at least one condition");
     }
@@ -522,8 +522,8 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
       }
     }
     if (rule.action == ImportRuleAction.replace && rule.targetPath.isEmpty) {
-      // §307 — пустая цель валидна в substitute: замена по всему узлу.
-      // «Set whole value» с пустой целью затирал бы весь узел — запрещено.
+
+
       if (rule.replaceMode != ImportRuleReplaceMode.substitute) {
         return getLocalText.s("Set whole value needs a target path");
       }
@@ -585,7 +585,7 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
     return ListView(
       padding: const EdgeInsets.all(16).withSafeBottom(context),
       children: [
-        // ─── Условия ───────────────────────────────────────────────────────
+
         Row(
           children: [
             Text(getLocalText.s("Conditions"),
@@ -632,7 +632,7 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
 
         const Divider(height: 32),
 
-        // ─── Действие ──────────────────────────────────────────────────────
+
         Text(getLocalText.s("Action"), style: theme.textTheme.titleSmall),
         const SizedBox(height: 8),
         SegmentedButton<ImportRuleAction>(
@@ -642,7 +642,7 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
               label: Text(getLocalText.s("Disable")),
               icon: const Icon(Icons.block, size: 18),
             ),
-            // §332 — Enable: снять disable-отметку (включая ручную).
+
             ButtonSegment(
               value: ImportRuleAction.enable,
               label: Text(getLocalText.s("Enable")),
@@ -664,8 +664,8 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
               getLocalText.s("Writes a new value into the matching nodes."),
             ImportRuleAction.disable => getLocalText.s(
                 "Hides matching nodes from routing. They stay visible, struck through."),
-            // §332 — правила последовательные: Enable первым в списке
-            // сбрасывает прошлые отключения перед новыми Disable-правилами.
+
+
             ImportRuleAction.enable => getLocalText.s(
                 "Re-enables matching nodes, clearing disable marks from rules and manual toggles. Later rules can still disable them."),
           },
@@ -680,8 +680,8 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
             style: const TextStyle(fontFamily: 'monospace'),
             decoration: InputDecoration(
               labelText: getLocalText.s("Target path"),
-              hintText: 'tls.utls.fingerprint', // l10n-exempt: JSON path example
-              // §307 — пустая цель = substitute по всему узлу.
+              hintText: 'tls.utls.fingerprint',
+
               helperText: _replaceMode == ImportRuleReplaceMode.substitute
                   ? getLocalText
                       .s("Leave empty to substitute across the whole node")
@@ -725,7 +725,7 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
             style: const TextStyle(fontFamily: 'monospace'),
             decoration: InputDecoration(
               labelText: getLocalText.s("New value"),
-              hintText: 'chrome', // l10n-exempt: uTLS fingerprint value
+              hintText: 'chrome',
               helperText: getLocalText.s(r"Use $1, $2 for regex capture groups"),
               border: const OutlineInputBorder(),
               isDense: true,
@@ -772,7 +772,7 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
                     style: const TextStyle(fontFamily: 'monospace'),
                     decoration: InputDecoration(
                       labelText: getLocalText.s("Path"),
-                      // Пусто — валидный ввод: ищем по всему узлу.
+
                       hintText: getLocalText.s("whole node"),
                       border: const OutlineInputBorder(),
                       isDense: true,
@@ -882,8 +882,8 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
     );
   }
 
-  /// Вкладка «Matches» — прогон правила по узлам подписки ТЕМ ЖЕ движком, что
-  /// и импорт: что показано здесь, то и произойдёт при Apply.
+
+
   Widget _matchesTab(BuildContext context) {
     final theme = Theme.of(context);
     final nodes = widget.nodes;
@@ -971,8 +971,8 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
                     final (node, outcome) = hits[i];
                     final title =
                         node.label.isNotEmpty ? node.label : node.tag;
-                    // §332 — тристейт: true=Disable, false=Enable, null=Replace
-                    // (в превью одного правила ровно одно из трёх).
+
+
                     final (icon, color, subtitle) = switch (outcome.disabled) {
                       true => (
                           Icons.block,
@@ -1020,7 +1020,7 @@ class _RuleEditorScreenState extends State<_RuleEditorScreen> {
   }
 }
 
-/// Черновик условия в редакторе: контроллеры полей + не-текстовые флаги.
+
 class _CondDraft {
   final TextEditingController path;
   final TextEditingController pattern;

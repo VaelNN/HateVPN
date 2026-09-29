@@ -15,21 +15,21 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §283 — выключенная нода подписки не эмитится в конфиг (но остаётся в
-/// `nodes` для UI), её warnings не сыпятся в emitWarnings.
-///
-/// §400 (контракт 0.10.0) — КЛЮЧ ОТМЕТКИ ЭТО ТЕГ, уникализированный внутри
-/// источника, а не контент-хеш. Отсюда три следствия, которые эти тесты и
-/// фиксируют: отметка переживает ротацию адреса под тем же именем; тёзки
-/// `X`/`X-2` — разные узлы и гасятся раздельно; безымянный узел
-/// идентичности не имеет, и выключить его per-node нельзя.
-///
-/// Инвариант фильтрации: карта идентичностей считается от ПОЛНОГО списка
-/// узлов источника, включая уже выключенные. Иначе выключение узла
-/// переименовало бы следующего тёзку (`X-2` → `X`) и сняло отметку уже с
-/// него.
+
+
+
+
+
+
+
+
+
+
+
+
+
 class _FakeCtx extends EmitContext {
-  // §272/§322 — глобальный passive_check; этим тестам он не важен.
+
   @override
   bool get passiveCheck => false;
 
@@ -66,8 +66,8 @@ class _FakeCtx extends EmitContext {
 }
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   const uriA = 'vless://u1@h1.com:443?type=ws&security=tls&sni=h1.com#A';
@@ -99,8 +99,8 @@ void main() {
     });
 
     test('отметка переживает reparse: ключ не привязан к инстансу', () {
-      // Отметка записана по одному инстансу NodeSpec, фильтр отработал по
-      // другому (reparse на загрузке/refresh). Ключ — имя узла, а не object.
+
+
       final list = sub({'A': DateTime.utc(2026, 7, 18)});
       final ctx = _FakeCtx();
       list.build(ctx);
@@ -108,9 +108,9 @@ void main() {
     });
 
     test('§400 отметка переживает РОТАЦИЮ адреса под тем же именем', () {
-      // Главная причина смены модели: провайдер вправе поменять сервер под
-      // тем же именем (ротация IP, смена группы). Контент-хеш считал это
-      // появлением нового узла и молча снимал отметку.
+
+
+
       final rotated = SubscriptionServers(
         id: 's1',
         name: 'S',
@@ -132,9 +132,9 @@ void main() {
     });
 
     test('§400 ПЕРЕИМЕНОВАНИЕ отметку теряет — имя и есть идентичность', () {
-      // Обратная сторона обмена (IDENTITY.md §1.2), названная явно: раньше
-      // переименование отметку сохраняло. Тест фиксирует именно потерю,
-      // чтобы обмен не «починили» обратно по недосмотру.
+
+
+
       final renamed = SubscriptionServers(
         id: 's1',
         name: 'S',
@@ -155,8 +155,8 @@ void main() {
     });
 
     test('§400 тёзки X / X-2 гасятся РАЗДЕЛЬНО', () {
-      // Дубли одного сервера под одним именем — разные узлы. Раньше их
-      // гасил один toggle (общий контент-хеш).
+
+
       const twinA = 'vless://u1@h1.com:443?type=ws&security=tls&sni=h1.com#X';
       const twinB = 'vless://u9@h9.com:443?type=ws&security=tls&sni=h9.com#X';
       SubscriptionServers twins(Map<String, DateTime> disabled) =>
@@ -181,15 +181,15 @@ void main() {
       expect(second.entries, hasLength(1),
           reason: 'отметка на X-2 гасит ВТОРОГО тёзку, не первого');
 
-      // Ключевое: погашены РАЗНЫЕ узлы. Теги эмиссии совпадают (уникализацию
-      // вешает EmitContext), поэтому сверяем по адресу сервера.
+
+
       expect(first.entries.single.map['server'],
           isNot(second.entries.single.map['server']));
     });
 
     test('§400 инвариант: выключение тёзки не сдвигает нумерацию соседа', () {
-      // Карта считается от ПОЛНОГО списка, включая выключенные. Считай её
-      // после фильтра — `X-2` стал бы `X`, и отметка сняла бы уже его.
+
+
       const twinA = 'vless://u1@h1.com:443?type=ws&security=tls&sni=h1.com#X';
       const twinB = 'vless://u9@h9.com:443?type=ws&security=tls&sni=h9.com#X';
       final ctx = _FakeCtx();
@@ -218,14 +218,14 @@ void main() {
   });
 
   group('buildConfig §283 интеграция (фильтр + warnings-зеркало)', () {
-    // §474 — код `tls_insecure` ставит РЕЕСТР (`tls.json` → `insecure`,
-    // `advisory` на значении `true`), а не рукописное правило разбора.
-    // Проверка здесь про зеркало фильтра §283 — «warnings выключенной ноды не
-    // сыпем», — но источник самого warning'а ей нужен живой: без реестра у
-    // обеих нод не стало бы кодов вовсе, и тест зеленел бы вхолостую.
-    //
-    // Зеркало `assets/contract` (в git), а не копия `contract/`: последней на
-    // CI нет.
+
+
+
+
+
+
+
+
     setUpAll(() async {
       if (!Directory('assets/contract/registry').existsSync()) return;
       await ContractRegistry.I.loadFromDirectory('assets/contract');
@@ -260,7 +260,7 @@ void main() {
     );
 
     test('нода вне конфига, её warning вне emitWarnings', () async {
-      // insecure=1 → InsecureTlsWarning на обеих нодах.
+
       const wa = 'vless://u1@h1.com:443?security=tls&sni=h1.com&insecure=1#A';
       const wb = 'vless://u2@h2.com:443?security=tls&sni=h2.com&insecure=1#B';
       final list = SubscriptionServers(

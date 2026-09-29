@@ -6,13 +6,13 @@ import 'package:lxbox/widgets/detour_target_picker.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §248 — фильтрация Направления секции пикера цели detour
-/// (pure-хелпер [visibleDetourDirections]): только enabled detour-Направления,
-/// минус омонимы с bare-тегами распарсенных членов текущей папки
-/// (включая выключенных членов — toggle не должен молча менять смысл ссылки).
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   const directions = [
@@ -27,8 +27,8 @@ void main() {
   });
 
   test('омоним скрыт в контексте папки, виден без неё', () {
-    // Член-тёзка Направления выключен — коллизия всё равно не создаётся:
-    // достаточно включиться, чтобы ссылка молча сменила смысл.
+
+
     final folder = FolderServers(
       id: 'f1',
       name: 'Homonym',
@@ -43,7 +43,7 @@ void main() {
       ],
     );
     expect(visibleDetourDirections(directions, folder), isEmpty);
-    // Без контекста папки тот же Направление доступен.
+
     expect(visibleDetourDirections(directions, null).map((c) => c.tag), ['vpn-2']);
   });
 
@@ -57,7 +57,7 @@ void main() {
       detourPolicy: DetourPolicy.defaults,
       members: [
         FolderMember(raw: 'vless://u@h.com:443?type=ws&security=tls#Alpha'),
-        // Битый raw → node null → bare-тега нет → не омоним.
+
         FolderMember(raw: 'garbage-not-a-config'),
       ],
     );

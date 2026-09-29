@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../services/settings_storage.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// Diagnostics tab для App Settings.
-///
-/// Stateless — state-снимок и callback'и приходят от
-/// `_AppSettingsScreenState` (source-of-truth). Каждый callback внутри
-/// делает setState + side-effect, parent rebuild'ит этот widget. Поведение
-/// идентично инлайн-версии.
+
+
+
+
+
+
 class DiagnosticsTab extends StatelessWidget {
   const DiagnosticsTab({
     super.key,
@@ -52,9 +52,9 @@ class DiagnosticsTab extends StatelessWidget {
   final bool backgroundLocationGranted;
   final bool nearbyWifiGranted;
 
-  /// §567 — причина, по которой SSID не читается при выданном BACKGROUND:
-  /// `fine_location_missing` (не выбрано «точное местоположение») или
-  /// `location_disabled` (системный тумблер). null — проблем нет.
+
+
+
   final String? wifiLocationIssue;
 
   final bool debugEnabled;
@@ -123,10 +123,10 @@ class DiagnosticsTab extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right, size: 18),
           onTap: onNotificationsTap,
         ),
-        // §051 — Wi-Fi rules permissions: BACKGROUND_LOCATION (API 29+) и
-        // NEARBY_WIFI_DEVICES (API 33+). Без них sing-box `wifi_ssid` /
-        // `wifi_bssid` правила не сматчатся (`WifiInfo.ssid` возвращает
-        // `<unknown ssid>`). См. spec/050 findings + spec/051.
+
+
+
+
         ListTile(
           leading: Icon(
             locationOk
@@ -245,10 +245,10 @@ class DiagnosticsTab extends StatelessWidget {
               ],
             ),
           ),
-        // §037 — config_locked_for_debug. Видим только когда Debug API ON,
-        // чтобы lock не висел сиротой без UI-возврата к разблокировке (его
-        // снимают через Debug API `PUT /settings/config_locked` или этим
-        // toggle'ом). При выключении Debug API toggle выше — lock auto-снимется.
+
+
+
+
         if (debugEnabled)
           SwitchListTile(
             title: Text(getLocalText.s("Lock config (debug)")),
@@ -261,12 +261,12 @@ class DiagnosticsTab extends StatelessWidget {
             value: configLocked,
             onChanged: loaded ? onConfigLockedChanged : null,
           ),
-        // §043: forwarding sing-box internal logs into our AppLog (Debug
-        // screen → Core tab + /logs/core endpoint). Off by default — sing-box
-        // на busy traffic эмитит сотни строк/минуту; opt-in для диагностики.
-        // Subtitle короткий и timeless — без «after restart» (показывался бы
-        // и после самого рестарта, misleading); пояснялка про process-restart
-        // вынесена в полноширинный блок ниже.
+
+
+
+
+
+
         AnimatedContainer(
           key: coreLogsTileKey,
           duration: const Duration(milliseconds: 400),
@@ -286,10 +286,10 @@ class DiagnosticsTab extends StatelessWidget {
             onChanged: loaded ? onCoreLogsChanged : null,
           ),
         ),
-        // §345 — verbose: live-снятие TRACE/DEBUG-фильтра (см. BoxService.
-        // writeDebugMessage). Самодостаточный: сам читает/пишет storage,
-        // чтобы не раздувать state родителя. Активен только при включённом
-        // основном тумблере (при выключенном ядро не форвардит вообще).
+
+
+
+
         _CoreLogsVerboseTile(enabled: loaded && coreLogsEnabled),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -312,10 +312,10 @@ class DiagnosticsTab extends StatelessWidget {
             ],
           ),
         ),
-        // §051 Phase 3 — auto-record visited Wi-Fi networks. Default ON:
-        // без auto-record «Pick saved» picker почти всегда пустой,
-        // фича теряет смысл. 5-минутный stickiness отсекает drive-by
-        // сети (магазин/проход). Toggle для тех кто не хочет logging.
+
+
+
+
         const Divider(height: 8),
         SwitchListTile(
           title: Text(getLocalText.s("Auto-record visited Wi-Fi networks")),
@@ -343,13 +343,13 @@ class DiagnosticsTab extends StatelessWidget {
   }
 }
 
-/// §345 — суб-тумблер verbose core-логов. Применяется на лету (volatile в
-/// BoxService), без перезапуска VPN — в отличие от родительского тумблера.
+
+
 class _CoreLogsVerboseTile extends StatefulWidget {
   const _CoreLogsVerboseTile({required this.enabled});
 
-  /// false = основной тумблер выключен (или state не загружен) — verbose
-  /// бессилен, ядро не форвардит логи вообще.
+
+
   final bool enabled;
 
   @override

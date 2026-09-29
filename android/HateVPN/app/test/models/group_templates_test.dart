@@ -4,8 +4,8 @@ import 'package:lxbox/config/consts.dart';
 import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/template_loader.dart' show assertMagicNodeMirrors;
 
-/// §267 — парсинг `group_templates` + `magic_nodes` + `default_directions`,
-/// хелпер `resolveTpl`, инвариант зеркал `assertMagicNodeMirrors`.
+
+
 void main() {
   group('GroupTemplates.fromJson', () {
     final gtJson = <String, dynamic>{

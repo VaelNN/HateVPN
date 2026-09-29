@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-// §279 (Phase 7) — self-test AST-скана hardcoded_check: display-позиции,
-// рекурсия в ternary/switch/скобки, l10n-exempt, канонизация hash'а.
-// Логика вынесена в tool/l10n/src/hardcoded_scan.dart ровно ради этого теста.
+
+
+
 import '../../tool/l10n/src/hardcoded_scan.dart';
 import '../../tool/l10n/src/sha256.dart';
 

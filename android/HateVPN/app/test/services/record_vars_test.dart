@@ -11,13 +11,13 @@ import 'package:lxbox/services/template_loader.dart';
 
 import '../storage_migration/golden_harness.dart';
 
-// §441 (SPEC 129 контракта) — значения переменных записи: нормы Н2/Н3/Н4 для
-// двух носителей (`dns.servers[kind=template].vars`, `rules[kind=preset].vars`)
-// и писатели, которые их применяют (репозиторий, миграция).
 
-/// Объявления в форме шаблона: сервер с двумя переменными, сервер без
-/// переменных, пресет с `outbound` и bool, пресет без переменных, пресет со
-/// ссылкой на глобальную переменную.
+
+
+
+
+
+
 final _decls = RecordVarDecls.fromJson({
   'dns_options': {
     'servers': [
@@ -197,8 +197,8 @@ void main() {
   });
 
   group('SPEC 129 §6: цели по имени в переменных типа outbound', () {
-    // google_dot — умолчание `vpn-1`; пресет `russian` объявляет цель под
-    // именем `out`; `dns_ip`/`mode` — не цели, даже если значение совпало.
+
+
     final decls = RecordVarDecls.fromJson({
       'dns_options': {
         'servers': [
@@ -302,10 +302,10 @@ void main() {
   });
 
   group('условие приёмки L8: конфиг не меняется', () {
-    // Каждый пресет шаблона приложения: правило со ВСЕМИ объявленными
-    // переменными, выставленными в умолчание (и универсальной целью, равной
-    // умолчанию `outbound`), разворачивается в те же фрагменты, что и
-    // нормализованное (без ключей).
+
+
+
+
     test('все пресеты шаблона: умолчания в vars ≡ пустые vars', () async {
       TestWidgetsFlutterBinding.ensureInitialized();
       final template = await TemplateLoader.load();

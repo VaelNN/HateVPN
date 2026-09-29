@@ -9,16 +9,16 @@ import 'package:lxbox/services/parser/parse_all.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §560 п.9 / §570 — дельта тела (`NodeSpec.bodyDelta`: поля, которых модель
-/// не держит) ставится разбором и живёт в памяти узла. Узел, пересобранный
-/// конструктором из другого узла (перетег WARP/MASQUE, эмодзи у `.conf`),
-/// обязан унести её с собой, иначе поля пропадают до перечитывания
-/// источника.
-///
-/// Страж по исходнику: каждая копия узла через конструктор
-/// (`rawSource: x.rawSource`) вне разбора несёт в том же выражении
-/// `..bodyDelta = x.bodyDelta`. `node_spec.dart` исключён: там копии живут в
-/// `_withChainedTyped`, а дельту переносит обёртка `withChained`.
+
+
+
+
+
+
+
+
+
+
 void main() {
   setUpAll(loadEngineSections);
   tearDownAll(unloadEngineSections);

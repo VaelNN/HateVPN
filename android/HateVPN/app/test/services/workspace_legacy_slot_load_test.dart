@@ -8,11 +8,11 @@ import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/workspaces/workspace_controller.dart';
 import 'package:lxbox/services/workspaces/workspace_store.dart';
 
-/// §439 §3.3 — слот Workspaces с файлом настроек формы 2.23.2 (слоты спят и
-/// не мигрируют до загрузки): загрузка мигрирует рабочую копию штатным
-/// `_load()`, а исходник слота остаётся в `workspaces/<имя>/` копией
-/// `lxbox_settings.json.v0.bak` — копия рядом с рабочим файлом уже держит
-/// исходник первой миграции и слот не запишет.
+
+
+
+
+
 void main() {
   late Directory docs;
   late Directory support;
@@ -28,7 +28,7 @@ void main() {
   Map<String, dynamic> read(File f) =>
       jsonDecode(f.readAsStringSync()) as Map<String, dynamic>;
 
-  /// Файл слота, каким его сохранила 2.23.2.
+
   String legacySlot(String sourceId) => const JsonEncoder.withIndent('  ')
       .convert({
         'vars': {'scene': 'old'},
@@ -77,7 +77,7 @@ void main() {
       return null;
     });
     SettingsStorage.resetCacheForTesting();
-    // Сцена текущей формы; исходник первой миграции уже лежит рядом.
+
     await scene().writeAsString(jsonEncode({
       'storage_version': 1,
       'vars': {'scene': 'home'},
@@ -98,12 +98,12 @@ void main() {
       try {
         if (d.existsSync()) await d.delete(recursive: true);
       } on FileSystemException {
-        // AppLog пишет persistent-лог в docs async — race с delete.
+
       }
     }
   });
 
-  /// Слоты «Old» и «Home», на сцене — «Home»; файл слота «Old» — форма 2.23.2.
+
   Future<String> prepareLegacySlot() async {
     await ws.saveAs('Old');
     await ws.saveAs('Home');
@@ -124,7 +124,7 @@ void main() {
     expect(sceneV0().readAsStringSync(), '{"first":"migration"}',
         reason: 'копия первой миграции не перетирается');
 
-    // Состояние перечитано моделями из мигрированной сцены.
+
     expect((await SettingsStorage.getServerLists()).single.id, 'srv-old');
     expect((await SettingsStorage.getChains()).single.hops, const [NodeLink(tag: 'Tokyo'), NodeLink(tag: 'vpn-1')]);
     expect((await SettingsStorage.getCustomRules()).single.name, 'Ads');
@@ -133,7 +133,7 @@ void main() {
     expect(onScene.containsKey('server_lists'), isFalse);
     expect((onScene['vars'] as Map)['scene'], 'old');
 
-    // Копия слота на сцену не едет.
+
     expect(WorkspaceStore.kSlotEntries.map((e) => e.name),
         isNot(contains('lxbox_settings.json.v0.bak')));
   });
@@ -149,7 +149,7 @@ void main() {
     expect(savedOld.containsKey('server_lists'), isFalse);
     expect(slotV0('Old').readAsStringSync(), legacy);
 
-    // Повторная загрузка уже мигрированного слота копию не трогает.
+
     await slotV0('Old').writeAsString('{"kept":true}');
     await ws.load('Old', stopVpn: () async => false);
     expect(slotV0('Old').readAsStringSync(), '{"kept":true}');

@@ -1,28 +1,28 @@
-/// §460 W1 — рендер предупреждений санитайзера из текстов реестра.
-///
-/// Сам класс [RegistryWarning] живёт в `models/node_warning.dart`: база
-/// `NodeWarning` объявлена `sealed`, а Dart 3 разрешает наследование от
-/// `sealed` только внутри её библиотеки. Здесь — резолв текста, который
-/// классу и нужен: `title_<lang>` для строки узла, `text_<lang>` для
-/// карточки, подстановки и severity.
-///
-/// Тексты — ДАННЫЕ контракта, а не строки UI (24.1.5): приложение своих
-/// таблиц не держит, и l10n-чекеры сюда не смотрят.
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../models/node_warning.dart' show WarningSeverity;
 import 'registry.dart';
 
-/// Язык текста реестра. `zh` падает в `en`, пока лаунчер не добавит третий
-/// набор (спека §460 §2.3).
+
+
 enum RegistryLang { en, ru }
 
-/// Тег активной локали → язык реестра.
+
 RegistryLang registryLangForTag(String tag) =>
     tag == 'ru' ? RegistryLang.ru : RegistryLang.en;
 
-/// Короткая строка кода (⚠ на строке узла). Кода нет в реестре — сам код:
-/// молчать нельзя, а выдумывать текст за контракт тем более.
+
+
 String registryTitle(
   String code,
   RegistryLang lang, {
@@ -37,8 +37,8 @@ String registryTitle(
   return _substitute(raw, path: path, value: value, params: params);
 }
 
-/// Развёрнутый текст кода (карточка узла). Кода нет — пустая строка:
-/// карточке нечего показать, и подпись из кода уже стоит заголовком.
+
+
 String registryText(
   String code,
   RegistryLang lang, {
@@ -52,9 +52,9 @@ String registryText(
   return _substitute(raw, path: path, value: value, params: params);
 }
 
-/// §460 W2b — «почему так вышло» (блок `Why` карточки). Пусто/`null` —
-/// блока в карточке нет: кода нет в реестре либо причина у него не описана,
-/// и это норма (`cause_*` завёл §467, заполняются они постепенно).
+
+
+
 String? registryCause(
   String code,
   RegistryLang lang, {
@@ -69,8 +69,8 @@ String? registryCause(
   return _substitute(raw, path: path, value: value, params: params);
 }
 
-/// §460 W2b — «что сделать» (блок `What to do`), шагами. Пустой список —
-/// блока нет.
+
+
 List<String> registryFix(
   String code,
   RegistryLang lang, {
@@ -88,7 +88,7 @@ List<String> registryFix(
   ];
 }
 
-/// Severity кода из реестра; кода нет — `warning` (не глушить незнакомое).
+
 WarningSeverity registrySeverity(String code) {
   switch (ContractRegistry.I.textFor(code)?.severity) {
     case 'info':
@@ -100,9 +100,9 @@ WarningSeverity registrySeverity(String code) {
   }
 }
 
-/// §500 — `value` поля с `secret: true` в реестре в шторке и Debug API
-/// не показываем. Санитайзер маскирует сам (24.1.4); здесь тот же суд по
-/// пути — на случай, если причина пришла не из него.
+
+
+
 String? maskRegistrySecretValue(String? path, String? value) {
   if (value == null || value.isEmpty || value == '***') return value;
   return registryFieldPathIsSecret(path) ? '***' : value;
@@ -124,11 +124,11 @@ bool registryFieldPathIsSecret(String? path) {
   return false;
 }
 
-/// Подстановки `{path}`, `{value}` и произвольные `{<param>}`.
-///
-/// Незаполненный плейсхолдер остаётся как есть: текст реестра — источник
-/// правды, и подменять его на пустоту значило бы врать («поле  снято»).
-/// Такое расхождение видно глазами и чинится в реестре.
+
+
+
+
+
 String _substitute(
   String raw, {
   String? path,

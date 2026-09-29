@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:lxbox/services/error_format.dart';
 
-// §279 Phase 4 — форматтер возвращает UiMsg; тесты ассертят пиненный
-// английский рендер (renderEn), инвариант «строки те же, что до миграции».
+
+
 String fmt(Object e) => formatUserError(e).renderEn();
 
 void main() {
@@ -72,7 +72,7 @@ void main() {
     test('Long Object.toString — truncate до 120 chars + …', () {
       final long = Exception('x' * 200);
       final out = fmt(long);
-      expect(out.length, 118); // 117 + '…'
+      expect(out.length, 118);
       expect(out.endsWith('…'), isTrue);
     });
 

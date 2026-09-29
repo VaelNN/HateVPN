@@ -8,13 +8,13 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import 'engine_test_setup.dart';
 
-/// §303 — WebSocket early data. Xray задаёт её хвостом пути (`/x?ed=2560`),
-/// sing-box — полем `max_early_data`. Раньше хвост уезжал в `transport.path`
-/// дословно и сервер отвечал 404.
 
-/// §480 W8 — ссылка узла-носителя с транспортом [t]: её собирает движок по
-/// той же секции `uri`, что ведёт разбор. Своей ссылки у транспорта не
-/// бывает — он всегда едет параметрами узла.
+
+
+
+
+
+
 String _uriOf(TransportSpec t) => VlessSpec(
       id: 'id-1',
       tag: 'n',
@@ -26,13 +26,13 @@ String _uriOf(TransportSpec t) => VlessSpec(
       transport: t,
     ).toUri();
 
-/// Транспорт, доехавший до ссылки и обратно.
+
 WsTransport _viaUri(TransportSpec t) =>
     (parseUri(_uriOf(t)) as VlessSpec).transport! as WsTransport;
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('splitEarlyDataPath', () {
@@ -97,7 +97,7 @@ void main() {
       expect(m['type'], 'ws');
       expect(m['path'], '/api/v2/channel');
       expect(m['max_early_data'], 2560);
-      // Пустой header name = path-режим (как у Xray `ed`) — ключ не эмитим.
+
       expect(m.containsKey('early_data_header_name'), isFalse);
       expect(w, isEmpty);
     });
@@ -121,15 +121,15 @@ void main() {
   });
 
   group('round-trip URI', () {
-    // §480 W8 — круг идёт НАСТОЯЩИМ путём: ссылку узла собирает движок по
-    // секции `uri`, он же её разбирает. Прежде тесты звали `transportToQuery`
-    // — рукописную эмиссию, снятую волной W7.
-    //
-    // Вид ссылки волна сменила намеренно: `ed` уезжает ОТДЕЛЬНЫМ параметром
-    // (`?ed=2560&path=…`), а не хвостом внутри `path`. Обе формы разбор
-    // читает — хвост приходит из чужих клиентов и остаётся понятным, — но
-    // пишем мы теперь ту, что объявлена записью реестра. Проверяется
-    // сохранность смысла: размер early data и путь без хвоста.
+
+
+
+
+
+
+
+
+
     test('ссылка узла возвращает ed отдельным параметром', () {
       final uri = _uriOf(
           const WsTransport(path: '/api/v2/channel', maxEarlyData: 2560));

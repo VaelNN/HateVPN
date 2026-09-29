@@ -9,21 +9,21 @@ import android.net.VpnService
 import android.util.Log
 import com.leadaxe.lxbox.MainActivity
 
-/// §047 Public Intent API — приём automation-команд через broadcast intents
-/// (Tasker / Macrodroid / `am broadcast`). Объявлен в манифесте
-/// `enabled="false"`; включается рантаймом ([setEnabled]) когда юзер поднимает
-/// мастер-toggle «Принимать команды автоматизации».
-///
-/// **Барьер — сам мастер-toggle.** Пока он OFF, receiver `enabled=false` и не
-/// существует для системы; ON — принимаем от любого caller'а. Отдельного
-/// per-app пропуска нет: см. §157 (нерабочая permission-галка удалена —
-/// `checkCallingPermission` в broadcast-`onReceive` недетерминирован).
-///
-/// **Маршрутизация.** Прямые lifecycle-команды (START/STOP/TOGGLE) идут на
-/// [BoxVpnService] напрямую (быстро, без Flutter-engine). Остальные
-/// (switch-node / set-group / rebuild / refresh / reset / urltest) форвардятся
-/// в Dart через [VpnPlugin.handleAutomationAction] → MethodChannel → shared
-/// action-handlers (та же бизнес-логика, что у Debug API).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class LxBoxIntentReceiver : BroadcastReceiver() {
 
     companion object {
@@ -43,18 +43,18 @@ class LxBoxIntentReceiver : BroadcastReceiver() {
         const val EXTRA_GROUP = "group"
         const val EXTRA_FORCE = "force"
 
-        /// Включает/выключает все automation-receiver'ы (raw Шаг 1 +
-        /// Locale-плагины Шаг 2) одной транзакцией. Мастер-toggle «Принимать
-        /// команды автоматизации» (Flutter `setAutomationEnabled`).
-        ///
-        /// Edit-Activity Locale-плагинов НЕ гейтятся (всегда exported) — без
-        /// receiver'а они безвредны (юзер настроит плагин, но fire/query не
-        /// дойдёт пока компонент disabled).
+
+
+
+
+
+
+
         fun setEnabled(ctx: Context, enabled: Boolean) {
             val pm = ctx.packageManager
             val state = if (enabled) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
             else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-            // §047 Шаг 2 — Locale-receiver'ы по FQN (другой пакет `automation`).
+
             val components = listOf(
                 ComponentName(ctx, LxBoxIntentReceiver::class.java),
                 ComponentName(ctx, "com.leadaxe.lxbox.automation.LocaleSettingReceiver"),
@@ -68,9 +68,9 @@ class LxBoxIntentReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        // Defensive: receiver exported=true — любой intent может прилететь.
-        // Никогда не даём упасть (краш FGS-процесса при работающем VPN — хуже
-        // любого пропущенного intent'а).
+
+
+
         try {
             dispatch(context, intent)
         } catch (t: Throwable) {
@@ -80,9 +80,9 @@ class LxBoxIntentReceiver : BroadcastReceiver() {
 
     private fun dispatch(context: Context, intent: Intent) {
         val action = intent.action ?: return
-        // intent.package — поле адресации, выставляемое самим отправителем;
-        // не доказывает личность (broadcast не несёт caller-identity), только
-        // для лога. Барьер приёма — мастер-toggle (receiver enabled=false).
+
+
+
         val callerPkg = intent.`package` ?: "<unknown>"
         Log.d(TAG, "received $action from $callerPkg")
 
@@ -124,15 +124,15 @@ class LxBoxIntentReceiver : BroadcastReceiver() {
         }
     }
 
-    /// TOGGLE_VPN — toggle относительно текущего статуса. Старт требует VPN-
-    /// consent: если он уже дан — стартуем напрямую; иначе открываем
-    /// MainActivity с extra (тот же путь, что Quick Settings tile §032).
+
+
+
     private fun handleToggle(context: Context) {
         if (BoxVpnService.currentStatus == VpnStatus.Started) {
             BoxVpnService.stop(context)
             return
         }
-        // §192 — proxy-режим без TUN: prepare не нужен (и зря рвёт чужой VPN).
+
         if (!BootReceiver.hasTun(context) ||
             VpnService.prepare(context.applicationContext) == null) {
             BoxVpnService.start(context)
@@ -145,9 +145,9 @@ class LxBoxIntentReceiver : BroadcastReceiver() {
         }
     }
 
-    /// Форвард в Dart через VpnPlugin companion (cached MethodChannel). Если
-    /// Flutter-engine не запущен — silently skip (action не выполнится, Tasker
-    /// узнает из отсутствия outgoing-события / по таймауту).
+
+
+
     private fun forward(context: Context, name: String, args: Map<String, Any?>) {
         VpnPlugin.handleAutomationAction(name, args)
     }

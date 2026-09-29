@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -28,8 +28,8 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §238 — `/directions/*` handler поверх реального SettingsStorage
-/// (temp-dir через fake path provider, как в folder_test.dart).
+
+
 void main() {
   late Directory tempDir;
 
@@ -60,7 +60,7 @@ void main() {
     await Directory('${tempDir.path}/support').create();
     PathProviderPlatform.instance = _FakePathProvider(tempDir.path);
     SettingsStorage.resetCacheForTesting();
-    // Инвариант продукта: vpn-1 существует всегда (обычно — из миграции).
+
     await SettingsStorage.setDirections([
       const Direction(tag: 'vpn-1', label: 'VPN ①'),
     ]);
@@ -70,7 +70,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -102,7 +102,7 @@ void main() {
       expect(body['label'], 'Germany');
       expect(body['node_filter'], 'DE|Frankfurt');
       expect((body['auto'] as Map)['interval'], '3m');
-      // Немодифицированные auto-поля — дефолты, не null.
+
       expect((body['auto'] as Map)['tolerance'], 50);
 
       final stored = await SettingsStorage.getDirections();
@@ -117,7 +117,7 @@ void main() {
     final stored = await SettingsStorage.getDirections();
     expect(stored.length, kMaxDirections + 1);
     expect(stored.last.tag, 'vpn-11');
-    expect(stored.last.label, 'VPN 11'); // кружок-цифра кончилась на ⑩
+    expect(stored.last.label, 'VPN 11');
   });
 
   test('§393 A3 — POST /directions с кастомным тегом', () async {
@@ -153,7 +153,7 @@ void main() {
   });
 
   test('§393 A3 — include принимается PATCH и POST', () async {
-    await directionsHandler(req('POST', '/directions'), ctx()); // vpn-2
+    await directionsHandler(req('POST', '/directions'), ctx());
     final r = await directionsHandler(
       req(
         'PATCH',
@@ -204,7 +204,7 @@ void main() {
         ),
         ctx(),
       );
-      // Merge: меняем tolerance — url/interval сохраняются.
+
       final r1 = await directionsHandler(
         req(
           'PATCH',
@@ -220,7 +220,7 @@ void main() {
       expect(auto1['interval'], '9m');
       expect(auto1['tolerance'], 100);
 
-      // Вложенный balancer тоже мержится.
+
       final r2 = await directionsHandler(
         req(
           'PATCH',
@@ -239,7 +239,7 @@ void main() {
       expect((auto2['balancer'] as Map)['pool'], 4);
       expect(auto2['url'], 'https://ping.example/gen204');
 
-      // null — снять галку.
+
       final r3 = await directionsHandler(
         req('PATCH', '/directions/vpn-2', body: {'auto': null}),
         ctx(),
@@ -313,7 +313,7 @@ void main() {
 
   group('§248/§274 — detour-роль Направления', () {
     test('GET/PATCH roundtrip поля detour', () async {
-      await directionsHandler(req('POST', '/directions'), ctx()); // vpn-2
+      await directionsHandler(req('POST', '/directions'), ctx());
       final r1 = await directionsHandler(
         req('PATCH', '/directions/vpn-2', body: {'detour': true}),
         ctx(),
@@ -324,7 +324,7 @@ void main() {
         ctx(),
       );
       expect(asMap(r2)['detour'], isTrue);
-      // Снятие роли — тем же полем.
+
       final r3 = await directionsHandler(
         req('PATCH', '/directions/vpn-2', body: {'detour': false}),
         ctx(),
@@ -343,7 +343,7 @@ void main() {
     });
 
     test('detour + include_block в одном body — совместимы (§274)', () async {
-      await directionsHandler(req('POST', '/directions'), ctx()); // vpn-2
+      await directionsHandler(req('POST', '/directions'), ctx());
       final r = await directionsHandler(
         req(
           'PATCH',
@@ -367,7 +367,7 @@ void main() {
         await directionsHandler(
           req('POST', '/directions', body: {'detour': true}),
           ctx(),
-        ); // vpn-2
+        );
         final r = await directionsHandler(
           req('PATCH', '/directions/vpn-2', body: {'include_block': true}),
           ctx(),
@@ -378,8 +378,8 @@ void main() {
     );
 
     test('detour:true не трогает сохранённый include_block (§274)', () async {
-      // Запрет Q1 снят §274: PATCH одним полем detour не нормализует
-      // ранее выставленный include_block — галка выживает.
+
+
       await directionsHandler(
         req('POST', '/directions', body: {'include_block': true}),
         ctx(),
@@ -398,7 +398,7 @@ void main() {
     });
 
     test('healed в PATCH: flag-set НЕ лечит rules-ссылки (§274)', () async {
-      await directionsHandler(req('POST', '/directions'), ctx()); // vpn-2
+      await directionsHandler(req('POST', '/directions'), ctx());
       await SettingsStorage.saveRouteFinal('vpn-2');
       final r = await directionsHandler(
         req('PATCH', '/directions/vpn-2', body: {'detour': true}),
@@ -418,8 +418,8 @@ void main() {
       await directionsHandler(
         req('POST', '/directions', body: {'detour': true}),
         ctx(),
-      ); // vpn-2
-      await SettingsStorage.saveRouteFinal('vpn-2'); // Debug API может и так
+      );
+      await SettingsStorage.saveRouteFinal('vpn-2');
       await SettingsStorage.saveServerLists([
         UserServer(
           id: 'u1',
@@ -449,7 +449,7 @@ void main() {
 
     test('§393 A3 — healed.includes в DELETE: тег вычеркнут из include '
         'остальных Направлений', () async {
-      await directionsHandler(req('POST', '/directions'), ctx()); // vpn-2
+      await directionsHandler(req('POST', '/directions'), ctx());
       await directionsHandler(
         req(
           'POST',
@@ -459,7 +459,7 @@ void main() {
           },
         ),
         ctx(),
-      ); // vpn-3
+      );
 
       final r = await directionsHandler(
         req('DELETE', '/directions/vpn-2'),
@@ -481,7 +481,7 @@ void main() {
     test(
       '§393 A3 — PATCH enabled:false include НЕ трогает (обратимо)',
       () async {
-        await directionsHandler(req('POST', '/directions'), ctx()); // vpn-2
+        await directionsHandler(req('POST', '/directions'), ctx());
         await directionsHandler(
           req(
             'POST',
@@ -491,7 +491,7 @@ void main() {
             },
           ),
           ctx(),
-        ); // vpn-3
+        );
 
         final r = await directionsHandler(
           req('PATCH', '/directions/vpn-2', body: {'enabled': false}),
@@ -508,8 +508,8 @@ void main() {
 
   group('POST /directions/reorder', () {
     test('переставляет; неполный набор → 400', () async {
-      await directionsHandler(req('POST', '/directions'), ctx()); // vpn-2
-      await directionsHandler(req('POST', '/directions'), ctx()); // vpn-3
+      await directionsHandler(req('POST', '/directions'), ctx());
+      await directionsHandler(req('POST', '/directions'), ctx());
 
       final r = await directionsHandler(
         req(
@@ -557,14 +557,14 @@ void main() {
     });
   });
 
-  /// §275 — зеркальный ресинк `_entries` контроллера после storage-heal
-  /// detour-ссылок. Storage лечится сам; без ресинка следующий `_persist()`
-  /// воскресил бы вылеченную ссылку на диске (heal показан юзеру и отменён).
-  /// Мутации идут через `DirectionMutations`, поэтому разделить heal и ресинк
-  /// хендлер не может — тесты пиннят это поведение на всех трёх глаголах.
+
+
+
+
+
   group('§275 — detour-ресинк контроллера', () {
-    /// Одиночка со stale `overrideDetour` на [tag] + rawBody (без него
-    /// `entries` контроллера пусты — нода не парсится).
+
+
     UserServer soloWithDetour(String tag) => UserServer(
       id: 'u1',
       name: 'Solo',
@@ -575,8 +575,8 @@ void main() {
       rawBody: 'vless://u-a@h.com:443?type=ws&security=tls#solo-node',
     );
 
-    /// Контроллер, поднятый на том же temp-storage и вложенный в registry —
-    /// хендлер берёт его из `ctx.registry.sub`.
+
+
     Future<SubscriptionController> seedControllerWithStaleRef(
       String tag,
     ) async {
@@ -596,11 +596,11 @@ void main() {
     test(
       'POST /directions: heal при enabled:false зеркалится в entries',
       () async {
-        // Сценарий restore из backup: ссылка на vpn-2 есть, самого Направления нет.
+
         final c = await seedControllerWithStaleRef('vpn-2');
 
-        // POST с PATCH-полем enabled:false → disabling-переход → heal обоих
-        // родов ссылок. Это достижимый путь до detours > 0 на создании.
+
+
         final r = await directionsHandler(
           req('POST', '/directions', body: {'enabled': false}),
           ctx(),
@@ -613,10 +613,10 @@ void main() {
           'dns_servers': 0,
         });
 
-        // Storage вылечен...
+
         final solo = (await SettingsStorage.getServerLists()).single;
         expect(solo.detourPolicy.overrideDetour, NodeLink.none);
-        // ...и зеркало контроллера тоже — иначе _persist воскресит ссылку.
+
         expect(
           c.entries.single.list.detourPolicy.overrideDetour,
           NodeLink.none,
@@ -634,11 +634,11 @@ void main() {
           ctx(),
         );
 
-        // Любая контроллерная мутация с _persist пишет entries на диск.
-        // §439 — имя одиночного сервера записью не хранится, след записи —
-        // выключение.
+
+
+
         await c.toggleAt(0);
-        SettingsStorage.resetCacheForTesting(); // читаем реально с диска
+        SettingsStorage.resetCacheForTesting();
         final saved = (await SettingsStorage.getServerLists()).single;
         expect(saved.enabled, isFalse);
         expect(
@@ -653,7 +653,7 @@ void main() {
       await directionsHandler(
         req('POST', '/directions', body: {'detour': true}),
         ctx(),
-      ); // vpn-2
+      );
       final c = await seedControllerWithStaleRef('vpn-2');
 
       final r = await directionsHandler(
@@ -674,7 +674,7 @@ void main() {
       await directionsHandler(
         req('POST', '/directions', body: {'detour': true}),
         ctx(),
-      ); // vpn-2
+      );
       final c = await seedControllerWithStaleRef('vpn-2');
 
       final r = await directionsHandler(

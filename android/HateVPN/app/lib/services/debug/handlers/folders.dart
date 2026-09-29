@@ -11,36 +11,36 @@ import '../transport/request.dart';
 import '../transport/response.dart';
 import '_shared.dart';
 
-/// §238 — `/folders/*` — CRUD папок серверов (§234) + headless probe (§236).
-///
-/// Папка — entry в общем списке `/subs` (kind=FolderServers), поэтому
-/// адресация по стабильному `id` entry. Члены адресуются **позиционным
-/// индексом** (у FolderMember нет id) — после remove/ungroup/reorder индексы
-/// съезжают; write-ответы возвращают свежий снапшот папки, по нему строить
-/// следующий вызов. Meta папки (name/enabled/tag_prefix/detour_policy)
-/// правится существующим `PATCH /subs/{id}` — здесь не дублируется.
-///
-/// Routes:
-/// - `GET    /folders`                          → list (только folder-entries)
-/// - `POST   /folders`                          → create (body: `{"name":"..."}`)
-/// - `GET    /folders/{id}`                     → single + members
-/// - `DELETE /folders/{id}[?keep_servers=true]` → delete; keep_servers выносит
-///                                                члены одиночными серверами
-/// - `POST   /folders/{id}/members`             → add: `{"input":"..."}` (paste,
-///                                                опц. `name_fallback`) ИЛИ
-///                                                `{"url":"..."}` (URL-снапшот)
-/// - `PATCH  /folders/{id}/members/{idx}`       → subset `{raw,enabled,detour}`
-/// - `DELETE /folders/{id}/members/{idx}`       → remove member
-/// - `POST   /folders/{id}/members/reorder`     → `{"order":[старые индексы]}`
-/// - `POST   /folders/{id}/members/{idx}/ungroup` → член → одиночный сервер
-/// - `POST   /folders/{id}/members/{idx}/move`  → `{"to":"<folder id>"}`
-/// - `POST   /folders/{id}/move-server`         → `{"server_id":"<subs id>"}` —
-///                                                одиночный сервер в папку
-/// - `POST   /folders/{id}/probe`               → Test servers; body опц.
-///                                                `{"url":"...","timeout_ms":N}`
-///
-/// Все write'ы принимают `?rebuild=true`; чтения и write-ответы — `?reveal=true`
-/// (raw членов несёт credentials, по умолчанию скрыт).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> foldersHandler(DebugRequest req, DebugContext ctx) async {
   final path = req.path;
 
@@ -57,7 +57,7 @@ Future<DebugResponse> foldersHandler(DebugRequest req, DebugContext ctx) async {
   final id = segs.first;
   if (id.isEmpty) throw NotFound('folders path: $path');
 
-  // /folders/{id}
+
   if (segs.length == 1) {
     return switch (req.method) {
       'GET' => _single(id, req, ctx),
@@ -111,8 +111,8 @@ Future<DebugResponse> foldersHandler(DebugRequest req, DebugContext ctx) async {
   throw NotFound('folders path: $path');
 }
 
-/// Entry по id, обязан быть папкой. Не-папка → 409 (диагностируемее, чем 404,
-/// при путанице `/subs/{id}` vs `/folders/{id}`).
+
+
 (int, SubscriptionEntry, FolderServers) _requireFolder(
   SubscriptionController sub,
   String id,
@@ -237,8 +237,8 @@ Future<DebugResponse> _updateMember(
 
   final raw = fieldString(body, 'raw');
   final enabled = fieldBool(body, 'enabled');
-  // §439 (D-112) — ссылка `{folder_id?, tag}`; строка читается терпимо:
-  // сырой тег соседа по папке — парой (S1), иначе корневой ссылкой.
+
+
   final detourField = fieldNodeLink(body, 'detour');
   if (raw == null && enabled == null && detourField == null) {
     throw const BadRequest(
@@ -256,7 +256,7 @@ Future<DebugResponse> _updateMember(
     final current = entry.list as FolderServers;
     final detour = liftSiblingLink(
         detourField, current.id, containerRawTagSet(current));
-    // §239 — контроллер отклоняет self/цикл интра-рёбер; пробрасываем отказ.
+
     final err = await sub.setMemberDetour(idx, i, detour);
     if (err != null) throw BadRequest('detour rejected: ${err.renderEn()}');
   }
@@ -334,7 +334,7 @@ Future<DebugResponse> _ungroupMember(
   }
   final before = sub.entries.map((e) => e.id).toSet();
   await sub.ungroupMemberAt(idx, i);
-  // Одиночный сервер вставляется сразу после папки — но id надёжнее диффом.
+
   final created = sub.entries.where((e) => !before.contains(e.id)).firstOrNull;
   final extras = await maybeRebuild(req, ctx);
   return JsonResponse({
@@ -386,7 +386,7 @@ Future<DebugResponse> _moveServerIn(String id, DebugRequest req, DebugContext ct
   final serverIdx = sub.entries.indexWhere((e) => e.id == serverId);
   if (serverIdx < 0) throw NotFound('server: $serverId');
   final err = await sub.moveServerToFolder(serverIdx, folderIdx);
-  // Пред-проверки сняли not-found ветки; остаток — «не одиночный сервер».
+
   if (err != null) throw Conflict('move rejected: ${err.renderEn()}');
   final extras = await maybeRebuild(req, ctx);
   return JsonResponse({
@@ -398,12 +398,12 @@ Future<DebugResponse> _moveServerIn(String id, DebugRequest req, DebugContext ct
   });
 }
 
-/// §236 — headless «Test servers»: probe-сессия рядом с (или через) боевое
-/// ядро, результаты по каждому члену в ответе. Хендлер async — HTTP-сервер
-/// (HttpServer.listen конкурентен) остаётся отзывчивым во время теста
-/// (device-verified: /ping 17мс при идущем probe). Синхронный ПО ОТВЕТУ:
-/// worst-case ~members/6 × timeout_ms; при больших папках снижать
-/// timeout_ms, чтобы уложиться в request-timeout сервера (30с).
+
+
+
+
+
+
 Future<DebugResponse> _probe(String id, DebugRequest req, DebugContext ctx) async {
   final body = req.jsonBodyAsMap();
   final sub = ctx.requireSub();
@@ -412,7 +412,7 @@ Future<DebugResponse> _probe(String id, DebugRequest req, DebugContext ctx) asyn
   var url = fieldString(body, 'url');
   var timeoutMs = fieldInt(body, 'timeout_ms');
   if (url == null || timeoutMs == null) {
-    // Дефолты — глобальные ping_options, как у кнопки Test servers в UI.
+
     final ping = await SettingsStorage.getPingOptions();
     url ??= (ping['url'] as String?)?.trim() ?? '';
     timeoutMs ??= (ping['timeout_ms'] as num?)?.toInt() ?? 3000;
@@ -420,17 +420,17 @@ Future<DebugResponse> _probe(String id, DebugRequest req, DebugContext ctx) asyn
   if (timeoutMs <= 0) throw const BadRequest('field "timeout_ms" must be > 0');
 
   final results = <int, ProbeResult>{};
-  // §296 — probe над списком нод; порядок членов = index результата (ниже
-  // ответ строится по тем же folder.members[i]).
+
+
   final err = await ProbeRunner().run(
     [for (final m in folder.members) m.node],
     url: url,
     timeoutMs: timeoutMs,
     onResult: (i, r) => results[i] = r,
   );
-  // §349 — kProbeVpnRunning: внутренний маркер (UI мапит его в свой текст,
-  // probe_runner.dart:12 «наружу как сообщение не идёт») — Debug API обязан
-  // отдать внятный 409, а не '__vpn_running__'.
+
+
+
   if (err == kProbeVpnRunning) {
     throw const Conflict('VPN is running — stop it before probing');
   }
@@ -467,5 +467,5 @@ String _probeStatusWire(ProbeStatus s) => switch (s) {
       ProbeStatus.failed => 'failed',
       ProbeStatus.broken => 'broken',
       ProbeStatus.invalid => 'invalid',
-      ProbeStatus.group => 'group', // §336
+      ProbeStatus.group => 'group',
     };

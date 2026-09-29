@@ -1,11 +1,11 @@
-// §061 + §033: DNS rules resolver + applyCustomDns с unified kind set.
-//
-// Покрывает:
-// - resolveDnsRulesList: orphan cleanup, auto-discovery, persist на изменении,
-//   legacy-shape (старые kind=user/rule + поле title) — наверх не отдаётся,
-//   в хранении остаётся (§439 A1)
-// - applyCustomDns: kind=inline / kind=template / kind=preset / kind=srs
-//   rendering, wizard-fields strip, enabled-skip, linear order
+
+
+
+
+
+
+
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -41,8 +41,8 @@ void main() {
     if (tmp.existsSync()) await tmp.delete(recursive: true);
   });
 
-  // Сырые записи `dns.rules` в файл хранения формы 1.0 — для форм, которые
-  // кодек не читает (репозиторий их не пишет).
+
+
   void seedRawRules(List<Map<String, dynamic>> rules) {
     File('${tmp.path}/lxbox_settings.json').writeAsStringSync(jsonEncode({
       'storage_version': 1,
@@ -50,8 +50,8 @@ void main() {
     }));
   }
 
-  // Файл хранения формы 2.23.2 (`dns_options.rules`): его разбирает миграция
-  // в `_load` (§439).
+
+
   void seedLegacyRules(List<Map<String, dynamic>> rules) {
     File('${tmp.path}/lxbox_settings.json').writeAsStringSync(jsonEncode({
       'dns_options': {'rules': rules},
@@ -75,8 +75,8 @@ void main() {
       );
 
       expect(resolved, hasLength(2));
-      // Order: preset first (auto-discovery вставляет ПЕРЕД template-блоком),
-      // потом template.
+
+
       expect(resolved[0], const DnsRulePreset(presetId: 'ru-direct', enabled: true));
       expect(resolved[1],
           const DnsRuleTemplate(name: 'Default → Google DoH', enabled: true));
@@ -86,7 +86,7 @@ void main() {
     });
 
     test('новый preset post-install: вставляется ПЕРЕД первой template-записью', () async {
-      // Stored: один template и один inline (user)
+
       await SettingsStorage.saveDnsRulesList([
         const DnsRuleInline(name: 'My U', rule: {'server': 'u'}),
         const DnsRuleTemplate(name: 'T1', enabled: true),
@@ -99,7 +99,7 @@ void main() {
         activePresetIdsWithDnsRule: {'new-preset-id'},
       );
 
-      // Ожидаем: [inline, NEW_PRESET, T1] — preset вставлен ПЕРЕД template.
+
       expect(resolved, hasLength(3));
       expect(resolved[0], isA<DnsRuleInline>());
       expect((resolved[1] as DnsRulePreset).presetId, 'new-preset-id');
@@ -148,7 +148,7 @@ void main() {
     });
 
     test('reorder сохраняется: stored entries в storage-order, новые в правильных местах', () async {
-      // Юзер уже видел template, перетащил выше preset
+
       await SettingsStorage.saveDnsRulesList([
         const DnsRuleTemplate(name: 'A', enabled: true),
         const DnsRulePreset(presetId: 'p-id', enabled: true),
@@ -163,10 +163,10 @@ void main() {
       );
 
       expect(resolved, hasLength(4));
-      // Новый preset new-p-id вставляется ПЕРЕД первой template-записью (A).
-      // §117 (решение №6): kind:preset записи — атомарная mirror-группа,
-      // компактятся к позиции первой → p-id подтягивается к new-p-id,
-      // standalone A не может стоять внутри группы. NEW — в конец.
+
+
+
+
       expect((resolved[0] as DnsRulePreset).presetId, 'new-p-id');
       expect((resolved[1] as DnsRulePreset).presetId, 'p-id');
       expect((resolved[2] as DnsRuleTemplate).name, 'A');
@@ -214,8 +214,8 @@ void main() {
         activePresetIdsWithDnsRule: const {'ru-direct'},
       );
 
-      // kind=rule не распознан → наверх не отдаётся. Auto-discovery видит,
-      // что для presetId 'ru-direct' нет записи, и создаёт fresh kind=preset.
+
+
       expect(resolved,
           [const DnsRulePreset(presetId: 'ru-direct', enabled: true)]);
       expect(await rawRules(), [
@@ -235,9 +235,9 @@ void main() {
         activePresetIdsWithDnsRule: const {},
       );
 
-      // Legacy запись имеет title не name → не распознана.
-      // Auto-discovery создаёт fresh с enabled_default=true (юзер потерял
-      // свой OFF-toggle, ожидаемо при no-migration policy).
+
+
+
       expect(resolved,
           [const DnsRuleTemplate(name: 'Old default', enabled: true)]);
       expect(await rawRules(), [
@@ -298,8 +298,8 @@ void main() {
         config,
         {'servers': [], 'rules': []},
         extraDnsRulesByPresetId: const {
-          // §253: пресет может нести несколько правил — legacy-ветка
-          // (без dnsMirrors) эмитит ВСЕ, в порядке шаблона.
+
+
           'ru-direct': [
             {'rule_set': 'ru-domains', 'action': 'predefined', 'rcode': 'NOERROR'},
             {'rule_set': 'ru-domains', 'server': 'yandex_doh'},
@@ -336,7 +336,7 @@ void main() {
       expect(dns['rules'], [
         {'rule_set': 'CN sites', 'server': 'cloudflare_doh'},
       ]);
-      // rule_set зарегистрирован как local в route
+
       expect(config['route'], isA<Map>());
       final route = config['route'] as Map<String, dynamic>;
       expect(route['rule_set'], [
@@ -393,11 +393,11 @@ void main() {
       await applyCustomDns(
         config,
         {'servers': [], 'rules': []},
-        // dnsSrsCachedPaths empty → skip
+
       );
 
       final dns = config['dns'] as Map<String, dynamic>?;
-      // dns.rules должен либо отсутствовать, либо быть пустым
+
       expect(dns?['rules'], anyOf(isNull, isEmpty));
     });
 

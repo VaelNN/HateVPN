@@ -124,7 +124,7 @@ internal static class VpsProvisioner
         }
         finally
         {
-            try { sftp.DeleteFile(remotePath); } catch { /* Temporary script contains no credentials. */ }
+            try { sftp.DeleteFile(remotePath); } catch {   }
             sftp.Disconnect();
             ssh.Disconnect();
         }

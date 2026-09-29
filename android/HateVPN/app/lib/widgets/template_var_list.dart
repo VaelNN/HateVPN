@@ -8,32 +8,32 @@ import 'outbound_picker.dart';
 import 'var_values_model.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// Рендерит список [WizardVar] с секция-заголовками и типизированными
-/// контролами:
-///
-/// - `bool` → [SwitchListTile]
-/// - `enum` → [DropdownButton]
-/// - `secret` → text-input с обфускацией + eye-toggle + кнопка Generate
-/// - `outbound` → [OutboundPicker] из [outboundOptions] (§117); без options —
-///   fallback в text-input
-/// - `dns_servers` → dropdown из [dnsServerTags] (§117); без tags — fallback
-///   в text-input
-/// - `text`/`int` → text-input; с закрытыми `options` — dropdown (TEMPLATE_LANG
-///   §2.1: без `options_open` своё значение ввести нельзя); с
-///   `options_open: true` — combo с suffix-▾ popup'ом: и выбрать из списка,
-///   и напечатать своё (приведение по `type`: у `int` — цифры и clamp).
-/// - `text_list` + `options` → множественный выбор чипами ([VarMultiSelect]);
-///   при `options_open` — плюс поле своих значений, по одному на строку.
-///
-/// §232 — БЕЗ локальной копии значений: каждое поле подписано (one-way emit,
-/// [ValueListenableBuilder]) на СВОЙ ключ [VarValuesModel]. Программные
-/// изменения (on_change: галка ipv6 → стратегии) видны в UI мгновенно.
-/// Правки юзера идут `model.set` + коллбэк `onChanged(name, value)` parent'у
-/// (config-dirty + каскад side-effect'ов); persist — parent'ом на выходе.
-///
-/// Используется:
-/// - `settings_screen.dart` — chapter: core (sing-box низкоуровневое)
-/// - `dns_server_edit/tabs/params_tab.dart` — vars DNS-сервера (§117)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class TemplateVarListView extends StatefulWidget {
   const TemplateVarListView({
     super.key,
@@ -46,32 +46,32 @@ class TemplateVarListView extends StatefulWidget {
     this.dnsServerTags = const [],
   });
 
-  /// Переменные для рендеринга. Порядок и секции сохраняются.
+
   final List<WizardVar> vars;
 
-  /// §232 — реактивная модель значений. КОНТРАКТ: parent сидирует её ВСЕМИ
-  /// [vars] (stored ?? defaultValue) до создания виджета — «отсутствующий
-  /// ключ» здесь не различим от «пустого значения».
+
+
+
   final VarValuesModel model;
 
-  /// Вызывается на каждое изменение (значение уже в [model]). Parent
-  /// ответственен за config-dirty/side-effects; persist — на его выходе.
+
+
   final void Function(String name, String value) onChanged;
 
-  /// Описания секций по title — для подзаголовков. Пусто → без описания.
+
   final Map<String, String> sectionDescriptions;
 
-  /// Показывать ли section-заголовки. false — если parent сам рисует
-  /// заголовок (например, routing_screen показывает одну секцию под своей
-  /// шапкой).
+
+
+
   final bool showSectionHeaders;
 
-  /// §117: Направления для `type: outbound` vars (Direct + активные Направления).
-  /// Пусто → outbound-var рендерится текстовым полем (fallback).
+
+
   final List<OutboundOption> outboundOptions;
 
-  /// §117: DNS-сервер-теги для `type: dns_servers` vars (domain_resolver).
-  /// Пусто → var рендерится текстовым полем (fallback).
+
+
   final List<String> dnsServerTags;
 
   @override
@@ -81,19 +81,19 @@ class TemplateVarListView extends StatefulWidget {
 class _TemplateVarListViewState extends State<TemplateVarListView> {
   late final Map<String, WizardVar> _byName;
 
-  /// §161: имена required-полей, которые сейчас пусты — для errorText. Persist
-  /// для них заблокирован (см. [_update]), сборка конфига backstop'ом подставит
-  /// default — но юзер видит, что поле обязательно.
+
+
+
   final Set<String> _emptyRequired = {};
 
   @override
   void initState() {
     super.initState();
     _byName = {for (final v in widget.vars) v.name: v};
-    // §161 «UI сам чинит»: при загрузке пустое required-поле с непустым
-    // default → чиним прямо в модели (подписчики ещё не построены — emit
-    // безопасен). optional-vars (§033, required:false) НЕ трогаем — для них
-    // пусто легитимно (поле выпадает из конфига через Dropped).
+
+
+
+
     final repaired = <String, String>{};
     for (final v in widget.vars) {
       if (widget.model.get(v.name).isEmpty && _backfillDefaultOnEmpty(v)) {
@@ -101,8 +101,8 @@ class _TemplateVarListViewState extends State<TemplateVarListView> {
         repaired[v.name] = v.defaultValue;
       }
     }
-    // Сообщаем parent'у о самочинении ПОСЛЕ первого кадра — onChanged в
-    // initState небезопасен (parent ещё не смонтирован для колбэка).
+
+
     if (repaired.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -111,19 +111,19 @@ class _TemplateVarListViewState extends State<TemplateVarListView> {
     }
   }
 
-  /// §161: правило «пусто → default». Только required-vars с непустым default;
-  /// secret исключён (намеренно стёртый пароль не воскрешаем). optional §033
-  /// (required:false) и vars без default — не трогаются.
+
+
+
   bool _backfillDefaultOnEmpty(WizardVar v) =>
       v.required && v.defaultValue.isNotEmpty && v.type != 'secret';
 
   void _update(String name, String value) {
     final v = _byName[name];
-    // §161: пустое required-поле — НЕ персистим. display-only запись
-    // (markDirty:false) + unstage: ни пустота, ни предыдущий staged-ввод
-    // этого поля не доезжают до storage (остаётся исходное значение).
-    // Backstop в build_config подставит default при сборке; здесь же не
-    // даём «сохранить пустоту». onChanged НЕ зовём.
+
+
+
+
+
     if (value.isEmpty && v != null && v.required && v.type != 'secret') {
       widget.model.set(name, value, markDirty: false);
       widget.model.unstage(name);
@@ -166,16 +166,16 @@ class _TemplateVarListViewState extends State<TemplateVarListView> {
     );
   }
 
-  /// §232 — каждое поле подписано на СВОЙ ключ модели: перерисовывается
-  /// только оно и только на изменение своего значения (юзером или программно
-  /// через on_change).
+
+
+
   Widget _buildVarWidget(WizardVar v) => ValueListenableBuilder<String>(
         valueListenable: widget.model.notifier(v.name),
         builder: (_, value, _) => _buildControl(v, value),
       );
 
   Widget _buildControl(WizardVar v, String value) {
-    // §555 — `text_list` + `options`: множественный выбор (SPEC 143, D-125).
+
     if (v.type == 'text_list' && v.options.isNotEmpty) {
       return _LabelledField(
         label: v.title.isNotEmpty ? v.title : v.name,
@@ -200,7 +200,7 @@ class _TemplateVarListViewState extends State<TemplateVarListView> {
         );
 
       case 'enum':
-        // §555 — `options_open`: список плюс своё значение.
+
         if (v.optionsOpen) return _buildTextField(v, value);
         return _buildOptionsDropdown(v, value);
 
@@ -226,8 +226,8 @@ class _TemplateVarListViewState extends State<TemplateVarListView> {
         );
 
       case 'outbound':
-        // §117: пикер Направления (Direct + активные Направления). Без options —
-        // fallback в text-input (экраны, не передающие Направления).
+
+
         if (widget.outboundOptions.isEmpty) return _buildTextField(v, value);
         return _LabelledField(
           label: v.title.isNotEmpty ? v.title : v.name,
@@ -241,7 +241,7 @@ class _TemplateVarListViewState extends State<TemplateVarListView> {
         );
 
       case 'dns_servers':
-        // §117: dropdown DNS-сервер-тегов (domain_resolver и т.п.).
+
         if (widget.dnsServerTags.isEmpty) return _buildTextField(v, value);
         final currentTag = value.isNotEmpty ? value : v.defaultValue;
         final tags = widget.dnsServerTags.contains(currentTag)
@@ -267,8 +267,8 @@ class _TemplateVarListViewState extends State<TemplateVarListView> {
         );
 
       default:
-        // §555 — закрытые `options` у `text`/`int`: только выбор из списка
-        // (TEMPLATE_LANG §2.1); `options_open` — combo со своим значением.
+
+
         if (v.options.isNotEmpty &&
             !v.optionsOpen &&
             (v.type == 'text' || v.type == 'int')) {
@@ -278,9 +278,9 @@ class _TemplateVarListViewState extends State<TemplateVarListView> {
     }
   }
 
-  /// Закрытый список `options`. Значение вне списка (старое сохранённое) —
-  /// показываем `default_value`, а если и его нет в списке — первый пункт:
-  /// dropdown без совпавшего пункта падает.
+
+
+
   Widget _buildOptionsDropdown(WizardVar v, String value) {
     final values = v.optionValues;
     final shown = values.contains(value)
@@ -307,10 +307,10 @@ class _TemplateVarListViewState extends State<TemplateVarListView> {
     );
   }
 
-  /// text: если есть options — добавляется combo-popup ▾ с пресетами.
-  /// int (§161): только цифры + clamp в uint16 [0, 65535] — ядро принимает
-  /// числовые поля (port/tolerance) как uint16, значение вне диапазона роняет
-  /// его на decode. Backstop тот же в `coerceVarValue`.
+
+
+
+
   Widget _buildTextField(WizardVar v, String value) {
     final hasSuggestions = v.options.isNotEmpty;
     final isInt = v.type == 'int';
@@ -327,20 +327,20 @@ class _TemplateVarListViewState extends State<TemplateVarListView> {
     );
   }
 
-  /// §161: нормализует int-ввод в uint16. Пусто — оставляем как есть (юзер
-  /// стирает поле; clamp на пустой строке дал бы внезапный «0»).
+
+
   static String _clampUint16(String raw) {
     if (raw.isEmpty) return raw;
     final n = int.tryParse(raw);
-    if (n == null) return raw; // formatter уже отсёк не-цифры; defensive
+    if (n == null) return raw;
     return n.clamp(0, 65535).toString();
   }
 }
 
-/// Section header for template-driven settings screens (Core, Routing, DNS).
-///
-/// Also used by VPN Settings → System for native toggles grouped like Core
-/// sections (primary titleSmall + optional description + divider).
+
+
+
+
 class TemplateSectionHeader extends StatelessWidget {
   const TemplateSectionHeader({
     super.key,
@@ -382,15 +382,15 @@ class TemplateSectionHeader extends StatelessWidget {
   }
 }
 
-/// Self-contained text-input для template-переменных. Владеет
-/// TextEditingController'ом — без leak'а при rebuild'ах parent'а.
-///
-/// Поддерживает:
-/// - `obscure` — скрывает ввод + eye-toggle справа (для `secret`)
-/// - `trailing` — внешний виджет справа от поля (например, Generate-кнопка)
-/// - `suggestions` — список пресетов; suffix-▾ открывает popup с ✓ на
-///   текущем значении. Совместим только с `!obscure` (для secrets
-///   пресетов нет).
+
+
+
+
+
+
+
+
+
 class VarTextField extends StatefulWidget {
   const VarTextField({
     super.key,
@@ -417,18 +417,18 @@ class VarTextField extends StatefulWidget {
   final Widget? trailing;
   final List<String> suggestions;
 
-  /// §161: цифровая клавиатура + digits-only formatter (для `type: int`).
+
   final bool numeric;
 
-  /// §161: текст ошибки под полем (напр. «Required» для пустого
-  /// обязательного поля). null — поле валидно.
+
+
   final String? errorText;
 
-  /// §555 — многострочный ввод (свои значения `text_list`, по одному на
-  /// строку). `1` — обычное поле.
+
+
   final int maxLines;
 
-  /// Подсказка в пустом поле.
+
   final String? hintText;
 
   @override
@@ -531,7 +531,7 @@ class _VarTextFieldState extends State<VarTextField> {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         hintText: widget.hintText,
-        errorText: widget.errorText, // §161: «Required» для пустого обяз. поля
+        errorText: widget.errorText,
         errorStyle: const TextStyle(fontSize: 11),
         suffixIcon: _buildSuffix(),
         suffixIconConstraints: const BoxConstraints(
@@ -542,8 +542,8 @@ class _VarTextFieldState extends State<VarTextField> {
       onChanged: widget.onChanged,
     );
 
-    // Без подписи — поле встроено в чужой контрол (свои значения в
-    // [VarMultiSelect]).
+
+
     if (widget.label.isEmpty) return field;
     return _LabelledField(
       label: widget.label,
@@ -558,13 +558,13 @@ class _VarTextFieldState extends State<VarTextField> {
   }
 }
 
-/// §555 — множественный выбор `text_list` + `options` (TEMPLATE_LANG §2.1,
-/// SPEC 143 D-125): чип на каждую опцию; значение — выбранные строки по одной
-/// на строку, в порядке `options`. При `options_open` под чипами поле своих
-/// значений (по одному на строку): они идут в значение после выбранных и
-/// проходят то же приведение по `type` — построчный сплит, пустые строки
-/// отбрасываются. Без `options_open` строки вне списка из значения
-/// выпадают при первой правке — UI своего значения не даёт.
+
+
+
+
+
+
+
 class VarMultiSelect extends StatelessWidget {
   const VarMultiSelect({
     super.key,
@@ -634,11 +634,11 @@ class VarMultiSelect extends StatelessWidget {
   }
 }
 
-/// Layout-helper для form-полей в template_var_list:
-/// label сверху, описание под ним, контрол на отдельной строке слева.
-/// Без `ListTile` — тот зажимал label/описание в боковую колонку, на узких
-/// экранах "Test URL" разваливалось на "Test"/"URL", а описания читались
-/// в 13-символьных строках.
+
+
+
+
+
 class _LabelledField extends StatelessWidget {
   const _LabelledField({
     required this.label,

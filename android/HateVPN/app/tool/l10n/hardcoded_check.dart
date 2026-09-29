@@ -10,43 +10,43 @@ import 'src/check_common.dart';
 import 'src/hardcoded_scan.dart';
 import 'src/sha256.dart';
 
-// §279 (спека §9.3) — ratchet против новых hardcoded display-строк.
-//
-// AST-скан lib/ (минус lib/l10n/gen/) по синтаксису, без резолюции типов.
-// Display-позиции и рекурсия в ternary/switch-ветки — см.
-// src/hardcoded_scan.dart (логика вынесена в библиотеку и покрыта
-// test/tool/hardcoded_scan_test.dart). Self-check-эвристика кандидатов
-// в хелперы (String-параметр → ScaffoldMessenger) — позднее ужесточение.
-//
-// Baseline tool/l10n/hardcoded_baseline.json: {file: [hash...]} — hash =
-// первые 12 hex sha256 канонизированного текста (каждая ${...}-интерполяция
-// заменена на "{}" позиционно; rename переменной hash не меняет).
-// Режимы: --write-baseline регенерирует; default сравнивает: рост числа
-// сайтов файла → fail со списком новых; удаление — тихо (baseline сужают
-// через --write-baseline); замена hash'а в файле легальна, пока счётчик
-// файла не растёт (hotfix-путь).
 
-// §285 — rendering-locality-правила, FAIL-режим (getLocalText-эпоха):
-//   - `renderEn(` — только в allowlist-файлах (render_allowlist.json:
-//     machine-поверхности — automation, Debug API, AppLog-сайты,
-//     notification-push, emitWarnings) плюс модельные иерархии, где определён
-//     сам renderEn() (lib/models/);
-//   - прямой `GetLocalText.en` вне lib/models/ → fail (единственный
-//     санкционированный путь на machine-поверхностях — renderEn());
-//   - паттерн «поле `WizardTemplate?` + заполнение в initState» → fail
-//     (спека, решение 15: fetch шаблона — в didChangeDependencies).
-//
-// §285 — `.render()` (UiMsg → String через ambient getLocalText активной
-// локали) больше НЕ гейтится по каталогу: он не требует BuildContext и
-// безопасен из сервисов/контроллеров (прежнее правило было привязано к
-// context.l/AppLocalizations-параметру, которых больше нет).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const String _baselinePath = 'tool/l10n/hardcoded_baseline.json';
 const String _helpersPath = 'tool/l10n/l10n_helpers.json';
 const String _renderAllowlistPath = 'tool/l10n/render_allowlist.json';
 
-/// Каталог модельных иерархий, где определён `renderEn()` и разрешён прямой
-/// `GetLocalText.en` (ui_msg/validation/stop_reason/node_warning).
+
+
 const String _modelsDir = 'lib/models/';
 
 class _RenderAllowlist {
@@ -84,8 +84,8 @@ Map<String, DisplayHelper> _loadHelpers() {
   });
 }
 
-/// §9.4 — visitor rendering-locality-правил (отдельный от ratchet-скана:
-/// пишет напрямую в [CheckReporter], не в baseline).
+
+
 class _LocalityVisitor extends RecursiveAstVisitor<void> {
   _LocalityVisitor(this.file, this.lineInfo, this.allow, this.r);
 
@@ -110,9 +110,9 @@ class _LocalityVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitPrefixedIdentifier(PrefixedIdentifier node) {
-    // §285 — прямой `GetLocalText.en` (пиненный английский рендерер) легален
-    // только в модельных иерархиях, где определён renderEn(); везде ещё —
-    // идти через renderEn() (санкционированный machine-surface путь).
+
+
+
     if (node.prefix.name == 'GetLocalText' &&
         node.identifier.name == 'en' &&
         !file.startsWith(_modelsDir)) {
@@ -125,9 +125,9 @@ class _LocalityVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {
-    // Спека §7.2 / решение 15 — `WizardTemplate? _template` + fetch в
-    // initState переживает смену локали (initState не перезапускается) —
-    // fetch обязан жить в didChangeDependencies по Localizations.localeOf.
+
+
+
     final templateFields = <String>[];
     for (final m in node.members) {
       if (m is FieldDeclaration &&
@@ -169,7 +169,7 @@ void main(List<String> args) {
   ensureAppCwd();
   sha256SelfTest();
   final writeBaseline = args.contains('--write-baseline');
-  // --strict принимается для симметрии CLI; ratchet и так фатален по умолчанию
+
   final r = CheckReporter('hardcoded_check', strict: parseStrict(args));
 
   final helpers = _loadHelpers();
@@ -178,10 +178,10 @@ void main(List<String> args) {
   final sitesByFile = <String, List<HardcodedSite>>{};
   for (final path in files) {
     final content = File(path).readAsStringSync();
-    // Ratchet-скан (src/hardcoded_scan.dart — вкл. рекурсию в ternary/switch).
+
     final sites = scanForHardcodedStrings(
         path: path, content: content, helpers: helpers);
-    // §9.4 — rendering-locality (fail-режим с Phase 4).
+
     final parsed =
         parseString(content: content, path: path, throwIfDiagnostics: false);
     parsed.unit.accept(_LocalityVisitor(path, parsed.lineInfo, renderAllow, r));
@@ -209,7 +209,7 @@ void main(List<String> args) {
     }
     for (final e in sitesByFile.entries) {
       final base = ((baselineRaw[e.key] as List?) ?? const []).cast<String>();
-      if (e.value.length <= base.length) continue; // shrink/replacement — ок
+      if (e.value.length <= base.length) continue;
       final remaining = _multiset(base);
       for (final s in e.value) {
         final left = remaining[s.hash] ?? 0;
@@ -226,7 +226,7 @@ void main(List<String> args) {
     }
   }
 
-  // сводка по каталогам верхнего уровня lib/<dir>
+
   final perDir = <String, int>{};
   for (final e in sitesByFile.entries) {
     final seg = e.key.split('/');

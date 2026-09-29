@@ -130,15 +130,15 @@ void main() {
       SubscriptionIdentity.userAgentOverride = 'GUA';
       SubscriptionIdentity.sendHwid = true;
       SubscriptionIdentity.hwid = 'GHW';
-      SubscriptionIdentity.osVersion = '14'; // device-дефолт
-      SubscriptionIdentity.deviceModelOverride = 'P60'; // override > дефолт
+      SubscriptionIdentity.osVersion = '14';
+      SubscriptionIdentity.deviceModelOverride = 'P60';
       final snap = SubscriptionIdentity.snapshotGlobal();
       expect(snap.userAgent, 'GUA');
       expect(snap.sendHwid, isTrue);
       expect(snap.hwid, 'GHW');
-      expect(snap.deviceOs, 'android'); // deviceOsDefault
-      expect(snap.verOs, '14'); // effective = device-дефолт
-      expect(snap.deviceModel, 'P60'); // effective = override
+      expect(snap.deviceOs, 'android');
+      expect(snap.verOs, '14');
+      expect(snap.deviceModel, 'P60');
     });
   });
 

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../models/direction.dart';
 
-/// §125 — тайл Направления на табе Directions. Switch слева (вкл/выкл), тап по телу →
-/// редактор Направления. `vpn-1` всегда включён и неудаляем (switch disabled).
+
+
 class RoutingDirectionTile extends StatelessWidget {
   const RoutingDirectionTile({
     super.key,
@@ -15,10 +15,10 @@ class RoutingDirectionTile extends StatelessWidget {
 
   final Direction direction;
 
-  /// Кол-во нод после фильтра (для subtitle). -1 = снимок недоступен.
+
   final int nodeCount;
 
-  /// null для required-Направления (`vpn-1`) — switch disabled.
+
   final ValueChanged<bool>? onToggle;
 
   final VoidCallback onTap;
@@ -37,7 +37,7 @@ class RoutingDirectionTile extends StatelessWidget {
         value: isRequired ? true : direction.enabled,
         onChanged: isRequired ? null : onToggle,
       ),
-      // §274 — ⚙-префикс detour-Направления централизован в displayLabel.
+
       title: Text(direction.displayLabel),
       subtitle: Text(
         '${direction.tag} · $nodesStr$autoStr$reqStr',

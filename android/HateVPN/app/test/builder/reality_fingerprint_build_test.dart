@@ -9,33 +9,33 @@ import 'package:lxbox/services/contract/warning_codes.dart';
 import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/subscription/sources.dart';
 
-// §169 — валидный X25519 public key (43 символа base64url = 32 байта).
+
 const _pbk = 'AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw';
 
-/// §444 — отпечаток REALITY-узла на полном пути «тело подписки → парсер →
-/// buildConfig». Отпечаток узла из подписки уходит в конфиг как есть;
-/// `chrome` пишется только там, где выбора не было (пустой fp, дефолт
-/// `random`), и вместо мусора вне словаря ядра (§281).
-///
-/// §472 шаг 3 — vless разбирается конвейером, и оба кода (`reality_fp_not_chrome`,
-/// `utls_fp_unknown`) ставит РЕЕСТР, а не рукописные классы. Сверка идёт по
-/// коду, а не по типу класса: так тест переживёт и шаг 9, когда рукописные
-/// классы уйдут у остальных схем. Реестр обязан быть загружен — без него
-/// санитайзер молчит и тест проверял бы не то поведение, которое видит
-/// приложение. `app/contract/` вендорится локально и в репозиторий не
-/// коммитится (§460), поэтому на CI его нет и тесты пропускаются — ровно как
-/// весь `test/contract`.
+
+
+
+
+
+
+
+
+
+
+
+
+
 void main() {
 
   setUpAll(loadTestRegistry);
 
 
-  /// Коды предупреждений узла — рукописные и реестровые одинаково.
+
   List<String> codes(NodeSpec n) =>
       n.warnings.map(warningCodeOf).whereType<String>().toList();
 
-  /// Значение, названное кодом (у реестрового — `value`, у рукописного — своё
-  /// поле: здесь совпадает с отпечатком).
+
+
   String? valueOf(NodeSpec n, String code) => n.warnings
       .whereType<RegistryWarning>()
       .where((w) => w.code == code)
@@ -94,9 +94,9 @@ void main() {
       '?type=tcp&security=reality$fpQuery&sni=www.example-3.com'
       '&pbk=$_pbk&sid=ab#R';
 
-  // §451 / ядро SPEC 086+087 (libbox ≥ v1.14.1-lx.3) — форк utls несёт
-  // Firefox 148 и Safari 26.3 с гибридным key share: узел живой, повода
-  // предупреждать нет.
+
+
+
   test('REALITY + fp=firefox/safari → в конфиге как есть, без предупреждения',
       () async {
     for (final fp in ['firefox', 'safari']) {
@@ -132,8 +132,8 @@ void main() {
       },
     })!;
     final b = await build([node]);
-    // Контракт 1.1.61: пустой отпечаток под REALITY остаётся пустым (ядро =
-    // chrome), uTLS включён.
+
+
     expect(b.utls['enabled'], true);
     expect(b.utls.containsKey('fingerprint'), isFalse);
     expect(codes(b.node), isNot(contains('reality_fp_not_chrome')));
@@ -143,8 +143,8 @@ void main() {
       () async {
     for (final q in ['', '&fp=']) {
       final b = await buildUri(reality(q));
-      // Контракт 1.1.61: неявный random (D-009) под REALITY правило
-      // `coerce_when` меняет на chrome уже в теле узла, с кодом.
+
+
       expect((b.node as VlessSpec).tls.fingerprint, 'chrome',
           reason: 'q="$q"');
       expect(b.utls['fingerprint'], 'chrome', reason: 'q="$q"');
@@ -181,8 +181,8 @@ void main() {
         '?type=tcp&security=tls&fp=garbage&sni=example-1.com#T');
     expect(tls.utls['fingerprint'], 'chrome');
     expect(codes(tls.node), contains('utls_fp_unknown'));
-    // §472 шаг 3 — у кода реестра есть адрес и СЫРОЕ значение ссылки, чего у
-    // рукописного класса не было.
+
+
     expect(valueOf(tls.node, 'utls_fp_unknown'), 'garbage');
 
     final r = await buildUri(reality('&fp=garbage'));

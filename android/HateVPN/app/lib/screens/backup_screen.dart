@@ -30,8 +30,8 @@ import '../services/url_launcher.dart';
 import '../widgets/safe_bottom.dart';
 
 
-/// Backup & restore UI — спека [§040](../../docs/spec/features/040 backup
-/// restore ui/spec.md).
+
+
 class BackupScreen extends StatefulWidget {
   const BackupScreen({super.key});
 
@@ -42,7 +42,7 @@ class BackupScreen extends StatefulWidget {
 class _BackupScreenState extends State<BackupScreen> with SnackHelper {
   final _service = const BackupService();
 
-  // Export-side toggles. Default ON для всего кроме debug.
+
   bool _expServerLists = true;
   bool _expRouting = true;
   bool _expAppSettings = true;
@@ -87,9 +87,9 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
             onImport: _onImport,
           ),
           const SizedBox(height: 8),
-          // §103 фаза 4 — перенос на десктоп отдельной карточкой: обычный
-          // бэкап выше делает полный снимок ДЛЯ ЭТОЙ ЖЕ установки, а тут
-          // переносится общая часть в другое приложение.
+
+
+
           LxTransferCard(
             busy: _busy,
             onExport: _onLxExport,
@@ -118,9 +118,9 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
     }
     setState(() => _busy = true);
     try {
-      // §374 — доступные способы выясняем ДО построения JSON: если юзер
-      // закроет шит, зря работать не придётся. Обе проверки идут на
-      // платформу, поэтому параллельно.
+
+
+
       final availability = await Future.wait([
         UrlLauncher.hasRealFilePicker(),
         UrlLauncher.canSaveToDownloads(),
@@ -131,12 +131,12 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
         canSaveToFile: availability[0],
         canSaveToDownloads: availability[1],
       );
-      if (action == null) return; // юзер закрыл шит
+      if (action == null) return;
 
       final json = await _service.buildExport(include: include);
       final filename = await BackupService.suggestedFilename();
-      // Размер в БАЙТАХ, а не в code units: String.length считает UTF-16, и на
-      // кириллице в именах узлов снекбар занижал цифру против файла на диске.
+
+
       final bytes = utf8.encode(json).length;
 
       final SaveOutcome outcome;
@@ -147,8 +147,8 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
           outcome =
               await saveToDownloadsSafely(fileName: filename, content: json);
         case ExportAction.share:
-          // Share требует файл на диске: кэш подходит — получатель копирует
-          // его себе, а очистка кэша системой нам не важна.
+
+
           final tmpDir = await getTemporaryDirectory();
           final path = '${tmpDir.path}/$filename';
           await File(path).writeAsString(json);
@@ -174,9 +174,9 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
           showSnack(
               getLocalText.s("Saved to Downloads: %s (%d bytes)", name, bytes));
         case SaveCancelled():
-          break; // юзер закрыл диалог сохранения — молчим
+          break;
         case SaveNoTarget() || SaveFailed():
-          break; // покрыто saveProblemText выше
+          break;
       }
     } catch (e) {
       if (!mounted) return;
@@ -189,7 +189,7 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
   Future<void> _onImport() async {
     setState(() => _busy = true);
     try {
-      // §372 — см. pickFileSafely: Android TV без DocumentsUI.
+
       final outcome = await pickFileSafely(
         type: FileType.custom,
         allowedExtensions: ['json'],
@@ -197,7 +197,7 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
       if (outcome is! PickedFiles) {
         final problem = pickProblemText(outcome);
         if (problem != null && mounted) showSnack(problem);
-        return; // cancelled / нет пикера / сбой
+        return;
       }
       final file = outcome.single;
       final raw = utf8DecodeOrNull(file.bytes);
@@ -218,15 +218,15 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
 
       if (!mounted) return;
       final result = await showImportPreview(context, contents);
-      if (result == null) return; // cancelled
+      if (result == null) return;
 
       final apply = await _service.applyImport(
         contents,
         merge: result.merge,
         include: result.include,
       );
-      // §279 — restore мог привезти другой app_language: применить через
-      // владеющий пайплайн (LocaleController), не дожидаясь рестарта.
+
+
       await LocaleController.I.reloadFromStorage();
       if (!mounted) return;
       final summary = StringBuffer('Imported');
@@ -254,14 +254,14 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
       if (apply.hasErrors) {
         summary.write(' (${apply.errors.length} errors)');
       }
-      // §159 — allowlist отбросил неизвестные/чужеродные ключи.
+
       if (apply.droppedKeys.isNotEmpty) {
         summary.write(' · ${apply.droppedKeys.length} unknown keys skipped');
       }
-      // applyImport пишет в SettingsStorage, но controllers (Subscription /
-      // Home / Routing screen state) держат in-memory snapshot — UI остаётся
-      // stale. Restart-кнопка вызывает quitApp(); юзер сам тапает иконку,
-      // app поднимается с fresh storage.
+
+
+
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -285,14 +285,14 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
     }
   }
 
-  // §219 — _snack вынесен в SnackHelper.showSnack (services/ui_helpers.dart).
 
-  // ——— §103 фаза 4: перенос на десктоп (LX Backup) ———
 
-  /// Экспорт общей части настроек в переносимый формат.
-  ///
-  /// Переиспользует те же пути сохранения, что обычный бэкап: пользователю
-  /// незачем видеть два разных диалога сохранения в одном экране.
+
+
+
+
+
+
   Future<void> _onLxExport() async {
     setState(() => _busy = true);
     try {
@@ -306,30 +306,30 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
         canSaveToFile: availability[0],
         canSaveToDownloads: availability[1],
       );
-      if (action == null) return; // юзер закрыл шит
+      if (action == null) return;
 
       final lists = await SettingsStorage.getServerLists();
       final rules = await SettingsStorage.getCustomRules();
       final vars = await SettingsStorage.getAllVars();
-      // §393 B2 — Направления едут вместе с правилами: без них правило на
-      // принимающей стороне не находит цель и приезжает выключенным.
+
+
       final directions = await SettingsStorage.getDirections();
-      // §393 C9 — цепочки хопов (SPEC 110, схема v1.2): корневая секция
-      // `chains[]`, порядок списка нормативен и не сортируется.
+
+
       final chains = await SettingsStorage.getChains();
       final sourceKeys = await SettingsStorage.getSourceKeys();
-      // §393 B6 — route.final: до B6 его разбирали на импорте, но никогда не
-      // экспортировали, и круг был односторонним.
+
+
       final routeFinal = await SettingsStorage.getRouteFinal();
-      // §401 — предупреждения экспорта: настройки, у которых в общей схеме
-      // нет дома, в файл не едут, и пользователь узнаёт об этом ДО того, как
-      // унесёт файл на другую машину (П6).
+
+
+
       final exportWarnings = <LxBackupWarning>[];
-      // §441 — объявления переменных записей шаблона: `vars` template-серверов
-      // и пресетов едут без умолчаний и необъявленных имён (SPEC 129 Н2–Н4).
+
+
       final recordVars = await loadRecordVarDecls();
-      // §393 B9 — секция DNS: записи хранения + final/strategy. §439 —
-      // preset-сервер несёт `preset_id` в записи, шаблон не нужен.
+
+
       final dns = dnsToBackup(
         servers: await SettingsStorage.getDnsServers(),
         rules: await SettingsStorage.getDnsRulesList(),
@@ -339,16 +339,16 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
         warnings: exportWarnings,
         recordVars: recordVars,
       );
-      // §393 B8 — регистрации WARP в каноне схемы (`type: wg|masque`).
+
       final warpAccount = await SettingsStorage.getWarpAccount();
       final masqueAccount = await SettingsStorage.getMasqueAccount();
       final warp = <Map<String, dynamic>>[
         if (warpAccount != null) warpAccountToBackup(warpAccount),
         if (masqueAccount != null) masqueAccountToBackup(masqueAccount),
       ];
-      // §409 — бюджеты теста узла по Направлениям (`ping_options.groups`,
-      // §040). Форма storage → переносимая форма читается ЗДЕСЬ, а не в
-      // парсере: `SettingsStorage` слою бэкапа не виден.
+
+
+
       final directionPing = lxDirectionPingFromStorage(
         await SettingsStorage.getPingOptions(),
       );
@@ -368,8 +368,8 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
       final json = built.json;
       exportWarnings.addAll(built.warnings);
       const filename = 'lx-backup.json';
-      // Размер в БАЙТАХ, а не в code units: на кириллице в именах узлов
-      // String.length занижал бы цифру против файла на диске.
+
+
       final bytes = utf8.encode(json).length;
 
       final SaveOutcome outcome;
@@ -420,10 +420,10 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
     }
   }
 
-  /// Импорт переносимого бэкапа.
-  ///
-  /// Показывает, что приедет, ДО применения: импорт заменяет правила целиком,
-  /// и спрашивать после было бы поздно.
+
+
+
+
   Future<void> _onLxImport() async {
     setState(() => _busy = true);
     try {
@@ -444,8 +444,8 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
         return;
       }
 
-      // D-117 — план импорта считает сервис: слияние и один список известных
-      // целей после него (BACKUP.md §3). Экран его не собирает.
+
+
       const importer = LxBackupImportService();
       final LxImportPlan plan;
       try {
@@ -467,17 +467,17 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
       final appliedDirections = result.appliedDirections;
       final counts = result.appliedSettings;
       final skipped = parsed.warnings.length;
-      // Счётное существительное — только через plural: по-русски иначе
-      // получится «Импортировано 2 правил».
-      //
-      // §393 B5 — созданные Направления названы отдельно: правила приехали
-      // рабочими именно потому, что цели заведены, и молчать об этом значило
-      // бы скрыть половину произошедшего с настройками.
-      //
-      // §393 B6 — то же и с остальными секциями: подписки, DNS, переменные и
-      // регистрации WARP теперь реально применяются, и счётчик обязан их
-      // показать — иначе «Импортировано 0 правил» после файла с тремя
-      // подписками выглядит как отказ, хотя всё применилось.
+
+
+
+
+
+
+
+
+
+
+
       final String message;
       if (skipped > 0) {
         message = getLocalText.s("Imported %d rule(s), %d items not applied",
@@ -497,12 +497,12 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
       } else {
         message = getLocalText.plural("Imported %d rules", parsed.rules.length);
       }
-      // §393 C9 — цепочки названы ОТДЕЛЬНОЙ клаузой, а не влиты в счётчик
-      // настроек: это созданные сущности, как Направления, и «Импортировано
-      // правил: 0, настроек: 2» после файла с двумя маршрутами скрыло бы
-      // ровно то, что произошло. Клауза-суффикс, а не шестая ветка лестницы:
-      // добавить цепочки измерением удвоило бы число строк каталога,
-      // из которых половина не встречается никогда.
+
+
+
+
+
+
       showSnack(result.appliedChains > 0
           ? '$message; ${getLocalText.s("chains: %d", result.appliedChains)}'
           : message);
@@ -514,29 +514,29 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
     }
   }
 
-  /// Показывает состав файла и что не применится — до применения.
+
   Future<bool?> _confirmLxImport(LxBackupFile parsed) {
     final lines = <String>[
       getLocalText.s("From %s %s", parsed.exportedByApp, parsed.exportedByVersion),
-      // §393 B5 — Направления названы отдельной строкой: они не «часть
-      // правил», а создаваемые сущности, и пользователь вправе увидеть,
-      // сколько их заведётся, ДО применения.
+
+
+
       if (parsed.directions.isNotEmpty)
         getLocalText.s("Directions: %d", parsed.directions.length),
-      // §393 C9 — цепочки хопов: тоже создаваемые сущности, и их число
-      // пользователь вправе увидеть ДО применения.
+
+
       if (parsed.chains.isNotEmpty)
         getLocalText.s("Chains: %d", parsed.chains.length),
       getLocalText.s("Rules: %d", parsed.rules.length),
       getLocalText.s("Subscriptions: %d", parsed.subscriptions.length),
-      // §401 — одиночные узлы и члены папок: до этого их разбирали и не
-      // применяли, и пользователь не видел ни строки о том, что приехало.
+
+
       if (parsed.servers.isNotEmpty)
         getLocalText.s("Servers: %d", parsed.servers.length),
       getLocalText.s("Variables: %d", parsed.vars.length),
-      // §393 B8/B9 — секции, которые теперь применяются: пользователь должен
-      // увидеть их ДО применения, а не обнаружить постфактум чужой DNS-сервер
-      // в списке.
+
+
+
       if (parsed.dns != null && !parsed.dns!.isEmpty)
         getLocalText.s("DNS entries: %d",
             parsed.dns!.servers.length + parsed.dns!.rules.length),
@@ -575,9 +575,9 @@ class _BackupScreenState extends State<BackupScreen> with SnackHelper {
     );
   }
 
-  /// §401 — что не поехало в файл. Диалог, а не snack: перечень длиннее
-  /// строки, и потерю настройки пользователь обязан увидеть целиком, а не
-  /// поймать боковым зрением за две секунды (П6).
+
+
+
   void _showExportLosses(List<LxBackupWarning> warnings) {
     if (warnings.isEmpty || !mounted) return;
     final lines = <String>[

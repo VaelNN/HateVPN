@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/install_source.dart';
 import 'package:lxbox/services/project_links.dart';
 
-/// §390 — канал установки: маппинг installer → [InstallSource] и адрес
-/// обновления. Чистые функции, без `MethodChannel` и без device.
+
+
 void main() {
   group('installSourceFromInstaller', () {
     test('Play Store', () {
@@ -42,8 +42,8 @@ void main() {
     });
 
     test('Obtainium ставит APK с GitHub → github, не fdroid', () {
-      // Ключевой кейс: «сторонний стор», но подпись наша и обновление
-      // нужно именно с GitHub.
+
+
       expect(installSourceFromInstaller('dev.imranr.obtainium'),
           InstallSource.github);
     });
@@ -77,7 +77,7 @@ void main() {
     test('play → market:// + https-фолбэк', () {
       expect(InstallSource.play.updateUrl('v2.18.0'), ProjectLinks.playPage);
       expect(InstallSource.play.updateUrl('v2.18.0'), startsWith('market://'));
-      // Фолбэк обязателен: без Play на устройстве intent не резолвится.
+
       expect(InstallSource.play.updateUrlFallback, ProjectLinks.playPageWeb);
       expect(InstallSource.play.updateUrlFallback, startsWith('https://'));
     });

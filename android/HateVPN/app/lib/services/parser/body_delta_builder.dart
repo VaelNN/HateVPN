@@ -1,15 +1,15 @@
-/// §560 — [BodyDelta] узла по схеме тела из реестра.
-///
-/// Общий шаг, без имён протоколов и полей: какие ключи сверять, говорит
-/// `schemaFor(type)` (с развёрнутыми `tls`/`multiplex`/`dialer`/транспортом),
-/// а не код. Сверяются тело после санитайзера (то, что прислал провайдер и
-/// принял реестр) и `emit()` только что построенной модели.
+
+
+
+
+
+
 library;
 
 import '../../models/body_delta.dart';
 import '../contract/registry.dart';
 
-/// `null` — реестра нет, схемы у типа нет или расхождений нет.
+
 BodyDelta? bodyDeltaFor(
   Map<String, dynamic> body,
   Map<String, dynamic> emitted, {
@@ -45,14 +45,14 @@ void _walk(
     final inEmit = emitted.containsKey(key) && emitted[key] != null;
     final p = [...path, key];
     if (inBody && !inEmit) {
-      // Пустое значение = отсутствующее (норма `empty: absent` реестра):
-      // модель, опустившая пустую строку, ничего не потеряла.
+
+
       if (!_isEmptyValue(body[key])) add.add((p, body[key]));
     } else if (!inBody && inEmit) {
-      // Снимается только ДЕФОЛТ ядра, дописанный моделью (PARSING_PRINCIPLES §2.4:
-      // конвейер дефолты не материализует): значение равно `default` поля
-      // в реестре. Прочее, что модель пишет сверх тела, — её собственное
-      // правило (потолок `mtu` у AWG), и дельта его не трогает.
+
+
+
+
       final def = f.defaultValue;
       final v = emitted[key];
       if (canDrop && def != null && v is! Map && v is! List && '$v' == '$def') {
@@ -64,9 +64,9 @@ void _walk(
       if (b is! Map || m is! Map) continue;
       final own = f.fields;
       final sub = own ?? _variantFields(f, b);
-      // Внутри вариантов транспорта дефолты не снимаются: форму транспорта
-      // пишет типизированная подмодель, и её тело закреплено снимками
-      // ссылок «до §480» (`path: "/"` у http).
+
+
+
       if (sub != null) {
         _walk(sub, b, m, p, add, drop, canDrop: canDrop && own != null);
       }
@@ -74,8 +74,8 @@ void _walk(
   }
 }
 
-/// Поля варианта вложенного объекта по дискриминатору (`transport.type`).
-/// `null` — свободная карта, внутрь не смотрим.
+
+
 Map<String, FieldSchema>? _variantFields(FieldSchema f, Map value) {
   final disc = f.discriminator;
   final variants = f.variants;

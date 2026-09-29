@@ -16,13 +16,13 @@ import 'warp_experiment_screen.dart';
 import '../services/l10n/locale_controller.dart';
 import '../widgets/safe_bottom.dart';
 
-/// §025 — Full-screen визард «Get WARP». Открывается из overflow-меню
-/// Subscriptions. Один тап «Register» для free; license/endpoint опциональны
-/// под «Advanced».
-///
-/// Поведение: `subController.addWarp(...)` регистрирует устройство в Cloudflare
-/// (приватный ключ генерится на телефоне) и добавляет готовый WireGuard-узел.
-/// После успеха → [onAdded] (regenerate config + save в parent) → pop.
+
+
+
+
+
+
+
 class WarpWizardScreen extends StatefulWidget {
   const WarpWizardScreen({
     super.key,
@@ -42,119 +42,119 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
   final _endpoint =
       TextEditingController(text: WarpAccount.defaultEndpoint);
 
-  // §136/§143 — masquerade-параметры (Advanced). Пустой SNI(=id) → рандом из пула.
-  final _sni = TextEditingController(); // id (домен маскировки)
-  List<String> _sniPool = const []; // подсказки для DropdownMenu (WG §136)
-  List<String> _masqueSniPool = const []; // §130 — SNI-пул для MASQUE-комбобокса
-  // §143 — ip (протокол маскировки): quic/dns/stun/sip; ib (браузер) при quic.
+
+  final _sni = TextEditingController();
+  List<String> _sniPool = const [];
+  List<String> _masqueSniPool = const [];
+
   String _masqIp = 'quic';
   String _masqIb = 'chrome';
   final _jc = TextEditingController(text: '4');
   final _jmin = TextEditingController(text: '40');
   final _jmax = TextEditingController(text: '70');
-  // §304 — persistent keepalive (секунды) для WG/AWG-узла. Держит NAT-маппинг
-  // и WG-сессию живыми при простое (иначе пинг деградирует в err). Пусто/0 =
-  // выключено. Дефолт 25 (типовое значение WARP).
+
+
+
   final _keepalive = TextEditingController(text: '25');
 
   bool _forceNew = false;
   bool _busy = false;
   WarpAccount? _result;
 
-  // §130 — транспорт WARP: 'wireguard' (дефолт) | 'masque'. MASQUE использует
-  // ECDSA-регистрацию и Outbound type:masque (другой пул выходных нод).
+
+
   String _transport = 'wireguard';
-  // §393/SPEC 074 — дефолт 'auto': h3-нога с бюджетом 3s, фолбэк h2 (TCP).
-  // Работает там, где QUIC/UDP резан (и за TCP-хопами цепочек); нога-победитель
-  // запоминается на процесс. Пулы портов h3/h2 идентичны (warp_endpoints.json),
-  // поэтому один endpoint честен для обеих ног.
-  String _masqueNetwork = 'auto'; // auto | h3 (QUIC) | h2 (HTTP/2)
-  final _masqueSni = TextEditingController(); // опц. SNI override
-  // §130 — тюнинг ресурсов: idle-suspend (минуты) и QUIC keepalive (секунды).
-  // Пусто → дефолт ядра (5m / 30s). Плейсхолдеры показывают дефолт.
-  final _masqueIdle = TextEditingController(); // минуты
-  final _masqueKeepAlive = TextEditingController(); // секунды
-  // §305 — ручной override endpoint MASQUE (IP + порт). Пусто → endpoint из
-  // регистрации. Данные (блоки/порты) читаются из warp_endpoints.json через
-  // _picker. Порт — combo из masque_ports_h3/h2 по транспорту + свободный ввод.
+
+
+
+
+  String _masqueNetwork = 'auto';
+  final _masqueSni = TextEditingController();
+
+
+  final _masqueIdle = TextEditingController();
+  final _masqueKeepAlive = TextEditingController();
+
+
+
   final _masqueIp = TextEditingController();
   final _masquePort = TextEditingController();
 
   bool get _isMasque => _transport == 'masque';
 
-  // §126/§136 — AmneziaWG обфускация (default off — обычный WARP).
+
   bool _obfuscate = false;
-  // §142 — reserved (client_id): null = дефолт по галке (обфускация → off).
-  // Юзер может переопределить чекбоксом в Advanced.
+
+
   bool? _includeReserved;
 
-  WarpEndpointPicker? _picker; // §136 — для рандома endpoint/SNI
-  bool _endpointAutoFilled = false; // §136 — endpoint в поле = наш авто-рандом
-  // §386 — значение последнего авто-рандома. Комбобокс не даёт onChanged, поэтому
-  // ручную правку/выбор из списка ловит listener на контроллере: текст ушёл от
-  // последнего авто-значения → это уже не наш рандом, флаг снимается.
+  WarpEndpointPicker? _picker;
+  bool _endpointAutoFilled = false;
+
+
+
   String _lastAutoEndpoint = '';
-  // §386 — пресеты для combobox'ов (endpoint WG / IP MASQUE), из asset.
+
   List<String> _endpointsPreset = const [];
-  // §305 — v6-endpoint подставляем только если в системе включён IPv6.
+
   bool _ipv6Enabled = false;
-  // §305 — сервер из последней MASQUE-регистрации (placeholder пустого IP-поля,
-  // показывает КУДА пойдёт подключение, если IP не вписан). Дефолт ядра, если
-  // регистрации ещё не было.
+
+
+
   String _masqueRegServer = MasqueAccount.defaultServer;
 
   @override
   void initState() {
     super.initState();
-    // §386 — см. _lastAutoEndpoint. Заменяет прежний onChanged у TextField.
+
     _endpoint.addListener(() {
       if (_endpointAutoFilled && _endpoint.text != _lastAutoEndpoint) {
         setState(() => _endpointAutoFilled = false);
       }
     });
-    // §305 — читаем системный флаг IPv6 (гейтит v6-рандом endpoint).
+
     SettingsStorage.getVar('ipv6_enabled', 'false').then((v) {
       if (mounted) setState(() => _ipv6Enabled = v.toLowerCase() == 'true');
     });
-    // §305 — сервер из закешированной MASQUE-реги → placeholder пустого IP-поля.
+
     SettingsStorage.getMasqueAccount().then((acc) {
       if (mounted && acc != null) {
         setState(() => _masqueRegServer = acc.server);
       }
     });
-    // §136 — подтягиваем picker (SNI-пул для dropdown + рандом endpoint/SNI).
+
     WarpEndpointPicker.load().then((p) {
       if (!mounted) return;
       setState(() {
         _picker = p;
         _sniPool = p.sniPool;
         _masqueSniPool = p.masqueSniPool;
-        _endpointsPreset = p.endpointsPreset; // §386
-        // SNI при открытии — конкретный случайный домен (не «Random»); юзер
-        // может выбрать другой/вписать свой или рерольнуть кубиком.
+        _endpointsPreset = p.endpointsPreset;
+
+
         if (_sni.text.trim().isEmpty) _sni.text = p.randomSni();
-        // §130 — MASQUE SNI тоже предзаполняем рандомом из masque-пула (не
-        // оставляем дефолт ядра): маскировка под конкретный легит-домен из
-        // старта, юзер может сменить/очистить/рерольнуть.
+
+
+
         if (_masqueSni.text.trim().isEmpty) {
           _masqueSni.text = p.randomMasqueSni();
         }
-        // §305 — дефолтный порт = первый из набора текущего транспорта.
+
         _syncDefaultMasquePort(p);
       });
-      // Если юзер успел включить обфускацию до загрузки picker — заполняем.
+
       if (_obfuscate && _endpointReplaceable) _fillRandomEndpoint();
     });
   }
 
-  /// §136 — генерирует рандомный endpoint в поле (при включении обфускации).
-  /// Помечает поле как авто-заполненное.
+
+
   void _fillRandomEndpoint() {
     final ep = _picker?.randomEndpoint(allowV6: _ipv6Enabled);
     if (ep != null) {
       setState(() {
-        // §386 — сперва запоминаем авто-значение, потом пишем text: иначе
-        // listener контроллера примет собственный рандом за ручную правку.
+
+
         _lastAutoEndpoint = ep;
         _endpoint.text = ep;
         _endpointAutoFilled = true;
@@ -162,7 +162,7 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
     }
   }
 
-  /// §136 — кубик 🎲 у SNI: подставляет случайный домен из пула в поле.
+
   void _fillRandomSni() {
     final sni = _picker?.randomSni();
     if (sni != null && sni.isNotEmpty) {
@@ -170,7 +170,7 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
     }
   }
 
-  /// §130 — кубик 🎲 у MASQUE SNI: случайный домен из MASQUE-пула в поле.
+
   void _fillRandomMasqueSni() {
     final sni = _picker?.randomMasqueSni();
     if (sni != null && sni.isNotEmpty) {
@@ -178,9 +178,9 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
     }
   }
 
-  /// §305 — дефолтный/консистентный порт для текущего транспорта: если поле
-  /// пусто ИЛИ значение не из набора этого транспорта (h3↔h2 сменили) —
-  /// ставим первый порт набора. Пустой набор → не трогаем.
+
+
+
   void _syncDefaultMasquePort([WarpEndpointPicker? picker]) {
     final ports = (picker ?? _picker)?.masquePortsFor(_masqueNetwork) ??
         const <int>[];
@@ -191,15 +191,15 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
     }
   }
 
-  /// §420 — хосты combobox MASQUE-endpoint под текущий транспорт: h3 —
-  /// общие + h3-only (`.198.1`/`.199.1`), h2/auto — только общие.
+
+
   List<String> get _masqueHostsForNetwork =>
       _picker?.masqueHostsFor(_masqueNetwork) ?? const <String>[];
 
-  /// §420 — при смене транспорта пресет-хост, которого нет в списке нового
-  /// транспорта (выбрали h3 + `.198.1`, переключились на h2), сбрасываем:
-  /// пустое поле = endpoint регистрации (placeholder), он живёт на обоих.
-  /// Ручной IP (не из пресетов) не трогаем — это выбор юзера.
+
+
+
+
   void _syncMasqueHostForNetwork() {
     final cur = _masqueIp.text.trim();
     if (cur.isEmpty) return;
@@ -209,10 +209,10 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
     }
   }
 
-  /// §305 — 🎲 у endpoint IP: случайный MASQUE-IP из блока + случайный порт из
-  /// набора текущего транспорта.
+
+
   void _fillRandomMasqueIp() {
-    // §305 — IP по текущему транспорту (h3 — только 4 живых хоста).
+
     final ip = _picker?.randomMasqueIp(network: _masqueNetwork);
     if (ip == null) return;
     final port = _picker?.randomMasquePortFor(_masqueNetwork);
@@ -222,32 +222,32 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
     });
   }
 
-  /// §386 — пункт combobox-пресетов. Пометку "(recommended)" получает пункт,
-  /// чьё значение равно ЯВНОМУ recommended-ключу asset'а (recommended_endpoint /
-  /// recommended_host) — на любой позиции. Пустой [recommended] → без пометок.
+
+
+
   DropdownMenuEntry<String> _presetEntry(String value, String recommended) =>
       warpPresetEntry(value, recommended, getLocalText.s("(recommended)"));
 
-  /// true если в поле endpoint — дефолт/пусто/наш авто-рандом (не вписан юзером
-  /// вручную → можно перезаписать).
+
+
   bool get _endpointReplaceable {
     final v = _endpoint.text.trim();
     return v.isEmpty || v == WarpAccount.defaultEndpoint || _endpointAutoFilled;
   }
 
-  /// §136 — снятие галки обфускации → все обфускация-поля в стандарт.
-  /// Endpoint возвращаем к дефолту только если он был НАШИМ авто-рандомом
-  /// (вписанный юзером свой IP:port не трогаем). QUIC-параметры (скрытые без
-  /// галки) сбрасываем к дефолтам, чтобы повторное включение стартовало чисто.
+
+
+
+
   void _resetObfuscationFields() {
     setState(() {
       if (_endpointAutoFilled) {
         _endpoint.text = WarpAccount.defaultEndpoint;
         _endpointAutoFilled = false;
       }
-      _includeReserved = null; // §142 — вернуть к дефолту по галке
-      _sni.text = _picker?.randomSni() ?? ''; // свежий случайный домен
-      _masqIp = 'quic'; // §143
+      _includeReserved = null;
+      _sni.text = _picker?.randomSni() ?? '';
+      _masqIp = 'quic';
       _masqIb = 'chrome';
       _jc.text = '4';
       _jmin.text = '40';
@@ -272,15 +272,15 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
     super.dispose();
   }
 
-  // ───────────────────────── §284 — WARP GENERATOR ─────────────────────────
 
-  /// Генерирует случайные WARP-узлы (WG/AWG/h3/h2) в папку «WARP GENERATOR»
-  /// и открывает её. Пробы не гоняет — пользователь тестирует штатной кнопкой
-  /// Test в папке. Повторный запуск пересоздаёт папку.
+
+
+
+
   Future<void> _runGenerate() async {
     if (_picker?.scan == null || _busy) return;
 
-    // §305 — параметры эксперимента (число нод + JSON-пул) на отдельном экране.
+
     final exp = await Navigator.of(context).push<({int count, ScanPool pool})>(
       MaterialPageRoute(builder: (_) => const WarpExperimentScreen()),
     );
@@ -305,12 +305,12 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
           getLocalText.s("Generation failed — no WARP account."));
       return;
     }
-    // Замечание при частичном результате (напр. MASQUE выпал — только WG в папке).
+
     final note = widget.subController.lastScanNote;
     if (note != null) showSnack(note);
-    // §305 — открываем папку «WARP GENERATOR» ЗАМЕНОЙ визарда в стеке
-    // (pushReplacement): после генерации визард не нужен, «назад» из папки
-    // должен вести на Servers, а не обратно в визард.
+
+
+
     final entry = widget.subController.entries[folderIdx];
     await Navigator.of(context).pushReplacement(MaterialPageRoute(
       builder: (_) => FolderDetailScreen(
@@ -320,9 +320,9 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
     ));
   }
 
-  /// Собирает [QuicParams] из Advanced-полей (с дефолтами при пустых/битых).
-  /// SNI-поле обычно содержит конкретный домен; пустое → register подставит
-  /// рандом из пула (fallback в контроллере).
+
+
+
   QuicParams _buildQuicParams() {
     return QuicParams(
       sni: _sni.text.trim(),
@@ -354,7 +354,7 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
         obfuscate: _obfuscate,
         quicParams: _buildQuicParams(),
         includeReserved: _includeReserved,
-        // §304 — пусто/битое → null (keepalive не пишется); 0 явно выключает.
+
         persistentKeepalive: int.tryParse(_keepalive.text.trim()),
       );
 
@@ -378,7 +378,7 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
     }
   }
 
-  /// §130 — регистрация MASQUE-транспорта (ECDSA + enroll).
+
   Future<void> _registerMasque() async {
     final sni = _masqueSni.text.trim();
     final ip = _masqueIp.text.trim();
@@ -387,7 +387,7 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
       sni: sni.isEmpty ? null : sni,
       idleTimeout: _durationOrNull(_masqueIdle.text, 'm'),
       keepAlive: _durationOrNull(_masqueKeepAlive.text, 's'),
-      // §305 — ручной override endpoint. Пусто → сервер из регистрации.
+
       server: ip.isEmpty ? null : ip,
       port: int.tryParse(_masquePort.text.trim()),
       forceNew: _forceNew,
@@ -406,15 +406,15 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
     Navigator.of(context).pop();
   }
 
-  /// §130 — число из поля + единица → Go-duration (`"5m"`, `"30s"`). Пусто/ноль
-  /// → null (ядро возьмёт свой дефолт). Только положительные целые.
+
+
   String? _durationOrNull(String raw, String unit) {
     final n = int.tryParse(raw.trim());
     if (n == null || n <= 0) return null;
     return '$n$unit';
   }
 
-  // §219 — _showSnack вынесен в SnackHelper.showSnack (services/ui_helpers.dart).
+
 
   @override
   Widget build(BuildContext context) {
@@ -434,10 +434,10 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // §025 — официальный двухтональный логотип-облако Cloudflare
-            // (Wikimedia Commons, ~2.8:1). Ширина = доля экрана (≈40%,
-            // зажата 120..200 px), чтобы масштабировалось под любой телефон;
-            // BoxFit.contain сохраняет пропорции и не обрезает макушку.
+
+
+
+
             Builder(builder: (context) {
               final w = MediaQuery.of(context).size.width;
               final logoW = (w * 0.40).clamp(120.0, 200.0);
@@ -446,7 +446,7 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
             }),
             const SizedBox(height: 16),
             Text(
-              // l10n-exempt: brand name heading
+
               'Cloudflare WARP',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineSmall,
@@ -460,18 +460,18 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                   ),
             ),
             const SizedBox(height: 16),
-            // §130 — выбор транспорта WARP. WireGuard (дефолт) или MASQUE
-            // (CONNECT-IP over HTTP/3/2 — другой пул выходных нод, иностранные IP).
+
+
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(
                     value: 'wireguard',
-                    // l10n-exempt: protocol name
+
                     label: Text('WireGuard'),
                     icon: Icon(Icons.vpn_key_outlined)),
                 ButtonSegment(
                     value: 'masque',
-                    // l10n-exempt: protocol name
+
                     label: Text('MASQUE'),
                     icon: Icon(Icons.hub_outlined)),
               ],
@@ -480,8 +480,8 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                   ? null
                   : (sel) => setState(() => _transport = sel.first),
             ),
-            // §284 — GENERATE: 100 случайных WARP-узлов → папка «WARP GENERATOR».
-            // Виден только если в asset есть scan-пул.
+
+
             if (_picker?.scan != null) ...[
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -497,8 +497,8 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
               ),
             ],
             const SizedBox(height: 16),
-            // §130 — MASQUE: транспорт h3/h2 + опц. SNI. Обфускация и WG-Advanced
-            // не применяются (MASQUE сам маскируется под HTTPS/QUIC).
+
+
             if (_isMasque) ...[
               Card(
                 margin: EdgeInsets.zero,
@@ -531,25 +531,25 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                               items: const [
                                 DropdownMenuItem(
                                     value: 'auto',
-                                    // l10n-exempt: protocol name
+
                                     child: Text('Auto (h3 → h2)')),
                                 DropdownMenuItem(
                                     value: 'h3',
-                                    // l10n-exempt: protocol name
+
                                     child: Text('HTTP/3 (QUIC)')),
                                 DropdownMenuItem(
                                     value: 'h2',
-                                    // l10n-exempt: protocol name
+
                                     child: Text('HTTP/2 (TCP)')),
                               ],
                               onChanged: _busy
                                   ? null
                                   : (v) => setState(() {
                                         _masqueNetwork = v ?? 'auto';
-                                        // §305 — порт h3≠h2: пересинхронизируем
-                                        // под новый транспорт.
+
+
                                         _syncDefaultMasquePort();
-                                        _syncMasqueHostForNetwork(); // §420
+                                        _syncMasqueHostForNetwork();
                                       }),
                             ),
                           ),
@@ -566,15 +566,15 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                               color: cs.onSurfaceVariant,
                             ),
                       ),
-                      // §305 — ручной endpoint IP:port. Пусто → сервер из
-                      // регистрации. Порты РАЗДЕЛЬНЫ по транспорту (h3/h2 живут
-                      // на разных) — combo подтягивает нужный набор из asset.
+
+
+
                       const SizedBox(height: 12),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // §386 — combobox: device-verified h3-хосты + свободный
-                          // ввод; кубик рядом (рандом IP из блока + порт).
+
+
                           Expanded(
                             flex: 3,
                             child: LayoutBuilder(
@@ -600,13 +600,13 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                             onPressed: _busy ? null : _fillRandomMasqueIp,
                           ),
                           const SizedBox(width: 8),
-                          // Порт — editable-combo той же высоты, что IP-поле
-                          // (DropdownButtonFormField isDense = высота TextField).
+
+
                           Expanded(
                             flex: 2,
                             child: DropdownButtonFormField<String>(
-                              // Текущее значение порта; если его нет в наборе
-                              // транспорта — всё равно валидно (custom).
+
+
                               initialValue: _masquePort.text.isEmpty
                                   ? null
                                   : _masquePort.text,
@@ -638,11 +638,11 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                       ),
                       const SizedBox(height: 12),
                       _label('SNI'),
-                      // combo-box: пункты из sni_pool + свободный ввод. Пусто →
-                      // дефолт ядра (consumer-masque.cloudflareclient.com); он
-                      // же ПЕРВЫМ пунктом пула и помечен recommended — DPI
-                      // умеет резать по несовпадению SNI с блоком (§143), так
-                      // что родной домен перебирается наравне, включая кубик.
+
+
+
+
+
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -691,8 +691,8 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                           Expanded(
                             child: TextField(
                               controller: _masqueKeepAlive,
-                              // keep-alive осмыслен для h3-ноги (QUIC) — есть
-                              // и у 'h3', и у 'auto'.
+
+
                               enabled: !_busy && _masqueNetwork != 'h2',
                               keyboardType: TextInputType.number,
                               inputFormatters: [
@@ -728,7 +728,7 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
               ),
               const SizedBox(height: 16),
             ],
-            // §126 — значимая опция (не прячем в Advanced): обфускация под DPI.
+
             if (!_isMasque)
             Card(
               margin: EdgeInsets.zero,
@@ -742,22 +742,22 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                             final on = v ?? false;
                             setState(() => _obfuscate = on);
                             if (on) {
-                              // Включение → сразу рандомный endpoint в поле
-                              // (если там дефолт/пусто/прошлый авто-рандом, но
-                              // НЕ вписанный юзером вручную).
+
+
+
                               if (_endpointReplaceable) _fillRandomEndpoint();
                             } else {
-                              // Выключение → всё в стандарт (без галки обфускация
-                              // не применяется, поля не должны вводить в
-                              // заблуждение).
+
+
+
                               _resetObfuscationFields();
                             }
                           },
                     title: Text(getLocalText.s("Add Amnezia obfuscation")),
                     subtitle: Text(getLocalText.s("Adds padding traffic so the WireGuard handshake carries no fixed size signature. Enable if the plain tunnel does not connect.")),
                   ),
-                  // §143 — masquerade под выбранный протокол (id/ip/ib, ядро
-                  // 009 генерит i1). Протокол/домен/браузер — в Advanced.
+
+
                   if (_obfuscate)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -771,8 +771,8 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                 ],
               ),
             ),
-            // §130 — WG-Advanced (license/endpoint/masquerade) только для
-            // WireGuard-транспорта; MASQUE имеет свой блок выше.
+
+
             if (!_isMasque) ...[
             const SizedBox(height: 16),
             ExpansionPanelList.radio(
@@ -804,9 +804,9 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                         ),
                         const SizedBox(height: 12),
                         _label('Endpoint'),
-                        // §386 — combobox: пункты из endpoints_preset (первый —
-                        // рекомендуемый) + свободный ввод. Ручную правку/выбор
-                        // ловит listener на _endpoint (initState).
+
+
+
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -827,8 +827,8 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                                 ),
                               ),
                             ),
-                            // §136 — кубик: реролл рандомного endpoint (только
-                            // его). Виден при обфускации.
+
+
                             if (_obfuscate)
                               IconButton(
                                 icon: const Icon(Icons.casino_outlined),
@@ -844,9 +844,9 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                                 color: cs.onSurfaceVariant,
                               ),
                         ),
-                        // §304 — persistent keepalive. Держит туннель живым при
-                        // простое (без него пинг WARP деградирует в err и коннект
-                        // отваливается). Виден и для plain, и для AWG.
+
+
+
                         const SizedBox(height: 12),
                         _label('Persistent keepalive (s)'),
                         TextField(
@@ -862,8 +862,8 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                                 color: cs.onSurfaceVariant,
                               ),
                         ),
-                        // §142 — reserved (client_id) опция. Дефолт по галке:
-                        // обфускация → off (привязка к устройству режется).
+
+
                         CheckboxListTile(
                           contentPadding: EdgeInsets.zero,
                           value: _includeReserved ?? !_obfuscate,
@@ -874,10 +874,10 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                           title: Text(getLocalText.s("Bind to this device (reserved)")),
                           subtitle: Text(getLocalText.s("Sends the Cloudflare client_id. Off for obfuscation (the device binding tends to get blocked).")),
                         ),
-                        // §143 — masquerade id/ip/ib (ядро 009 генерит i1).
+
                         if (_obfuscate) ...[
                           const SizedBox(height: 16),
-                          // ip — протокол маскировки.
+
                           Row(
                             children: [
                               _label('Masquerade protocol'),
@@ -894,16 +894,16 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                                   ),
                                   items: const [
                                     DropdownMenuItem(
-                                        // l10n-exempt: protocol name
+
                                         value: 'quic', child: Text('QUIC')),
                                     DropdownMenuItem(
-                                        // l10n-exempt: protocol name
+
                                         value: 'dns', child: Text('DNS')),
                                     DropdownMenuItem(
-                                        // l10n-exempt: protocol name
+
                                         value: 'stun', child: Text('STUN')),
                                     DropdownMenuItem(
-                                        // l10n-exempt: protocol name
+
                                         value: 'sip', child: Text('SIP')),
                                   ],
                                   onChanged: _busy
@@ -917,8 +917,8 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                           const SizedBox(height: 6),
                           Text(
                             _masqIp == 'dns' || _masqIp == 'sip'
-                                // Имена полей протокола (wire-термины) —
-                                // подставляются как payload, не переводятся.
+
+
                                 ? getLocalText.s("Domain (below) is visible on the wire as the %s.", _masqIp == 'dns' ? 'DNS QNAME' : 'SIP host')
                                 : getLocalText.s("QUIC/STUN decoy carries no hostname — the domain below is cosmetic for this protocol."),
                             style: Theme.of(context)
@@ -928,11 +928,11 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                           ),
                           const SizedBox(height: 12),
                           _label('Masquerade domain (id)'),
-                          // combo-box (пункты из sni_pool + свободный ввод) +
-                          // свой кубик: реролл случайного домена из пула.
-                          // Cloudflare-доменов тут НЕТ намеренно: SNI живёт
-                          // внутри junk-приманки (не TLS), и на замере они
-                          // резались — в отличие от MASQUE-пула, см. §136.
+
+
+
+
+
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
@@ -958,7 +958,7 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                               ),
                             ],
                           ),
-                          // ib — браузер (только при quic).
+
                           if (_masqIp == 'quic') ...[
                             const SizedBox(height: 12),
                             Row(
@@ -978,15 +978,15 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
                                     items: const [
                                       DropdownMenuItem(
                                           value: 'chrome',
-                                          // l10n-exempt: brand name
+
                                           child: Text('Chrome')),
                                       DropdownMenuItem(
                                           value: 'firefox',
-                                          // l10n-exempt: brand name
+
                                           child: Text('Firefox')),
                                       DropdownMenuItem(
                                           value: 'curl',
-                                          // l10n-exempt: brand name
+
                                           child: Text('cURL')),
                                     ],
                                     onChanged: _busy
@@ -1072,7 +1072,7 @@ class _WarpWizardScreenState extends State<WarpWizardScreen> with SnackHelper {
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       );
 
-  /// §136 — компактное числовое поле для Jc/Jmin/Jmax.
+
   Widget _numField(TextEditingController c, String label) => TextField(
         controller: c,
         enabled: !_busy,
@@ -1132,12 +1132,12 @@ class _StatusCard extends StatelessWidget {
       );
 }
 
-/// §424 — пункт combobox-пресетов визарда WARP. `label` ВСЕГДА равен чистому
-/// значению: [DropdownMenu] при выборе пункта пишет в контроллер именно
-/// `entry.label`, и любая пометка в нём утекала бы в конфиг
-/// (`"server_name": "consumer-masque.cloudflareclient.com (recommended)"`).
-/// Пометка живёт только в [DropdownMenuEntry.labelWidget] — виден в меню,
-/// в поле не попадает. [mark] — уже локализованная строка «(recommended)».
+
+
+
+
+
+
 DropdownMenuEntry<String> warpPresetEntry(
     String value, String recommended, String mark) {
   final marked = recommended.isNotEmpty && value == recommended;

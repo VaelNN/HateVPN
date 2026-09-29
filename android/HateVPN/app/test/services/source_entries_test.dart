@@ -12,14 +12,14 @@ import 'package:lxbox/services/settings_storage.dart';
 
 import '../contract_paths.dart';
 
-// §524 — ЕДИНЫЙ СПИСОК ЗАПИСЕЙ `sources[]`: один упорядоченный род сущности
-// (`SourceEntry`) над подписками, серверами, папками и цепочками.
-//
-// Решение владельца 24.09: «как мы храним по маркеру kind, так мы должны и
-// структуру держать … Разных списков быть не должно.» Формат на диске при этом
-// НЕ менялся — эти тесты ровно про то, что порядок и байты записей переживают
-// круг через новую модель, а операции над списком (удаление из середины,
-// перестановка при нечитаемой записи, toggle) соседей не двигают.
+
+
+
+
+
+
+
+
 
 void main() {
   late Directory tmp;
@@ -45,7 +45,7 @@ void main() {
     try {
       if (tmp.existsSync()) await tmp.delete(recursive: true);
     } on FileSystemException {
-      /* ignore */
+
     }
   });
 
@@ -75,8 +75,8 @@ void main() {
 
   const hops = [NodeLink(tag: 'a'), NodeLink(tag: 'b')];
 
-  /// Смешанный список на диске в порядке [order]: `uN` — сервер, `cN` —
-  /// цепочка. Пишется ОДНОЙ записью через единый писатель.
+
+
   Future<void> seed(List<String> order) async {
     await SettingsStorage.saveSourceEntries([
       for (final k in order)
@@ -106,8 +106,8 @@ void main() {
     });
 
     test('round-trip смешанного списка сохраняет порядок и записи', () async {
-      // Корпус контракта: подписка, две папки (внутри папки — узел И цепочка),
-      // корневой сервер и корневая цепочка со ссылками в папки.
+
+
       final corpus = jsonDecode(File('contract/corpus/backup/'
               'v10_sources_union.backup.json')
           .readAsStringSync()) as Map<String, dynamic>;
@@ -123,10 +123,10 @@ void main() {
           ['subscription', 'folder', 'folder', 'server', 'chain'],
           reason: 'все рода читаются одним списком, в порядке файла');
 
-      // Первая запись переводит записи в форму хранения приложения (кодек
-      // нормализует то, что читает). ДАЛЬШЕ форма стабильна: второй круг через
-      // единый писатель обязан дать те же байты — иначе каждый `_persist`
-      // переписывал бы файл заново и `configDirty` врал бы (§113).
+
+
+
+
       await SettingsStorage.saveSourceEntries(entries);
       SettingsStorage.resetCacheForTesting();
       final once = jsonEncode((await readFile())['sources']);
@@ -137,7 +137,7 @@ void main() {
       expect(jsonEncode((await readFile())['sources']), once,
           reason: 'формат на диске §524 не менялся — круг идемпотентен');
 
-      // Порядок родов и адресация записей переживают круг.
+
       final back = await SettingsStorage.getSourceEntries();
       expect(back.map((e) => e.kind),
           ['subscription', 'folder', 'folder', 'server', 'chain']);
@@ -180,7 +180,7 @@ void main() {
       expect(opaque.kind, 'bogus');
       expect(opaque.enabled, isFalse);
 
-      // §511 M2 — перестановка ВИДИМЫХ применяется, нечитаемая держит слот.
+
       expect(
         await SettingsStorage.reorderSources(
             ['id:u2', 'id:u1', 'chain:c1']),
@@ -188,8 +188,8 @@ void main() {
       );
       expect(await keysInFile(), ['u2', 'u1', 'junk', 'c1']);
 
-      // Долг §511:54-59 — запись переживает ЗАПИСЬ, а не только чтение: она
-      // уехала на диск байт в байт, включая ключ, которого модель не держит.
+
+
       SettingsStorage.resetCacheForTesting();
       final junk = ((await readFile())['sources'] as List)
           .cast<Map<String, dynamic>>()
@@ -243,7 +243,7 @@ void main() {
       expect(ctrl.entries.map((e) => e.id), ['u2', 'u1'],
           reason: 'без зеркала следующий _persist вернул бы прежний порядок');
 
-      // Ключи любого рода: цепочка адресуется наравне с контейнером.
+
       expect(
         await ctrl.applySourceOrder(['chain:c1', 'id:u1', 'id:u2']),
         isTrue,
@@ -258,13 +258,13 @@ void main() {
           for (final l in await SettingsStorage.getServerLists())
             SubscriptionEntry(list: l),
         ]);
-      // Неизвестный ключ — отказ; порядок на диске не тронут.
+
       expect(
         await ctrl.applySourceOrder(['id:nope', 'chain:c1', 'id:u2']),
         isFalse,
       );
       expect(await keysInFile(), ['u1', 'c1', 'u2']);
-      // Повторный ключ — тоже отказ (состав списка эта операция не меняет).
+
       expect(
         await ctrl.applySourceOrder(['id:u1', 'id:u1', 'chain:c1']),
         isFalse,

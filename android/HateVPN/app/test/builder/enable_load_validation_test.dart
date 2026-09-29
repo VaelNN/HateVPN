@@ -6,18 +6,18 @@ import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/builder/if_engine.dart';
 import 'package:lxbox/services/template_loader.dart';
 
-/// SPEC 393 фаза D (D4) — load-валидация тела `#enable` и симметрия секций.
-///
-/// До этого `validateIfConstructs` глотала `#enable` веткой
-/// `if (k.startsWith('#')) continue` вместе с forward-compat директивами:
-/// опечатка в имени переменной, оба ключа `and`+`or` сразу или скаляр вместо
-/// условия грузились МОЛЧА. Рантайм fail-closed гасит узел — значит функция
-/// молча исчезает из конфига, и причину без чтения кода не найти.
-///
-/// Второй разрыв — симметрия: Go валидирует `params`, `default_value` и
-/// `config`, Dart звал валидатор ТОЛЬКО по `config`. Единственный `#enable`
-/// боевого шаблона живёт в `selectable_rules[]`, то есть мимо `config` — до
-/// D4 он не проверялся ни разу.
+
+
+
+
+
+
+
+
+
+
+
+
 
 Map<String, dynamic> _shippedTemplate() => jsonDecode(
       File('assets/wizard_template.json').readAsStringSync(),
@@ -34,7 +34,7 @@ void main() {
 
   group('D4 — #enable отвергается на load в трёх невалидных формах', () {
     test('опечатка в имени переменной → TemplateIfError', () {
-      // Рантайм: предикат на необъявленное имя = false → узел выпадает молча.
+
       expect(
         () => validate({
           'node': {
@@ -71,8 +71,8 @@ void main() {
     });
 
     test('сообщение об ошибке несёт путь до узла', () {
-      // Путь — единственное, по чему разработчик находит место в шаблоне;
-      // проверяется наличие сегмента, а не точная формулировка текста.
+
+
       try {
         validate({
           'outbounds': [
@@ -173,8 +173,8 @@ void main() {
     });
 
     test('строковая форма #in (ссылка на text_list-var)', () {
-      // SPEC 103 C6: рантайм `_inList` эту форму исполняет — валидатор не
-      // вправе быть строже собственного движка.
+
+
       final scope = <String, WizardVar>{
         ...nodes,
         'allowed':
@@ -276,8 +276,8 @@ void main() {
 
     test('forward-compat сиблинг (не #if / не #enable) остаётся молчаливым',
         () {
-      // Регрессия на границу ветки: проверка `k == enableKey` не должна
-      // превратить неизвестную директиву будущей версии в ошибку загрузки.
+
+
       expect(() => validate({'n': {'#futureDirective': 42, 'y': 1}}),
           returnsNormally);
     });
@@ -291,8 +291,8 @@ void main() {
     });
 
     test('боевой шаблон реально содержит #enable в selectable_rules', () {
-      // Инвариант охвата: если #enable уедет из шаблона, тест выше станет
-      // вырожденным и перестанет что-либо доказывать.
+
+
       final json = _shippedTemplate();
       var found = 0;
       void walkTree(dynamic n) {
@@ -335,8 +335,8 @@ void main() {
     });
 
     test('сломанный #if в selectable_rules отвергается на load', () {
-      // Тела пресетов — мобильный аналог Go-секции params: до D4 не
-      // проверялись вовсе.
+
+
       final json = _shippedTemplate();
       var patched = false;
       void breakIf(dynamic n) {
@@ -345,7 +345,7 @@ void main() {
           for (final k in n.keys.toList()) {
             if (isIfKey(k) && n[k] is Map) {
               final body = n[k] as Map;
-              // добавляем второй ключ ветвления — «оба and+or сразу»
+
               body[body.containsKey('#and') ? '#or' : 'or'] = ['@vpn_mode'];
               patched = true;
               return;
@@ -366,7 +366,7 @@ void main() {
     });
 
     test('сломанный #on_change.#set отвергается на load', () {
-      // Мобильный аналог Go-секции default_value: значение цели — #if-узел.
+
       final json = _shippedTemplate();
       var patched = false;
       void breakOnChange(dynamic vars) {
@@ -401,9 +401,9 @@ void main() {
     });
 
     test('preset-local var видна валидатору тела своего пресета', () {
-      // Область видимости: `geoip_enabled` объявлена ТОЛЬКО внутри пресета
-      // ru-direct. Если бы scope был глобальным, боевой #enable был бы
-      // отвергнут как ссылка на необъявленное имя.
+
+
+
       final json = _shippedTemplate();
       final template = WizardTemplate.fromJson(json);
       expect(template.vars.any((v) => v.name == 'geoip_enabled'), isFalse,
@@ -411,9 +411,9 @@ void main() {
       expect(() => validateTemplateConstructs(json, template), returnsNormally);
     });
   });
-  // §443 (SPEC 129 Н11, D-118) — `@name` в теле шаблонного DNS-сервера обязан
-  // быть объявлен в vars[] этого сервера: сборка подставляет только такие
-  // имена, необъявленный плейсхолдер — ошибка шаблона, а не данных.
+
+
+
   group('Н11 — плейсхолдеры тела шаблонного DNS-сервера', () {
     Map<String, dynamic> serverEntry(Map<String, dynamic> json, String tag) =>
         ((json['dns_options'] as Map)['servers'] as List)

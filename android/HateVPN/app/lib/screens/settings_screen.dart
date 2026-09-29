@@ -16,32 +16,32 @@ import '../widgets/var_values_model.dart';
 import 'vpn_mode_tab.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// VPN Settings — System (`VpnService.Builder` toggles) + Core (sing-box
-/// engine vars, `chapter: 'core'`). Routing/DNS vars живут на своих экранах.
-/// SPEC 393 D3 — гасит подпись выключенной строки настроек.
-///
-/// Visible-связь «галка → поля» должна гасить СТРОКУ целиком, а не только
-/// контрол: §277 сделал серым дропдаун, но подпись и описание оставались в
-/// полную силу — выключенная настройка читалась как активная, и связь была
-/// заметна только при попытке её тронуть.
-///
-/// Именно [Opacity], а не `DefaultTextStyle`: подписи несут ЯВНЫЙ цвет из
-/// `textTheme`/`colorScheme`, унаследованный стиль их не перекрасил бы, и
-/// «починка» осталась бы невидимой. Не `IgnorePointer`/`AbsorbPointer` —
-/// текст и так не интерактивен, гасится ровно читаемость.
-///
-/// 0.38 — коэффициент disabled-состояния Material 3, тот же, которым гаснет
-/// сам контрол: строка и её поле тускнеют одинаково.
-///
-/// Top-level (не приватный метод State) — чтобы покрываться unit-тестом
-/// напрямую, без харнесса всего экрана. Тот же приём, что
-/// `assertMagicNodeMirrors` в `template_loader.dart`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Widget dimmedWhenDisabled({required bool enabled, required Widget child}) {
   if (enabled) return child;
   return Opacity(opacity: kDisabledRowOpacity, child: child);
 }
 
-/// Непрозрачность выключенной строки — Material 3 disabled state layer.
+
 const double kDisabledRowOpacity = 0.38;
 
 class SettingsScreen extends StatefulWidget {
@@ -55,7 +55,7 @@ class SettingsScreen extends StatefulWidget {
   final SubscriptionController subController;
   final HomeController homeController;
 
-  /// 0 = System, 1 = Core, 2 = Mode (§119). Used by deep-links.
+
   final int initialTab;
 
   @override
@@ -64,50 +64,50 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen>
     with WidgetsBindingObserver, TemplateAwareState<SettingsScreen> {
-  // §279 — заполняется через TemplateAwareState (didChangeDependencies по
-  // локали), НЕ в initState: смена языка перечитывает локализованный шаблон.
+
+
   WizardTemplate? _template;
-  // §232 — реактивная модель значений vars (per-key ValueNotifier). Единый
-  // источник истины для экрана: поля TemplateVarListView подписаны каждый на
-  // свой ключ, программные изменения (`on_change`) видны в UI мгновенно.
-  // Запись — ТОЛЬКО в память (+dirty); storage/cache трогает только `_persist`
-  // (dispose/paused, §076 write-on-exit) по model.dirtyKeys. Юзер, ушедший до
-  // persist (force-kill), staged-значения теряет — как и раньше для всех
-  // правок этого экрана.
-  //
-  // §084 M14 / §189: Native VPN System toggle (background_mode; §188 —
-  // allow_bypass / keep_on_exit переехали в Mode-вкладку) идёт через
-  // `SettingsStorage.setNativeBackgroundMode` (§189 — JSON-истина + зеркало в
-  // native) + `markConfigChangedNeedRestart` (home banner «Restart VPN»). Это
-  // discrete-event toggle, не config-rebuild var.
+
+
+
+
+
+
+
+
+
+
+
+
+
   VarValuesModel? _model;
   bool _loading = true;
 
   BackgroundMode _backgroundMode = BackgroundMode.never;
   bool _vpnLoaded = false;
-  // §143/§219 — НЕ native/config-significant: чистая storage-настройка
-  // поведения CommandClient при переключении ноды (selectOutbound +
-  // closeConnection). Без Restart-баннера.
+
+
+
   bool _interruptOnSwitch = false;
-  String _idleSuspend = ''; // §215 — lx.wg.idle_suspend threshold ("" = off)
-  // §272 — lx.wg.idle_suspend_reachable ("" = reachable never suspend)
+  String _idleSuspend = '';
+
   String _idleSuspendReachable = '';
-  int _wgBuildMax = 5; // §542 — lx.wg.build_max (0 = no cap)
-  bool _wgLazyBuild = true; // §542 — lx.wg.lazy_build
-  bool _passiveCheck = true; // §272 — urltest.passive_check
-  // §271 — memory limit ядра (native_prefs, wire-значения MemoryLimitSetting).
+  int _wgBuildMax = 5;
+  bool _wgLazyBuild = true;
+  bool _passiveCheck = true;
+
   String _memoryLimit = MemoryLimitSetting.auto;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // _load() стартует из onLocaleTemplateFetch (TemplateAwareState, §279).
+
   }
 
-  /// §279 — первый вызов (до первого build) — полная загрузка; смена локали —
-  /// только refetch шаблона (модель значений var'ов — machine-ключи, staged
-  /// правки юзера не трогаем).
+
+
+
   @override
   void onLocaleTemplateFetch({required bool first}) {
     if (first) {
@@ -126,9 +126,9 @@ class _SettingsScreenState extends State<SettingsScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    // §076 write-on-exit: Navigator.pop → flush dirty vars. Снимок значений
-    // _persist делает СИНХРОННО до первого await — поэтому dispose модели
-    // сразу после запуска безопасен (use-after-dispose исключён).
+
+
+
     if (_model?.dirtyKeys.isNotEmpty ?? false) unawaited(_persist());
     _model?.dispose();
     super.dispose();
@@ -142,21 +142,21 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
-  /// §232 — ЕДИНСТВЕННОЕ место записи vars в storage: снимаем dirty-значения
-  /// из модели (синхронно), стейджим в cache (`setVar flush:false`), один
-  /// атомарный `flushToDisk()`. До этого момента все изменения — только в
-  /// памяти модели (strict-семантика on_change: «юзер может не сохранить»).
+
+
+
+
   Future<void> _persist() async {
     final model = _model;
     if (model == null || model.dirtyKeys.isEmpty) return;
-    // Синхронный снимок ДО await — dispose() модели после нас не страшен.
+
     final staged = {for (final k in model.dirtyKeys) k: model.get(k)};
     model.clearDirty();
     for (final e in staged.entries) {
       await SettingsStorage.setVar(e.key, e.value, flush: false);
     }
     await SettingsStorage.flushToDisk();
-    // configDirty уже true (set in _onVarChanged sync). Не трогаем.
+
   }
 
   Future<void> _load() async {
@@ -166,17 +166,17 @@ class _SettingsScreenState extends State<SettingsScreen>
       for (final v in template.vars)
         v.name: storedVars[v.name] ?? v.defaultValue,
     });
-    // §189 — background_mode читаем из JSON-зеркала native_prefs (истина).
+
     final bgMode = BackgroundMode.fromNative(
         await SettingsStorage.getNativeBackgroundMode());
     final interruptOnSwitch = await SettingsStorage.getInterruptOnSwitch();
-    final idleSuspend = await SettingsStorage.getIdleSuspend(); // §215
+    final idleSuspend = await SettingsStorage.getIdleSuspend();
     final idleSuspendReachable =
-        await SettingsStorage.getIdleSuspendReachable(); // §272
-    final wgBuildMax = await SettingsStorage.getWgBuildMax(); // §542
-    final wgLazyBuild = await SettingsStorage.getWgLazyBuild(); // §542
-    final passiveCheck = await SettingsStorage.getPassiveCheck(); // §272
-    final memoryLimit = await SettingsStorage.getNativeMemoryLimit(); // §271
+        await SettingsStorage.getIdleSuspendReachable();
+    final wgBuildMax = await SettingsStorage.getWgBuildMax();
+    final wgLazyBuild = await SettingsStorage.getWgLazyBuild();
+    final passiveCheck = await SettingsStorage.getPassiveCheck();
+    final memoryLimit = await SettingsStorage.getNativeMemoryLimit();
     setState(() {
       _template = template;
       _backgroundMode = bgMode;
@@ -192,25 +192,25 @@ class _SettingsScreenState extends State<SettingsScreen>
     });
   }
 
-  // §143 — toggle persist'ится сразу в storage. НЕ config-significant → без
-  // `markConfigChangedNeedRestart` (в отличие от соседних native-туглов, §084 M14).
+
+
   void _toggleInterruptOnSwitch(bool val) {
     setState(() => _interruptOnSwitch = val);
     unawaited(SettingsStorage.setInterruptOnSwitch(val));
   }
 
-  // §188 — _toggleAllowBypass / _toggleKeepOnExit переехали в vpn_mode_tab.dart.
+
 
   Future<void> _applyBackgroundMode(BackgroundMode? mode) async {
     if (mode == null || mode == _backgroundMode) return;
     setState(() => _backgroundMode = mode);
-    // §189 — через NativePrefs (JSON-истина + зеркало в native).
+
     await SettingsStorage.setNativeBackgroundMode(mode.wireValue);
     widget.homeController.markConfigChangedNeedRestart();
   }
 
-  /// §215 — idle-suspend threshold (lx.wg.idle_suspend, kernel SPEC 020).
-  /// Выбор списком (RadioGroup) — применяется сразу, config-significant.
+
+
   Future<void> _applyIdleSuspend(String value) async {
     if (value == _idleSuspend) return;
     setState(() => _idleSuspend = value);
@@ -225,21 +225,21 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  /// §277/SPEC 393 D3 — ЕДИНСТВЕННЫЙ источник истины для visible-связи
-  /// «базовый порог → reachable-окно». Раньше условие было выписано трижды
-  /// (`enabled:`, `onChanged:` и нигде — у подписи); третье место как раз и
-  /// отставало. Ядро отвергает reachable без базового порога, поэтому связь
-  /// продуктовая, а не косметическая.
+
+
+
+
+
   bool get _idleSuspendReachableEnabled =>
       _vpnLoaded && _idleSuspend.isNotEmpty;
 
-  /// §542 — lx.wg.lazy_build. Ядро принимает lazy_build только вместе с
-  /// idle_suspend, поэтому тумблер гаснет, пока сон выключен (как
-  /// reachable-окно, §277).
+
+
+
   bool get _wgLazyBuildEnabled => _vpnLoaded && _idleSuspend.isNotEmpty;
 
-  /// §542 — lx.wg.build_max: бюджет — часть ленивой сборки, гаснет и без
-  /// сна, и при выключенном «Lazy tunnel build» (тогда ключ не пишется).
+
+
   bool get _wgBuildMaxEnabled => _wgLazyBuildEnabled && _wgLazyBuild;
 
   Future<void> _applyWgLazyBuild(bool value) async {
@@ -270,8 +270,8 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  /// §272 — reachable idle window (lx.wg.idle_suspend_reachable).
-  /// Config-significant, применяется на следующем подключении.
+
+
   Future<void> _applyIdleSuspendReachable(String value) async {
     if (value == _idleSuspendReachable) return;
     setState(() => _idleSuspendReachable = value);
@@ -286,7 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  /// §272 — passive health check (urltest.passive_check). Config-significant.
+
   Future<void> _applyPassiveCheck(bool value) async {
     if (value == _passiveCheck) return;
     setState(() => _passiveCheck = value);
@@ -301,9 +301,9 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  /// §271 — memory limit ядра. НЕ config-significant (не входит в sing-box
-  /// JSON): native применяет к работающему ядру немедленно через
-  /// reloadSetupOptions — без Restart-баннера и «next connect».
+
+
+
   Future<void> _applyMemoryLimit(String value) async {
     if (value == _memoryLimit) return;
     setState(() => _memoryLimit = value);
@@ -317,27 +317,27 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  /// §076/§107: template var change. Staged-запись в `_cache` сразу + sync
-  /// Колбэк от [TemplateVarListView] — значение УЖЕ в модели (виджет пишет
-  /// через `model.set` до вызова). Здесь только config-dirty + каскад
-  /// декларативных side-effect'ов.
+
+
+
+
   void _onVarChanged(String name, String value) {
-    widget.subController.configDirty = true; // sync race-safe
+    widget.subController.configDirty = true;
     _applyOnChange(name);
   }
 
-  /// §232 — декларативный side-effect var'а: `on_change.set` пишет производные
-  /// var ТОЛЬКО в модель (in-memory + per-key emit подписанным полям + dirty).
-  /// Storage не трогаем — staged-значения доедут до диска общим `_persist`
-  /// (write-on-exit). Резолвер читает snapshot модели, где переключённая var
-  /// уже новая. Рекурсия по цепочке on_change; fixpoint-guard: `model.set`
-  /// возвращает false для неизменившегося значения → цикл обрывается.
+
+
+
+
+
+
   void _applyOnChange(String name) {
     final model = _model;
     final template = _template;
     if (model == null || template == null) return;
     final node = template.vars.where((v) => v.name == name).firstOrNull;
-    // Канон — помеченный `#set`; легаси `set` читается бессрочно (SPEC 107).
+
     final set = node?.onChange?['#set'] ?? node?.onChange?['set'];
     if (set is! Map<String, dynamic>) return;
     final byName = {for (final v in template.vars) v.name: v};
@@ -349,7 +349,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (resolved == null) return;
       if (model.set(tName, resolved)) {
         widget.subController.configDirty = true;
-        _applyOnChange(tName); // цепочка on_change целевой var (если есть)
+        _applyOnChange(tName);
       }
     });
   }
@@ -403,8 +403,8 @@ class _SettingsScreenState extends State<SettingsScreen>
     return ListView(
       padding: EdgeInsets.fromLTRB(12, 12, 12, bottomPad),
       children: [
-        // §188 — «Allow VPN bypass» и «Keep VPN on exit» переехали в Mode-вкладку
-        // (TUN-зависимы → видны только в vpn / vpn_proxy режимах).
+
+
         SwitchListTile(
           title: Text(getLocalText.s("Interrupt connections on switch")),
           subtitle: Text(getLocalText.s("Drop active connections when you switch nodes, so traffic moves to the new node immediately")),
@@ -413,8 +413,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           onChanged: _toggleInterruptOnSwitch,
         ),
         const Divider(height: 32),
-        // §272 — секция WireGuard connections: оба idle-suspend порога ядра
-        // (lx.wg.idle_suspend / lx.wg.idle_suspend_reachable, SPEC 020).
+
+
         const TemplateSectionHeader(
           title: 'WireGuard connections',
           description:
@@ -467,18 +467,18 @@ class _SettingsScreenState extends State<SettingsScreen>
             },
           ),
         ),
-        // §272 — reachable idle window (lx.wg.idle_suspend_reachable):
-        // усыпление ДОСТИЖИМЫХ туннелей (члены пула, выбранный узел) после
-        // долгого простоя. Активно только при включённом idle-suspend выше
-        // (ядро отвергает reachable без базового порога — генератор и так
-        // не эмитит). §277 — зависимость выражена disabled-состоянием
-        // дропдауна, а НЕ ранним return в onChanged: немой гейт давал
-        // видимость выбора без сохранения («значение откатывается»).
-        //
-        // SPEC 393 D3 — гаснет ВСЯ строка, а не только контрол. §277 сделал
-        // серым дропдаун, но подпись и описание оставались в полную силу:
-        // выключенная настройка читалась как активная, и связь галка→поля
-        // была видна только в момент попытки её тронуть.
+
+
+
+
+
+
+
+
+
+
+
+
         dimmedWhenDisabled(
           enabled: _idleSuspendReachableEnabled,
           child: Padding(
@@ -508,8 +508,8 @@ class _SettingsScreenState extends State<SettingsScreen>
             decoration: InputDecoration(
               border: const OutlineInputBorder(),
               isDense: true,
-              // §277 — зеркалит onChanged: в disabled-состоянии серым
-              // становится и рамка, не только контент.
+
+
               enabled: _idleSuspendReachableEnabled,
             ),
             items: [
@@ -528,8 +528,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                   value: '1h',
                   child: Text(getLocalText.plural("%d hours", 1))),
             ],
-            // §277 — onChanged: null = честный disabled (серый дропдаун),
-            // пока базовый порог выключен.
+
+
             onChanged: !_idleSuspendReachableEnabled
                 ? null
                 : (String? v) {
@@ -538,8 +538,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                   },
           ),
         ),
-        // §542 — ленивая сборка WG/AWG (lx.wg.lazy_build, SPEC 097). Было
-        // константой true (§536). onChanged: null → честный disabled без сна.
+
+
         SwitchListTile(
           value: _wgLazyBuild,
           onChanged: !_wgLazyBuildEnabled
@@ -548,9 +548,9 @@ class _SettingsScreenState extends State<SettingsScreen>
           title: Text(getLocalText.s("Lazy tunnel build")),
           subtitle: Text(getLocalText.s("Build a WireGuard tunnel only on first use instead of at start. Saves memory with many nodes; the first connection to a node takes a moment longer.")),
         ),
-        // §542 — бюджет собранных WG/AWG туннелей (lx.wg.build_max, SPEC 097).
-        // Было константой 5 (§536); 0 = без потолка. Гаснет без сна и при
-        // выключенной ленивой сборке (тогда ключ не пишется).
+
+
+
         dimmedWhenDisabled(
           enabled: _wgBuildMaxEnabled,
           child: Padding(
@@ -603,7 +603,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           title: 'Optimization',
           description: 'Health checks, memory and VPN lifecycle',
         ),
-        // §272 — passive health check (urltest.passive_check).
+
         SwitchListTile(
           value: _passiveCheck,
           onChanged: (bool v) {
@@ -613,7 +613,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           title: Text(getLocalText.s("Passive health check")),
           subtitle: Text(getLocalText.s("Skip periodic server probes while your own traffic already proves the connection works. Fewer wakeups and less battery; ping numbers refresh less often.")),
         ),
-        // §271 — memory limit ядра. Применяется к работающему ядру сразу.
+
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Column(

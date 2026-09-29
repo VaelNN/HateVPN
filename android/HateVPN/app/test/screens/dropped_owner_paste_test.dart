@@ -7,13 +7,13 @@ import 'package:lxbox/screens/subscriptions_screen/paste_dialogs.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §561 / задача 570 — шторка отбраковок называет запись источника
-/// (`ownerTag`), диалог анализа вставки показывает отбраковки.
+
+
 void main() {
   setUpAll(loadEngineSections);
   tearDownAll(unloadEngineSections);
 
-  // Элемент Xray: рабочий узел и запись с протоколом вне реестра.
+
   const body = '[{"remarks": "unsup", "outbounds": ['
       '{"tag": "proxy", "protocol": "vless", "settings": {"vnext": [{'
       '"address": "a.example", "port": 443, "users": [{'
@@ -32,8 +32,8 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    // §572 — две записи одного кода собраны в группу: запись источника
-    // называет строка своей записи, а не подзаголовок плитки.
+
+
     expect(find.byType(ExpansionTile), findsOneWidget);
     expect(find.text('Entry: bad-entry'), findsOneWidget);
   });

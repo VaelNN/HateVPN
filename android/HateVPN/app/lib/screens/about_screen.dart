@@ -15,38 +15,38 @@ import '../widgets/safe_bottom.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key, this.openDonate = false});
 
-  /// §362 — открыть донат-попап сразу после первого кадра: кнопка
-  /// `lxbox://route:donate` в support-ленте ведёт к способам поддержки
-  /// ВНУТРИ приложения, а не на внешнюю страницу.
+
+
+
   final bool openDonate;
 
-  // §362 — адреса живут в общем слое `ProjectLinks` (единственный источник:
-  // раньше копии лежали здесь, в automation_tab и update_checker). Локальные
-  // алиасы оставлены для читаемости call-site'ов ниже.
+
+
+
   static const _repoUrl = ProjectLinks.repo;
   static const _singboxUpstreamUrl = ProjectLinks.singboxUpstream;
   static const _singboxLauncherUrl = ProjectLinks.launcher;
 
-  // §361 — руководство пользователя на языке интерфейса. Пара RU/EN держится
-  // синхронной CI-проверкой парности (tool/docs/parity_check.dart), поэтому
-  // разделы в обеих версиях одни и те же. Ветка `main` (как у AUTOMATION.md в
-  // automation_tab): в APK попадает релизный код, а релиз — это merge в main,
-  // который принесёт туда и оба файла гайда.
-  //
-  // ВАЖНО при бэкпорте/hotfix-сборке из develop: USER_GUIDE.md (EN) создан в
-  // §360-цикле и в main появится только со следующим релизом. Сборка этого
-  // экрана из ветки, ещё не влитой в main, даст 404 по EN-ссылке — проверять
-  // `curl -o /dev/null -w '%{http_code}'` по обоим URL перед выкладкой.
+
+
+
+
+
+
+
+
+
+
   static const guideUrlEn = ProjectLinks.guideEn;
   static const guideUrlRu = ProjectLinks.guideRu;
 
-  /// Ссылка на руководство под язык интерфейса. Незнакомый тег (язык, для
-  /// которого гайда ещё нет) → английская версия, а не 404.
+
+
   @visibleForTesting
   static String guideUrlFor(String tag) => ProjectLinks.guideFor(tag);
 
-  /// Текущий язык интерфейса: `effectiveTag` уже разрешён до 'en'/'ru' и
-  /// учитывает выбор System default.
+
+
   static String get _guideUrl =>
       guideUrlFor(LocaleController.I.effectiveTag);
 
@@ -76,7 +76,7 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  // l10n-exempt: app name
+
                   'HateVPN',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w700,
@@ -84,15 +84,15 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  // l10n-exempt: version literal, no translatable words
+
                   'v${VersionInfo.I.version}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: cs.onSurfaceVariant,
                       ),
                 ),
                 const SizedBox(height: 2),
-                // §390 — канал установки. Полезен в багрепортах: от него
-                // зависят и подпись APK, и адрес обновления.
+
+
                 Text(
                   getLocalText.s(
                       "Installed from %s", InstallSourceResolver.current.label),
@@ -131,11 +131,11 @@ class AboutScreen extends StatelessWidget {
                   onTap: () => ul.UrlLauncher.open(_repoUrl),
                 ),
                 const Divider(height: 1),
-                // VPN core version — runtime через `Libbox.version()` (вызов
-                // из `BoxVpnClient.getCoreVersion`). Подгружается лениво:
-                // первый paint показывает "loading", FutureBuilder заменит на
-                // значение когда native ответит. Tap — открывает upstream
-                // GitHub репо.
+
+
+
+
+
                 FutureBuilder<String>(
                   future: BoxVpnClient.I.getCoreVersion(),
                   builder: (ctx, snap) {
@@ -170,7 +170,7 @@ class AboutScreen extends StatelessWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.person_outline),
-                  // l10n-exempt: project name
+
                   title: const Text('singbox-launcher'),
                   subtitle: Text(getLocalText.s("Config wizard and parser reference")),
                   trailing: const Icon(Icons.open_in_new, size: 18),
@@ -197,17 +197,17 @@ class AboutScreen extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: const [
-              // l10n-exempt: technology name
+
               Chip(label: Text('Flutter')),
-              // l10n-exempt: technology name
+
               Chip(label: Text('Dart')),
-              // l10n-exempt: technology name
+
               Chip(label: Text('sing-box')),
-              // l10n-exempt: technology name
+
               Chip(label: Text('libbox')),
-              // l10n-exempt: technology name
+
               Chip(label: Text('CommandClient')),
-              // l10n-exempt: technology name
+
               Chip(label: Text('Material 3')),
             ],
           ),
@@ -216,10 +216,10 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  /// §362 — попап поддержки строится из `assets/donate.json`
-  /// ([DonateMethods]), а не из вшитой в разметку таблицы адресов: добавить
-  /// сеть = дописать запись в JSON. Пустой/битый файл → в попапе остаётся
-  /// ссылка на веб-страницу поддержки, а не пустота.
+
+
+
+
   void _showDonateDialog(BuildContext context) {
     showDialog<void>(
       context: context,
@@ -274,9 +274,9 @@ class AboutScreen extends StatelessWidget {
   }
 }
 
-/// §362 — строка способа поддержки в попапе. `crypto`: название, адрес
-/// моноширинным (тап/кнопка — копирование) и кнопка оплаты (deeplink
-/// кошелька). `link`: одна кнопка. `note` необязателен.
+
+
+
 class _DonateTile extends StatelessWidget {
   const _DonateTile({required this.method, required this.onCopy});
 
@@ -290,7 +290,7 @@ class _DonateTile extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // l10n-exempt: network / brand name
+
         Text(method.title,
             style: const TextStyle(fontWeight: FontWeight.bold)),
         if (note != null && note.isNotEmpty) ...[
@@ -302,7 +302,7 @@ class _DonateTile extends StatelessWidget {
           const SizedBox(height: 4),
           GestureDetector(
             onTap: () => onCopy(context, method.address!),
-            // l10n-exempt: wallet address
+
             child: Text(method.address!,
                 style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
           ),
@@ -334,11 +334,11 @@ class _DonateTile extends StatelessWidget {
   }
 }
 
-/// §426 — все каналы распространения, всегда. До этого ссылка «Open in Google
-/// Play» / «View release» жила только внутри [_UpdateBlock] и появлялась лишь
-/// когда чекер нашёл новую версию; переехать на другой источник (или просто
-/// открыть страницу своего стора) было неоткуда. Текущий канал помечен, но
-/// тоже кликабелен — страница стора нужна и без обновления (отзыв, шаринг).
+
+
+
+
+
 class _SourcesCard extends StatelessWidget {
   const _SourcesCard();
 
@@ -402,8 +402,8 @@ class _SourcesCard extends StatelessWidget {
   }
 }
 
-/// "Latest available" block — pings GitHub Releases (24h cap), shows result
-/// inline + manual "Check now" button. Spec §036.
+
+
 class _UpdateBlock extends StatefulWidget {
   const _UpdateBlock();
 
@@ -428,7 +428,7 @@ class _UpdateBlockState extends State<_UpdateBlock> {
       _checking = false;
       switch (result.kind) {
         case UpdateCheckKind.newer:
-          _statusLine = null; // banner-block ниже сам отрисует info
+          _statusLine = null;
         case UpdateCheckKind.upToDate:
           _statusLine = "You're up to date";
         case UpdateCheckKind.failed:
@@ -497,8 +497,8 @@ class _UpdateBlockState extends State<_UpdateBlock> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: Builder(builder: (context) {
-                      // §390 — ведём в СВОЙ канал: APK с GitHub не встанет
-                      // поверх Play/F-Droid-сборки (разные подписи).
+
+
                       final source = InstallSourceResolver.current;
                       return TextButton.icon(
                         onPressed: () => ul.UrlLauncher.open(

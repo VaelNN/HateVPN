@@ -7,8 +7,8 @@ import 'package:lxbox/vpn/cc_channel.dart';
 import 'package:lxbox/widgets/node_diagnostics_tab.dart';
 import 'package:lxbox/widgets/tailscale_network_tab.dart';
 
-/// Задача 581 — вкладка Network (состояния без данных, блок Exit node,
-/// устройства) и правка вкладки Diagnostics.
+
+
 class _FakeActions extends TailscaleNetworkActions {
   final chosen = <String>[];
 
@@ -171,7 +171,7 @@ void main() {
     expect(sub('gw'), contains('exit node'));
     expect(sub('shared-box'), contains('shared'));
     expect(sub('zeta'), contains('last seen'));
-    // Один владелец — без заголовков групп.
+
     expect(find.text('Alice'), findsNothing);
   });
 

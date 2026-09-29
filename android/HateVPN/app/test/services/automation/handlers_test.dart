@@ -4,10 +4,10 @@ import 'package:lxbox/services/debug/context.dart';
 import 'package:lxbox/services/debug/contract/errors.dart';
 import 'package:lxbox/services/debug/debug_registry.dart';
 
-/// §047 — extracted action-handlers. Проверяем precondition-валидацию, которую
-/// handlers добавляют поверх контроллеров (она срабатывает до обращения к
-/// HomeController, потому тестируется без живых контроллеров). Полная
-/// бизнес-логика покрыта тестами самих контроллеров.
+
+
+
+
 void main() {
   DebugContext emptyCtx() => DebugContext(
         registry: DebugRegistry.I,
@@ -15,8 +15,8 @@ void main() {
       );
 
   setUp(() {
-    // DebugRegistry — синглтон (приватный конструктор). Гарантируем пустые
-    // контроллеры, чтобы requireHome()/requireSub()/autoUpdater бросали.
+
+
     DebugRegistry.I.home = null;
     DebugRegistry.I.sub = null;
     DebugRegistry.I.autoUpdater = null;

@@ -13,8 +13,8 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/parse_all.dart';
 
-// §110 — Amnezia vpn://-ссылки. Энкодер-хелпер повторяет формат
-// qCompress: 4 байта big-endian длины + zlib-поток, base64url без padding.
+
+
 
 List<int> _qCompress(List<int> data) => [
       (data.length >> 24) & 0xff,
@@ -88,11 +88,11 @@ Map<String, dynamic> _export(List<Map<String, dynamic>> containers) => {
     };
 
 void main() {
-  // §480 — разбор `.conf` ведёт СЕКЦИЯ РЕЕСТРА, а наш черновик стал тонким
-  // оверлеем поверх неё. Без загруженного реестра накладывать оверлей не на
-  // что, секция не собирается, и контейнер `vpn://` не даёт ни одного узла.
-  // Прежде файл обходился без загрузки только потому, что черновик был
-  // ПОЛНОЙ копией секции.
+
+
+
+
+
   setUpAll(() async {
     await ContractRegistry.I.loadFromDirectory('assets/contract');
     await MapperSections.I
@@ -114,7 +114,7 @@ void main() {
       expect(spec.awg!.fields['jc'], 4);
       expect(spec.awg!.fields['jmax'], 70);
       expect(spec.awg!.fields['h1'], 1239197098);
-      expect(spec.mtu, 1280); // §097 AWG-кламп при отсутствии явного MTU
+      expect(spec.mtu, 1280);
       expect(spec.peers.single.endpointHost, '203.0.113.10');
     });
 
@@ -132,7 +132,7 @@ void main() {
       final link = makeLink(_export([_container('awg', ranged)]));
       final spec = parseAll(decode(link)).single as WireguardSpec;
       expect(spec.awg!.fields['h1'], '43613244-384550127');
-      expect(spec.awg!.fields['h2'], 1929999858); // одиночный остался int
+      expect(spec.awg!.fields['h2'], 1929999858);
     });
 
     test('wireguard-контейнер (plain WG) → нода без awg', () {
@@ -220,9 +220,9 @@ void main() {
     });
   });
 
-  // §421 — экспорт AWG 3.1: контейнер amnezia-awg2, protocol_version "3.1",
-  // MTU лежит в last_config.mtu (не в [Interface]), DNS через плейсхолдеры.
-  // Ключи синтетические.
+
+
+
   group('§421 — AWG 3.1 экспорт (amnezia-awg2)', () {
     const hk = 'Bw4VHCMqMTg/Rk1UW2JpcHd+hYyTmqGor7a9xMvS2eA=';
     const awg3Ini = r'''
@@ -294,7 +294,7 @@ PersistentKeepalive = 25-35
       expect(f['h1'], 1);
       expect(spec.mtu, 1280);
       expect(spec.peers.single.persistentKeepalive, '25-35');
-      expect(spec.rawSource, contains('MTU = 1376')); // fidelity исходника
+      expect(spec.rawSource, contains('MTU = 1376'));
       expect(spec.rawSource, contains('172.29.172.254'));
       expect(spec.rawSource, isNot(contains(r'$PRIMARY_DNS')));
       final map = spec.emit(TemplateVars.empty).map;
@@ -309,7 +309,7 @@ PersistentKeepalive = 25-35
           .replaceFirst('[Interface]\n', '[Interface]\nMTU = 1200\n');
       c['awg']['last_config'] = jsonEncode(lc);
       final spec = parseAll(decode(makeLink(export3(c)))).single as WireguardSpec;
-      expect(spec.mtu, 1200); // ниже 1280 — уважаем, last_config.mtu не трогает
+      expect(spec.mtu, 1200);
       expect(spec.rawSource, isNot(contains('MTU = 1376')));
     });
 

@@ -11,17 +11,17 @@ import '../../widgets/lx_code_editor.dart';
 import '../../widgets/node_diagnostics_tab.dart';
 import '../../widgets/tailscale_network_tab.dart';
 
-/// §302 — экран разбора одной ноды подписки: две вкладки.
-///
-/// - **JSON** — что нода превратится в конфиге (`emit`), то есть результат
-///   парсинга. Тот же вид, что «View JSON» в node_settings / папке §234.
-/// - **Source** — исходный фрагмент подписки, из которого нода собралась.
-///   Для JSON-тел переключатель Compact/Extended: compact — сам outbound-
-///   объект, extended — весь элемент как пришёл от провайдера (с dns/
-///   inbounds/routing соседями). Для URI-тел источник один — строка.
-///
-/// Источник — `NodeSpec.rawSource` (§454: у JSON-нод это их объект outbound'а),
-/// расширенный вид — `sourceExtended`.
+
+
+
+
+
+
+
+
+
+
+
 enum NodeInspectTab { json, source, replacements, diagnostics }
 
 class NodeInspectScreen extends StatefulWidget {
@@ -34,16 +34,16 @@ class NodeInspectScreen extends StatefulWidget {
 
   final NodeSpec node;
 
-  /// §392 — префикс тегов контейнера: в БОЕВОМ конфиге узел живёт под
-  /// display-тегом («<префикс> <тег>»), и диагностика при включённом VPN
-  /// адресует его именно так. Пусто = узел без префикса.
+
+
+
   final String tagPrefix;
 
-  /// §498/§501 — начальная вкладка (страховка открывает Diagnostics).
+
   final NodeInspectTab initialTab;
 
-  /// Индекс вкладки [tab] с учётом наличия Replacements и (§581) вкладки
-  /// Network перед Diagnostics у узла Tailscale.
+
+
   static int tabIndex(NodeInspectTab tab,
       {required bool hasReplacements, bool hasNetwork = false}) {
     switch (tab) {
@@ -63,8 +63,8 @@ class NodeInspectScreen extends StatefulWidget {
 }
 
 class _NodeInspectScreenState extends State<NodeInspectScreen> {
-  /// Показывать расширенный вид источника (весь элемент), а не только
-  /// сам outbound. Доступно лишь когда расширенный вид есть и отличается.
+
+
   bool _extended = false;
 
   NodeSpec get _node => widget.node;
@@ -72,7 +72,7 @@ class _NodeInspectScreenState extends State<NodeInspectScreen> {
   String get _json => const JsonEncoder.withIndent('  ')
       .convert(_node.emit(TemplateVars.empty).map);
 
-  /// Исходный фрагмент узла (§454/§456: у WG из INI — сам INI).
+
   String get _source {
     final compact = _node.rawSource;
     if (!_extended) return compact;
@@ -81,9 +81,9 @@ class _NodeInspectScreenState extends State<NodeInspectScreen> {
 
   bool get _hasExtended => (_node.sourceExtended ?? '').isNotEmpty;
 
-  /// §307 — правила поменяли тело узла: есть что показать во вкладке
-  /// Replacements. Пусто → вкладки нет вовсе (у большинства нод правил не
-  /// было, пустая вкладка была бы шумом).
+
+
+
   bool get _hasReplacements => _node.ruleTrail.isNotEmpty;
 
   @override
@@ -91,8 +91,8 @@ class _NodeInspectScreenState extends State<NodeInspectScreen> {
     final title = _node.label.isNotEmpty ? _node.label : _node.tag;
     final hasReplacements = _hasReplacements;
     final warnings = _node.warnings;
-    // §581 — у узла Tailscale вкладка Network перед Diagnostics; Save choice
-    // у узла подписки нет (правку сотрёт обновление подписки).
+
+
     final node = _node;
     final tailscale = node is TailscaleSpec;
     final liveTag = TagResolver.displayTag(widget.tagPrefix, _node.tag);
@@ -113,8 +113,8 @@ class _NodeInspectScreenState extends State<NodeInspectScreen> {
               if (hasReplacements)
                 Tab(text: getLocalText.s("Replacements")),
               if (tailscale) Tab(text: getLocalText.s("Network")),
-              // §392/§501 — диагностика + уведомления узла; точка на ярлыке
-              // при наличии предупреждений.
+
+
               NodeDiagnosticsTabLabel(warnings: warnings),
             ],
           ),
@@ -139,10 +139,10 @@ class _NodeInspectScreenState extends State<NodeInspectScreen> {
     );
   }
 
-  /// §302/§307 — что именно поменяли import-rules: следы замен из `ruleTrail`
-  /// («tls.utls.fingerprint: firefox → chrome»), по одной на строку. Вкладка
-  /// JSON рядом показывает уже итоговый вид — здесь видно, чем он отличается
-  /// от разобранного оригинала.
+
+
+
+
   Widget _replacementsTab(BuildContext context) {
     final theme = Theme.of(context);
     return Column(
@@ -176,8 +176,8 @@ class _NodeInspectScreenState extends State<NodeInspectScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Переключатель вида источника — только когда расширенный вид есть
-        // и реально отличается от компактного (URI-строки его не имеют).
+
+
         if (_hasExtended)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),

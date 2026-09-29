@@ -10,11 +10,11 @@ import 'package:lxbox/services/storage_migration/migrate_storage.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §439 §2.3 п. 8 — миграция ссылок 2.23.2 → NodeLink: финальный тег строкой
-// переводится по состоянию до миграции (словарь финальных тегов той же
-// сборкой, `sub_cache` для узлов подписок); не нашлось или неоднозначно —
-// корень с предупреждением; Направление и служебный тег — корень молча.
-// Отдельно — члены папок `autogroup://` (N2): составные ключи → пары.
+
+
+
+
+
 
 String _uri(String name, String host) =>
     'vless://11111111-1111-1111-1111-111111111111@$host:443'
@@ -68,8 +68,8 @@ List<NodeLink> _hops(StorageMigrationResult r, String tag) => chainFromRecord(
     .hops;
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   final directions = [const Direction(tag: 'vpn-1', label: 'V').toJson()];
@@ -135,8 +135,8 @@ void main() {
     });
 
     test('неоднозначная строка — корень с предупреждением', () {
-      // Обе папки выключены: в словаре сборки их нет, запасной путь по
-      // финальной форме даёт двух кандидатов.
+
+
       final r = _migrate({
         'server_lists': [
           _folderV0('x1', 'X', [

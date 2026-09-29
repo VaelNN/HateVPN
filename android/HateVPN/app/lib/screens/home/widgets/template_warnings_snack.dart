@@ -6,11 +6,11 @@ import '../../../services/l10n/locale_controller.dart';
 import '../../subscription_detail_screen/widgets/node_warnings_sheet.dart'
     show showNodeWarningsSheet;
 
-/// §555 / задача 570 — поверхность `template_degraded` на Home: после
-/// сборки с предупреждениями движка шаблона — короткий снек
-/// «Template: N warnings» с кнопкой в шторку кодов (тексты реестра, тот же
-/// [showNodeWarningsSheet], что у узла). Сохранение конфига не блокируется;
-/// полные EN-строки по-прежнему в логе (первыми в отчёте сборки).
+
+
+
+
+
 void showTemplateWarningsSnack(
     BuildContext context, List<TemplateWarning> items) {
   if (items.isEmpty) return;

@@ -1,12 +1,12 @@
-/// Пул ссылок на узлы для экранов (§439, NODE_LINK §5: «превью экрана строит
-/// тот же пул производно, это кэш экрана, а не поле записи»).
-///
-/// Финальные теги узлов считаются тем же `ServerList.build`, что у сборки
-/// конфига, с тем же резервом тегов Направлений и служебных outbound'ов:
-/// экран показывает ссылку финальным тегом и переводит выбранный финальный
-/// тег (кандидат позиции цепочки из собранного конфига) обратно в ссылку.
-/// Конфиг здесь не собирается: entries никуда не кладутся, detour-ссылки не
-/// разрешаются.
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../config/consts.dart';
@@ -22,8 +22,8 @@ import 'rule_set_registry.dart';
 import 'server_list_build.dart';
 import 'source_replace_build.dart' show ReplacePlan;
 
-/// Пул ссылок источников [lists]: словарь с финальными тегами узлов и
-/// корневыми именами ([directions] и их `-auto`, служебные outbound'ы).
+
+
 NodeLinkTargets computeNodeLinkPool(
   List<ServerList> lists, {
   List<Direction> directions = const [],
@@ -33,7 +33,7 @@ NodeLinkTargets computeNodeLinkPool(
       kDirectOutboundTag,
       kBlockOutboundTag,
       for (final d in directions) ...[d.tag, d.autoTag],
-      // Фича 565 фаза B — имена свёрток: корневые цели ссылок (§74 п.5).
+
       ...sourceReplaceNames(lists),
     ]);
   for (final l in lists) {
@@ -47,23 +47,23 @@ NodeLinkTargets computeNodeLinkPool(
     try {
       l.build(ctx);
     } catch (_) {
-      // Превью best-effort: источник, чей узел не эмитится, просто не даёт
-      // финальных тегов (ссылка на него показывается тегом как есть).
+
+
     }
   }
   return targets;
 }
 
-/// Пулы «при включении» (§439, миграция ссылок D-112): для каждого источника
-/// [lists] с выключенным содержимым — сам источник, член папки, узел
-/// подписки — отдельный пул с финальными тегами его узлов, как их назвала бы
-/// сборка, будь он включён целиком: источники перед ним — как есть, теги
-/// считает тот же `ServerList.build` (префиксы, уникализация, резерв тегов
-/// Направлений и служебных outbound'ов). Узлы других источников в такой пул
-/// не попадают — действительные теги даёт [computeNodeLinkPool].
-///
-/// Пул на источник, а не общий: включение одного источника не сдвигает
-/// уникализацию другого, и неоднозначность видна вызывающему.
+
+
+
+
+
+
+
+
+
+
 List<NodeLinkTargets> computeDisabledNodeLinkPools(
   List<ServerList> lists, {
   List<Direction> directions = const [],
@@ -85,7 +85,7 @@ List<NodeLinkTargets> computeDisabledNodeLinkPools(
   return out;
 }
 
-/// Источник [l], включённый целиком; null — выключенного в нём нет.
+
 ServerList? _enabledWhole(ServerList l) => switch (l) {
       SubscriptionServers s when !s.enabled || s.disabledHashes.isNotEmpty =>
         s.copyWith(enabled: true, disabledHashes: const {}),
@@ -101,13 +101,13 @@ void _buildQuiet(ServerList l, EmitContext ctx) {
   try {
     l.build(ctx);
   } catch (_) {
-    // Как в [computeNodeLinkPool]: источник без эмиссии не даёт тегов.
+
   }
 }
 
-/// Показ ссылки [link]: финальный тег узла из пула; ссылка, которой в пуле
-/// нет, — финальная форма по источнику (префикс контейнера + сырой тег) или
-/// тег как есть.
+
+
+
 String nodeLinkDisplay(
   NodeLink link,
   NodeLinkTargets? pool, {
@@ -134,7 +134,7 @@ class _PoolCtx implements EmitContext {
   @override
   final NodeLinkTargets linkTargets;
 
-  // Тот же резерв, что у `_BuildCtx` сборки.
+
   final _taken = <String>{kDirectOutboundTag, 'dns-out', 'block-out'};
   final _ruleSets = RuleSetRegistry();
 

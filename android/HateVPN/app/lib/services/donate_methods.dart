@@ -7,17 +7,17 @@ import 'package:http/http.dart' as http;
 import 'app_log.dart';
 import 'settings_storage.dart';
 
-/// §362 — способы поддержки проекта. До этого адреса кошельков были вшиты в
-/// разметку донат-попапа (About): добавить сеть значило править виджет и
-/// выпускать релиз.
-///
-/// Источник — `app/assets/donate.json`, единственный (§423, как лента §422):
-/// он бандлится в APK и он же раздаётся через raw.githubusercontent.com —
-/// адреса правятся без релиза. Порядок: сеть → кэш последнего удачного
-/// ответа (`donate_cache_json`) → bundled-копия (первый запуск офлайн).
-/// Загрузка ленивая, кэш на процесс. Гейта `auto_check_updates` здесь нет:
-/// запрос идёт только по явному действию пользователя (About → Support),
-/// фоновых обращений нет.
+
+
+
+
+
+
+
+
+
+
+
 @immutable
 class DonateMethod {
   const DonateMethod({
@@ -31,19 +31,19 @@ class DonateMethod {
 
   final String id;
 
-  /// `crypto` — адрес + копирование + кнопка оплаты; `link` — кнопка-ссылка.
+
   final String kind;
 
-  /// Название сети/бренда — НЕ переводится (l10n-exempt by design).
+
   final String title;
 
-  /// Deeplink кошелька (crypto) либо адрес страницы (link).
+
   final String url;
 
-  /// Адрес кошелька — только у `crypto`.
+
   final String? address;
 
-  /// Необязательная поясняющая строка.
+
   final String? note;
 
   bool get isCrypto => kind == 'crypto';
@@ -56,7 +56,7 @@ class DonateMethod {
     if (id.isEmpty || title.isEmpty || url.isEmpty) return null;
     final kind = raw['kind'] as String? ?? 'link';
     final address = raw['address'] as String?;
-    // crypto без адреса нечего показывать — отбрасываем (битая запись).
+
     if (kind == 'crypto' && (address == null || address.isEmpty)) return null;
     return DonateMethod(
       id: id,
@@ -82,17 +82,17 @@ class DonateMethods {
   static const _httpTimeout = Duration(seconds: 10);
   static const _cacheKey = 'donate_cache_json';
 
-  /// Test seam (паттерн §101 httpClientForTesting).
+
   @visibleForTesting
   http.Client? httpClientForTesting;
 
   List<DonateMethod>? _cache;
 
-  /// Порядок как в файле. Повторный вызов отдаёт кэш процесса.
+
   Future<List<DonateMethod>> load() async {
     final cached = _cache;
     if (cached != null) return cached;
-    // §221 — закрываем самосозданный клиент (owned), иначе течёт на каждый показ.
+
     final owned = httpClientForTesting == null;
     final client = httpClientForTesting ?? http.Client();
     try {
@@ -116,8 +116,8 @@ class DonateMethods {
       final parsed = _parse(cachedRaw);
       if (parsed.isNotEmpty) return _cache = parsed;
     }
-    // Первый запуск без сети — bundled-копия (адреса на момент сборки: хуже
-    // свежих, но лучше пустого попапа).
+
+
     try {
       return _cache = _parse(await rootBundle.loadString(_asset));
     } catch (e) {

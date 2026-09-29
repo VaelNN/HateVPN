@@ -9,18 +9,18 @@ import '../../../services/workspaces/workspace_controller.dart';
 import '../../../services/workspaces/workspace_store.dart';
 import '../../../widgets/app_bottom_sheet.dart';
 
-/// §417 — кнопка справа от «L×Box»: имя текущего workspace и попап с двумя
-/// разделами — Load (слоты, у каждого меню «⋮»: переименовать / удалить) и
-/// Save (Save as…). Отдельного экрана управления нет.
-///
-/// Загрузка идёт через [WorkspaceController.load]; на её время поверх
-/// Navigator'а висит модальный прогресс. Маршрут прогресса живёт в
-/// `MaterialApp`, а не в `HomeScreen`, поэтому переживает пересоздание
-/// экрана — закрываем его через сохранённый `NavigatorState`.
+
+
+
+
+
+
+
+
 class WorkspaceMenuButton extends StatelessWidget {
   const WorkspaceMenuButton({super.key, required this.stopVpn});
 
-  /// Колбэк экрана: остановить пробы и туннель, вернуть «был ли поднят».
+
   final Future<bool> Function() stopVpn;
 
   @override
@@ -115,7 +115,7 @@ class WorkspaceMenuButton extends StatelessWidget {
   Future<void> _saveAs(BuildContext context) async {
     final ws = WorkspaceController.I;
     final messenger = ScaffoldMessenger.of(context);
-    // У current ещё нет папки (первое использование) — предлагаем его имя.
+
     final hasFolder = ws.slots.any((s) => s.name == ws.current);
     final name = await showDialog<String>(
       context: context,
@@ -200,7 +200,7 @@ class WorkspaceMenuButton extends StatelessWidget {
   }
 }
 
-/// «Default» локализуется, имена пользователя — как есть.
+
 String workspaceDisplayName(String name) =>
     name == WorkspaceStore.defaultName ? getLocalText.s("Default") : name;
 
@@ -259,8 +259,8 @@ class _WorkspaceSheet extends StatelessWidget {
     final now = DateTime.now();
     final slots = [...ws.slots]
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    // current без папки (до первого Save as) — показываем первым, без даты
-    // и без меню: переименовывать/удалять ещё нечего.
+
+
     final currentHasFolder = slots.any((s) => s.name == ws.current);
 
     Widget section(String title) => Padding(
@@ -297,7 +297,7 @@ class _WorkspaceSheet extends StatelessWidget {
                     value: _RenameAction(name),
                     child: Text(getLocalText.s("Rename")),
                   ),
-                  // current — адрес автосохранения, удалить нельзя.
+
                   PopupMenuItem(
                     value: _DeleteAction(name),
                     enabled: !isCurrent,
@@ -335,8 +335,8 @@ class _WorkspaceSheet extends StatelessWidget {
   }
 }
 
-/// Диалог имени слота: валидация [WorkspaceStore.validateName] на лету,
-/// кнопка Save недоступна при невалидном имени. Возвращает trimmed имя.
+
+
 class WorkspaceNameDialog extends StatefulWidget {
   const WorkspaceNameDialog({super.key, this.initial = '', this.title});
 

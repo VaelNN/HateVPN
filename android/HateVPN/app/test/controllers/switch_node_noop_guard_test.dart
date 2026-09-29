@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -24,9 +24,9 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationSupportPath() async => tempRoot;
 }
 
-/// §290 — no-op guard: SWITCH_NODE на уже активную ноду не делает re-select и
-/// не рвёт соединения, но шлёт подтверждающее `NODE_ALREADY_ACTIVE`. На другую
-/// ноду — прежний путь (`ccSelectOutbound` вызывается).
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -48,7 +48,7 @@ void main() {
     methodCalls = [];
     messenger.setMockMethodCallHandler(methods, (call) async {
       methodCalls.add(call.method);
-      // selectOutbound должен «удаться», чтобы switchNode не свалился в error.
+
       if (call.method == 'ccSelectOutbound') return true;
       if (call.method == 'ccGetGroups') return <dynamic>[];
       return null;
@@ -58,13 +58,13 @@ void main() {
     }
     controller = HomeController();
     emitted = [];
-    // §290 событие идёт под категорией State — включаем и перехватываем.
+
     AutomationEventEmitter.I.debugConfigureForTest(
       state: true,
       onSend: (a, e) => emitted.add((a, e)),
     );
-    // §290 — привязать контроллер к registry, чтобы automation-хендлеры
-    // (actionSwitchNode/actionSetGroup) видели его через requireHome().
+
+
     DebugRegistry.I.home = controller;
   });
 
@@ -75,7 +75,7 @@ void main() {
     for (final ch in [methods, ccStatus, ccGroups]) {
       messenger.setMockMethodCallHandler(ch, null);
     }
-    AutomationEventEmitter.I.debugConfigureForTest(); // сброс
+    AutomationEventEmitter.I.debugConfigureForTest();
     if (await tempDir.exists()) await tempDir.delete(recursive: true);
   });
 
@@ -105,11 +105,11 @@ void main() {
     expect(emitted.map((e) => e.$1), isNot(contains('NODE_ALREADY_ACTIVE')));
   });
 
-  // ─── §290 automation preconditions (F1/F3) ─────────────────────────────────
+
 
   test('actionSwitchNode: группа выбрана, туннель опущен → Conflict (не немой)',
       () async {
-    // group != null, но tunnelUp == false — раньше switchNode молча return'ил.
+
     controller.debugSeedNodeState(
         group: 'vpn-1', activeNode: '🇫🇮node', tunnelUp: false);
 
@@ -136,7 +136,7 @@ void main() {
     controller.debugSeedNodeState(
         group: 'vpn-1', activeNode: '🇫🇮node', groups: ['vpn-1', 'work']);
 
-    // не должно бросить (группа есть в списке)
+
     await automation.actionSetGroup('work', ctx());
   });
 }

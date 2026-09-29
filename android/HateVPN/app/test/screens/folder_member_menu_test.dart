@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -23,11 +23,11 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// Меню члена папки: у авто-узла нет «Move out of folder» (одиночным
-/// сервером группа стала бы пустой записью), «Move to folder…» остаётся.
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
@@ -45,14 +45,14 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
   testWidgets('long-press: сервер — Move out есть, авто-узел — нет',
       (tester) async {
     final c = SubscriptionController();
-    // dart:io вне fake-async зоны testWidgets.
+
     await tester.runAsync(() async {
       await c.init();
       await c.addFolder('F');
@@ -87,8 +87,8 @@ void main() {
     await closeMenu();
   });
 
-  /// Подтверждение удаления папки называет авто-узлы; папке из одних
-  /// авто-узлов «Keep servers» не предлагается.
+
+
   Future<void> openDeleteDialog(WidgetTester tester,
       {required bool withServer}) async {
     final c = SubscriptionController();

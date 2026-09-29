@@ -2,13 +2,13 @@ import '../services/l10n/locale_controller.dart';
 import 'platform_channels.dart';
 import 'version_info.dart';
 
-/// §362 — единственный источник ссылок проекта. До этого адреса лежали
-/// копиями по экранам (About, Automation-tab, update_checker) и в текстах
-/// support-ленты — смена адреса требовала обхода всех мест.
-///
-/// Здесь же — подстановка `@плейсхолдеров` в remote-контенте (support.json):
-/// автор пишет `"url": "@guideLink"` вместо адреса, приложение подставляет
-/// актуальное значение — в том числе локале-зависимое (гайд ru/en).
+
+
+
+
+
+
+
 class ProjectLinks {
   ProjectLinks._();
 
@@ -26,16 +26,16 @@ class ProjectLinks {
   static const donatePageRu =
       'https://github.com/Leadaxe/LxBox/blob/main/docs/DONATE.ru.md';
 
-  /// Страница поддержки на языке интерфейса (пара RU/EN, как гайд).
+
   static String donatePageFor(String tag) =>
       tag == 'ru' ? donatePageRu : donatePage;
   static const automationDoc =
       'https://github.com/Leadaxe/LxBox/blob/main/docs/AUTOMATION.md';
 
-  /// §361 — руководство пользователя. Пара RU/EN держится синхронной
-  /// CI-проверкой парности (tool/docs/parity_check.dart). Ветка `main`: в APK
-  /// попадает релизный код, а релиз — это merge в main, который принесёт туда
-  /// и оба файла гайда. Незнакомый тег → английская версия, а не 404.
+
+
+
+
   static const guideEn =
       'https://github.com/Leadaxe/LxBox/blob/main/docs/USER_GUIDE.md';
   static const guideRu =
@@ -46,12 +46,12 @@ class ProjectLinks {
   static String releaseTag(String tag) =>
       'https://github.com/Leadaxe/LxBox/releases/tag/$tag';
 
-  /// §390 — страницы приложения в сторах. Куда вести за обновлением, решает
-  /// канал установки (`InstallSource.updateUrl`): APK с GitHub не встанет
-  /// поверх Play-сборки, подписи разные.
-  ///
-  /// `market://` открывает клиент Play напрямую. Если Play на устройстве нет —
-  /// intent не резолвится, native `openUrl` падает на [playPageWeb].
+
+
+
+
+
+
   static const playPage =
       'market://details?id=${PlatformChannels.packageName}';
   static const playPageWeb =
@@ -59,8 +59,8 @@ class ProjectLinks {
   static const fdroidPage =
       'https://f-droid.org/packages/${PlatformChannels.packageName}/';
 
-  /// Плейсхолдеры remote-контента. Значения резолвятся В МОМЕНТ показа:
-  /// `@guideLink` зависит от текущей локали, `@appVersion` — от версии APK.
+
+
   static Map<String, String> placeholders() => {
         '@selfLink': latestRelease,
         '@repoLink': repo,
@@ -74,10 +74,10 @@ class ProjectLinks {
         '@appVersion': VersionInfo.I.version,
       };
 
-  /// Подстановка `@плейсхолдеров` в произвольной строке (url/label/message).
-  /// Неизвестный `@токен` остаётся текстом как есть — опечатка автора не
-  /// ломает сообщение и видна глазом. Длинные имена подставляются первыми,
-  /// чтобы префикс не съедал более длинный ключ.
+
+
+
+
   static String expand(String raw) {
     if (!raw.contains('@')) return raw;
     final map = placeholders();

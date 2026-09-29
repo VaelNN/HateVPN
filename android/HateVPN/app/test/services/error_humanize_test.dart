@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/error_humanize.dart';
 
-// §279 Phase 4 — humanizeError возвращает UiMsg; тесты ассертят английский
-// рендер (renderEn).
+
+
 String hum(Object e) => humanizeError(e).renderEn();
 
 void main() {
@@ -19,8 +19,8 @@ void main() {
 
     test('SocketException with host in message → "No connection to <host>"',
         () {
-      // regression: DNS lookup failure обычно не даёт `e.address`, но host
-      // есть в тексте "Failed host lookup: 'api.example.com'".
+
+
       const e = SocketException(
         "Failed host lookup: 'api.example.com'",
       );
@@ -34,8 +34,8 @@ void main() {
     });
 
     test('TimeoutException with duration → includes seconds', () {
-      // regression: doc обещал "Timed out after N seconds" — раньше код
-      // всегда отдавал generic, теперь подставляет duration.
+
+
       final msg = hum(
         TimeoutException('x', const Duration(seconds: 30)),
       );

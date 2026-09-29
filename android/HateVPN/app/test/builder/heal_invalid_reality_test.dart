@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/builder/post_steps.dart';
 
-// §169 — валидный X25519 public key (43-симв base64url = 32 байта).
+
 const _validPbk = 'AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw';
 
 Map<String, dynamic> _vlessReality({
@@ -24,13 +24,13 @@ Map<String, dynamic> _vlessReality({
       },
     };
 
-/// §343 — страховка от битого REALITY в собранном конфиге (пути мимо
-/// парсера: raw JSON, §302 import rules). Битый short_id → '', битый
-/// public_key → reality снят (plain TLS). Ядро иначе роняет ВЕСЬ конфиг.
+
+
+
 void main() {
   group('healInvalidReality', () {
     test('БОЕВОЙ КЕЙС: нечётный short_id → очищен, нода и конфиг живы', () {
-      // initialize outbound[1543]: decode short_id: encoding/hex: odd length
+
       final config = {
         'outbounds': [_vlessReality(tag: 'bad', shortId: 'abc')],
       };

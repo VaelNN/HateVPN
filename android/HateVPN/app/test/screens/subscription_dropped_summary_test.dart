@@ -10,13 +10,13 @@ import 'package:lxbox/services/parser/parse_all.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §561 — отбраковка разбора живёт в `dropped[]` подписки и показывается в
-/// сводке источника (строка + шторка), а не на соседнем узле.
+
+
 void main() {
   setUpAll(loadEngineSections);
   tearDownAll(unloadEngineSections);
 
-  // Элемент Xray: рабочий узел и запись с протоколом вне реестра.
+
   const body = '[{"remarks": "unsup", "outbounds": ['
       '{"tag": "proxy", "protocol": "vless", "settings": {"vnext": [{'
       '"address": "a.example", "port": 443, "users": [{'

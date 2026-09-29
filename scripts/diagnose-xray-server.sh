@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Read-only check for the HateVPN Xray service. It does not change the VPN or firewall.
+
 set -u
 
 xray=/opt/hatevpn-xray/xray

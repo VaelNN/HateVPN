@@ -1,22 +1,22 @@
-/// §445 — каталоги состояния узлов Tailscale: индекс «слот → ключ узла → имя
-/// каталога» (`<root>/tailscale_state.json`) и файловые операции над
-/// `<root>/tailscale/`. Спека: `docs/spec/tasks/445-tailscale-state-dir-lifecycle.md`.
-///
-/// Имя каталога выдаётся узлу один раз и не меняется: переименование и
-/// перенос узла переписывают ключ записи, файлы не двигаются (каталог может
-/// быть открыт живым ядром). Каталог удаляется, только когда на него не
-/// ссылается ни один слот, и:
-///
-/// - при сборке и операции реестра — если ядро остановлено ([coreStopped]);
-/// - при Save as и Delete слота — сразу: у слота, который не `current`, узлов
-///   в работающем конфиге нет.
-///
-/// Пока в справочнике Workspaces есть слот без набора записей, каталоги,
-/// найденные на диске при создании индекса ([_Index.legacy]), не удаляются:
-/// это имена 2.24.0 по финальному тегу, и они могут принадлежать такому слоту.
-///
-/// Корень — native `filesDir`; у `WorkspaceStore` тот же каталог через
-/// `getApplicationSupportDirectory()` (§417 §2.1). Все операции сериализованы.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import 'dart:async';
@@ -40,17 +40,17 @@ class TailscaleStateStore {
   Future<void> _lock = Future<void>.value();
   int _tmpSeq = 0;
 
-  // ---------------------------------------------------------------------------
-  // Сборка
-  // ---------------------------------------------------------------------------
 
-  /// Имена каталогов узлов Tailscale слота [slot] для сборки (карта по ссылке
-  /// узла). Узлу без записи выдаётся имя; на первой сборке слота — каталог
-  /// 2.24.0 по финальной форме, если он есть (миграция). Если ядро
-  /// остановлено — сироты: записи без узлов, наборы слотов вне [slotNames],
-  /// каталоги без ссылок.
-  ///
-  /// [slotNames] — имена справочника Workspaces (`current` включён).
+
+
+
+
+
+
+
+
+
+
   Future<Map<NodeSpec, String>> prepareForBuild({
     required String root,
     required String slot,
@@ -104,7 +104,7 @@ class TailscaleStateStore {
           changed = true;
         }
 
-        // Сироты — только при остановленном ядре.
+
         final keys = scan.keys;
         final prunable = [
           for (final k in records.keys)
@@ -161,10 +161,10 @@ class TailscaleStateStore {
         return out;
       });
 
-  /// Каталог 2.24.0 для узла: [base], `-1`, `-2`… в порядке узлов (порядок
-  /// суффиксов `allocateTag`). Имя, уже выданное в этой сборке, пропускается;
-  /// существующий каталог чужого слота — тоже; первого отсутствующего на диске
-  /// имени — конец поиска.
+
+
+
+
   String? _adopt(
     String base,
     Set<String> taken,
@@ -180,8 +180,8 @@ class TailscaleStateStore {
     return null;
   }
 
-  /// Свободное имя: [base], `-1`, `-2`… — не выдано в этой сборке, нет на
-  /// диске (сирота, ждущая удаления, не наследуется) и не записано у слотов.
+
+
   String _allocate(
     String base,
     Set<String> taken,
@@ -204,16 +204,16 @@ class TailscaleStateStore {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Реестр
-  // ---------------------------------------------------------------------------
 
-  /// Операция контроллера над источниками: записи слота [slot] идут за узлами
-  /// ([diffTailscaleStateKeys]). Удалённый узел или источник снимает запись
-  /// сразу (иначе тёзка, добавленный следом, унаследовал бы личность), его
-  /// каталог удаляется, если на него больше никто не ссылается и ядро
-  /// остановлено. Слот без набора записей не трогается — его первая сборка
-  /// всё выдаст сама.
+
+
+
+
+
+
+
+
+
   Future<void> relink({
     required String root,
     required String slot,
@@ -267,14 +267,14 @@ class TailscaleStateStore {
         }
       });
 
-  // ---------------------------------------------------------------------------
-  // Workspaces
-  // ---------------------------------------------------------------------------
 
-  /// Save as: набор записей [to] := копия набора [from] (`current`). Каталоги
-  /// не копируются: узлы-копии в обоих слотах — одно устройство. Каталоги
-  /// прежнего набора [to], на которые больше никто не ссылается, удаляются
-  /// сразу ([to] не `current`). [slotNames] — справочник после операции.
+
+
+
+
+
+
+
   Future<void> forkSlot({
     required String root,
     required String from,
@@ -300,7 +300,7 @@ class TailscaleStateStore {
         }
       });
 
-  /// Rename слота: набор записей переезжает под новое имя, каталоги те же.
+
   Future<void> renameSlot({
     required String root,
     required String from,
@@ -315,9 +315,9 @@ class TailscaleStateStore {
         await _write(root, index);
       });
 
-  /// Delete слота: набор записей снимается, каталоги без других ссылок
-  /// удаляются сразу (удалить можно только не `current`). [slotNames] —
-  /// справочник после операции.
+
+
+
   Future<void> dropSlot({
     required String root,
     required String name,
@@ -331,12 +331,12 @@ class TailscaleStateStore {
         await _deleteDirs(root, _unreferenced(index, slotNames, set.values));
       });
 
-  // ---------------------------------------------------------------------------
-  // Общее
-  // ---------------------------------------------------------------------------
 
-  /// Имена из [dirs], на которые не ссылается ни один набор [index]; при слоте
-  /// справочника без набора — кроме каталогов 2.24.0.
+
+
+
+
+
   Set<String> _unreferenced(
     _Index index,
     Set<String> names,
@@ -351,7 +351,7 @@ class TailscaleStateStore {
     };
   }
 
-  /// Есть слот справочника (кроме [except]) без набора записей.
+
   bool _hasUnindexed(_Index index, Set<String> names, {String? except}) =>
       names.any((n) => n != except && !index.slots.containsKey(n));
 
@@ -375,8 +375,8 @@ class TailscaleStateStore {
     }
   }
 
-  /// Имена каталогов в `tailscale/`, заданных узлам явно (абсолютный путь под
-  /// корнем или относительный `tailscale/<имя>`).
+
+
   Set<String> _explicitNames(String root, Set<String> explicit) {
     final out = <String>{};
     final abs = '${_dir(root).path}/';
@@ -454,11 +454,11 @@ class TailscaleStateStore {
   }
 }
 
-/// Индекс `tailscale_state.json`.
+
 class _Index {
   _Index(this.slots, this.legacy);
 
-  /// Индекс создаётся впервые: каталоги на диске — имена 2.24.0.
+
   factory _Index.created(Set<String> onDisk) =>
       _Index(<String, Map<String, String>>{}, {...onDisk});
 
@@ -483,11 +483,11 @@ class _Index {
     return _Index(slots, legacy);
   }
 
-  /// Имя слота → ключ узла → имя каталога.
+
   final Map<String, Map<String, String>> slots;
 
-  /// Каталоги, найденные при создании индекса (имена 2.24.0). Нужны, пока в
-  /// справочнике есть слот без набора записей; потом очищаются.
+
+
   final Set<String> legacy;
 
   Map<String, dynamic> toJson() => {

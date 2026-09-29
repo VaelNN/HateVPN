@@ -5,9 +5,9 @@ import 'package:lxbox/models/direction.dart';
 import 'package:lxbox/models/config_node.dart';
 import 'package:lxbox/services/runtime_chain.dart';
 
-/// §258 — рантайм-цепочка detour по собранному конфигу: порядок пакета,
-/// продолжение через выбор селектора, Направления (tag/autoTag), гейты
-/// (цикл/потолок/битый тег).
+
+
+
 
 ParsedConfig _cfg(List<Map<String, dynamic>> outbounds) =>
     ParsedConfig.parse(jsonEncode({'outbounds': outbounds}));
@@ -85,13 +85,13 @@ void main() {
           directions: directions, selectedOf: (_) => null);
       expect(_tags(hops), ['vpn-4', 'a']);
       expect(hops.first.isDirection, isTrue);
-      expect(hops.first.isGroup, isTrue); // маркер обрыва для UI-эллипсиса
+      expect(hops.first.isGroup, isTrue);
     });
 
     test('§344 — пустой выбор (round_robin) → обрыв, без призрачного хопа', () {
-      // У балансировщика одного выбранного нет: ядро отдаёт selected==''.
-      // Пустая строка НЕ тег — иначе в цепочку попадал бы хоп с пустым
-      // заголовком и подписью «not in config · current pick».
+
+
+
       final cfg = _cfg([
         _ob('a', 'vless', detour: 'vpn-4'),
         _ob('vpn-4', 'urltest', members: ['x', 'y']),
@@ -112,7 +112,7 @@ void main() {
       final hops = runtimeChainOf('a', cfg,
           directions: directions, selectedOf: (t) => t == 'vpn-4' ? 'x' : null);
       expect(_tags(hops), ['x', 'vpn-4', 'a']);
-      expect(hops.first.viaSelection, isTrue); // pick глубже Направления
+      expect(hops.first.viaSelection, isTrue);
       expect(hops[1].isDirection, isTrue);
       expect(hops.last.viaSelection, isFalse);
     });
@@ -128,13 +128,13 @@ void main() {
       final hops = runtimeChainOf('a', cfg,
           directions: directions, selectedOf: (t) => selected[t]);
       expect(_tags(hops), ['x', 'vpn-4-auto', 'vpn-4', 'a']);
-      expect(hops[1].isDirection, isTrue); // autoTag тоже резолвится в Направление
+      expect(hops[1].isDirection, isTrue);
       expect(hops[1].direction?.tag, 'vpn-4');
     });
 
     test('выбранный узел продолжается своим detour (сага §254)', () {
-      // IN → vpn-4 (выбрал BL), BL → vpn-5 (выбрал OUT):
-      // пакет = OUT → vpn-5 → BL → vpn-4 → IN.
+
+
       final cfg = _cfg([
         _ob('IN', 'wireguard', detour: 'vpn-4'),
         _ob('vpn-4', 'selector', members: ['BL']),
@@ -180,14 +180,14 @@ void main() {
     });
 
     test('потолок kMaxRuntimeHops', () {
-      // Цепочка длиной 20 > потолка 12.
+
       final obs = <Map<String, dynamic>>[
         for (var i = 0; i < 20; i++)
           _ob('n$i', 'vless', detour: i < 19 ? 'n${i + 1}' : null),
       ];
       final hops = runtimeChainOf('n0', _cfg(obs), directions: const []);
       expect(hops.length, kMaxRuntimeHops);
-      // Порядок пакета: последний элемент — сам n0.
+
       expect(hops.last.tag, 'n0');
     });
 

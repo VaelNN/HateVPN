@@ -2,15 +2,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/parser/engine/interpreter.dart';
 import 'package:lxbox/services/parser/engine/section.dart';
 
-/// Ревью после v2.25.1 (движок), m2 — `matches` / `not_matches` в условиях
-/// компилируются общим `_regex`, как прочие регулярки реестра.
-///
-/// Реестр пишется у лаунчера в Go-написании: именованная группа там —
-/// `(?P<name>…)`, а Dart понимает только `(?<name>…)`. Перевод делает
-/// `_regex`; условия его обходили и на такой записи падали
-/// `FormatException` на каждом узле, где условие срабатывало.
-///
-/// Секция синтетическая (`probe`): имени схемы в тестах движка нет.
+
+
+
+
+
+
+
+
+
 Map<String, dynamic>? _run(Map<String, dynamic> when, String uri) =>
     runSection(
       MapperSection.fromJson('uri', 'probe', {

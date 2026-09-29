@@ -7,11 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/screens/app_picker_screen.dart';
 import 'package:lxbox/services/l10n/locale_controller.dart';
 
-/// §108 — системный back / predictive-жест в AppPickerScreen обязан
-/// возвращать выбор (AppPickerResult) так же, как стрелка в AppBar.
-/// Раньше PopScope с пустым handler'ом (canPop=true по умолчанию) попал
-/// роут с result=null — caller (`_pickApps` в tun_apps_tab) молча
-/// выкидывал селекцию.
+
+
+
+
+
 void main() {
   const channel = MethodChannel('com.leadaxe.lxbox/methods');
 
@@ -65,7 +65,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    // Системный back Android доставляет через maybePop.
+
     final navigator = tester.state<NavigatorState>(find.byType(Navigator));
     unawaited(navigator.maybePop());
     await tester.pumpAndSettle();

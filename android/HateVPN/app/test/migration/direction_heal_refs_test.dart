@@ -10,13 +10,13 @@ import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §125 F4.5 + §202 — лечение dangling direction-ссылок в STORAGE (не только в
-/// выхлопе билдера). Когда Направление перестаёт быть валидной route-мишенью
-/// (удалён ИЛИ выключен), `route_final` и custom-rule `outbound`, висящие на
-/// его теге, должны немедленно схлопнуться в 'vpn-1' (неудаляемый fallback).
-///
-/// Harness идентичен directions_migration_test.dart: mock path_provider +
-/// изоляция tmp-dir + resetCacheForTesting.
+
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -45,8 +45,8 @@ void main() {
     } catch (_) {}
   });
 
-  /// Готовит storage с Направлениями vpn-1/vpn-3, route_final='vpn-3' и одним
-  /// custom-rule, чей outbound='vpn-3'. resetCache, чтобы читалось с диска.
+
+
   Future<void> seedRefsOnVpn3() async {
     final data = {
       'directions_migrated': true,
@@ -87,13 +87,13 @@ void main() {
     final vpn3 = (await SettingsStorage.getDirections())
         .firstWhere((c) => c.tag == 'vpn-3');
 
-    // Выключаем Направление — это делает его невалидной route-мишенью.
+
     await SettingsStorage.updateDirection(vpn3.copyWith(enabled: false));
 
-    // Storage переписан (не только выхлоп билдера): ссылки на vpn-3 схлопнуты.
+
     expect(await SettingsStorage.getRouteFinal(), 'vpn-1');
     expect(await ruleOutbound(), 'vpn-1');
-    // Сам Направление остаётся в списке (disable ≠ delete).
+
     expect(
       (await SettingsStorage.getDirections()).map((c) => c.tag),
       containsAll(['vpn-1', 'vpn-3']),
@@ -109,7 +109,7 @@ void main() {
     await SettingsStorage.updateDirection(vpn3.copyWith(enabled: false));
     expect(await SettingsStorage.getRouteFinal(), 'vpn-1');
 
-    // Включаем обратно — route_final остаётся 'vpn-1', не возвращается на vpn-3.
+
     final vpn3off = (await SettingsStorage.getDirections())
         .firstWhere((c) => c.tag == 'vpn-3');
     await SettingsStorage.updateDirection(vpn3off.copyWith(enabled: true));
@@ -119,8 +119,8 @@ void main() {
   });
 
   test('§202 — выключение НЕ затрагивает ссылки на ДРУГИЕ Направления', () async {
-    // route_final='vpn-1', rule outbound='vpn-1'; выключаем vpn-3 → ничего не
-    // должно поменяться (heal матчит только выключаемый тег).
+
+
     final data = {
       'directions_migrated': true,
       'directions': [
@@ -144,16 +144,16 @@ void main() {
     expect(await ruleOutbound(), 'vpn-1');
   });
 
-  // ── Preset-правила (§248-дыра): outbound override живёт в
-  // varsValues['outbound'], а не в поле `outbound` — heal обязан лечить и его,
-  // иначе expandPreset эмитит route-правило на несуществующий тег → fatal
-  // валидации (DanglingOutboundRef), VPN не стартует.
 
-  /// Storage с Направлениями vpn-1/vpn-3 и одним preset-правилом, чей override
-  /// указывает на vpn-3 (+второй var, который heal терять не должен).
-  ///
-  /// §441 — второй var объявлен пресетом и не равен умолчанию: необъявленное
-  /// имя запись хранения снимает (SPEC 129 Н2).
+
+
+
+
+
+
+
+
+
   Future<void> seedPresetOverrideOnVpn3() async {
     final data = {
       'directions_migrated': true,
@@ -188,7 +188,7 @@ void main() {
 
     final healed = await presetRule();
     expect(healed.varsValues['outbound'], 'vpn-1');
-    // Остальные user-vars heal не теряет.
+
     expect(healed.varsValues['gms_only'], 'true');
   });
 
@@ -203,8 +203,8 @@ void main() {
   });
 
   test('preset БЕЗ override: heal не подсовывает ключ outbound', () async {
-    // Нет ключа 'outbound' → template-решение as is (spec §033); heal не
-    // должен превращать «юзер не трогал пикер» в явный override на vpn-1.
+
+
     final data = {
       'directions_migrated': true,
       'directions': [
@@ -232,16 +232,16 @@ void main() {
   });
 
   test('§202 — disabled → update без смены enabled НЕ перелечивает', () async {
-    // Направление уже выключен; меняем у него label (enabled остаётся false). Heal
-    // не должен запускаться повторно (wasEnabled=false).
+
+
     await seedRefsOnVpn3();
     final vpn3 = (await SettingsStorage.getDirections())
         .firstWhere((c) => c.tag == 'vpn-3');
     await SettingsStorage.updateDirection(vpn3.copyWith(enabled: false));
     expect(await SettingsStorage.getRouteFinal(), 'vpn-1');
 
-    // Возвращаем route_final вручную на vpn-1 уже стоит; меняем label у
-    // выключенного Направления — ничего не ломается, ссылки стабильны.
+
+
     final off = (await SettingsStorage.getDirections())
         .firstWhere((c) => c.tag == 'vpn-3');
     await SettingsStorage.updateDirection(off.copyWith(label: 'Renamed'));
@@ -255,14 +255,14 @@ void main() {
     );
   });
 
-  // ─────────────────────────────────────────────────────────────────────
-  // §393 A3 — ТРЕТИЙ род ссылки на Направление: `include[]` чужих Направлений.
-  //
-  // От rules и detours отличается тем, что живёт не в чужом storage-ключе, а
-  // в САМОМ списке Направлений. Поэтому лечится ДО записи списка, одной
-  // перезаписью, и по тому же паттерну §202: удаление лечит, выключение —
-  // нет (оно обратимо, билдер деградирует лишь выхлоп).
-  // ─────────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+
+
   group('§393 A3 — heal include при удалении Направления', () {
     Future<void> seedIncludeChain() async {
       final data = {
@@ -305,9 +305,9 @@ void main() {
     });
 
     test('auto-двойник в include вычищается вместе с тегом', () async {
-      // В `include` `<tag>-auto` невалиден и так (билдер сверяет с
-      // эмитированными СЕЛЕКТОРАМИ), но Debug API и правленый бэкап записать
-      // его туда могут — как и в rules-heal, где двойник проверяется.
+
+
+
       final data = {
         'directions_migrated': true,
         'directions': [
@@ -357,13 +357,13 @@ void main() {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // §408 — пятый род ссылки на тег Направления: ключ `ping_options.groups`.
-  // ─────────────────────────────────────────────────────────────────────────
+
+
+
   group('§408 — ping_options.groups', () {
-    /// Шаблон для миграции: те же три Направления, что в
-    /// directions_migration_test.dart. Нужен только веткам, где миграция
-    /// сеет состав; в ветке «directions уже есть» не читается.
+
+
+
     GroupTemplates template() => GroupTemplates(
           direction: DirectionTemplate(include: const ['direct']),
           auto: AutoTemplate(options: const {}),
@@ -395,8 +395,8 @@ void main() {
       SettingsStorage.resetCacheForTesting();
     }
 
-    /// Карта `groups` как она лежит НА ДИСКЕ (не из кеша) — heal обязан
-    /// доезжать до файла тем же `_save()`, что и остальные четыре рода.
+
+
     Future<Map<String, dynamic>?> groupsOnDisk() async {
       final raw =
           jsonDecode(await File(mainPath()).readAsString()) as Map<String, dynamic>;
@@ -417,7 +417,7 @@ void main() {
       expect(groups!.containsKey('vpn-3'), isFalse);
       expect(groups.containsKey('vpn-1'), isTrue);
       expect((groups['vpn-1'] as Map)['timeout_ms'], 1000);
-      // Глобальные значения — не per-direction, delete их не касается.
+
       final opts = await SettingsStorage.getPingOptions();
       expect(opts['url'], 'https://global.example/generate_204');
       expect(opts['timeout_ms'], 9000);
@@ -447,7 +447,7 @@ void main() {
           jsonDecode(await File(mainPath()).readAsString()) as Map<String, dynamic>;
       final opts = raw['ping_options'] as Map<String, dynamic>;
       expect(opts.containsKey('groups'), isFalse);
-      // Сама секция остаётся — в ней живут глобальные url/timeout.
+
       expect(opts['timeout_ms'], 9000);
     });
 
@@ -467,7 +467,7 @@ void main() {
 
     test('миграция (ветка «directions уже есть») снимает сирот, живых не трогает',
         () async {
-      // vpn-9 никогда не существовал в этом storage — предсуществующая сирота.
+
       await seedPingGroups({
         'vpn-1': {'timeout_ms': 1000},
         'vpn-3': {'url': 'https://aux.example/204'},
@@ -557,7 +557,7 @@ void main() {
       await File(mainPath()).writeAsString(jsonEncode(data));
       SettingsStorage.resetCacheForTesting();
 
-      // Seed заводит vpn-1/vpn-2 из шаблона — vpn-2 становится живым.
+
       await SettingsStorage.migrateDirectionsIfNeeded(template());
 
       final groups = await groupsOnDisk();

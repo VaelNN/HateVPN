@@ -1,14 +1,14 @@
-// ===========================================================================
-// §296 — общий probe-контроллер над подсистемой ServerList (папки/подписки/
-// одиночные серверы). Владеет тем, что раньше жило россыпью в
-// folder_detail_screen: пороги (probe_ms_*), ping-опции, прогон и чистые
-// bulk-решения (unreachable/slower/sort-by-ping). Экраны остаются тонкими:
-// держат transient-результаты (Map<int,ProbeResult>), рендер и применение
-// решений к своему мутатору (folder — позиционный, subs — §283 hash).
-//
-// Per-run stateless (как ProbeRunner): каждый run() — свой canceller в
-// ProbeLifecycle (§286), без общего мутабельного состояния.
-// ===========================================================================
+
+
+
+
+
+
+
+
+
+
+
 
 import '../../models/node_spec.dart';
 import '../../models/server_list.dart';
@@ -23,11 +23,11 @@ class ProbeController {
 
   void cancel() => _runner.cancel();
 
-  // ─── Прогон ────────────────────────────────────────────────────────────────
 
-  /// Общий прогон по нодам. Домен приводит себя к `List<NodeSpec?>`:
-  /// - папка: `[for (m in folder.members) m.node]` (nullable, unfiltered);
-  /// - подписка/сервер: `list.nodes` (disabled §283 → null-слот).
+
+
+
+
   Future<String> run({
     required List<NodeSpec?> nodes,
     required String url,
@@ -36,7 +36,7 @@ class ProbeController {
   }) =>
       _runner.run(nodes, url: url, timeoutMs: timeoutMs, onResult: onResult);
 
-  /// Эргономичный оверлоуд: switch member-vs-nodes[] в ОДНОМ месте.
+
   Future<String> runList(
     ServerList list, {
     required String url,
@@ -45,19 +45,19 @@ class ProbeController {
   }) =>
       run(nodes: probeNodesOf(list), url: url, timeoutMs: timeoutMs, onResult: onResult);
 
-  /// §296 — приведение любого [ServerList] к списку нод для probe. Единственное
-  /// место, где решается member-vs-nodes[]. Папка отдаёт члены (nullable,
-  /// unfiltered — сохраняет индекс и вердикт выключенных/битых). Подписка/сервер
-  /// отдают `nodes` как есть (skip-disabled §283 применяет вызывающий экран,
-  /// подменяя слот на null ПЕРЕД вызовом — здесь фильтра нет).
+
+
+
+
+
   static List<NodeSpec?> probeNodesOf(ServerList list) => switch (list) {
         FolderServers(:final members) => [for (final m in members) m.node],
         _ => list.nodes,
       };
 
-  // ─── Пороги ─────────────────────────────────────────────────────────────────
 
-  /// Читает пороги цветовой шкалы из `probe_ms_*`; отсутствующие → дефолт.
+
+
   static Future<ProbeThresholds> loadThresholds() async {
     final g = int.tryParse(await SettingsStorage.getVar('probe_ms_green', ''));
     final y = int.tryParse(await SettingsStorage.getVar('probe_ms_yellow', ''));
@@ -69,7 +69,7 @@ class ProbeController {
     );
   }
 
-  /// Сохраняет пороги (невалидные/непозитивные → дефолт).
+
   static Future<ProbeThresholds> saveThresholds({
     int? greenMs,
     int? yellowMs,
@@ -92,11 +92,11 @@ class ProbeController {
     return next;
   }
 
-  // ─── Ping ────────────────────────────────────────────────────────────────────
 
-  /// Разрешает (url, timeoutMs) для теста: per-list override поверх глобальных
-  /// `ping_options`. Папка передаёт `folder.pingUrl/pingTimeoutMs`; подписка/
-  /// сервер — null → чистый глобал. Дефолт timeout — 3000мс.
+
+
+
+
   static Future<({String url, int timeoutMs})> resolvePingOptions({
     String? overrideUrl,
     int? overrideTimeoutMs,
@@ -109,7 +109,7 @@ class ProbeController {
     return (url: url, timeoutMs: timeoutMs);
   }
 
-  /// Текущий глобальный ping-target (для диалога редактирования).
+
   static Future<({String url, int timeoutMs})> globalPingTarget() async {
     final ping = await SettingsStorage.getPingOptions();
     return (
@@ -118,7 +118,7 @@ class ProbeController {
     );
   }
 
-  /// Сохраняет глобальный ping URL (+ timeout, если задан положительный).
+
   static Future<void> saveGlobalPing(String url, {int? timeoutMs}) async {
     await SettingsStorage.setGlobalPingUrl(url);
     if (timeoutMs != null && timeoutMs > 0) {
@@ -126,11 +126,11 @@ class ProbeController {
     }
   }
 
-  // ─── Чистые bulk-решения (доменно-агностичны; экран применяет к мутатору) ────
 
-  /// Индексы нод, не прошедших последний тест (failed/broken/invalid).
-  /// §336 — `group` сюда НЕ входит: «Disable unreachable» не должен выключать
-  /// автоузел, который просто не тестируется.
+
+
+
+
   static Set<int> unreachableIndexes(Map<int, ProbeResult> probe) => {
         for (final e in probe.entries)
           if (e.value.status == ProbeStatus.failed ||
@@ -139,22 +139,22 @@ class ProbeController {
             e.key,
       };
 
-  /// Индексы успешно протестированных нод медленнее [ms].
+
   static Set<int> slowerThan(Map<int, ProbeResult> probe, int ms) => {
         for (final e in probe.entries)
           if (e.value.status == ProbeStatus.ok && e.value.delayMs > ms) e.key,
       };
 
-  /// Порядок сортировки по пингу для [count] нод: ok по возрастанию delay,
-  /// нетестированные/pending — следом, err/broken/invalid — в конец.
-  /// Stable tie-break по исходному индексу.
+
+
+
   static List<int> pingSortOrder(Map<int, ProbeResult> probe, int count) {
     int rank(int i) {
       final r = probe[i];
       if (r == null) return 1 << 30;
       return switch (r.status) {
         ProbeStatus.ok => r.delayMs,
-        // §336 — группа = «не тестировалась», корзина pending, не err.
+
         ProbeStatus.pending || ProbeStatus.group => 1 << 30,
         ProbeStatus.failed ||
         ProbeStatus.broken ||
@@ -170,27 +170,27 @@ class ProbeController {
       });
   }
 
-  // ─── §326 — идентичность результата (ключ вместо позиции) ──────────────────
 
-  /// §326 — ключи членов папки в порядке позиций: `probeKeys(members)[i]` —
-  /// ключ i-го члена. Экран держит результаты под этими ключами, поэтому
-  /// удаление/вставка члена не сдвигает замеры соседей (до §326 ключом была
-  /// позиция, и точечное удаление уводило бейджи на строку вверх).
-  ///
-  /// Ключ = идентичность узла (§400: тег, уникализированный внутри
-  /// источника — тот же механизм, что у per-node disable §283). Не финальный
-  /// конфиговый тег — тот несёт префикс подписки и глобальную уникализацию
-  /// `allocateTag` из билдера. Не `NodeSpec.id` — это `newUuidV4()`, новый на
-  /// каждом re-parse `raw`.
-  ///
-  /// Битый член (`node == null`, нечитаемый raw) идентичности не имеет — ключ
-  /// `raw:<raw>`: пингу он не подлежит, но слот под вердикт занимает. Узел без
-  /// имени и узел-группа тоже без идентичности — им остаётся позиционный
-  /// ключ `slot:<i>`.
-  ///
-  /// Ключ — функция состава, а не позиции: удаление члена в середине ключи
-  /// остальных не меняет. Исключение — тёзки: уникализация нумерует их по
-  /// порядку, так что удаление первого сдвигает номер второму.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   static List<String> probeKeys(List<FolderMember> members) {
     final identities =
         sourceNodeIdentities([for (final m in members) ?m.node]);
@@ -202,9 +202,9 @@ class ProbeController {
     ]);
   }
 
-  /// §339 — те же identity-ключи для списка нод (подписка/сервер: у них нет
-  /// raw-члена, null-слот — по позиции). Идентичность переживает refresh
-  /// подписки: инстансы подменяются, тег — нет.
+
+
+
   static List<String> probeKeysForNodes(List<NodeSpec?> nodes) {
     final identities = sourceNodeIdentities([for (final n in nodes) ?n]);
     return _dedupKeys([

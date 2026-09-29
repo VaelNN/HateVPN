@@ -1,9 +1,9 @@
 import '../services/format_utils.dart';
 
-/// Снимок агрегатов трафика для главного экрана (скорость/память/число
-/// соединений) и Statistics. §122 — для главного экрана наполняется напрямую
-/// из `CcStatus` (CommandClient status-стрим); поля `byRule`/`byApp` —
-/// per-connection разбивка для Statistics-экрана.
+
+
+
+
 class TrafficSnapshot {
   const TrafficSnapshot({
     this.uploadTotal = 0,
@@ -19,24 +19,24 @@ class TrafficSnapshot {
   final int uploadTotal;
   final int downloadTotal;
 
-  /// §194 — сумма In+Out (для диалогов «N connections will be closed»).
+
   final int activeConnections;
 
-  /// §194 — соединения по направлениям из ядра (`CcStatus.connectionsIn/Out`):
-  /// In = inbound (приложения→tun), Out = outbound (ядро→серверы). Главный
-  /// показывает РАЗДЕЛЬНО (↑In ↓Out), чтобы не путать суммой с числом активных
-  /// в списке на Stats.
+
+
+
+
   final int connectionsIn;
   final int connectionsOut;
 
-  /// sing-box process RAM (bytes). §122 — из `CcStatus.memory`.
+
   final int memory;
 
-  /// Распределение соединений по `rule` — сколько conn'ов попало в каждое
-  /// правило. Ключ: `rule` или `rule: payload`. Значение: count.
+
+
   final Map<String, int> byRule;
 
-  /// Per-app статистика: package-name → count + bytes.
+
   final Map<String, AppStat> byApp;
 
   static const zero = TrafficSnapshot();

@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/services/lx_backup.dart';
 
-/// §435 — `servers[].sections` в бэкапе 0.12 игнорируется МОЛЧА. §575
-/// (контракт 1.1.85) — секции узла упразднены: экспорт 1.0 их не пишет ни у
-/// одной записи, импорт снимает с `backup_section_record_dropped`.
+
+
+
 void main() {
   group('§435 импорт 0.12 с sections', () {
     test('sections у servers[] не даёт backup_unknown_field, узел читается', () {
@@ -35,9 +35,9 @@ void main() {
   });
 
   group('§575 экспорт 1.0: секции не пишутся', () {
-    // §575 — поля `sections` у модели больше нет (ни у `UserServer`, ни у
-    // `FolderMember`): экспорт не может его написать по построению. Тест
-    // сведён к одной проверке — ключа `sections` в записи нет.
+
+
+
     test('запись сервера не содержит ключа sections', () async {
       final user = UserServer(
         id: 'u1',

@@ -15,35 +15,35 @@ import '../transport/request.dart';
 import '../transport/response.dart';
 import '_shared.dart';
 
-/// `/subs/*` — CRUD для subscriptions / user servers.
-///
-/// Не дёргает `SettingsStorage` напрямую — идёт через публичные методы
-/// `SubscriptionController`, которые несут дополнительную логику
-/// (configDirty флаг, notifyListeners для UI, fetch-state машину).
-///
-/// Routes:
-/// - `GET    /subs`               → list (alias для /state/subs)
-/// - `POST   /subs`               → create (body: `{"input":"<url|URI|WG|JSON>"}`)
-/// - `POST   /subs/reorder`       → reorder (body: `{"order":[source_key,...]}`,
-///   §524 — ключи любого рода: `id:<uuid>` / `chain:<tag>`; голый uuid тоже)
-/// - `GET    /subs/{id}`          → single
-/// - `PATCH  /subs/{id}`          → update meta (enabled/name/url/identity/...)
-/// - `DELETE /subs/{id}`          → remove
-/// - `POST   /subs/{id}/refresh`  → force refresh (HTTP fetch)
-///
-/// §346 — import-правила подписки (§302) под-ресурсом (список упорядоченный и
-/// потенциально длинный — целиком в PATCH его слать нельзя: гонка двух
-/// клиентов затирала бы правки, и нет адресации к одному правилу):
-/// - `GET    /subs/{id}/rules`          → набор + общий тумблер
-/// - `POST   /subs/{id}/rules[?index=N]`→ create (201), по умолчанию в конец
-/// - `GET    /subs/{id}/rules/{idx}`    → single
-/// - `PATCH  /subs/{id}/rules/{idx}`    → subset полей правила
-/// - `DELETE /subs/{id}/rules/{idx}`    → remove
-/// - `POST   /subs/{id}/rules/reorder`  → `{"order":[старые индексы]}`
-///
-/// Все write'ы принимают `?rebuild=true` — авторегенерация конфига после.
-/// `?reveal=true` (как в `/state/subs`) — не маскирует subscription URL в
-/// ответе. POST `input` и PATCH `url` всегда принимают clear URL.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> subsHandler(DebugRequest req, DebugContext ctx) async {
   final path = req.path;
 
@@ -67,7 +67,7 @@ Future<DebugResponse> subsHandler(DebugRequest req, DebugContext ctx) async {
   final id = segs.first;
   if (id.isEmpty) throw NotFound('subs path: $path');
 
-  // /subs/{id}
+
   if (segs.length == 1) {
     return switch (req.method) {
       'GET' => _single(id, ctx, req),
@@ -77,7 +77,7 @@ Future<DebugResponse> subsHandler(DebugRequest req, DebugContext ctx) async {
     };
   }
 
-  // /subs/{id}/refresh
+
   if (segs.length == 2 && segs[1] == 'refresh') {
     if (req.method != 'POST') {
       throw BadRequest('refresh requires POST, got ${req.method}');
@@ -85,9 +85,9 @@ Future<DebugResponse> subsHandler(DebugRequest req, DebugContext ctx) async {
     return _refresh(id, req, ctx);
   }
 
-  // §346 — /subs/{id}/rules[...] — import-правила §302.
+
   if (segs[1] == 'rules') {
-    // /subs/{id}/rules
+
     if (segs.length == 2) {
       return switch (req.method) {
         'GET' => _rulesList(id, req, ctx),
@@ -96,14 +96,14 @@ Future<DebugResponse> subsHandler(DebugRequest req, DebugContext ctx) async {
             'method ${req.method} not allowed on /subs/{id}/rules'),
       };
     }
-    // /subs/{id}/rules/reorder
+
     if (segs.length == 3 && segs[2] == 'reorder') {
       if (req.method != 'POST') {
         throw BadRequest('reorder requires POST, got ${req.method}');
       }
       return _rulesReorder(id, req, ctx);
     }
-    // /subs/{id}/rules/{idx}
+
     if (segs.length == 3) {
       final ruleIdx = int.tryParse(segs[2]);
       if (ruleIdx == null) throw NotFound('rule index: ${segs[2]}');
@@ -120,10 +120,10 @@ Future<DebugResponse> subsHandler(DebugRequest req, DebugContext ctx) async {
   throw NotFound('subs path: $path');
 }
 
-/// §524 — ВЕСЬ список источников в порядке `sources[]`: подписки, серверы,
-/// папки и цепочки одним массивом, как их видит пользователь. До §524 ответ
-/// нёс только контейнеры, и смешанный порядок диска этим API нельзя было ни
-/// прочитать, ни выразить.
+
+
+
+
 Future<DebugResponse> _list(DebugContext ctx, DebugRequest req) async {
   final sub = ctx.requireSub();
   final reveal = req.qBool('reveal');
@@ -140,9 +140,9 @@ Future<DebugResponse> _list(DebugContext ctx, DebugRequest req) async {
 Future<DebugResponse> _single(String id, DebugContext ctx, DebugRequest req) async {
   final sub = ctx.requireSub();
   final reveal = req.qBool('reveal');
-  // Фича 478 — `?warnings=true` добавляет предупреждения разбора по узлам.
-  // Отдельным ключом, а не вместо записи: сверять код с телом узла надо в
-  // одном ответе. По умолчанию выключено — на 500 узлах это лишний вес.
+
+
+
   final warnings = req.qBool('warnings');
   for (final e in sub.entries) {
     if (e.id == id) {
@@ -167,7 +167,7 @@ Future<DebugResponse> _create(DebugRequest req, DebugContext ctx) async {
   final sub = ctx.requireSub();
   final before = sub.entries.map((e) => e.id).toSet();
   await sub.addFromInput(input);
-  // Если controller записал lastError — input отвергнут целиком, ничего не добавилось.
+
   if (sub.lastError != null &&
       sub.entries.map((e) => e.id).toSet().length == before.length) {
     final err = sub.lastError!;
@@ -181,7 +181,7 @@ Future<DebugResponse> _create(DebugRequest req, DebugContext ctx) async {
     throw BadRequest('addFromInput rejected: ${err.renderEn()}',
         dropped: dropped);
   }
-  // Находим новую запись (или записи — JSON outbounds могут создать несколько).
+
   final added = sub.entries.where((e) => !before.contains(e.id)).toList();
   final extras = await maybeRebuild(req, ctx);
   if (added.length == 1) {
@@ -215,8 +215,8 @@ Future<DebugResponse> _update(
   if (idx < 0) throw NotFound('sub: $id');
   final entry = sub.entries[idx];
 
-  // Простые setter'ы через SubscriptionEntry — они мутируют wrapped list
-  // через copyWith, после всех изменений дёргаем persistSources().
+
+
   final name = fieldString(body, 'name');
   if (name != null) entry.name = name;
   final enabled = fieldBool(body, 'enabled');
@@ -226,8 +226,8 @@ Future<DebugResponse> _update(
   if (tagPrefix != null) entry.tagPrefix = tagPrefix;
   final interval = fieldInt(body, 'update_interval_hours');
   if (interval != null) entry.updateIntervalHours = interval;
-  // §439 (D-112) — ссылка `{folder_id?, tag}`; строка читается терпимо:
-  // корневой ссылкой, а у папки — парой, если это сырой тег её члена (S1).
+
+
   final overrideDetour = fieldNodeLink(body, 'override_detour');
   if (overrideDetour != null) {
     final list = entry.list;
@@ -241,19 +241,19 @@ Future<DebugResponse> _update(
   if (regDetourInAuto != null) entry.registerDetourInAuto = regDetourInAuto;
   final useDetour = fieldBool(body, 'use_detour_servers');
   if (useDetour != null) entry.useDetourServers = useDetour;
-  // §073 — был пропущен (асимметрия: соседние detour-поля маппились, это нет).
+
   final replaceDetour = fieldBool(body, 'replace_detour_chain');
   if (replaceDetour != null) entry.replaceDetourChain = replaceDetour;
 
-  // §346 — поля SubscriptionServers, ранее недоступные headless-пути (тот же
-  // класс дефекта, что §073 выше). Setter'ы — no-op для не-подписок.
 
-  // §323 — реакция на успешное авто-обновление.
+
+
+
   final onUpdate = fieldString(body, 'on_update_action');
   if (onUpdate != null) {
-    // Строго, в отличие от толерантного fromJson: там мусор → дефолт (защита
-    // загрузки storage), здесь это превратило бы опечатку в тихо другое
-    // поведение.
+
+
+
     final parsed = SubscriptionOnUpdateAction.values
         .where((a) => a.name == onUpdate)
         .firstOrNull;
@@ -265,30 +265,30 @@ Future<DebugResponse> _update(
     entry.onUpdateAction = parsed;
   }
 
-  // §302 — общий тумблер набора import-правил (сами правила — /subs/{id}/rules).
+
   final rulesEnabled = fieldBool(body, 'import_rules_enabled');
   if (rulesEnabled != null) entry.importRulesEnabled = rulesEnabled;
 
-  // §289 — identity: тристейт, поэтому не через field*-хелперы (они не
-  // отличают «ключ отсутствует» от «ключ = null»).
+
+
   if (body.containsKey('identity')) {
     _applyIdentity(entry, body['identity']);
   }
 
-  // URL — только для SubscriptionServers. Для UserServer молча игнорируем
-  // (как и в UI: URL у inline-сервера просто нет).
+
+
   final newUrl = fieldString(body, 'url');
   if (newUrl != null) {
     final list = entry.list;
     if (list is SubscriptionServers) {
       await sub.replaceList(idx, list.copyWith(url: newUrl));
     }
-    // UserServer — no-op.
+
   }
 
-  // persist изменения setter'ов (replaceList уже persist'ит своё).
+
   await sub.persistSources();
-  // §439 (D-113) — префикс одиночного сервера входит в его корневой адрес.
+
   if (tagPrefix != null) {
     await sub.relinkServerTagPrefix(entry, prefixBefore);
   }
@@ -301,18 +301,18 @@ Future<DebugResponse> _update(
   });
 }
 
-/// §346/§289 — применяет `identity` из PATCH-body. Тристейт:
-///
-/// - `null`  → Custom off (вернуться к глобальной идентичности §118);
-/// - объект  → Custom on + наложение переданных полей **поверх слепка**.
-///
-/// Патч, а не полная замена: типовой вызов — «включить HWID этой подписке»
-/// (`{"send_hwid":true,"hwid":"…"}`), и он не должен попутно обнулять UA и
-/// device-meta. Если Custom ещё не активен, слепок сначала инициализируется
-/// копией глобальных значений — ровно как `enableCustomIdentity` в UI.
-///
-/// No-op для не-подписок (у UserServer/FolderServers идентичности фетча нет —
-/// их никто не фетчит).
+
+
+
+
+
+
+
+
+
+
+
+
 void _applyIdentity(SubscriptionEntry entry, Object? raw) {
   if (raw == null) {
     entry.disableCustomIdentity();
@@ -331,17 +331,17 @@ void _applyIdentity(SubscriptionEntry entry, Object? raw) {
     'ver_os',
     'device_model',
   };
-  // Опечатка в ключе иначе молча не сработала бы: слепок остался бы прежним,
-  // а ответ 200 выглядел бы как успех.
+
+
   final unknown = body.keys.where((k) => !known.contains(k)).toList();
   if (unknown.isNotEmpty) {
     throw BadRequest('identity: unknown field(s) ${unknown.join(', ')}; '
         'allowed: ${known.join(', ')}');
   }
 
-  entry.enableCustomIdentity(); // no-op если Custom уже активен
+  entry.enableCustomIdentity();
   final current = entry.identity;
-  if (current == null) return; // не-подписка: enable был no-op
+  if (current == null) return;
 
   entry.updateIdentity(current.copyWith(
     userAgent: fieldString(body, 'user_agent'),
@@ -383,7 +383,7 @@ Future<DebugResponse> _refresh(
   if (entry.list is! SubscriptionServers) {
     throw const Conflict('refresh requires SubscriptionServers (UserServer has no URL)');
   }
-  // Fire-and-forget: долгий HTTP fetch, не держим TCP-коннект открытым.
+
   unawaited(sub.refreshEntry(entry));
   return JsonResponse({
     'ok': true,
@@ -399,9 +399,9 @@ Future<DebugResponse> _reorder(DebugRequest req, DebugContext ctx) async {
     throw const BadRequest('body must contain "order": [id, ...]');
   }
   final sub = ctx.requireSub();
-  // §524 — порядок ОБЩЕГО списка: элементами могут быть ключи любого рода
-  // (`id:<uuid>` / `chain:<tag>`, поле `source_key` ответа `GET /subs`). Голый
-  // uuid тоже принимается — так звали этот API до §524, и клиенты его знают.
+
+
+
   final entries = await sub.sourceEntries();
   final keys = [
     for (final raw in order)
@@ -431,13 +431,13 @@ Future<DebugResponse> _reorder(DebugRequest req, DebugContext ctx) async {
   });
 }
 
-// ─────────────────────────── §346 — import rules (§302) ───────────────────────
-//
-// Правила — упорядоченная коллекция без id: порядок значим (применяются
-// последовательно, последнее сработавшее enable/disable побеждает, §332).
-// Адресация позиционным индексом — как у членов папки в §238, с той же
-// оговоркой: после DELETE/reorder индексы съезжают, следующий вызов строить по
-// свежему снапшоту из ответа (все write'ы его возвращают в `rules`).
+
+
+
+
+
+
+
 
 (int, SubscriptionEntry, SubscriptionServers) _requireSubscription(
   SubscriptionController sub,
@@ -467,11 +467,11 @@ List<Map<String, Object?>> _serializeRules(SubscriptionServers list) => [
         serializeImportRule(list.importRules[i], i),
     ];
 
-/// Общий хвост write'ов: persist + `?rebuild` + свежий снапшот набора.
-///
-/// `?rebuild=true` здесь почти всегда бесполезен (правила применяются на
-/// СЛЕДУЮЩЕМ refresh, существующие ноды на месте не переразбираются — §302),
-/// но принимается для единообразия со всеми write'ами Debug API.
+
+
+
+
+
 Future<DebugResponse> _rulesWriteResponse(
   SubscriptionController sub,
   SubscriptionEntry entry,
@@ -494,12 +494,12 @@ Future<DebugResponse> _rulesWriteResponse(
   }, status: status);
 }
 
-/// Строгий парс правила из body. В отличие от толерантного [ImportRule.fromJson]
-/// (мусор в storage не должен ронять загрузку) здесь enum'ы проверяются по
-/// закрытым спискам: иначе `{"action":"replase"}` молча стало бы `replace`.
-///
-/// [base] — правило, поверх которого накладываются переданные поля (PATCH);
-/// `null` — создание с нуля (POST), пропущенные поля берут дефолты модели.
+
+
+
+
+
+
 ImportRule _parseRule(Map<String, dynamic> body, {ImportRule? base}) {
   const known = {
     'conditions',
@@ -519,7 +519,7 @@ ImportRule _parseRule(Map<String, dynamic> body, {ImportRule? base}) {
 
   T enumField<T extends Enum>(String key, List<T> values) {
     final raw = fieldString(body, key);
-    if (raw == null) throw StateError('unreachable'); // caller проверил ключ
+    if (raw == null) throw StateError('unreachable');
     final hit = values.where((v) => v.name == raw).firstOrNull;
     if (hit == null) {
       throw BadRequest('$key must be one of '
@@ -613,7 +613,7 @@ Future<DebugResponse> _rulesSingle(
   return JsonResponse(serializeImportRule(list.importRules[i], i));
 }
 
-/// `?index=N` — вставка в позицию (порядок значим); по умолчанию в конец.
+
 Future<DebugResponse> _rulesCreate(
   String id,
   DebugRequest req,

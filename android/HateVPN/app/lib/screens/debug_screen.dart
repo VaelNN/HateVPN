@@ -18,9 +18,9 @@ import '../services/l10n/locale_controller.dart';
 class DebugScreen extends StatefulWidget {
   const DebugScreen({super.key, this.initialTab = 0});
 
-  /// §357 — стартовая вкладка (0 Log · 1 Crashes · 2 OOM · 3 Profiling),
-  /// паттерн `AppSettingsScreen.initialTab`. Используется lxbox-навигацией
-  /// support-ленты (`route:debug/<tab>`, `route:profiler`).
+
+
+
   final int initialTab;
 
   @override
@@ -33,7 +33,7 @@ class _DebugScreenState extends State<DebugScreen> with SnackHelper {
   DebugFilter _sourceFilter = DebugFilter.all;
   final Set<DebugLevel> _levels = {...DebugLevel.values};
   bool _buildingDump = false;
-  // Text search — case-insensitive substring match по message (night T6-3).
+
   String _searchQuery = '';
   final _searchController = TextEditingController();
 
@@ -54,15 +54,15 @@ class _DebugScreenState extends State<DebugScreen> with SnackHelper {
     return buf.toString();
   }
 
-  // §219 — _snack вынесен в SnackHelper.showSnack (services/ui_helpers.dart).
+
 
   void _copyAll(List<DebugEntry> entries) {
     Clipboard.setData(ClipboardData(text: _entriesToText(entries)));
     showSnack(getLocalText.plural("%d entries copied", entries.length));
   }
 
-  /// Собирает единый dump (config + vars + server_lists + debug-log)
-  /// и открывает системный share-диалог.
+
+
   Future<void> _shareDump() async {
     if (_buildingDump) return;
     setState(() => _buildingDump = true);
@@ -89,14 +89,14 @@ class _DebugScreenState extends State<DebugScreen> with SnackHelper {
         DebugLevel.error => Colors.red,
       };
 
-  /// §316 — ПОСТОЯННЫЕ вкладки. Раньше вкладка stderr появлялась только
-  /// при непустом файле: пока канал был сломан, интерфейс просто молчал, и
-  /// понять «крашей нет или не читается» было нельзя. Теперь «Crashes» на
-  /// месте всегда и сама говорит, что крашей не было.
-  ///
-  /// §318 — «OOM» отдельной вкладкой рядом: снимки памяти от oom-killer'а
-  /// ядра. В «Crashes» их не сливаем — паника и давление памяти это разные
-  /// события, в общем списке сигнал теряется.
+
+
+
+
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -110,8 +110,8 @@ class _DebugScreenState extends State<DebugScreen> with SnackHelper {
             appBar: AppBar(
               title: Text(getLocalText.s("Debug")),
               actions: _buildAppBarActions(filtered),
-              // §318/§158 — четыре вкладки: `isScrollable` вместо равных
-              // долей, иначе на узких экранах «Profiling» обрезается.
+
+
               bottom: TabBar(isScrollable: true, tabs: [
                 Tab(text: getLocalText.s("Log")),
                 Tab(text: getLocalText.s("Crashes")),
@@ -192,9 +192,9 @@ class _DebugScreenState extends State<DebugScreen> with SnackHelper {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-          // §043/§207: shortcut в Diagnostics tab App Settings'ов — там toggle
-          // "Forward sing-box logs" + Debug API + раздел Profiling (полный
-          // набор pprof-кнопок: goroutine/CPU/heap/allocs).
+
+
+
           const PopupMenuDivider(),
           PopupMenuItem(
             value: _DebugAction.diagnosticsSettings,
@@ -258,8 +258,8 @@ class _DebugScreenState extends State<DebugScreen> with SnackHelper {
             }).toList(),
           ),
           const SizedBox(height: 8),
-          // Search field (night T6-3). Case-insensitive substring
-          // match by message. Empty = no filter.
+
+
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
@@ -294,8 +294,8 @@ class _DebugScreenState extends State<DebugScreen> with SnackHelper {
                       final src = entry.source == DebugSource.core
                           ? 'core'
                           : 'app';
-                      // §038: prev-session entries (warning+error с диска)
-                      // отделяем тегом «↑ prev session» + курсивом.
+
+
                       final prevTag = entry.fromPreviousSession
                           ? ' · ↑ prev session'
                           : '';

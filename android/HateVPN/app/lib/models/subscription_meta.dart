@@ -1,9 +1,9 @@
-/// Метаданные из HTTP-заголовков подписки (`subscription-userinfo`,
-/// `profile-title`, `profile-update-interval`, `profile-web-page-url`).
-///
-/// Поля опциональны — сервер может отдавать любое подмножество. Трафик
-/// в байтах. Expire — unix seconds (int), UI конвертирует в DateTime при
-/// рендере.
+
+
+
+
+
+
 class SubscriptionMeta {
   final int uploadBytes;
   final int downloadBytes;

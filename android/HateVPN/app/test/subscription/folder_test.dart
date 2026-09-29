@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -30,15 +30,15 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// Папка через запись `sources[]` и обратно — путь хранения (§439).
+
 FolderServers _storageRoundTrip(FolderServers f) =>
     sourceFromRecord(sourceToRecord(f)).value! as FolderServers;
 
-/// §234 — папки серверов: модель (members ↔ nodes), операции контроллера
-/// (состав, перенос, вынос, снапшот по URL) и сборка конфига.
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
@@ -61,7 +61,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -109,23 +109,23 @@ void main() {
         pingUrl: 'https://1.1.1.1/cdn-cgi/trace',
         pingTimeoutMs: 3000,
       );
-      // backup-инвариант: поля переживают запись хранения.
+
       final rt = _storageRoundTrip(f);
       expect(rt.pingUrl, 'https://1.1.1.1/cdn-cgi/trace');
       expect(rt.pingTimeoutMs, 3000);
 
-      // copyWith без ping-аргументов НЕ теряет поля.
+
       final kept = f.copyWith(members: [FolderMember(raw: uriB)]);
       expect(kept.pingUrl, 'https://1.1.1.1/cdn-cgi/trace');
       expect(kept.pingTimeoutMs, 3000);
 
-      // clearPing сбрасывает в null (→ глобальный ping при тесте).
+
       final cleared = f.copyWith(clearPing: true);
       expect(cleared.pingUrl, isNull);
       expect(cleared.pingTimeoutMs, isNull);
       expect(sourceToRecord(cleared).containsKey('ping_url'), isFalse);
 
-      // Папка без ping-полей → null (берётся глобальное).
+
       final plain = FolderServers(
         id: 'f-3',
         name: 'Plain',
@@ -194,7 +194,7 @@ void main() {
       expect(folder.members, hasLength(2));
       expect(folder.members[0].node!.tag, 'Alpha');
       expect(folder.members[1].node!.tag, 'Beta');
-      // Каждый член — самодостаточный фрагмент, не всё тело.
+
       expect(folder.members[0].raw, contains('u1@h1.example'));
       expect(folder.members[0].raw, isNot(contains('u2@h2.example')));
     });
@@ -210,7 +210,7 @@ void main() {
       final folder = c.entries.single.list as FolderServers;
       expect(folder.members[0].node!.tag, 'proton-nl');
       expect(folder.members[1].node!.tag, 'proton-nl 2');
-      // Именованная нода имя файла НЕ получает.
+
       final err2 =
           await c.addMembersToFolder(0, uriA, nameFallback: 'ignored');
       expect(err2, isNull);
@@ -252,7 +252,7 @@ void main() {
       final c = await makeController();
       await c.addFolder('F');
       await c.addMembersToFolder(0, '$uriA\n$uriB');
-      await c.toggleMemberAt(0, 1); // Beta off
+      await c.toggleMemberAt(0, 1);
 
       await c.deleteFolderAt(0, keepServers: true);
       expect(c.entries, hasLength(2));
@@ -261,7 +261,7 @@ void main() {
       expect(a.nodes.single.tag, 'Alpha');
       expect(a.enabled, isTrue);
       expect(b.nodes.single.tag, 'Beta');
-      expect(b.enabled, isFalse); // per-member toggle сохранён
+      expect(b.enabled, isFalse);
     });
 
     test('deleteFolderAt(keepServers: true): авто-узел удаляется, '
@@ -311,7 +311,7 @@ void main() {
       expect(folder.members.single.node!.tag, 'Beta');
       final standalone = c.entries[1].list as UserServer;
       expect(standalone.nodes.single.tag, 'Alpha');
-      // Личные настройки папки НЕ наследуются.
+
       expect(standalone.tagPrefix, isEmpty);
       expect(standalone.detourPolicy, DetourPolicy.defaults);
     });
@@ -321,7 +321,7 @@ void main() {
       final c = await makeController();
       await c.addFromInput(uriA);
       expect(c.entries.single.list, isA<UserServer>());
-      // Личный префикс, который должен быть отброшен при переносе.
+
       c.entries.single.tagPrefix = 'my-';
       await c.persistSources();
       await c.addFolder('F');
@@ -330,9 +330,9 @@ void main() {
       expect(err, isNull);
       expect(c.entries, hasLength(1));
       final folder = c.entries.single.list as FolderServers;
-      // addFromInput добавил авто-эмодзи (§090) — сверяем по суффиксу.
+
       expect(folder.members.single.node!.tag, endsWith('Alpha'));
-      expect(folder.tagPrefix, isEmpty); // папочный prefix, не серверный
+      expect(folder.tagPrefix, isEmpty);
     });
 
     test('moveMemberToFolder переносит члена между папками', () async {
@@ -370,11 +370,11 @@ void main() {
       final err =
           await c.addUrlSnapshotToFolder(0, 'https://example.com/sub');
       expect(err, isNull);
-      // Единственная запись — папка (никакой SubscriptionServers).
+
       expect(c.entries, hasLength(1));
       final folder = c.entries.single.list as FolderServers;
       expect(folder.members, hasLength(2));
-      // Персист выжил round-trip (raw самодостаточен).
+
       final lists = await SettingsStorage.getServerLists();
       final saved = lists.single as FolderServers;
       expect(saved.nodes.map((n) => n.tag), ['Alpha', 'Beta']);
@@ -383,7 +383,7 @@ void main() {
     test('§237 setMemberDetour + detour переживает move/ungroup', () async {
       final c = await makeController();
       await c.addFromInput(uriA);
-      // Личный detour одиночного сервера.
+
       final us = c.entries.single.list as UserServer;
       await c.replaceList(
           0,
@@ -393,12 +393,12 @@ void main() {
                       .copyWith(overrideDetour: const NodeLink(tag: 'Jump'))));
       await c.addFolder('F');
 
-      // Перенос в папку сохраняет личный detour в member.detour.
+
       await c.moveServerToFolder(0, 1);
       var folder = c.entries.single.list as FolderServers;
       expect(folder.members.single.detour, const NodeLink(tag: 'Jump'));
 
-      // setMemberDetour меняет и персистит.
+
       await c.setMemberDetour(0, 0, const NodeLink(tag: 'Jump2'));
       folder = c.entries.single.list as FolderServers;
       expect(folder.members.single.detour, const NodeLink(tag: 'Jump2'));
@@ -406,7 +406,7 @@ void main() {
           (await SettingsStorage.getServerLists()).single as FolderServers;
       expect(saved.members.single.detour, const NodeLink(tag: 'Jump2'));
 
-      // Вынос обратно — detour возвращается в overrideDetour одиночного.
+
       await c.ungroupMemberAt(0, 0);
       final back = c.entries[1].list as UserServer;
       expect(back.detourPolicy.overrideDetour, const NodeLink(tag: 'Jump2'));
@@ -436,7 +436,7 @@ void main() {
       final saved =
           (await SettingsStorage.getServerLists()).single as FolderServers;
       expect(saved.members.single.skipPresets, isTrue);
-      // Член вне диапазона и папка как одиночный — ошибка, без записи.
+
       expect(await c.setSkipPresets(0, 5, true), isNotNull);
       expect(await c.setSkipPresets(0, null, true), isNotNull);
     });
@@ -449,13 +449,13 @@ void main() {
       var folder = c.entries.single.list as FolderServers;
       NodeLink member(String tag) => NodeLink(folderId: folder.id, tag: tag);
 
-      // self
+
       expect(await c.setMemberDetour(0, 0, member('Alpha')), isNotNull);
-      // интра-ребро A→B ок, хранится парой {id папки, сырой тег} (D-112)
+
       expect(await c.setMemberDetour(0, 0, member('Beta')), isNull);
       folder = c.entries.single.list as FolderServers;
       expect(folder.members[0].detour, member('Beta'));
-      // замыкающее B→A — отказ
+
       expect(await c.setMemberDetour(0, 1, member('Alpha')), isNotNull);
       folder = c.entries.single.list as FolderServers;
       expect(folder.members[1].detour, isEmpty);
@@ -471,12 +471,12 @@ void main() {
       expect(folder.members.map((m) => m.enabled), [false, true, false]);
       expect(folder.nodes.map((n) => n.tag), ['Beta']);
 
-      // Перестановка: [2,0,1]; кривые перестановки игнорируются.
+
       await c.applyMembersOrder(0, [2, 0, 1]);
       folder = c.entries.single.list as FolderServers;
       expect(folder.members[1].node!.tag, 'Alpha');
-      await c.applyMembersOrder(0, [0, 0, 1]); // дубль — no-op
-      await c.applyMembersOrder(0, [0]); // не та длина — no-op
+      await c.applyMembersOrder(0, [0, 0, 1]);
+      await c.applyMembersOrder(0, [0]);
       folder = c.entries.single.list as FolderServers;
       expect(folder.members.length, 3);
 
@@ -499,7 +499,7 @@ void main() {
   group('§234 buildConfig с папкой', () {
     final template = WizardTemplate(
       parserConfig: ParserConfigBlock(),
-      // §267 — group_templates: vpn-1 Направление (direct+auto), auto-подгруппа.
+
       groupTemplates: GroupTemplates(
         direction: DirectionTemplate(
           include: const ['direct', 'auto'],
@@ -563,7 +563,7 @@ void main() {
 
     test('§237 личный detour члена + политика папки (use/append/replace/none)',
         () async {
-      // Целевые outbound'ы detour'ов — одиночные серверы Jump/Jump2.
+
       UserServer jump(String tag, String host) => UserServer(
             id: 'u-$tag',
             name: tag,
@@ -584,8 +584,8 @@ void main() {
             tagPrefix: '',
             detourPolicy: policy,
             members: [
-              FolderMember(raw: uriA, detour: const NodeLink(tag: 'Jump')), // личный detour
-              FolderMember(raw: uriB), // без личного
+              FolderMember(raw: uriA, detour: const NodeLink(tag: 'Jump')),
+              FolderMember(raw: uriB),
             ],
           );
 
@@ -608,24 +608,24 @@ void main() {
         return map;
       }
 
-      // Use (дефолт): личный применяется, без личного — ничего.
+
       var d = await detoursFor(DetourPolicy.defaults);
       expect(d['Alpha'], 'Jump');
       expect(d['Beta'], isNull);
 
-      // Append (Replace OFF): личный побеждает, папочный — тем, у кого нет.
+
       d = await detoursFor(
           const DetourPolicy(overrideDetour: NodeLink(tag: 'Jump2')));
       expect(d['Alpha'], 'Jump');
       expect(d['Beta'], 'Jump2');
 
-      // Replace ON: папочный переписывает всех.
+
       d = await detoursFor(const DetourPolicy(
           overrideDetour: NodeLink(tag: 'Jump2'), replaceDetourChain: true));
       expect(d['Alpha'], 'Jump2');
       expect(d['Beta'], 'Jump2');
 
-      // None: без detour вообще (личный тоже снят).
+
       d = await detoursFor(const DetourPolicy(useDetourServers: false));
       expect(d['Alpha'], isNull);
       expect(d['Beta'], isNull);
@@ -679,7 +679,7 @@ void main() {
         );
       }
 
-      // Интра-ссылка — пара {id этой папки, сырой тег} (D-112).
+
       NodeLink intra(String tag) => NodeLink(folderId: 'f-1', tag: tag);
 
       FolderServers folder({
@@ -700,41 +700,41 @@ void main() {
             ],
           );
 
-      // 1. Интра-ссылка резолвится в display; append папки достаётся хвосту
-      //    (B без личного) → цепочка A→B→Jump целиком.
+
+
       var r = await run(folder(
           policy: const DetourPolicy(overrideDetour: NodeLink(tag: 'Jump'))));
       expect(r.detours['pr: Alpha'], 'pr: Beta');
       expect(r.detours['pr: Beta'], 'Jump');
       expect(r.detours['pr: Gamma'], 'Jump');
 
-      // 2. Register-гейт: B (интра-цель) скрыт из селектора по умолчанию…
+
       expect(r.selector, isNot(contains('pr: Beta')));
       expect(r.selector, contains('pr: Alpha'));
-      // …и возвращается тогглом registerDetourServers.
+
       r = await run(folder(
           policy: const DetourPolicy(
               overrideDetour: NodeLink(tag: 'Jump'), registerDetourServers: true)));
       expect(r.selector, contains('pr: Beta'));
 
-      // 3. Папочный override в СВОЕГО члена: exempt-закрытие цели.
-      //    override = пара на Alpha, A личный → B: exempt = {A, B} →
-      //    A сохраняет личный, B direct; C → 'pr: Alpha'.
+
+
+
       r = await run(folder(policy: DetourPolicy(overrideDetour: intra('Alpha'))));
       expect(r.detours['pr: Gamma'], 'pr: Alpha');
-      expect(r.detours['pr: Alpha'], 'pr: Beta'); // exempt: личный сохранён
-      expect(r.detours['pr: Beta'], isNull); // exempt-хвост: direct
+      expect(r.detours['pr: Alpha'], 'pr: Beta');
+      expect(r.detours['pr: Beta'], isNull);
 
-      // 4. Replace ON с интра-целью: все → цель, кроме exempt-цепочки цели.
+
       r = await run(folder(
           policy: DetourPolicy(
               overrideDetour: intra('Beta'), replaceDetourChain: true)));
       expect(r.detours['pr: Alpha'], 'pr: Beta');
       expect(r.detours['pr: Gamma'], 'pr: Beta');
-      expect(r.detours['pr: Beta'], isNull); // цель exempt — не сама в себя
+      expect(r.detours['pr: Beta'], isNull);
 
-      // 5. Кольцо из ручного бэкапа — fail-closed (NODE_LINK §5.1): оба
-      //    участника выпадают с предупреждением, напрямую не уходят.
+
+
       r = await run(folder(aDetour: intra('Beta'), bDetour: intra('Alpha')));
       expect(r.detours.containsKey('pr: Alpha'), isFalse);
       expect(r.detours.containsKey('pr: Beta'), isFalse);

@@ -7,10 +7,10 @@ import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/services/tailscale_state/state_keys.dart';
 import 'package:lxbox/services/tailscale_state/state_store.dart';
 
-/// §445 — каталоги состояния узлов Tailscale: ключи узлов, индекс
-/// `tailscale_state.json`, реестр (переименование, перенос, удаление),
-/// сироты под живым и остановленным ядром, миграция каталогов 2.24.0,
-/// наборы записей слотов Workspaces. Файловая система — temp на тест.
+
+
+
+
 void main() {
   late Directory root;
   final store = TailscaleStateStore.I;
@@ -116,7 +116,7 @@ void main() {
     try {
       if (root.existsSync()) await root.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -215,7 +215,7 @@ void main() {
 
     test('имя занято сиротой на диске — суффикс, личность не наследуется',
         () async {
-      await build([server('Z', ts('z'))]); // индекс создан до каталога
+      await build([server('Z', ts('z'))]);
       await putState('home');
       final node = ts('home');
       final out = await build([server('U', node)], core: live);
@@ -243,9 +243,9 @@ void main() {
         'уходит сиротой', () async {
       final node = ts('a');
       final lists = [server('U', node)];
-      await build(lists, core: live); // запись 'a', каталога нет
-      await putState('a'); // ядро создало
-      await putState('old'); // чужой каталог 2.24.0 после создания индекса
+      await build(lists, core: live);
+      await putState('a');
+      await putState('old');
       final renamed = server('U', ts('old'));
       final out = await build([renamed]);
       expect(out[renamed.nodes.single], 'a',
@@ -343,7 +343,7 @@ void main() {
         folder('F', ['a', 'b'], disabled: {1}),
         srv.copyWith(enabled: false),
       ];
-      // Узлы разобраны заново: ключи те же.
+
       final after = await build(off);
       expect(after.values.toSet(), names.values.toSet());
       for (final n in names.values) {
@@ -395,7 +395,7 @@ void main() {
       for (final n in names.values) {
         await putState(n);
       }
-      // Тело подписки пропало из кэша: узлов нет, записи держатся.
+
       final subEmpty = subscription('S', const []);
       await build([f, subEmpty]);
       expect(stateDir(names[sub.nodes.single]!).existsSync(), isTrue);
@@ -464,7 +464,7 @@ void main() {
       await build([empty], slot: 'Work', slotNames: both);
       expect(stateDir(name).existsSync(), isTrue);
 
-      // Load Home: каталоги не трогаются, запись на месте.
+
       expect((await build([f], slot: 'Home', slotNames: both))[member(f, 0)],
           name);
     });
@@ -494,7 +494,7 @@ void main() {
       for (final n in names.values) {
         await putState(n);
       }
-      // Home — копия Work (Save as), из которой узел O потом удалён.
+
       await store.forkSlot(
           root: root.path, from: 'Work', to: 'Home', slotNames: both);
       await relink([shared, own], [shared], slot: 'Home', slotNames: both);

@@ -1,18 +1,18 @@
 part of '../subscription_controller.dart';
 
-/// UI-обёртка вокруг `ServerList`. Хранит кэшированный nodeCount и статус.
-/// Делегирует мутации полей на wrapped список через `copyWith` + persist
-/// через контроллер.
-///
-/// Вынесено `part`'ом из `subscription_controller.dart` — та же библиотека,
-/// поэтому library-private доступ (`_replaceList`, `_formatAgo`) к/из
-/// `SubscriptionController` сохраняется идентично исходнику.
+
+
+
+
+
+
+
 class SubscriptionEntry extends ChangeNotifier {
   ServerList _list;
   int nodeCount;
 
-  /// §279 Phase 4 — статус = типизированный [UiMsg] (рендер по локали в
-  /// build), `null` = статуса нет.
+
+
   UiMsg? status;
 
   SubscriptionEntry({
@@ -32,10 +32,10 @@ class SubscriptionEntry extends ChangeNotifier {
   DetourPolicy get detourPolicy => _list.detourPolicy;
   String get type => _list.type;
 
-  /// URL подписки (пусто для UserServer).
+
   String get url => _list is SubscriptionServers ? (_list as SubscriptionServers).url : '';
 
-  /// Inline-URI строки (пусто для SubscriptionServers).
+
   List<String> get connections {
     if (_list is UserServer) {
       final raw = (_list as UserServer).rawBody;
@@ -73,33 +73,33 @@ class SubscriptionEntry extends ChangeNotifier {
       ? (_list as SubscriptionServers).lastUpdateStatus
       : UpdateStatus.never;
 
-  /// §323 — реакция на успешное авто-обновление. Для не-подписок значение
-  /// смысла не имеет: их никто не фетчит, отдаём дефолт.
+
+
   SubscriptionOnUpdateAction get onUpdateAction => _list is SubscriptionServers
       ? (_list as SubscriptionServers).onUpdateAction
       : SubscriptionOnUpdateAction.rebuild;
 
-  /// §561 — отбраковка последнего разбора тела подписки (`dropped[]`), для
-  /// сводки источника. Пусто для не-подписок.
+
+
   List<NodeWarning> get dropped => _list is SubscriptionServers
       ? (_list as SubscriptionServers).dropped
       : const [];
 
-  /// §289 — per-subscription слепок идентичности фетча. `null` = режим Default
-  /// (глобальная идентичность). Пусто для не-подписок.
+
+
   SubscriptionIdentityOverride? get identity => _list is SubscriptionServers
       ? (_list as SubscriptionServers).identity
       : null;
 
-  /// §289 — режим Custom активен (у подписки свой слепок идентичности).
+
   bool get hasCustomIdentity => identity != null;
 
-  /// Количество chained-детур узлов (⚙). В `nodeCount` они не включены,
-  /// потому что в списке `.nodes` детуры живут как поле `.chained` у
-  /// главного узла, не отдельным элементом.
-  /// §404 — считаем ЗВЕНЬЯ, а не узлов с цепочкой: многохоповый
-  /// `dialerProxy` даёт больше одного outbound'а на владельца, и счётчик
-  /// «+N⚙ nodes» должен показывать, сколько их реально уедет в конфиг.
+
+
+
+
+
+
   int get detourCount {
     var n = 0;
     for (final node in _list.nodes) {
@@ -119,11 +119,11 @@ class SubscriptionEntry extends ChangeNotifier {
   static String formatAgo(DateTime dt) => _formatAgo(dt);
 
   String get displayName {
-    // §243 — у одиночного сервера (UserServer) поле name игнорируем:
-    // источник правды — tag/label узла (правится в Node Settings). Непустой
-    // name мог остаться от v2.11.0-импорта (писал туда имя файла) — показывать
-    // его нельзя, иначе правка tag не отражается в списке Servers. Для
-    // подписок и папок name работает как раньше.
+
+
+
+
+
     if (_list is! UserServer && name.isNotEmpty) return name;
     if (url.isNotEmpty) {
       final uri = Uri.tryParse(url);
@@ -144,14 +144,14 @@ class SubscriptionEntry extends ChangeNotifier {
       }
       return c.length > 40 ? '${c.substring(0, 40)}...' : c;
     }
-    // §279 — display-имя составлено из user data (name/host/tag/URI) и не
-    // локализуется; '(empty)'-маркер пустой записи оставлен английским
-    // сознательно (граница §8: name-fallback'и не мигрируются).
+
+
+
     return '(empty)';
   }
 
-  /// §285 — компонует локализованный статус в момент показа через
-  /// getLocalText (render-path, без BuildContext-параметра).
+
+
   String subtitle() {
     final parts = <String>[];
     final s = status;
@@ -167,26 +167,26 @@ class SubscriptionEntry extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── UI-facing mutable setters (persist via controller.persistSources) ───
-  //
-  // Каждый setter мутирует обёрнутый ServerList через `copyWith` по типу.
-  // UI после каждого set должен вызвать `controller.persistSources()`, чтобы
-  // записать на диск. Так же было в v1 ProxySource-паттерне.
+
+
+
+
+
 
   set name(String v) => _replaceList(_copy(name: v));
   set enabled(bool v) => _replaceList(_copy(enabled: v));
   set tagPrefix(String v) => _replaceList(_copy(tagPrefix: v));
 
-  /// Только для SubscriptionServers. Пользовательский override дефолта
-  /// `profile-update-interval` (24ч). AutoUpdater читает значение через
-  /// `updateIntervalHours` каждый раз при проверке — persist'им через
-  /// `controller.persistSources()` на стороне UI.
-  ///
-  /// §129 — валидные спец-значения: `-1` = «Don't auto-update» (никогда,
-  /// игнорировать серверный profile-update-interval), `0` = «Never (respect
-  /// server)» (сами не по расписанию, но серверный заголовок принимаем).
-  /// AutoUpdater.shouldUpdatePure пропускает подписки с interval ≤ 0 на
-  /// авто-триггерах. Клампим только мусор < -1.
+
+
+
+
+
+
+
+
+
+
   set updateIntervalHours(int v) {
     final list = _list;
     if (list is! SubscriptionServers) return;
@@ -194,17 +194,17 @@ class SubscriptionEntry extends ChangeNotifier {
     _replaceList(list.copyWith(updateIntervalHours: clamped));
   }
 
-  /// §323 — реакция на успешное авто-обновление. No-op для не-подписок.
-  /// Persist через `controller.persistSources()` на стороне UI (как
-  /// `updateIntervalHours` выше).
+
+
+
   set onUpdateAction(SubscriptionOnUpdateAction v) {
     final list = _list;
     if (list is! SubscriptionServers) return;
     _replaceList(list.copyWith(onUpdateAction: v));
   }
 
-  /// §289 — включить режим Custom: инициализировать слепок копией текущих
-  /// глобальных значений. No-op для не-подписок и если Custom уже активен.
+
+
   void enableCustomIdentity() {
     final list = _list;
     if (list is! SubscriptionServers || list.identity != null) return;
@@ -212,33 +212,33 @@ class SubscriptionEntry extends ChangeNotifier {
         list.copyWith(identity: SubscriptionIdentity.snapshotGlobal()));
   }
 
-  /// §289 — выключить Custom: отбросить слепок (→ Default/глобальная). No-op
-  /// для не-подписок. clearIdentity снимает поле в null (обычный `??` не может).
+
+
   void disableCustomIdentity() {
     final list = _list;
     if (list is! SubscriptionServers) return;
     _replaceList(list.copyWith(clearIdentity: true));
   }
 
-  /// §289 — обновить слепок Custom (правка отдельных полей). No-op если Custom
-  /// не активен (сначала [enableCustomIdentity]).
+
+
   void updateIdentity(SubscriptionIdentityOverride next) {
     final list = _list;
     if (list is! SubscriptionServers || list.identity == null) return;
     _replaceList(list.copyWith(identity: next));
   }
 
-  /// §302 — заменить набор import-rules подписки целиком (после CRUD/reorder
-  /// в редакторе). No-op для не-подписок. UI persist'ит через
-  /// `controller.persistSources()`; правила вступают в силу на следующем
-  /// refresh (существующие ноды не переразбираются на месте).
+
+
+
+
   void updateImportRules(List<ImportRule> rules) {
     final list = _list;
     if (list is! SubscriptionServers) return;
     _replaceList(list.copyWith(importRules: rules));
   }
 
-  /// §302 — общий тумблер набора (не удаляя правила). No-op для не-подписок.
+
   set importRulesEnabled(bool v) {
     final list = _list;
     if (list is! SubscriptionServers) return;
@@ -256,8 +256,8 @@ class SubscriptionEntry extends ChangeNotifier {
   set replaceDetourChain(bool v) =>
       _replaceList(_copy(detourPolicy: detourPolicy.copyWith(replaceDetourChain: v)));
 
-  /// Фича 565 фаза B — свёртка папки или подписки в группу (§74); `null` —
-  /// не свёрнута. У одиночного сервера свёртки нет — no-op.
+
+
   SourceReplace? get replace => _list.replace;
   set replace(SourceReplace? v) => switch (_list) {
         final SubscriptionServers s =>

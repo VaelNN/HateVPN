@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -25,9 +25,9 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$root/docs';
 }
 
-/// §439 §3.4 — Debug `PUT /settings/dns_options/{servers,rules}` принимает
-/// только записи `dns{}` формы 1.0. Формы 2.23.2 — 400 с образцом записи, и
-/// хранение не трогается.
+
+
+
 void main() {
   late Directory tmp;
 
@@ -70,12 +70,12 @@ void main() {
     try {
       if (tmp.existsSync()) await tmp.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
-  /// 400 с образцом записи 1.0 в тексте; [field] — поле формы 2.23.2, которое
-  /// ответ обязан назвать (у снимка без `kind` поля назвать нечем).
+
+
   Matcher badRequestWith(String? field) {
     var m = isA<BadRequest>()
         .having((e) => e.message, 'message', contains('"kind":"user"'));
@@ -105,7 +105,7 @@ void main() {
       expect(((r as JsonResponse).body as Map)['count'], 3);
 
       final servers = await SettingsStorage.getDnsServers();
-      // Тег preset-сервера — тег конфига: `ref` целиком.
+
       expect(servers.map((s) => s.tag),
           ['my-doh', 'ru-direct:yandex_udp', 'google_doh']);
       expect((servers[1] as DnsServerPreset).presetId, 'ru-direct');

@@ -15,14 +15,14 @@ import '../storage_migration/golden_harness.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// D-117 — импорт в пустое воспроизводит файл.
-//
-// BACKUP.md §3: известные цели импорта — один список после слияния (цели и
-// Направления файла, их `-auto`, цепочки, корневые узлы, служебные теги
-// шаблона приёмника). BACKUP.md §9 п. 7: несортируемый пресет встаёт на номер
-// шаблона приёмника, откуда бы номер ни приехал.
 
-/// Файл 1.0 со всеми видами целей, которые приезжают этим же файлом.
+
+
+
+
+
+
+
 String _fileWithOwnTargets({
   List<Map<String, dynamic>> rules = const [],
   String? routeFinal,
@@ -106,8 +106,8 @@ const _expectedEnabled = {
 };
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -131,7 +131,7 @@ void main() {
     test('пустой приёмник с шаблоном: цели, приехавшие файлом, и служебные '
         'теги не выключают правила; route.final на цель файла применён; '
         'include на Направление файла цел', () {
-      // vpn-1 приёмника с автовыбором: так его сидит шаблон.
+
       final receiver = LxImportReceiver(
         directions: [
           Direction(
@@ -278,8 +278,8 @@ void main() {
         'direct-out и vpn-1-auto; route.final и include сохранены', () async {
       final box = await StorageSandbox.create();
       addTearDown(box.dispose);
-      // Свежая установка: `main()` до первого экрана сидит Направления
-      // шаблона (vpn-1 с автовыбором), других записей нет.
+
+
       await SettingsStorage.migrateDirectionsIfNeeded(
         template.groupTemplates,
         varDefaults: {for (final v in template.vars) v.name: v.defaultValue},
@@ -311,8 +311,8 @@ void main() {
     });
   });
 
-  // §511 m2 — смешанный порядок `sources[]` (сервер, цепочка, сервер) после
-  // импорта в пустое хранение.
+
+
   group('§511 m2 порядок sources[] при импорте', () {
     test('цепочка между серверами остаётся между ними', () async {
       final box = await StorageSandbox.create();
@@ -364,7 +364,7 @@ void main() {
         'сортируемый пресет и правило пользователя держат номер файла', () {
       int templateNum(String id) =>
           template.selectableRules.firstWhere((r) => r.presetId == id).num;
-      // Ось сплошной нумерации лаунчера 1.5.3–1.5.6: голова уехала на 1000.
+
       final raw = jsonEncode({
         'lx_backup': 2,
         'exported_by': {'app': 'launcher', 'version': '1.5.5'},

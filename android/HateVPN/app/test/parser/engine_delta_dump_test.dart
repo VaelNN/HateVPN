@@ -9,12 +9,12 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §480 W1 — СНЯТЬ значения дельт прогоном движка.
-///
-/// Не проверка, а инструмент: снимок обязан описывать поведение, а не
-/// намерение, поэтому новые ожидания берутся прогоном, а не вписываются
-/// руками. Запускается вручную с `LX_DUMP=<файл>`; без переменной не делает
-/// ничего и в обычном прогоне молчит.
+
+
+
+
+
+
 void main() {
   final out = Platform.environment['LX_DUMP'];
 

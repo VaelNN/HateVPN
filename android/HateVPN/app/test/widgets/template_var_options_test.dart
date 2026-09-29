@@ -7,10 +7,10 @@ import 'package:lxbox/services/l10n/locale_controller.dart';
 import 'package:lxbox/widgets/template_var_list.dart';
 import 'package:lxbox/widgets/var_values_model.dart';
 
-/// §555 / задача 570 — `options` и `options_open` в редакторе переменных
-/// (TEMPLATE_LANG §2.1, SPEC 143 D-125): `text_list` + `options` —
-/// множественный выбор; `options_open` — своё значение сверх списка;
-/// закрытые `options` у `text` — только выбор из списка.
+
+
+
+
 Future<void> _pump(
   WidgetTester tester, {
   required WizardVar v,
@@ -53,7 +53,7 @@ void main() {
     await _pump(tester,
         v: _var('text_list'), value: 'c', onChanged: (n, v) => got[n] = v);
     expect(find.byType(FilterChip), findsNWidgets(3));
-    expect(find.byType(TextField), findsNothing); // закрытый список
+    expect(find.byType(TextField), findsNothing);
     await tester.tap(find.byKey(const ValueKey('multi-x-a')));
     await tester.pumpAndSettle();
     expect(got['x'], 'a\nc');
@@ -66,7 +66,7 @@ void main() {
         v: _var('text_list', open: true),
         value: 'b\nzzz',
         onChanged: (n, v) => got[n] = v);
-    expect(find.text('zzz'), findsOneWidget); // своё значение в поле
+    expect(find.text('zzz'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'zzz\n  yyy ');
     await tester.pumpAndSettle();
     expect(got['x'], 'b\nzzz\nyyy');

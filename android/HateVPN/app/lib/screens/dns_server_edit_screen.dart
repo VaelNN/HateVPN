@@ -6,9 +6,9 @@ import '../models/dns_ref.dart';
 import '../services/ui_helpers.dart';
 import '../widgets/outbound_picker.dart';
 import 'dns_server_edit/edit_controller.dart';
-// §312 — опция пикера членов группы нужна caller'у (dns_settings_screen).
+
 export 'dns_server_edit/edit_controller.dart' show DnsMemberOption;
-// §435 — опция пикера endpoint у сервера tailscale (тот же caller).
+
 export '../services/dns/tailscale_endpoint_options.dart' show TailscaleEndpointOption;
 import '../services/dns/tailscale_endpoint_options.dart' show TailscaleEndpointOption;
 import 'dns_server_edit/tabs/json_tab.dart';
@@ -16,15 +16,15 @@ import 'dns_server_edit/tabs/params_tab.dart';
 import 'dns_settings_screen/resolved_server.dart';
 import '../services/l10n/locale_controller.dart';
 
-/// §117 задача 4 — полноэкранный редактор DNS-сервера (locked decision №8).
-/// Паттерн 1:1 с [CustomRuleEditScreen]: Scaffold-route,
-/// `DefaultTabController(2)` (Params / JSON), AppBar с back-guard
-/// (`PopScope`+dialog Save/Keep/Discard), Delete (user-only inline, не
-/// locked), Reset-to-canonical (↺ для overridden) и Save (dirty-highlight).
-///
-/// Заменяет фрагментированный UX: боттом-шит `server_editor_sheet` +
-/// read-only диалог `dns_body_dialogs.showServerBodyDialog` + инлайн-тюнер
-/// на тайле.
+
+
+
+
+
+
+
+
+
 class DnsServerEditScreen extends StatefulWidget {
   const DnsServerEditScreen({
     super.key,
@@ -39,29 +39,29 @@ class DnsServerEditScreen extends StatefulWidget {
     this.existingTags = const {},
   });
 
-  /// Ref-запись (edit) или дефолтная inline-заготовка (new).
+
   final DnsServerRef initialRef;
 
-  /// Display-модель (null = new-режим: добавление inline-сервера).
+
   final ResolvedServer? resolved;
 
-  /// §117-обёртка шаблона для kind=template (JSON-превью).
+
   final Map<String, dynamic>? templateWrapper;
 
-  /// Каноническое описание template/preset (description-override детект).
+
   final String canonicalDescription;
 
   final List<OutboundOption> outboundOptions;
   final List<String> dnsServerTags;
 
-  /// §312 — опции пикера членов DNS-группы (все серверы кроме self и
-  /// fakeip/hosts; disabled помечаются).
+
+
   final List<DnsMemberOption> dnsMemberOptions;
 
-  /// §435 — узлы Tailscale для пикера `endpoint` сервера `tailscale`.
+
   final List<TailscaleEndpointOption> tailscaleEndpoints;
 
-  /// Существующие теги (new-режим): коллизия tag'а → confirm replace.
+
   final Set<String> existingTags;
 
   @override
@@ -92,7 +92,7 @@ class _DnsServerEditScreenState extends State<DnsServerEditScreen> {
     super.dispose();
   }
 
-  // ─── Save / delete / reset / back ────────────────────────────────────
+
 
   Future<void> _save() async {
     if (_ctrl.kind == ServerKind.inline) {
@@ -110,9 +110,9 @@ class _DnsServerEditScreenState extends State<DnsServerEditScreen> {
         );
         return;
       }
-      // §117 задача 4b: для форменных режимов (UDP/DoT/DoH) адрес обязателен.
-      // §312: КРОМЕ группы — у неё вместо адреса участники (`isGroup`).
-      // §435: и КРОМЕ tailscale — у него вместо адреса endpoint.
+
+
+
       if (_ctrl.serverMode != null &&
           !_ctrl.isGroup &&
           !_ctrl.isTailscale &&
@@ -122,16 +122,16 @@ class _DnsServerEditScreenState extends State<DnsServerEditScreen> {
         );
         return;
       }
-      // §435: у tailscale обязателен endpoint — без него сервер мёртв
-      // (санитайзер сборки выбросит его с warning), хранить нечего.
+
+
       if (_ctrl.isTailscale && _ctrl.tailscaleEndpoint.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(getLocalText.s("Tailscale node is required"))),
         );
         return;
       }
-      // §117 задача 4b: rename existing — коллизия запрещена (replace-
-      // семантики у rename нет, ссылки каскадно поедут на save).
+
+
       if (!_ctrl.isNew &&
           tag != (widget.resolved?.tag ?? '') &&
           widget.existingTags.contains(tag)) {
@@ -140,8 +140,8 @@ class _DnsServerEditScreenState extends State<DnsServerEditScreen> {
         );
         return;
       }
-      // New-режим: коллизия с существующим tag'ом → явный confirm replace
-      // (раньше боттом-шит заменял молча).
+
+
       if (_ctrl.isNew && widget.existingTags.contains(tag)) {
         final replace = await showDialog<bool>(
           context: context,
@@ -173,18 +173,18 @@ class _DnsServerEditScreenState extends State<DnsServerEditScreen> {
       context,
       title: getLocalText.s("Delete DNS server?"),
       message: getLocalText.s("Remove \"%s\" permanently?", tag),
-    ); // §219
+    );
     if (confirmed == true && mounted) {
       Navigator.pop(context, DnsServerEditResult.deleted());
     }
   }
 
-  /// §043/§117: reset inline-override обратно к canonical (template/preset) —
-  /// ref схлопывается в template/preset-ref с тем же `enabled` и тегом.
+
+
   Future<void> _resetToCanonical() async {
     final overrides = _ctrl.overrides;
     final resolved = widget.resolved;
-    // overrides — вид canonical'а: template или preset.
+
     if (overrides == null || overrides == ServerKind.inline || resolved == null) {
       return;
     }
@@ -222,17 +222,17 @@ class _DnsServerEditScreenState extends State<DnsServerEditScreen> {
       Navigator.pop(context);
       return;
     }
-    final action = await showUnsavedChangesDialog(context); // §219
+    final action = await showUnsavedChangesDialog(context);
     if (!mounted) return;
     if (action == 'save') {
-      unawaited(_save()); // сам сделает Navigator.pop при успехе
+      unawaited(_save());
     } else if (action == 'discard') {
       Navigator.pop(context);
     }
-    // 'keep' / null — остаёмся на экране
+
   }
 
-  // ─── Build ───────────────────────────────────────────────────────────
+
 
   @override
   Widget build(BuildContext context) {
@@ -294,8 +294,8 @@ class _DnsServerEditScreenState extends State<DnsServerEditScreen> {
   }
 }
 
-/// Save-icon в AppBar: подсвечивается primary при `isDirty()` (как у
-/// rule-редактора — rebuild ограничен этой кнопкой).
+
+
 class _SaveIconButton extends StatelessWidget {
   const _SaveIconButton({required this.controller, required this.onPressed});
 
@@ -319,11 +319,11 @@ class _SaveIconButton extends StatelessWidget {
   }
 }
 
-/// Результат редактора — сохранённая ref-запись либо удаление.
+
 class DnsServerEditResult {
   const DnsServerEditResult._({this.saved, this.wasDeleted = false});
 
-  /// Новый/обновлённый ref. Для reset-to-canonical — схлопнутый ref.
+
   final DnsServerRef? saved;
   final bool wasDeleted;
 
@@ -333,8 +333,8 @@ class DnsServerEditResult {
       const DnsServerEditResult._(wasDeleted: true);
 }
 
-/// §117 задача 4 — opener (паттерн `openCustomRuleEditor`). null = back без
-/// изменений.
+
+
 Future<DnsServerEditResult?> openDnsServerEditor(
   BuildContext context, {
   required DnsServerRef initialRef,

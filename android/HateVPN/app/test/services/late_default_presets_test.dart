@@ -8,8 +8,8 @@ import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/settings_storage_keys.dart';
 
-/// §578 — разовый шаг: поздний дефолтный пресет `tailscale` у пользователя
-/// с уже сохранённым состоянием.
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -54,7 +54,7 @@ void main() {
     expect(ts.enabled, isTrue);
     expect(ts.orderNum, 945);
 
-    // Удалённый пользователем пресет не возвращается.
+
     await SettingsStorage.saveCustomRules(const []);
     expect(await SettingsStorage.seedLateDefaultPresets(template), isFalse);
     expect(await presetIds(), isEmpty);

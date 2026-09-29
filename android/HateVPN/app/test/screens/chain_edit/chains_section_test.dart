@@ -5,11 +5,11 @@ import 'package:lxbox/models/source_chain.dart';
 import 'package:lxbox/screens/subscriptions_screen/widgets/chains_section.dart';
 import 'package:lxbox/widgets/reorder_grab_strip.dart';
 
-// §393 D1 — цепочка СТРОКОЙ общего списка источников (директива оператора
-// 24.08): отдельной секции «Цепочки хопов» больше нет, ряд тот же, что у
-// подписки. Не тест на вёрстку: проверяем, что ряд несёт идентичность
-// цепочки, тянется за drag-handle наравне со всеми и что тап/тумблер доходят
-// до нужной записи.
+
+
+
+
+
 
 Widget _host(List<SourceChain> chains,
         {void Function(SourceChain)? onTap,

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/tailscale_bundle.dart';
 
-/// §449 — каноническая связка Tailscale (правило, DNS-сервер, DNS-правило)
-/// упразднена §575: её даёт пресет шаблона (§578). Здесь остаётся только
-/// hostname по умолчанию.
+
+
+
 void main() {
   group('§449 — hostname по умолчанию', () {
     test('модель как есть → префикс и нижний регистр через дефисы', () {
@@ -37,7 +37,7 @@ void main() {
       expect(name.length, kTailscaleHostnameMaxLength);
       expect(name.startsWith('LxBox-a'), isTrue);
 
-      // Обрезка пришлась на разделитель — дефис на конце не остаётся.
+
       final onBoundary = defaultTailscaleHostname('${'b' * 56} tail');
       expect(onBoundary.endsWith('-'), isFalse);
       expect(onBoundary.length <= kTailscaleHostnameMaxLength, isTrue);

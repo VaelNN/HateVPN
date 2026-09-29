@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -16,11 +16,11 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => root;
 }
 
-/// §318 — OOM-снимки ядра: список, размер каталога, ротация, очистка.
-///
-/// Базу резолвит `CrashReports.baseDir()`; в тестах MethodChannel не поднят,
-/// поэтому `getFilesDir()` отдаёт null и срабатывает fallback на
-/// path_provider — его и подменяем.
+
+
+
+
+
 void main() {
   late Directory tempDir;
 
@@ -34,7 +34,7 @@ void main() {
     if (await tempDir.exists()) await tempDir.delete(recursive: true);
   });
 
-  /// Снимок как его кладёт ядро: каталог с metadata.json + профилями.
+
   Future<Directory> writeSnapshot(
     String name, {
     DateTime? mtime,
@@ -77,7 +77,7 @@ void main() {
       expect(list.first.coreVersion, '1.14.0-lx.3');
       expect(list.first.memoryUsage, '440 MB');
       expect(list.first.heapInuse, '123 MB');
-      // numGoroutine приходит строкой (`json:",string"` в Go-структуре).
+
       expect(list.first.numGoroutine, 424);
       expect(list.first.dirPath, endsWith('2026-07-15T07-15-32'));
     });
@@ -87,8 +87,8 @@ void main() {
 
       final list = await OomReports.list();
 
-      // Вес снимка несут профили: если бы считали только головной файл,
-      // пользователь видел бы полкилобайта вместо мегабайтов.
+
+
       expect(list.single.size, greaterThan(4096));
     });
 
@@ -153,7 +153,7 @@ void main() {
       final left = await OomReports.list();
       expect(left.map((r) => r.name), ['2026-07-05', '2026-07-04'],
           reason: 'удаляются самые старые');
-      // Каталог удалён целиком, а не только головной файл.
+
       expect(
           await Directory('${tempDir.path}/$kOomArchiveDir/2026-07-01')
               .exists(),

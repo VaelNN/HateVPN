@@ -3,11 +3,11 @@ import 'package:lxbox/services/storage_migration/migrate_storage.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §439 §2.3 п. 8 — ссылки на узлы формы 2.23.2 (финальные теги строкой) →
-/// NodeLink. Цель ссылки может быть выключена: сам одиночный сервер, папка
-/// целиком, член папки. Такая ссылка не висячая — предупреждение только для
-/// строки, которой нет ни в одном источнике (стенд волны E: из четырёх
-/// «matches no node» три указывали на выключенные серверы).
+
+
+
+
+
 
 String _uri(int n, String tag) =>
     'vless://11111111-1111-1111-1111-${n.toString().padLeft(12, '0')}'
@@ -48,8 +48,8 @@ Map<String, dynamic> _doc() => {
           'created_at': '2026-02-02T00:00:00.000',
           'detour_policy': {'override_detour': 'warp-h2'},
           'members': [
-            // Тёзка включённого сервера: при включении папки сборка назвала
-            // бы его `Osaka-1`.
+
+
             {'raw': _uri(6, 'Osaka'), 'enabled': true},
           ],
         },
@@ -81,8 +81,8 @@ Map<String, dynamic> _byId(StorageMigrationResult r, String id) =>
     _sources(r).firstWhere((s) => s['id'] == id);
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   test('detour на выключенный одиночный сервер — корневая ссылка без '

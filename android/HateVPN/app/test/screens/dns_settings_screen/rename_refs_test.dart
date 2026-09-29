@@ -4,9 +4,9 @@ import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/models/dns_ref.dart';
 import 'package:lxbox/screens/dns_settings_screen/dns_server_resolver.dart';
 
-/// §117 задача 4b — rename тега DNS-сервера: каскад по всем ссылкам
-/// (`renameDnsServerTagRefs` + `renameRuleDnsServerTag`), чтобы
-/// переименование не орфанило рефы.
+
+
+
 void main() {
   group('renameDnsServerTagRefs', () {
     test('каскад: domain_resolver, dns_servers-vars, §061-правила, resolvers',
@@ -26,7 +26,7 @@ void main() {
           tag: 'safe_dns_dot',
           varValues: {
             'dom_resolver': 'my-dns',
-            'safe_profile': 'my-dns', // enum — совпадение текста, не трогаем
+            'safe_profile': 'my-dns',
           },
         ),
       ];
@@ -37,7 +37,7 @@ void main() {
         ),
         const DnsRuleSrs(id: 'ds_1', name: 'cn', server: 'my-dns'),
         const DnsRulePreset(presetId: 'p', enabled: true),
-        // §439 A1 — srs формы §294: server в body.
+
         const DnsRuleSrs(
           id: 'ds_2',
           name: 'body-form',

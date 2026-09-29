@@ -9,13 +9,13 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §480 W4 — СНЯТИЕ новых ожиданий для кейсов-дельт.
-///
-/// Запускается руками (`--plain-name dump`) и печатает готовый JSON кейса с
-/// новыми `identity`/`tag`/`body` и прежними значениями в `_before480`.
-/// Ожидания дельты СНИМАЮТСЯ ПРОГОНОМ, а не вписываются руками: снимок
-/// описывает поведение, а не намерение, и вписанное руками тело прикрыло бы
-/// собой ошибку секции.
+
+
+
+
+
+
+
 void main() {
   const registryRoot = 'assets/contract';
   final mirrored = Directory('$registryRoot/registry').existsSync();
@@ -28,7 +28,7 @@ void main() {
   });
 
   test('dump', () {
-    // scheme → кейсы, чьи ожидания надо пересnять.
+
     const targets = <String, List<String>>{
       'hysteria2': ['b480:pinsha256_pair'],
       'masque': ['b480:publickey_raw_plus'],
@@ -46,19 +46,19 @@ void main() {
       for (final name in e.value) {
         final c = (cases[name] as Map?)?.cast<String, dynamic>();
         if (c == null) {
-          // ignore: avoid_print
+
           print('${e.key}/$name: кейса нет');
           continue;
         }
         final spec = parseUri(c['uri'] as String);
-        // ignore: avoid_print
+
         print('=== ${e.key}/$name');
         if (spec == null) {
-          // ignore: avoid_print
+
           print('  НЕ РАЗБИРАЕТСЯ');
           continue;
         }
-        // ignore: avoid_print
+
         print(jsonEncode({
           'identity': legacyNodeIdentityHash(spec),
           'tag': spec.tag,

@@ -7,9 +7,9 @@ import '../../../services/l10n/locale_controller.dart';
 import '../../../widgets/big_text_view.dart';
 import '../../../widgets/safe_bottom.dart';
 
-/// Source tab: live HTTP response headers (important + collapsible "others")
-/// and the raw response body. Extracted verbatim from `_buildSourceTab` /
-/// `_headerRow`; all state stays owned by the screen and is passed in.
+
+
+
 class SubscriptionSourceTab extends StatelessWidget {
   const SubscriptionSourceTab({
     super.key,
@@ -35,23 +35,23 @@ class SubscriptionSourceTab extends StatelessWidget {
   final String rawSource;
   final bool showAllHeaders;
 
-  /// Pre-filtered important headers (sorted) — matches
-  /// `_filteredHeaders(important: true)`.
+
+
   final List<MapEntry<String, String>> importantHeaders;
 
-  /// Pre-filtered non-important headers (sorted) — matches
-  /// `_filteredHeaders(important: false)`.
+
+
   final List<MapEntry<String, String>> moreHeaders;
 
   final VoidCallback onRefetch;
   final VoidCallback onToggleShowAll;
 
-  /// §302 — тело реально закодировано (base64): галка имеет смысл. Для
-  /// plain-подписок она показывается неактивной — раскрывать нечего.
+
+
   final bool canDecode;
 
-  /// Показывать раскодированное тело (те самые строки, с которыми работают
-  /// import-rules), а не сырой ответ сервера.
+
+
   final bool decoded;
 
   final ValueChanged<bool>? onToggleDecode;
@@ -63,9 +63,9 @@ class SubscriptionSourceTab extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    // §333 — тело подписки на сотни КБ (1000+ нод) в `SelectableText` — это
-    // один гигантский Paragraph: фриз при открытии и память O(N). Шапка едет
-    // в SliverToBoxAdapter, тело — построчными sliver-элементами.
+
+
+
     return CustomScrollView(
       slivers: [
         SliverPadding(
@@ -74,7 +74,7 @@ class SubscriptionSourceTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // HTTP Response Headers — живой GET с сервера, без кеша.
+
                 if (hasUrl) ...[
                   Row(
                     children: [
@@ -151,9 +151,9 @@ class SubscriptionSourceTab extends StatelessWidget {
                   const SizedBox(height: 16),
                 ],
 
-                // Raw source. Кнопка Copy — в заголовке (раньше висела
-                // поверх SelectableText; у виртуализированного тела
-                // «поверх» нет).
+
+
+
                 Row(
                   children: [
                     Text(getLocalText.s("Raw response"),
@@ -178,12 +178,12 @@ class SubscriptionSourceTab extends StatelessWidget {
                       ),
                   ],
                 ),
-                // §302 — многие провайдеры отдают подписку одной base64-простынёй:
-                // в таком виде не видно ни строк-нод, ни того, с чем работают
-                // import-rules. Галка раскрывает тело тем же декодером, что и парсер.
-                // Показываем её ТОЛЬКО когда есть что раскрывать (тело закодировано);
-                // для plain-тел галки нет вовсе — неактивный контрол лишь захламляет
-                // экран. Раз показана — значит включена по умолчанию (см. экран).
+
+
+
+
+
+
                 if (canDecode)
                   CheckboxListTile(
                     value: decoded,

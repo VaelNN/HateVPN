@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-// §429 — все модальные шторки идут через `showAppBottomSheet`
-// (lib/widgets/app_bottom_sheet.dart): он один добавляет отступ под системную
-// панель навигации и клавиатуру. Прямой `showModalBottomSheet` в коде экрана
-// снова уронит кнопку под панель — ровно то, с чем пришли с 4PDA.
+
+
+
+
 void main() {
   test('showModalBottomSheet is called only from the helper', () {
     final offenders = <String>[];

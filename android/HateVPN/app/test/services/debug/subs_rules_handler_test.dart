@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -30,17 +30,17 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §346 — `PATCH /subs/{id}` (identity §289 / on_update_action §323 /
-/// import_rules_enabled §302) + под-CRUD `/subs/{id}/rules` поверх реального
-/// SubscriptionController (temp-dir через fake path provider, как в
-/// folders_handler_test.dart).
-///
-/// Сетевой фетч не покрыт (нужна живая подписка) — проверяется, что настройки
-/// доезжают до модели и персистятся; применение identity к HTTP-заголовкам
-/// живёт в §289 и device-verify.
+
+
+
+
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
@@ -70,9 +70,9 @@ void main() {
   Map<String, dynamic> asMap(DebugResponse r) =>
       (r as JsonResponse).body as Map<String, dynamic>;
 
-  /// Подписка (не UserServer) без сети: file-подписка §129 — настоящая
-  /// `SubscriptionServers` в списке, но с `url: file:<uuid>`, поэтому фетча
-  /// нет. Требует ≥2 узла в теле (иначе контроллер считает её одиночной).
+
+
+
   Future<String> createSub() async {
     final ok = await controller.addFileSubscription('$uriA\n$uriB', 'test.txt');
     expect(ok, isTrue);
@@ -90,7 +90,7 @@ void main() {
   Future<Map<String, dynamic>> rulesList(String id) async =>
       asMap(await subsHandler(req('GET', '/subs/$id/rules'), ctx()));
 
-  /// Правило-образец: `tag contains X → Disable`.
+
   Map<String, dynamic> disableRule(String needle) => {
         'conditions': [
           {'path': 'tag', 'op': 'contains', 'pattern': needle},
@@ -112,7 +112,7 @@ void main() {
     controller = SubscriptionController();
     await controller.init();
     DebugRegistry.I.sub = controller;
-    // §289 — глобальная идентичность как «до»-состояние для тестов Custom.
+
     SubscriptionIdentity.apply(
       userAgentOverride: '',
       sendHwid: false,
@@ -125,11 +125,11 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
-  // ─────────────────────────── identity (§289) ───────────────────────────
+
 
   test('identity: объект включает Custom, патчит поверх снапшота глобальных',
       () async {
@@ -147,8 +147,8 @@ void main() {
     final identity = r['identity'] as Map<String, dynamic>;
     expect(identity['send_hwid'], true);
     expect(identity['hwid'], 'uuid-1');
-    // Ключевое: частичный объект — патч, а не полная замена. UA приехал из
-    // снапшота глобальных, хотя в body его не было.
+
+
     expect(identity['user_agent'], 'Global-UA/1.0');
   });
 
@@ -164,8 +164,8 @@ void main() {
     expect(r['identity'], isNull);
     expect(listOf(id).identity, isNull);
 
-    // Per-subscription override не трогает глобальную идентичность §118 —
-    // ровно то, ради чего таска и делалась.
+
+
     expect(SubscriptionIdentity.sendHwid, false);
     expect(SubscriptionIdentity.hwid, '');
   });
@@ -200,7 +200,7 @@ void main() {
     );
   });
 
-  // ──────────────────── on_update_action / тумблер (§323/§302) ────────────────
+
 
   test('on_update_action: валидное значение применяется, мусор → 400',
       () async {
@@ -209,7 +209,7 @@ void main() {
     expect(r['on_update_action'], 'reload');
     expect(listOf(id).onUpdateAction, SubscriptionOnUpdateAction.reload);
 
-    // Толерантный fromJson здесь превратил бы опечатку в тихий `rebuild`.
+
     await expectLater(
       patch(id, {'on_update_action': 'relaod'}),
       throwsA(isA<BadRequest>()),
@@ -226,7 +226,7 @@ void main() {
     expect(listOf(id).importRulesEnabled, false);
   });
 
-  // ─────────────────────────── rules CRUD (§302) ───────────────────────────
+
 
   test('POST /rules → 201, порядок сохраняется, ?index вставляет в позицию',
       () async {
@@ -240,7 +240,7 @@ void main() {
 
     await subsHandler(
         req('POST', '/subs/$id/rules', body: disableRule('BBB')), ctx());
-    // Вставка в начало — порядок значим (§332: последнее правило побеждает).
+
     await subsHandler(
       req('POST', '/subs/$id/rules',
           body: disableRule('CCC'), query: {'index': '0'}),
@@ -268,7 +268,7 @@ void main() {
     expect(rule.enabled, false);
     expect(rule.action, ImportRuleAction.disable);
     expect(rule.conditions.single.pattern, 'AAA');
-    // enabled:false → правило не применяется (§302 isUsable).
+
     final listed = (await rulesList(id))['rules'] as List;
     expect((listed.single as Map)['usable'], false);
   });
@@ -285,7 +285,7 @@ void main() {
     final rules = r['rules'] as List;
     expect(rules.map((x) => (x as Map)['conditions'][0]['pattern']),
         ['AAA', 'CCC']);
-    // Индексы в снапшоте — свежие, по ним строится следующий вызов.
+
     expect(rules.map((x) => (x as Map)['index']), [0, 1]);
   });
 
@@ -355,7 +355,7 @@ void main() {
 
   test('нежизнеспособное правило принимается с usable:false', () async {
     final id = await createSub();
-    // Replace без target_path в режиме set — парсится, но на импорте скипнется.
+
     final r = await subsHandler(
       req('POST', '/subs/$id/rules', body: {
         'conditions': [
@@ -371,7 +371,7 @@ void main() {
   });
 
   test('rules на не-подписке → 409, битый индекс → 404', () async {
-    await controller.addFromInput(uriA); // UserServer
+    await controller.addFromInput(uriA);
     final userId = controller.entries.single.id;
     await expectLater(
       subsHandler(req('GET', '/subs/$userId/rules'), ctx()),

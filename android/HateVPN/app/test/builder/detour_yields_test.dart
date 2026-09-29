@@ -4,9 +4,9 @@ import 'package:lxbox/services/builder/post_steps.dart';
 
 import '../contract_paths.dart';
 
-/// Контракт 1.1.65 — `detour` дописывает сборка после санитайзера, и связи
-/// `conflicts {with: detour}` реестра судятся по готовому телу: уступающее
-/// поле снимается с кодом связи, хоп остаётся.
+
+
+
 void main() {
   setUpAll(loadTestRegistry);
 
@@ -35,8 +35,8 @@ void main() {
     expect(ep['listen_port'], 51820);
   });
 
-  // Контракт 1.1.84 (§81) — `tls.fragment` уступает detour; вслед уходит
-  // осиротевший `fragment_fallback_delay`, если `record_fragment` не задан.
+
+
   Map<String, dynamic> vless(Map<String, dynamic> tls) => {
         'type': 'vless',
         'tag': 'v',
@@ -79,7 +79,7 @@ void main() {
     });
   });
 
-  // §577 — авторское тело: уступка идёт через точку правки.
+
   group('авторское тело', () {
     test('tls.fragment остаётся, код с applied: false', () {
       final ob = vless({

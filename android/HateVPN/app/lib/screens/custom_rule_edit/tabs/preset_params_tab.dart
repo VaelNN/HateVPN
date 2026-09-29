@@ -8,10 +8,10 @@ import '../edit_controller.dart';
 import 'params_tab.dart' show ParamsTabActions;
 import '../../../services/l10n/locale_controller.dart';
 
-/// §053 Stage 3 — Params tab для preset-ветки (§033 / §045).
-///
-/// Если preset null — broken-preset fallback с Delete-кнопкой.
-/// Иначе — banner с preset.label + Name/Switch + список var-widgets.
+
+
+
+
 class PresetParamsTab extends StatelessWidget {
   const PresetParamsTab({
     super.key,
@@ -70,12 +70,12 @@ class PresetParamsTab extends StatelessWidget {
       );
     }
 
-    // Hidden-vars (wizard_ui: hidden) не редактируются юзером — их значение
-    // приходит из default_value при раскрытии пресета. Из редактора исключаем.
-    // §265 — ref-vars ПОКАЗЫВАЕМ, но подставляем определение целевой глобали
-    // (type/options/title/tooltip из секции-владельца, резолвлено контроллером
-    // в refVarDefs), сохраняя `ref` — контрол читает/пишет глобальный userVars,
-    // не varsValues. Битая ссылка (нет в refVarDefs) → пропускаем.
+
+
+
+
+
+
     final visibleVars = <WizardVar>[];
     for (final v in preset.vars) {
       if (v.wizardUI == 'hidden') continue;
@@ -92,7 +92,7 @@ class PresetParamsTab extends StatelessWidget {
           title: g.title,
           tooltip: g.tooltip,
           required: g.required,
-          ref: v.ref, // помечаем как ref → контрол пойдёт в globalVars
+          ref: v.ref,
         ));
       } else {
         visibleVars.add(v);
@@ -117,7 +117,7 @@ class PresetParamsTab extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(getLocalText.s("Based on preset"),
                     style: TextStyle(fontSize: 12, color: cs.primary)),
-                // §231 — чип «DNS»: пресет трогает DNS-настройки (сервер/правило).
+
                 if (preset.touchesDns) ...[
                   const Spacer(),
                   Container(
@@ -131,7 +131,7 @@ class PresetParamsTab extends StatelessWidget {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.dns_outlined, size: 12, color: cs.primary),
                       const SizedBox(width: 3),
-                      // l10n-exempt: acronym, same in all locales
+
                       Text('DNS',
                           style: TextStyle(
                               fontSize: 10,
@@ -154,10 +154,10 @@ class PresetParamsTab extends StatelessWidget {
             ],
           ),
         ),
-        // §231 — инфо-блок: пресет затрагивает DNS. Глядя на правило, юзер
-        // должен понимать, что оно вносит сущности в DNS Settings.
-        // Нейтрально-информативный стиль (как баннер «Based on preset») —
-        // НЕ warning/error: это фича правила, а не проблема.
+
+
+
+
         if (preset.touchesDns) ...[
           const SizedBox(height: 8),
           Container(
@@ -185,11 +185,11 @@ class PresetParamsTab extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              // §264 — имя пресета read-only: юзер его не правит. §279 —
-              // показываем LIVE display-имя (label локализованного шаблона +
-              // порядковый суффикс копии, передан RoutingScreen'ом), а не
-              // сохранённый снапшот из nameCtrl: снапшот заморожен на локали
-              // создания. nameCtrl не трогаем — save сохраняет снапшот.
+
+
+
+
+
               child: TextFormField(
                 key: ValueKey('preset-name-${c.displayName ?? preset.label}'),
                 initialValue: c.displayName ??
@@ -206,17 +206,17 @@ class PresetParamsTab extends StatelessWidget {
             const SizedBox(width: 8),
             Switch(
               value: c.enabled,
-              // §264 — locked-пресет нельзя выключить (disabled и в редакторе).
+
               onChanged: preset.locked ? null : c.setEnabled,
             ),
           ],
         ),
-        // PARAMETERS секция показывается только если у preset'а есть vars.
-        // Для preset'ов без vars (e.g. Block Ads, BitTorrent direct) — пусто;
-        // показывать заголовок без контента — шум. Hidden-vars (wizard_ui:
-        // hidden, e.g. магическая dns_server у FakeIP) не редактируются юзером —
-        // их значение приходит из default_value; из редактора их исключаем,
-        // иначе рисуется мёртвый контрол (dropdown из одного пункта).
+
+
+
+
+
+
         if (visibleVars.isNotEmpty) ...[
           const SizedBox(height: 20),
           Text(getLocalText.s("PARAMETERS"),
@@ -243,9 +243,9 @@ class PresetParamsTab extends StatelessWidget {
   }
 }
 
-/// Один var-widget из preset (одно поле PARAMETERS-секции). Тип решается
-/// `v.type`: outbound / dns_servers / enum / bool. Unsupported тип →
-/// error-text (видим в Params tab — пресет шаблона требует апдейт).
+
+
+
 class _PresetVarWidget extends StatelessWidget {
   const _PresetVarWidget({
     required this.v,
@@ -268,9 +268,9 @@ class _PresetVarWidget extends StatelessWidget {
         ? v.tooltip
         : (v.tooltip.isEmpty ? '(optional)' : '${v.tooltip} · (optional)');
 
-    // §555 — значение и запись для типов без собственной семантики хранения
-    // (text / int / text_list / enum с `options_open`): ref-var — глобальный
-    // userVars, обычная — varsValues; нет ключа — `default_value`.
+
+
+
     String currentValue() {
       if (v.isRef) return c.globalVars[v.ref] ?? v.defaultValue;
       return c.varsValues.containsKey(v.name)
@@ -281,9 +281,9 @@ class _PresetVarWidget extends StatelessWidget {
     void write(String val) =>
         v.isRef ? c.setGlobalVar(v.ref, val) : c.setVarValue(v.name, val);
 
-    // Ветки ниже: `text_list` + `options` — множественный выбор; `options_open`
-    // — список плюс своё значение; закрытые `options` у `text`/`int` — как
-    // `enum` (TEMPLATE_LANG §2.1, SPEC 143 D-125).
+
+
+
     final kind = (v.type == 'text_list' && v.options.isNotEmpty)
         ? 'multi'
         : (v.options.isNotEmpty &&
@@ -322,7 +322,7 @@ class _PresetVarWidget extends StatelessWidget {
           },
         );
       case 'outbound':
-        // §265 — ref-var: значение/запись через глобальный userVars.
+
         final current = v.isRef
             ? (c.globalVars[v.ref] ?? v.defaultValue)
             : (c.varsValues[v.name] ?? v.defaultValue);
@@ -334,10 +334,10 @@ class _PresetVarWidget extends StatelessWidget {
           dense: false,
         );
       case 'dns_servers':
-        // Семантика (§033): varsValues содержит ключ → explicit выбор
-        // (включая пустую строку = "— default DNS" для optional); ключ
-        // отсутствует → применяется `default_value` пресета.
-        // §265 — ref-var: значение из глобального userVars.
+
+
+
+
         final String currentKey;
         if (v.isRef) {
           currentKey = c.globalVars[v.ref] ?? v.defaultValue;
@@ -378,9 +378,9 @@ class _PresetVarWidget extends StatelessWidget {
           },
         );
       case 'enum':
-        // §555 — сюда же `text`/`int` с закрытыми `options`.
-        // §265 — ref-var: значение из глобального userVars (globalVars),
-        // запись через setGlobalVar; обычная var — из varsValues/setVarValue.
+
+
+
         final String currentKey;
         if (v.isRef) {
           currentKey = c.globalVars[v.ref] ?? v.defaultValue;
@@ -422,12 +422,12 @@ class _PresetVarWidget extends StatelessWidget {
           },
         );
       case 'bool':
-        // §045: bool var → Switch; storage хранит "true"/"false" string'ом.
-        // Если var управляет remote rule_set'ом (`enabled: "@<v.name>"`):
-        // toggle-on auto-downloads .srs; на fail откатываем + caller
-        // показывает snackbar через `onBoolVarFailed`.
-        // §265 — ref-var (напр. resolve_enabled): значение из globalVars
-        // (userVars), запись через setGlobalVar; обычная — varsValues.
+
+
+
+
+
+
         final String raw;
         if (v.isRef) {
           raw = c.globalVars[v.ref] ?? v.defaultValue;
@@ -472,7 +472,7 @@ class _PresetVarWidget extends StatelessWidget {
                 Switch(
                   value: current,
                   onChanged: (val) async {
-                    // §265 — ref-var пишем в глобальный userVars.
+
                     if (v.isRef) {
                       await c.setGlobalVar(v.ref, val ? 'true' : 'false');
                       return;

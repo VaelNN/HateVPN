@@ -2,10 +2,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/app_info_cache.dart';
 
-/// §109 — семантика AppInfoCache: «подтверждённый not-found» vs
-/// «проверка сорвалась». Регрессия, которую ловим: timeout/ошибка канала
-/// кэшировались как null → UI красил установленное приложение
-/// «uninstalled, auto-skipped» до конца сессии (field report, 4PDA).
+
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -13,22 +13,22 @@ void main() {
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
-  // 1x1 px PNG — валидный base64 для icon-ветки.
+
   const kPngB64 =
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhf'
       'DwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
   var appInfoCalls = 0;
   var iconCalls = 0;
-  // Подменяемый ответ getAppInfo; throw из handler'а доедет до Dart как
-  // PlatformException — тот же retryable-класс что и native result.error.
+
+
   late Object? Function(String pkg) appInfoResponder;
 
   setUp(() {
     appInfoCalls = 0;
     iconCalls = 0;
     AppInfoCache.resetForTest();
-    // Без задержек — retry уходит в microtask-очередь, pump() дожёвывает.
+
     AppInfoCache.retryDelays = const [
       Duration.zero,
       Duration.zero,
@@ -54,7 +54,7 @@ void main() {
     AppInfoCache.resetForTest();
   });
 
-  /// Дожёвывает fire-and-forget fetch'и + zero-delay retries.
+
   Future<void> pump() async {
     for (var i = 0; i < 20; i++) {
       await Future<void>.delayed(Duration.zero);
@@ -77,7 +77,7 @@ void main() {
       expect(AppInfoCache.of('com.gone.app'), isNull);
       expect(appInfoCalls, 1);
 
-      AppInfoCache.ensure('com.gone.app'); // no-op по контракту
+      AppInfoCache.ensure('com.gone.app');
       await pump();
       expect(appInfoCalls, 1);
     });

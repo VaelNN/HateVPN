@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -20,11 +20,11 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationSupportPath() async => tempRoot;
 }
 
-/// §367 — автопинг после in-place reload.
-///
-/// `_scheduleAutoPing` висел только на ПЕРЕХОДЕ в connected. При смене подписки
-/// с галкой автоприменения идёт reload без разрыва туннеля (connected →
-/// connected), перехода нет — и новый состав узлов оставался без замеров.
+
+
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -46,7 +46,7 @@ void main() {
     calls = <String>[];
     messenger.setMockMethodCallHandler(methods, (call) async {
       calls.add(call.method);
-      // reloadVPN должен отчитаться успехом — иначе reloadVpn уйдёт в ошибку.
+
       if (call.method == 'reloadVPN') return true;
       return null;
     });
@@ -66,16 +66,16 @@ void main() {
     if (await tempDir.exists()) await tempDir.delete(recursive: true);
   });
 
-  // `_scheduleAutoPing` планируется через unawaited после pullToRefresh —
-  // сколько провернётся эта цепочка, зависит от машины. Фиксированный сон
-  // здесь флейков (50мс стабильно не хватало): ждём УСЛОВИЕ с дедлайном.
+
+
+
   Future<void> waitUntil(bool Function() cond,
       {Duration timeout = const Duration(seconds: 5)}) async {
     final sw = Stopwatch()..start();
     while (!cond() && sw.elapsed < timeout) {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
-    // По таймауту не бросаем — пусть падает содержательный expect ниже.
+
   }
 
   test('reloadVpn при живом туннеле планирует автопинг', () async {
@@ -87,9 +87,9 @@ void main() {
     expect(calls, contains('reloadVPN'), reason: 'сам reload должен произойти');
     expect(controller.autoPingScheduledForTesting, isTrue,
         reason: 'новый состав узлов обязан получить замеры без действий юзера');
-    // Device-факт 03.08: без подтяга групп таймер срабатывал на пустом
-    // `_state.nodes` и тихо выходил — пинга не было. groups-push при in-place
-    // reload может не прийти вовсе, поэтому тянем сами (§311).
+
+
+
     expect(calls, contains('ccGetGroups'),
         reason: 'состав узлов обязан обновиться от ядра ДО планирования пинга');
     expect(calls.indexOf('ccGetGroups'), greaterThan(calls.indexOf('reloadVPN')),
@@ -101,10 +101,10 @@ void main() {
     controller.debugSeedNodeState(group: 'vpn-1', activeNode: 'n1');
 
     await controller.reloadVpn();
-    // У негативного кейса нет позитивного сигнала «планирование НЕ произошло».
-    // Якоримся причинно: pullToRefresh (ccGetGroups) идёт ПЕРЕД
-    // _scheduleAutoPing — дожидаемся его, затем короткое удержание: таймер
-    // не должен появиться и после того, как цепочка дошла до планирования.
+
+
+
+
     await waitUntil(() => calls.contains('ccGetGroups'));
     final hold = Stopwatch()..start();
     while (hold.elapsedMilliseconds < 200) {

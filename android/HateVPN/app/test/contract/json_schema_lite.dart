@@ -1,13 +1,13 @@
-// §438 — проверка документа по JSON Schema в объёме, который использует
-// `contract/schema/backup.schema.json`: `$ref` на `#/$defs/…`, `type`,
-// `properties`, `required`, `additionalProperties`, `enum`, `const`, `items`,
-// `allOf`, `anyOf`, `if`/`then`, `minimum`/`maximum`, `minLength`. `format`,
-// `default`, `title`, `description` проверки не несут.
-//
-// Библиотеки валидатора в зависимостях проекта нет, а тянуть её ради одного
-// теста — лишний пакет в сборке. Незнакомое ключевое слово — ошибка
-// валидатора, а не молчаливый пропуск: схема, начавшая пользоваться новым
-// словом, должна уронить тест, а не тихо ослабить его.
+
+
+
+
+
+
+
+
+
+
 
 const Set<String> _known = {
   r'$schema',
@@ -34,7 +34,7 @@ const Set<String> _known = {
   'minLength',
 };
 
-/// Ошибки документа [value] по схеме [root]; пусто — документ валиден.
+
 List<String> validateJsonSchema(Object? value, Map<String, dynamic> root) {
   final errors = <String>[];
   _validate(value, root, root, r'$', errors);
@@ -135,7 +135,7 @@ void _validate(
     _validate(value, (sub as Map).cast<String, dynamic>(), root, at, errors);
   }
 
-  // Контракт 1.0.1: `group.default` — ссылка объектом или строка dev-формы.
+
   final anyOf = schema['anyOf'];
   if (anyOf is List &&
       !anyOf.any((sub) =>

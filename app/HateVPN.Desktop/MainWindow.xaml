@@ -417,7 +417,7 @@
                 </Border>
             </Grid>
 
-            <!-- Shared chrome stays available on every screen. -->
+
             <Grid x:Name="TitleChrome" Panel.ZIndex="20" Height="82" VerticalAlignment="Top" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="31,0,0,0">
                     <Viewbox Width="23" Height="27" Margin="0,1,12,0"><Canvas Width="23" Height="27">

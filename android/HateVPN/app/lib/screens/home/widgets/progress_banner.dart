@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Тонкий баннер фонового прогресса под connect-controls: спиннер + текст
-/// текущей операции подписок. Показывается пока `SubscriptionController` busy
-/// и есть непустой `progressMessage`.
+
+
+
 class ProgressBanner extends StatelessWidget {
   const ProgressBanner({super.key, required this.message});
 

@@ -8,13 +8,13 @@ import '../services/l10n/locale_controller.dart';
 import '../widgets/safe_bottom.dart';
 import '../widgets/urltest_idle_hint.dart';
 
-/// §125 — полноэкранный редактор Направления роутинга. Идиома проекта
-/// ([custom_rule_edit_screen.dart], [dns_server_edit_screen.dart]):
-/// Navigator.push + PopScope back-guard (Save/Keep/Discard) + AppBar
-/// delete/save. tag read-only (системный), label — единственное «имя».
-///
-/// Live-превью regex: [allNodeTags] — снимок тегов нод подписки (из ccGroups).
-/// Пусто (туннель не поднят) → превью показывает «no node snapshot».
+
+
+
+
+
+
+
 class DirectionEditScreen extends StatefulWidget {
   const DirectionEditScreen({
     super.key,
@@ -27,23 +27,23 @@ class DirectionEditScreen extends StatefulWidget {
 
   final Direction initial;
 
-  /// vpn-1 неудаляем → false. Прочие → true.
+
   final bool canDelete;
 
-  /// Снимок тегов нод подписки для live-превью фильтров.
+
   final List<String> allNodeTags;
 
-  /// §393 A3 — Направления, стоящие ВЫШЕ редактируемого по списку: только их
-  /// законно взять опцией (`include`). Порядок исключает циклы по построению,
-  /// поэтому форма кандидатов ниже не предлагает вовсе (эталон —
-  /// `tagsAbove` лаунчера). У самого верхнего список пуст, и секция не
-  /// рисуется.
+
+
+
+
+
   final List<Direction> directionsAbove;
 
-  /// §568 / задача 570 — свёртки источников в группу (§74): их `tag` тоже
-  /// законная опция Направления (`include`), сборка разворачивает его в
-  /// группу свёртки. Циклов свёртка не даёт — она на Направления не
-  /// ссылается, поэтому ограничения «только выше» у неё нет.
+
+
+
+
   final List<FoldCandidate> foldCandidates;
 
   @override
@@ -58,23 +58,23 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
   late final TextEditingController _autoIntervalCtrl;
   late final TextEditingController _autoToleranceCtrl;
   late final TextEditingController _autoIdleCtrl;
-  // §208 — balancer-поля (round_robin)
+
   late final TextEditingController _autoPoolCtrl;
   late final TextEditingController _autoPoolToleranceCtrl;
 
   late bool _includeDirect;
   late bool _includeBlock;
 
-  /// §393 A3 — выбранные теги других Направлений. Set для O(1) галок; в
-  /// снапшот уезжает списком в порядке [DirectionEditScreen.directionsAbove]
-  /// (детерминизм diff/JSON — как со sticky_hash).
+
+
+
   late Set<String> _include;
   late bool _isDetour;
   late bool _interrupt;
   late bool _nodeFilterInvert;
   late bool _autoEnabled;
   late bool _autoInterrupt;
-  // §208 — режим балансировки + набор sticky-ключей (round_robin)
+
   late UrltestMode _autoMode;
   late Set<StickyHashKey> _autoSticky;
 
@@ -99,7 +99,7 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
     _autoToleranceCtrl = TextEditingController(text: a.tolerance.toString());
     _autoIdleCtrl = TextEditingController(text: a.idleTimeout);
     _autoInterrupt = a.interruptExistConnections;
-    // §208 — balancer
+
     _autoMode = a.mode;
     _autoPoolCtrl = TextEditingController(text: a.pool.toString());
     _autoPoolToleranceCtrl =
@@ -139,10 +139,10 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
     super.dispose();
   }
 
-  void _onAnyChange() => setState(() {}); // live-превью + dirty-индикатор
+  void _onAnyChange() => setState(() {});
 
-  /// Собирает редактируемое состояние в [Direction] (tag/enabled immutable —
-  /// берутся из initial).
+
+
   Direction _snapshot() {
     final c = widget.initial;
     return c.copyWith(
@@ -151,9 +151,9 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
           : _labelCtrl.text.trim(),
       includeDirect: _includeDirect,
       includeBlock: _includeBlock,
-      // §393 A3 — сохраняем ТОЛЬКО живых кандидатов сверху: галка снятая
-      // потому, что Направление уехало вниз, честно уходит из данных, а не
-      // висит битой ссылкой. Порядок — по списку кандидатов.
+
+
+
       include: _includeSnapshot(),
       isDetour: _isDetour,
       nodeFilter: _nodeFilterCtrl.text.trim(),
@@ -165,22 +165,22 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
           ? DirectionAuto(
               url: _autoUrlCtrl.text.trim(),
               interval: _autoIntervalValue,
-              // §219/§221 — tolerance/pool/poolTolerance клэмпим ЗДЕСЬ (как в
-              // DirectionAuto.toJson/copyWith): прямой конструктор не клэмпит,
-              // иначе снапшот в памяти (для _isDirty) расходился бы с тем, что
-              // реально персистится (uint16 [0,65535], pool≥1).
+
+
+
+
               tolerance: clampDirectionTolerance(
                   int.tryParse(_autoToleranceCtrl.text.trim()) ?? 50),
               idleTimeout: _autoIdleValue,
               interruptExistConnections: _autoInterrupt,
-              // §208 — balancer (значимы только при round_robin, но храним всегда
-              // — переключение режима не теряет настройки пула).
+
+
               mode: _autoMode,
               pool: clampDirectionPool(
                   int.tryParse(_autoPoolCtrl.text.trim()) ?? 3),
               poolTolerance: clampDirectionTolerance(
                   int.tryParse(_autoPoolToleranceCtrl.text.trim()) ?? 0),
-              // Set→List в фиксированном порядке enum (детерминизм diff/JSON).
+
               stickyHash: StickyHashKey.values
                   .where(_autoSticky.contains)
                   .toList(),
@@ -189,11 +189,11 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
     );
   }
 
-  /// §393 A3 + §568 — опции: сохраняем ТОЛЬКО живых кандидатов (Направления
-  /// выше и свёртки): галка, снятая потому, что кандидат ушёл, честно
-  /// уходит из данных, а не висит битой ссылкой. Порядок сохранённых —
-  /// прежний (порядок опций в селекторе значим), новые — в порядке
-  /// кандидатов после них.
+
+
+
+
+
   List<String> _includeSnapshot() {
     final candidates = [
       for (final d in widget.directionsAbove) d.tag,
@@ -231,17 +231,17 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
                 s.auto!.idleTimeout != i.auto!.idleTimeout ||
                 s.auto!.interruptExistConnections !=
                     i.auto!.interruptExistConnections ||
-                // §208 — balancer-поля
+
                 s.auto!.mode != i.auto!.mode ||
                 s.auto!.pool != i.auto!.pool ||
                 s.auto!.poolTolerance != i.auto!.poolTolerance ||
                 !_sameSticky(s.auto!.stickyHash, i.auto!.stickyHash)));
   }
 
-  /// §393 A3 — подсекция «Other directions» внутри блока состава: чекбокс на
-  /// каждое Направление ВЫШЕ текущего. Пустой список кандидатов → подсекции
-  /// нет вовсе, вместе с разделителем и заголовком (у самого верхнего
-  /// включать нечего, и заголовок над пустотой только сбивал бы с толку).
+
+
+
+
   List<Widget> _includeSection(ColorScheme cs) {
     if (widget.directionsAbove.isEmpty && widget.foldCandidates.isEmpty) {
       return const [];
@@ -270,7 +270,7 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
           onChanged: (v) => _toggleInclude(d.tag, v ?? false),
         ),
       ],
-      // §568 / задача 570 — группы свёрток источников.
+
       if (widget.foldCandidates.isNotEmpty) ...[
         const Divider(height: 20),
         Text(getLocalText.s("Replace groups"),
@@ -299,8 +299,8 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
         on ? _include.add(tag) : _include.remove(tag);
       });
 
-  /// §393 A3 — равенство include-наборов (порядок детерминирован снапшотом,
-  /// но сравниваем как последовательности: порядок опций в селекторе значим).
+
+
   static bool _sameTags(List<String> a, List<String> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
@@ -309,8 +309,8 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
     return true;
   }
 
-  /// §208 — равенство sticky-наборов (порядок детерминирован в _snapshot, но
-  /// сравниваем как множества — безопаснее).
+
+
   static bool _sameSticky(List<StickyHashKey> a, List<StickyHashKey> b) =>
       a.length == b.length && a.toSet().containsAll(b);
 
@@ -319,7 +319,7 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
       Navigator.pop(context);
       return;
     }
-    final action = await showUnsavedChangesDialog(context); // §219
+    final action = await showUnsavedChangesDialog(context);
     if (!mounted) return;
     if (action == 'save') {
       _save();
@@ -340,28 +340,28 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
           "Remove \"%1\$s\" (%2\$s)? References to it fall back to vpn-1.",
           widget.initial.label,
           widget.initial.tag),
-    ); // §219
+    );
     if (confirmed == true && mounted) {
       Navigator.pop(context, DirectionEditResult.deleted());
     }
   }
 
-  // ── live-превью regex ──
 
-  /// Компиляция regex, null при невалидном.
+
+
   RegExp? _compile(String pattern) {
     if (pattern.isEmpty) return null;
     try {
-      // §301 — node-filter regex регистронезависимы во всех точках (основное
-      // окно, превью, подсчёт, билдер). Юзер вводит `warp`, ждёт единого
-      // поведения; Dart RegExp не понимает inline `(?i)`, только этот флаг.
+
+
+
       return RegExp(pattern, caseSensitive: false);
     } catch (_) {
       return null;
     }
   }
-  // §219 — _isValidRegex удалён: валидность выводится из _compile()!=null,
-  // не компилируем один паттерн дважды за build.
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -371,11 +371,11 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
     final dirty = _isDirty();
 
     final nodeFilterText = _nodeFilterCtrl.text.trim();
-    // §219 — компилируем RegExp ОДИН раз за build. Валидность выводим из
-    // результата (раньше _isValidRegex + _compile компилили один паттерн дважды).
+
+
     final re = _compile(nodeFilterText);
     final nodeFilterValid = nodeFilterText.isEmpty || re != null;
-    // §197 — превью учитывает инверсию (как билдер): invert → ноды НЕ матчащие.
+
     final matchedNodes = nodeFilterText.isEmpty
         ? widget.allNodeTags
         : (re == null
@@ -418,8 +418,8 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
             ),
           ],
         ),
-        // Бледный hint во всех полях формы — чтобы placeholder не сливался с
-        // вводимым текстом (один источник через InputDecorationTheme).
+
+
         body: Theme(
           data: Theme.of(context).copyWith(
             inputDecorationTheme:
@@ -433,7 +433,7 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
           child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32).withSafeBottom(context),
           children: [
-            // системный tag (read-only)
+
             Text(c.tag,
                 style: TextStyle(
                     fontSize: 12,
@@ -451,11 +451,11 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
             ),
             const SizedBox(height: 8),
 
-            // ── Блок 1: СОСТАВ. Всё, что окажется опциями селектора этого
-            // Направления, — одним блоком и в порядке сверху вниз:
-            // direct-out, block, другие Направления. Раньше эти три галки
-            // шли вперемешку с ролью (detour) и поведением при switch, и
-            // юзер не видел, что это один и тот же список опций.
+
+
+
+
+
             _sectionHeader(
                 theme,
                 getLocalText.s("What goes into this direction"),
@@ -484,23 +484,23 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
               value: _includeBlock,
               onChanged: (v) => setState(() => _includeBlock = v ?? false),
             ),
-            // §393 A3 — другие Направления опциями этого. Показываем ТОЛЬКО
-            // стоящие выше по списку: порядок эмиссии исключает циклы, а
-            // ссылка вниз была бы forward-ref, который ядро не принимает.
-            // У самого верхнего Направления кандидатов нет → подсекции нет.
+
+
+
+
             ...(_includeSection(cs)),
             const SizedBox(height: 12),
 
-            // ── Блок 2: ПОВЕДЕНИЕ. Роль самого Направления (detour-мишень) и
-            // что происходит с живыми соединениями при переключении — другая
-            // ось, чем состав, поэтому отдельной секцией.
+
+
+
             _sectionHeader(theme, getLocalText.s("Behavior"),
                 getLocalText.s("how this direction acts when used")),
-            // §248/§274 — detour-флаг = разрешение выбирать Направление как
-            // detour-мишень; роль в правилах ортогональна. vpn-1 — главный
-            // Направление и heal-резерв, detour для него запрещён → галку не
-            // показываем вовсе. Include block с detour совместим (§274 снял
-            // запрет Q1).
+
+
+
+
+
             if (!c.isRequired)
               CheckboxListTile(
                 dense: true,
@@ -512,9 +512,9 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
                 subtitle: Text(getLocalText.s("can be picked as a detour target for servers and folders"),
                     style: const TextStyle(fontSize: 11)),
                 value: _isDetour,
-                // §274 — ⚙ живёт в самом label: переименовываем поле СРАЗУ,
-                // не дожидаясь Save (нормализация в _snapshot/copyWith —
-                // страховка). Пустой label не трогаем: display-фолбэк на tag.
+
+
+
                 onChanged: (v) => setState(() {
                   _isDetour = v ?? false;
                   _labelCtrl.text = Direction.normalizeLabel(
@@ -533,8 +533,8 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
             ),
             const Divider(height: 24),
 
-            // node-filter regex + live-превью. §197 — `!`-тогл слева
-            // (NegateToggle, как §048): инвертирует фильтр (ноды НЕ матчащие).
+
+
             Text(getLocalText.s("Node filter (regex)"),
                 style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
             const SizedBox(height: 4),
@@ -576,7 +576,7 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
             ),
             const SizedBox(height: 16),
 
-            // default-filter regex + live-превью
+
             Text(getLocalText.s("Default (regex)"),
                 style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
             const SizedBox(height: 4),
@@ -601,7 +601,7 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
               ),
             const Divider(height: 24),
 
-            // auto-двойник (urltest)
+
             CheckboxListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
@@ -627,9 +627,9 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
               ),
               const SizedBox(height: 8),
               Row(
-                // §279 — выравнивание по верху: у полей разная высота helper'а
-                // (у Interval он всегда есть, у Tolerance — только в round-robin),
-                // дефолтный center разносил сами инпуты по высоте.
+
+
+
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
@@ -637,10 +637,10 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
                       controller: _autoIntervalCtrl,
                       decoration: InputDecoration(
                         labelText: getLocalText.s("Interval"),
-                        // l10n-exempt: duration literal, locale-independent
+
                         hintText: '15m',
-                        // §272 — каждый цикл дайлит серверы (будит спящие
-                        // туннели): большие значения экономят батарею.
+
+
                         helperText: getLocalText.s("Larger values save battery"),
                         border: const OutlineInputBorder(),
                         isDense: true,
@@ -653,8 +653,8 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
                     child: TextField(
                       controller: _autoToleranceCtrl,
                       keyboardType: TextInputType.number,
-                      // §208 — в Load balance апстрим-tolerance ядром игнорится
-                      // (за гистерезис отвечает Pool tolerance) → гасим.
+
+
                       enabled: _autoMode == UrltestMode.leastTest,
                       decoration: InputDecoration(
                         labelText: getLocalText.s("Tolerance (ms)"),
@@ -675,16 +675,16 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
                 controller: _autoIdleCtrl,
                 decoration: InputDecoration(
                   labelText: getLocalText.s("Idle timeout"),
-                  // l10n-exempt: duration literal, locale-independent
+
                   hintText: '30m',
                   border: const OutlineInputBorder(),
                   isDense: true,
                 ),
                 style: const TextStyle(fontSize: 13),
               ),
-              // §442 — interval > idle_timeout: сохранить можно, санитайзер
-              // сборки поднимет idle_timeout до interval. Подсказка, а не
-              // ошибка — говорит, что окажется в конфиге.
+
+
+
               if (urltestIdleRaiseTarget(_autoIntervalValue, _autoIdleValue)
                   case final target?) ...[
                 const SizedBox(height: 4),
@@ -695,9 +695,9 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
               ],
               const SizedBox(height: 12),
 
-              // §208 — режим выбора узла (Fastest = least_test / Load balance =
-              // round_robin). Балансировщик-поля показываются только под Load
-              // balance.
+
+
+
               Text(getLocalText.s("Mode"),
                   style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
               const SizedBox(height: 6),
@@ -756,10 +756,10 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
         style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
       );
 
-  /// Заголовок смысловой группы формы. Идиома проекта — та же, что в
-  /// [node_settings_screen.dart] и `custom_rule_edit/widgets/section_header`:
-  /// titleSmall в primary + подпись onSurfaceVariant + Divider под ними.
-  /// Отступы свои: тут ListView уже даёт горизонтальный padding 16.
+
+
+
+
   Widget _sectionHeader(ThemeData theme, String title, String description) =>
       Padding(
         padding: const EdgeInsets.only(bottom: 2),
@@ -784,10 +784,10 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
         ),
       );
 
-  // ── §208 — balancer-контролы (round_robin) ──
 
-  /// Pool size / Pool tolerance + ряд sticky-чипов. Рендерится только под
-  /// Load balance.
+
+
+
   List<Widget> _balancerControls(ColorScheme cs) {
     final nodeCount = widget.allNodeTags.length;
     return [
@@ -833,8 +833,8 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
       Text(getLocalText.s("Sticky session by"),
           style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
       const SizedBox(height: 4),
-      // §208 — чипы в один ряд с горизонтальной прокруткой (не Wrap-перенос:
-      // юзер просил листать лево-право). 5 ключей не влезают в узкий экран.
+
+
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -870,7 +870,7 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
     ];
   }
 
-  /// Человекочитаемый лейбл sticky-ключа (wire — snake_case, в UI — пробелы).
+
   static String _stickyLabel(StickyHashKey k) {
     switch (k) {
       case StickyHashKey.process:
@@ -886,8 +886,8 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
     }
   }
 
-  /// Значения полей автовыбора ровно такими, какими они уйдут в хранение:
-  /// пустое поле — умолчание формы.
+
+
   String get _autoIntervalValue {
     final v = _autoIntervalCtrl.text.trim();
     return v.isEmpty ? '5m' : v;
@@ -906,7 +906,7 @@ class _DirectionEditScreenState extends State<DirectionEditScreen> {
   }
 }
 
-/// Результат редактора: saved (с обновлённым Направлением) или deleted.
+
 class DirectionEditResult {
   const DirectionEditResult._({this.saved, this.wasDeleted = false});
   final Direction? saved;
@@ -918,7 +918,7 @@ class DirectionEditResult {
       const DirectionEditResult._(wasDeleted: true);
 }
 
-/// Открывает редактор Направления. Возвращает null если юзер ушёл без изменений.
+
 Future<DirectionEditResult?> openDirectionEditor(
   BuildContext context, {
   required Direction initial,
@@ -940,11 +940,11 @@ Future<DirectionEditResult?> openDirectionEditor(
       ),
     );
 
-/// §568 / задача 570 — кандидат `include` из свёртки источника: имя группы
-/// и имя источника (подпись).
+
+
 typedef FoldCandidate = ({String tag, String source});
 
-/// Свёртки источников с непустым именем, в порядке списка источников.
+
 List<FoldCandidate> foldCandidatesOf(
         Iterable<({String name, SourceReplace? replace})> sources) =>
     [

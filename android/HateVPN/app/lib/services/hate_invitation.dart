@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 
-/// Windows HateVPN invitation format. A claim link carries only a one-use
-/// token and a pin for the VPS certificate; it never contains SSH credentials.
+
+
 class HateInvitation {
   const HateInvitation({
     required this.id,
@@ -41,8 +41,8 @@ class HateInvitationClient {
     return lower.startsWith(_claimPrefix) || lower.startsWith(_legacyPrefix);
   }
 
-  /// Resolve to a plain AWG configuration, then pass it to the ordinary
-  /// WireGuard import pipeline. A claim consumes the token on the server.
+
+
   static Future<HateInvitation> resolve(String link) async {
     final trimmed = link.trim();
     final lower = trimmed.toLowerCase();
@@ -115,7 +115,7 @@ class HateInvitationClient {
       );
       if (value is Map<String, dynamic>) return value;
     } catch (_) {
-      /* Same user-facing error for malformed payloads. */
+
     }
     throw const HateInvitationException('Ссылка приглашения повреждена.');
   }
@@ -148,8 +148,8 @@ class HateInvitationClient {
     String fingerprint,
     String token,
   ) async {
-    // Empty trust roots ensure even a publicly trusted certificate must pass
-    // our explicit pin check. The current VPS uses a self-signed certificate.
+
+
     final client = HttpClient(
       context: SecurityContext(withTrustedRoots: false),
     );
@@ -163,8 +163,8 @@ class HateInvitationClient {
           .postUrl(uri)
           .timeout(const Duration(seconds: 10));
       request.headers.contentType = ContentType.json;
-      // Python's claim service requires Content-Length; Dart otherwise sends
-      // this POST with chunked transfer encoding and receives HTTP 400.
+
+
       final payload = utf8.encode(jsonEncode({'token': token}));
       request.contentLength = payload.length;
       request.add(payload);

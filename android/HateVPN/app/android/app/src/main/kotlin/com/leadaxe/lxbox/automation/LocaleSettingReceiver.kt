@@ -11,19 +11,19 @@ import com.leadaxe.lxbox.vpn.BoxVpnService
 import com.leadaxe.lxbox.vpn.VpnPlugin
 import com.leadaxe.lxbox.vpn.VpnStatus
 
-/// §047 Шаг 2 — setting-плагин (Locale/Tasker «Action → Plugin → L×Box»).
-///
-/// Host (Tasker) шлёт `FIRE_SETTING` + `EXTRA_BUNDLE` (наш JSON-конфиг,
-/// собранный в [LocaleSettingEditActivity]). Парсим → исполняем команду через
-/// **те же** shared handlers, что raw-actions Шага 1 и Debug API.
-///
-/// Lifecycle-команды (start/stop/toggle) идут напрямую в [BoxVpnService] —
-/// быстро, без Flutter-engine. Остальные форвардятся в Dart через
-/// [VpnPlugin.handleAutomationAction].
-///
-/// Receiver `enabled=false` в манифесте; включается мастер-toggle'ом «Принимать
-/// команды автоматизации» вместе с raw-receiver Шага 1. По стандарту
-/// `android:permission` НЕ задаётся — хост проверяет права сам.
+
+
+
+
+
+
+
+
+
+
+
+
+
 class LocaleSettingReceiver : BroadcastReceiver() {
 
     companion object {
@@ -31,8 +31,8 @@ class LocaleSettingReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        // Defensive: exported receiver, исполняем в try/catch — краш FGS-
-        // процесса при работающем VPN хуже пропущенной команды.
+
+
         try {
             if (intent.action != LocaleApi.ACTION_FIRE_SETTING) return
             val parsed = LocaleApi.parseSetting(
@@ -55,13 +55,13 @@ class LocaleSettingReceiver : BroadcastReceiver() {
         }
     }
 
-    /// Тот же toggle-путь, что у raw-receiver Шага 1 (§032 consent-flow).
+
     private fun handleToggle(context: Context) {
         if (BoxVpnService.currentStatus == VpnStatus.Started) {
             BoxVpnService.stop(context)
             return
         }
-        // §192 — proxy-режим без TUN: prepare не нужен (и зря рвёт чужой VPN).
+
         if (!BootReceiver.hasTun(context) ||
             VpnService.prepare(context.applicationContext) == null) {
             BoxVpnService.start(context)

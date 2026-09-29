@@ -10,8 +10,8 @@ class ImportDialogResult {
   final bool merge;
 }
 
-/// Показывает preview-диалог импорта бэкапа. Возвращает выбор пользователя
-/// (категории + merge/replace) или null если отменено.
+
+
 Future<ImportDialogResult?> showImportPreview(
   BuildContext context,
   BackupContents c,

@@ -8,12 +8,12 @@ import '../../../services/l10n/locale_controller.dart';
 import '../../subscription_detail_screen/widgets/node_warning_row.dart';
 import '../entry_warnings.dart';
 
-/// Строка под именем подписки. Для SubscriptionServers показываем:
-/// `{nodes} · 🔄 24h · 🕐 3h ago · (2 fails)`
-/// где fail-часть только если consecutiveFails > 0.
-///
-/// Возвращает `null` если показывать нечего (как старый
-/// `_buildEntrySubtitle`).
+
+
+
+
+
+
 Widget? buildSubscriptionEntrySubtitle(
   BuildContext context,
   SubscriptionEntry entry,
@@ -24,9 +24,9 @@ Widget? buildSubscriptionEntrySubtitle(
   final parts = <Widget>[];
   final textStyle = TextStyle(fontSize: 12, color: muted);
 
-  // UserServer всегда single-node — показываем протокол (VLESS/WG/...).
-  // SubscriptionServers — нодcount + ⚙ если есть detour-цепочки.
-  // FolderServers (§234) — счётчик членов + сколько выключено.
+
+
+
   final isUser = entry.list is UserServer;
   List<NodeWarning> userWarnings = const [];
   var hideUserProtocol = false;
@@ -70,8 +70,8 @@ Widget? buildSubscriptionEntrySubtitle(
   }
 
   if (entry.list is SubscriptionServers) {
-    // §129 — файловая подписка: бейдж «file» вместо sync-интервала
-    // (auto-update файл не читает; обновление вручную через Edit source).
+
+
     final isFile =
         isFileSubscription((entry.list as SubscriptionServers).url);
     if (isFile) {
@@ -83,7 +83,7 @@ Widget? buildSubscriptionEntrySubtitle(
         parts.add(Icon(Icons.sync, size: 12, color: muted));
         parts.add(Text(_compactHours(intervalH), style: textStyle));
       } else {
-        // §129 — авто-обновление выключено (-1 «don't» / 0 «respect server»).
+
         parts.add(Icon(Icons.sync_disabled, size: 12, color: muted));
       }
     }
@@ -106,8 +106,8 @@ Widget? buildSubscriptionEntrySubtitle(
       ));
     }
 
-    // §561 — счётчик записей тела, не ставших узлами; причины — в сводке
-    // на экране подписки.
+
+
     final dropped = entry.dropped.length;
     if (dropped > 0) {
       parts.add(Icon(Icons.error_outline, size: 12, color: muted));
@@ -123,7 +123,7 @@ Widget? buildSubscriptionEntrySubtitle(
     if (nodeHasActionableWarnings(userWarnings)) {
       warningRows.add(NodeWarningRow(userWarnings));
     } else {
-      // §479 — только info: значок в строке протокола, третьей строки нет.
+
       if (statusText.isNotEmpty) {
         parts.insert(
             0, Padding(padding: const EdgeInsets.only(right: 2), child: NodeInfoBadge(userWarnings)));

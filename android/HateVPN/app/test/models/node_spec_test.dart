@@ -121,12 +121,12 @@ void main() {
         AnyTlsSpec(
             id: '13', tag: 't', label: 'l', server: 's', port: 443, rawSource: 'u',
             password: 'p'),
-        // §322 — узел-группа: без server/port, отсюда отдельный конструктор.
+
         AutoSelectSpec(
             id: '14', tag: 't', label: 'l'),
-        // §435 — Tailscale: endpoint без адреса, тело как есть.
+
         TailscaleSpec(id: '15', tag: 't', label: 'l', body: const {'auth_key': 'k'}),
-        // §585 — тип, которого приложение не знает: протокол = `type` тела.
+
         UnknownTypeSpec(
             id: '16', tag: 't', label: 'l', type: 'openvpn-client',
             body: const {'type': 'openvpn-client'}),

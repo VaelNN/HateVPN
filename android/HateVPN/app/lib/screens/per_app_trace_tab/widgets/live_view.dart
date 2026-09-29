@@ -7,18 +7,18 @@ import '../../../services/process_name.dart';
 import 'empty_view.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §160 — Live-режим per-app trace. «Тупой» рендер уже отфильтрованного
-/// родителем таймлайна событий. Тап по строке → [onOpenDetail] (родитель
-/// открывает `TrafficEventDetailSheet`).
-///
-/// Фильтрация (search / kind / unattributed) и сбор списков теперь в
-/// родителе (`per_app_trace_tab.dart`) — общий фильтр на оба режима.
-/// [events] = session-события (newest-first), [unattributed] = system-wide
-/// «no owner» события за окно session'и (newest-first), показываются
-/// отдельной dimmed-секцией.
-///
-/// До §160 здесь жила IP-jump навигация (`ipChip → onViewInDomains`); она
-/// убрана — полный IP виден в деталях по тапу (решение §160).
+
+
+
+
+
+
+
+
+
+
+
+
 class LiveView extends StatelessWidget {
   const LiveView({
     super.key,
@@ -98,15 +98,15 @@ class LiveView extends StatelessWidget {
     return Opacity(opacity: 0.62, child: tile);
   }
 
-  /// §160 — выразительная 3-строчная строка по образцу Conns-row:
-  /// [иконка app] [time · kind-badge · conf · summary · ⚠ · ›]
-  ///             process (app)
-  ///             chain · rule · duration  (+ CNAME / DNS-record / маркеры)
+
+
+
+
   Widget _eventTileInner(
       BuildContext context, ColorScheme cs, String ts, TrafficEvent e) {
-    // §177 — DNS = один бейдж (как TCP): успех/сбой различаются ЦВЕТОМ, не
-    // текстом. dnsResolve — обычный (tertiary), dnsFail — красный (error).
-    // Эталон — TCP: tcpOpen синий / tcpClose серый, метка одна.
+
+
+
     final (Color kindColor, String kindLabel) = switch (e.kind) {
       TrafficEventKind.dnsResolve => (cs.tertiary, 'DNS'),
       TrafficEventKind.dnsFail => (cs.error, 'DNS'),
@@ -115,11 +115,11 @@ class LiveView extends StatelessWidget {
       TrafficEventKind.udpOpen => (cs.secondary, 'UDP'),
     };
 
-    // Строка 3 (§252) — единая трассировка маршрута. routingLine несёт
-    // proc ⇒ [net] rule ⇒ группы : вход → … → выход → domain · duration (rule
-    // и duration уже внутри, отдельно не дублируем).
-    // compact: префикс [net] process ⇒ опущен — он дублирует строку процесса
-    // (строка 2) + бейдж типа (TCP/DNS, строка 1). Начинаем с rule.
+
+
+
+
+
     final meta = <String>[];
     final routing = e.routingLineOf(compact: true);
     if (routing.isNotEmpty) meta.add(routing);
@@ -135,7 +135,7 @@ class LiveView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Строка 1: time · kind · confidence · summary · issues · ›
+
                 Row(
                   children: [
                     Text(ts,
@@ -172,7 +172,7 @@ class LiveView extends StatelessWidget {
                         size: 16, color: cs.onSurfaceVariant),
                   ],
                 ),
-                // Строка 2: process (app) + cached-бейдж справа (DNS из кэша).
+
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
                   child: Row(
@@ -197,7 +197,7 @@ class LiveView extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Строка 3: chain · rule · duration.
+
                 if (meta.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
@@ -207,8 +207,8 @@ class LiveView extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                // Доп. маркеры (CNAME / нестандартный DNS-record / inferred /
-                // backfilled) — мелким, под основными 3 строками.
+
+
                 if (e.cnameChain.isNotEmpty)
                   _subline(cs, '↳ CNAME ${e.cnameChain.join(" → ")}', mono: true),
                 if (e.dnsRecordType != null &&
@@ -229,9 +229,9 @@ class LiveView extends StatelessWidget {
     );
   }
 
-  /// §154 — launcher-иконка приложения по package (`processPath`), 18×18.
-  /// Fallback — нейтральный placeholder (layout не прыгает пока иконка
-  /// дотягивается из native асинхронно).
+
+
+
   Widget _appIcon(BuildContext context, String pkg) {
     const double size = 18;
     final cs = Theme.of(context).colorScheme;
@@ -252,14 +252,14 @@ class LiveView extends StatelessWidget {
     );
   }
 
-  /// rc.10 — ответ пришёл из кэша (без сетевого запроса). source от ядра:
-  /// cached / optimistic (отдан из кэша оптимистично) — оба «не сеть».
+
+
   static bool _isCached(TrafficEvent e) {
     final s = e.extra?['source']?.toString();
     return s == 'cached' || s == 'optimistic';
   }
 
-  /// Маленький бейдж «cached» (вторая строка справа).
+
   Widget _cachedBadge(BuildContext context, ColorScheme cs) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
@@ -298,8 +298,8 @@ class LiveView extends StatelessWidget {
     );
   }
 
-  /// Текстовый summary события (domain → ip:port / closed · bytes).
-  /// Без inline tap-зон — детали по тапу на всю строку.
+
+
   Widget _eventSummary(BuildContext context, TrafficEvent e) {
     const style = TextStyle(fontSize: 12);
     final ip = e.ip;
@@ -326,8 +326,8 @@ class LiveView extends StatelessWidget {
     return Text(text, style: style, overflow: TextOverflow.ellipsis);
   }
 
-  /// §044 confidence badge (verified → no marker, secondary → 🔗 sec,
-  /// inferred → 〽, unattributed → ?). Tooltip — matched_via / shown_because.
+
+
   Widget _confidenceBadge(BuildContext context, TrafficEvent e) {
     final cs = Theme.of(context).colorScheme;
     if (e.confidence == ConfidenceLevel.verified) {

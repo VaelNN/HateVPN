@@ -12,9 +12,9 @@ import 'package:lxbox/services/node_hash.dart';
 import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §472 шаг 6, раздел 3 спеки — инварианты переезда socks на конвейер.
 
-/// Снимок identity, снятый СТАРЫМ путём ДО правки (18.09.2026).
+
+
 const _identityFixture = 'test/fixtures/socks/pipeline_identity_before.json';
 
 Map<String, Map<String, dynamic>> _identityBefore() {
@@ -93,7 +93,7 @@ void main() {
             reason: 'круг изменил identity: $u');
         checked++;
       }
-      // Круг проходят ВСЕ разбираемые кейсы, без исключений.
+
       expect(checked, greaterThan(7));
     }, skip: corpusSkip);
   });
@@ -133,7 +133,7 @@ void main() {
 
   group('§472 — socks: перевод, который остаётся за маппером', () {
     test('socks:// и socks5:// дают одно тело', () {
-      // `aliases: ["socks5"]` — алиас НАПИСАНИЯ, тело у обеих форм одно.
+
       final bare = parseUri('socks://u:p@h.example:1080#n')!;
       final five = parseUri('socks5://u:p@h.example:1080#n')!;
       expect(five.emit(TemplateVars.empty).map,
@@ -141,9 +141,9 @@ void main() {
     });
 
     test('version у пятёрки — "5" и своего параметра в ссылке не имеет', () {
-      // §475 — поле кладёт МАППЕР, по схеме ссылки, а эмиттер пишет то, что в
-      // модели. У версии 5 это прежнее значение байт в байт: своего
-      // query-параметра под версию у схемы нет ни в одном диалекте.
+
+
+
       final spec = parseUri('socks5://u:p@h.example:1080#n')!;
       expect(spec.emit(TemplateVars.empty).map['version'], '5');
       expect(spec.toUri(), isNot(contains('version=')));
@@ -165,8 +165,8 @@ void main() {
           .map;
       expect(passOnly.containsKey('username'), isFalse);
       expect(passOnly['password'], 'pw');
-      // §463 — пустой username больше не снимает userinfo целиком, иначе
-      // пароль пропадал на первом же пересохранении узла.
+
+
       expect(parseUri('socks5://:pw@h.example:1080#n')!.toUri(),
           contains(':pw@'));
     });
@@ -195,10 +195,10 @@ void main() {
     });
 
     test('эмиттер выбирает схему по версии — круг замкнут', () {
-      // Маппер и эмиттер читают одну запись реестра: `scheme_sets` на входе и
-      // `emit.form_from` на выходе (§562).
-      // Разъедься они — узел версии 4 перестал бы переживать круг своей же
-      // ссылки, и заметить это было бы нечем.
+
+
+
+
       for (final uri in const [
         'socks4://userid@h.example:1080#n',
         'socks4a://h.example:1080#n',
@@ -214,8 +214,8 @@ void main() {
     });
 
     test('socks4: пароль из ссылки переносится как есть', () {
-      // У версии 4 пароля нет вовсе (userinfo — это userid), но маппер
-      // значения не судит: годность пары судит ядро.
+
+
       final body = parseUri('socks4://user:pass@h.example:1080#n')!
           .emit(TemplateVars.empty)
           .map;
@@ -225,9 +225,9 @@ void main() {
     });
 
     test('тело из JSON-вкладки: version "4" доезжает до emit()', () {
-      // Критерий приёмки §475. До правки ветка socks `parseSingboxEntry`
-      // поле не читала вовсе, и тело с `version: "4"` уезжало в ядро
-      // пятёркой: поле модели с дефолтом `'5'` никто не заполнял.
+
+
+
       final spec = parseSingboxEntry(<String, dynamic>{
         'type': 'socks',
         'tag': 'sb-socks4',
@@ -238,13 +238,13 @@ void main() {
       })!;
       expect((spec as SocksSpec).version, '4');
       expect(spec.emit(TemplateVars.empty).map['version'], '4');
-      // И обратно в ссылку — той же схемой.
+
       expect(spec.toUri(), startsWith('socks4://'));
     });
 
     test('тело без ключа version — прежняя пятёрка', () {
-      // Пусто = 5 по дефолту ядра; ключа тело не получает от нас ниоткуда,
-      // кроме эмиттера, и эмиттер пишет ту же пятёрку, что писал всегда.
+
+
       final spec = parseSingboxEntry(<String, dynamic>{
         'type': 'socks',
         'tag': 'sb-socks-bare',
@@ -257,8 +257,8 @@ void main() {
     });
 
     test('негодная версия — общий type_invalid, узел живёт как SOCKS5', () {
-      // Своего кода правило не заводит: снимает значение общий enum реестра,
-      // и узел работает по дефолту ядра — ровно то, что код и описывает.
+
+
       final body = <String, dynamic>{
         'type': 'socks',
         'server': 'h.example',

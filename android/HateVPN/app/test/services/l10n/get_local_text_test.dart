@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/l10n/get_local_text.dart';
 import 'package:lxbox/services/l10n/plural_resolver.dart';
 
-/// §285 — движок getLocalText: fallback на ключ, простые/особые формы, плюрал
-/// через RuPluralResolver, printf (%s/%d/%1$s/%%), защита от промахов.
+
+
 void main() {
-  // Образец ru-словаря по формату спеки.
+
   final ruDict = <String, dynamic>{
     'Connected to %s': {'value': 'Подключено к %s'},
     'New': {
@@ -122,8 +122,8 @@ void main() {
 
   group('robustness', () {
     test('.s never throws on plural-object value → key fallback', () {
-      // Звали .s на ключ с plural-объектом value — печатаем ключ (не сырой JSON),
-      // printf-substituted теми же (пустыми) аргументами: %d → пусто.
+
+
       expect(ru().s('%d servers'), ' servers');
     });
   });

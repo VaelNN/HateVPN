@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- §279 Phase 6 — русский перевод нативных поверхностей. Терминология
-     согласована с lib/l10n/app_ru.arb (Подключено/Отключено/Остановка…,
-     «узел»/«группа»). Payload-аргументы (%1$s) не переводятся. -->
+
+
+
 <resources>
-    <!-- Quick Connect (tile / shortcuts consent flow) -->
+
     <string name="qc_first_open">Открываем HateVPN для разрешения VPN (однократно)</string>
     <string name="qc_consent_denied">В разрешении VPN отказано. Откройте HateVPN, чтобы повторить.</string>
     <string name="qc_connect_label">Подключить</string>
     <string name="qc_disconnect_label">Отключить</string>
 
-    <!-- Foreground-service notification -->
+
     <string name="notification_channel_name">VPN-сервис</string>
     <string name="notification_channel_description">Показывается, пока VPN активен</string>
     <string name="notification_status_starting">Запуск…</string>
@@ -19,7 +19,7 @@
     <string name="notification_error_title">Ошибка</string>
     <string name="core_channel_fallback_name">Уведомления ядра</string>
 
-    <!-- stopAndAlert frames -->
+
     <string name="stop_alert_unknown_error">Неизвестная ошибка</string>
     <string name="sticky_restart_storm_title">VPN остановлен</string>
     <string name="sticky_restart_storm_text">VPN слишком много раз перезапускался после гибели приложения. Запустите вручную.</string>
@@ -28,12 +28,12 @@
     <string name="stop_alert_no_command_server">CommandServer не инициализирован</string>
     <string name="stop_alert_start_failed">Не удалось запустить сервис: %1$s</string>
 
-    <!-- QS tile subtitles -->
+
     <string name="tile_status_connecting">Подключение…</string>
     <string name="tile_status_stopping">Остановка…</string>
     <string name="tile_status_disconnected">Отключено</string>
 
-    <!-- §047 Locale/Tasker plugin surfaces -->
+
     <string name="label_plugin_custom">HateVPN: Своя команда…</string>
     <string name="label_plugin_start">HateVPN: Запустить VPN</string>
     <string name="label_plugin_stop">HateVPN: Остановить VPN</string>

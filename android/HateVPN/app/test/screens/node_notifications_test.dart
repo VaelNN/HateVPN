@@ -16,16 +16,16 @@ import 'package:lxbox/services/contract/registry.dart';
 import 'package:lxbox/services/l10n/locale_controller.dart';
 import 'package:lxbox/widgets/banner_palette.dart';
 
-/// §479 — уведомления узла: строка в списке подписки и общий компонент
-/// [NodeNotificationsView] (раздел на экране узла и шторка из списка).
-///
-/// Реестр грузится из `assets/contract` — зеркала в git: оно едет в APK, и
-/// проверять записи имеет смысл ровно по тем текстам, которые увидит
-/// пользователь. Копии контракта (`contract/`, gitignored) тесты здесь не
-/// касаются.
+
+
+
+
+
+
+
 const _registryRoot = 'assets/contract';
 
-// §485 — живые коды реестра вместо снятых рукописных классов-образцов.
+
 const _infoTls = RegistryWarning(
   code: 'tls_insecure',
   path: 'tls.insecure',
@@ -76,9 +76,9 @@ void main() {
         ),
       ));
 
-  /// Строка под узлом в дереве, близком к боевому: она живёт в `subtitle`
-  /// ListTile'а, у которого свой onTap — проверяем, что шторку открывает
-  /// именно она, а не он.
+
+
+
   Future<void> pumpRow(WidgetTester tester, List<NodeWarning> warnings,
           {VoidCallback? onTileTap, ThemeData? theme}) =>
       tester.pumpWidget(MaterialApp(
@@ -105,8 +105,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Notifications'), findsOneWidget);
-      // Оба уведомления, а не только actionable: строка под узлом показывала
-      // одно warning'овое, info в ней только значком.
+
+
       expect(
         find.descendant(
           of: find.byType(NodeWarningsSheet),
@@ -156,9 +156,9 @@ void main() {
   });
 
   group('§479 — уровни в строке под узлом', () {
-    const infoW = _infoTls; // info
-    const warnW = _warnTransport; // warning
-    const errW = _errFieldMissing; // error
+    const infoW = _infoTls;
+    const warnW = _warnTransport;
+    const errW = _errFieldMissing;
 
     Iterable<Icon> icons(WidgetTester tester) => tester
         .widgetList<Icon>(find.descendant(
@@ -168,8 +168,8 @@ void main() {
         (tester) async {
       await pumpRow(tester, const [infoW]);
 
-      // Ни текста, ни значка уровня: info в списке живёт значком в строке
-      // протокола, а не третьей строкой.
+
+
       expect(find.descendant(
               of: find.byType(NodeWarningRow), matching: find.byType(Text)),
           findsNothing);
@@ -180,7 +180,7 @@ void main() {
         (tester) async {
       await pumpRow(tester, const [infoW, warnW]);
 
-      // Текст — warning'а и без счётчика: actionable ровно одно.
+
       expect(find.textContaining('replaced with ws'), findsOneWidget);
       expect(find.textContaining('+1 more'), findsNothing);
       expect(
@@ -191,11 +191,11 @@ void main() {
                       ContractRegistry.I.textFor('tls_insecure')!.titleEn)),
           findsNothing);
 
-      // §479: порядок значков — уровень, потом info.
+
       final ico = icons(tester).toList();
       expect(ico.map((i) => i.icon),
           [Icons.warning_amber, Icons.info_outline]);
-      // Приглушённый, а не синий уровня.
+
       final ctx = tester.element(find.byType(NodeWarningRow));
       expect(ico.last.color, Theme.of(ctx).colorScheme.onSurfaceVariant);
       expect(ico.last.color,
@@ -205,7 +205,7 @@ void main() {
     testWidgets('«+N more» считает только error и warning', (tester) async {
       await pumpRow(
           tester, const [infoW, warnW, errW, _infoFlow]);
-      // Два actionable → «+1 more», два info — одним значком.
+
       expect(find.textContaining('(+1 more)'), findsOneWidget);
     });
 
@@ -230,8 +230,8 @@ void main() {
 
     testWidgets('текстом идёт ЗАГОЛОВОК кода реестра, а не полный текст',
         (tester) async {
-      // §479 — источник строки — `title_<lang>` реестра: полный текст в
-      // строку списка не помещался и обрывался на полуслове.
+
+
       const w = RegistryWarning(
           code: 'transport_unsupported',
           path: 'transport.type',
@@ -244,7 +244,7 @@ void main() {
           .replaceAll('{transport}', 'quic')
           .replaceAll('{fallback}', 'ws');
       expect(find.text(subst(raw.titleEn)), findsOneWidget);
-      // Полный текст в строку не едет — он длиннее и живёт в уведомлениях.
+
       expect(raw.textEn, isNot(raw.titleEn));
       expect(find.text(subst(raw.textEn)), findsNothing);
     });
@@ -270,7 +270,7 @@ void main() {
           ),
         ));
 
-    /// Значок в `title` строки — то есть рядом с именем.
+
     Finder badgeAtTitle(String label) => find.descendant(
           of: find.ancestor(
               of: find.text(label), matching: find.byType(Row)),
@@ -281,10 +281,10 @@ void main() {
         'третьей строки нет', (tester) async {
       await pumpList(tester, [node('info-only', const [_infoTls])]);
 
-      // Значок есть — но не у имени.
+
       expect(find.byType(NodeInfoBadge), findsOneWidget);
       expect(badgeAtTitle('info-only'), findsNothing);
-      // Он стоит в одном Row со строкой протокола.
+
       expect(
         find.descendant(
           of: find.ancestor(
@@ -294,7 +294,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      // Строки предупреждения под узлом нет вовсе.
+
       expect(find.byType(NodeWarningRow), findsNothing);
       expect(
           find.text(ContractRegistry.I.textFor('tls_insecure')!.titleEn),
@@ -311,8 +311,8 @@ void main() {
     });
 
     testWidgets('зона тапа значка не меньше 24×24', (tester) async {
-      // Значок 14 px — пальцем в него не попасть; подложка обязана быть
-      // рекомендованного Material размера.
+
+
       await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
             body: Center(child: NodeInfoBadge([_infoTls]))),
@@ -368,16 +368,16 @@ void main() {
   group('§479 — шапка со счётчиками и подразделы', () {
     testWidgets('счётчики по уровням, нулевых нет', (tester) async {
       await pumpView(tester, const [
-        _errFieldMissing, // error
-        _warnTransport, // warning
-        UnknownObfsWarning('gecko'), // warning
+        _errFieldMissing,
+        _warnTransport,
+        UnknownObfsWarning('gecko'),
       ]);
 
-      // Три записи, два уровня: 1 и 2, без «0» для info.
+
       expect(find.text('1'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
       expect(find.text('0'), findsNothing);
-      // Подзаголовков два — уровней два.
+
       expect(find.text('Errors'), findsOneWidget);
       expect(find.text('Warnings'), findsOneWidget);
       expect(find.text('Info'), findsNothing);
@@ -391,7 +391,7 @@ void main() {
 
       expect(find.text('Warnings'), findsNothing);
       expect(find.text('Errors'), findsNothing);
-      // Счётчик при этом на месте.
+
       expect(find.text('2'), findsOneWidget);
     });
 
@@ -426,7 +426,7 @@ void main() {
         _warnTransport,
       ]);
 
-      // Свёрнуто: разбор не построен.
+
       expect(find.text('Why it happens'), findsNothing);
       expect(find.text('What you can do'), findsNothing);
       expect(find.text('Details'), findsNothing);
@@ -470,9 +470,9 @@ void main() {
         (tester) async {
       await pumpView(tester, const [DuplicateNodeWarning()]);
 
-      // Заголовок на месте — он свой, из словаря UI.
+
       expect(find.textContaining('Duplicate entry'), findsOneWidget);
-      // А объяснять и вести некуда: кода в реестре нет.
+
       expect(find.text('Details'), findsNothing);
       expect(find.text('Why it happens'), findsNothing);
       expect(find.text('What you can do'), findsNothing);
@@ -480,9 +480,9 @@ void main() {
 
     testWidgets('код вне реестра = warning и запись без блоков',
         (tester) async {
-      // Санитайзер может выдать код, которого текущий синк ещё не знает:
-      // уровень по умолчанию — warning (незнакомое не глушим), блоки не
-      // рисуются, а заголовком остаётся сам код.
+
+
+
       const w = RegistryWarning(code: 'code_from_the_future', path: 'tls.foo');
       expect(w.severity, WarningSeverity.warning);
 
@@ -492,7 +492,7 @@ void main() {
       expect(find.text('Why it happens'), findsNothing);
       expect(find.text('What you can do'), findsNothing);
       expect(find.text('Details'), findsNothing);
-      // Значок — warning'овый.
+
       expect(
         tester
             .widgetList<Icon>(find.byType(Icon))
@@ -533,22 +533,22 @@ void main() {
       final ico = tester
           .widgetList<Icon>(find.descendant(
               of: find.byType(ExpansionTile), matching: find.byType(Icon)))
-          // Стрелка раскрытия тоже иконка — берём только значки уровней.
+
           .where((i) =>
               i.icon == Icons.warning_amber || i.icon == Icons.info_outline)
           .toList();
-      // Порядок разделов — старшее выше.
+
       expect(ico.map((i) => i.icon),
           [Icons.warning_amber, Icons.info_outline]);
       expect(ico[0].color, warningSeverityColor(ctx, WarningSeverity.warning));
-      // Внутри уведомлений info остаётся СИНИМ (приглушён он только в списке).
+
       expect(ico[1].color, warningSeverityColor(ctx, WarningSeverity.info));
     });
   });
 
   group('§572 — группировка по коду', () {
-    // Узел VLESS·xhttp·Reality из Xray-JSON: по коду на каждое непрочитанное
-    // поле (`_unknownWarning` движка — имя и в path, и в params.query_name).
+
+
     const paths = [
       'streamSettings.finalmask.tcp.0.type',
       'streamSettings.finalmask.tcp.0.settings.delay',
@@ -578,7 +578,7 @@ void main() {
       expect(find.byType(ExpansionTile), findsOneWidget);
       expect(
           tester.widget<Text>(find.byKey(countKey)).data, '${paths.length}');
-      // Единственная плитка — развёрнута сразу.
+
       for (var i = 0; i < paths.length; i++) {
         final row = tester.widget<Text>(find.byKey(rowKey(i)));
         expect(row.data, paths[i], reason: 'порядок записей — исходный');
@@ -597,8 +597,8 @@ void main() {
       final raw = ContractRegistry.I.textFor('json_field_unknown')!;
       final title = raw.titleEn.replaceAll('{query_name}', '…');
       expect(find.text(title), findsOneWidget);
-      // Путь встречается только в строке своей записи, не в заголовке и не
-      // в разборе.
+
+
       for (final p in paths) {
         expect(find.textContaining(p), findsOneWidget);
       }
@@ -644,7 +644,7 @@ void main() {
         unknownFields[1],
       ]);
 
-      // tls_insecure, группа json_field_unknown, flow_deprecated.
+
       expect(find.byType(ExpansionTile), findsNWidgets(3));
       final tlsTitle = ContractRegistry.I.textFor('tls_insecure')!.titleEn;
       final groupTitle = ContractRegistry.I
@@ -669,7 +669,7 @@ void main() {
     testWidgets('счётчик шапки считает записи, а не группы', (tester) async {
       await pumpView(tester, [...unknownFields, _infoTls]);
 
-      // Плиток две (группа и tls_insecure), а записей восемь.
+
       expect(find.byType(ExpansionTile), findsNWidgets(2));
       expect(find.text('${paths.length + 1}'), findsOneWidget);
       expect(find.text('2'), findsNothing);
@@ -677,8 +677,8 @@ void main() {
 
     testWidgets('один код на разных уровнях в группу не сливается',
         (tester) async {
-      // `duplicate` — per-app код (§538): класс даёт info, а RegistryWarning
-      // того же кода вне реестра — warning по умолчанию.
+
+
       const inReg = RegistryWarning(code: 'duplicate', path: 'x');
       expect(inReg.severity, WarningSeverity.warning);
       await pumpView(tester, const [
@@ -725,11 +725,11 @@ void main() {
     });
 
     test('«Info» подзаголовка — своя форма словаря, не «Информация»', () {
-      // §285 collisions: корневой `Info` занят разделом «Protocol and server
-      // details» экрана узла, подзаголовку уровня нужна форма 1. Перевод
-      // сверяем по самому словарю: в виджет-тесте словарь не загружен
-      // (`LocaleController` тянет его через rootBundle асинхронно), и
-      // `getLocalText` отдал бы английский ключ независимо от локали.
+
+
+
+
+
       final ru = jsonDecode(
               File('assets/l10n/ru/ui.json').readAsStringSync())
           as Map<String, dynamic>;
@@ -746,7 +746,7 @@ void main() {
     });
 
     testWidgets('zh получает английский текст реестра', (tester) async {
-      // В реестре два языка; всё, что не ru, читает en (спека §460 §2.3).
+
       LocaleController.I.setting = 'zh';
       await pumpView(tester, const [_infoTls]);
 
@@ -971,8 +971,8 @@ void main() {
     });
 
     test('якорь — сам код, без нормализации', () {
-      // Коды реестра — snake_case; ссылка обязана вести на них дословно,
-      // иначе якорь не совпадёт с `<a id>` страницы.
+
+
       expect(contractWarningDocUrl('reality_key_share_invalid'),
           endsWith('#reality_key_share_invalid'));
     });

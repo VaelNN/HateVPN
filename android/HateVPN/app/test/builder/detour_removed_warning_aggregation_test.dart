@@ -8,18 +8,18 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §377 — предупреждение о висячем detour агрегируется в одну строку на цель.
-///
-/// До §377 строка эмитилась на КАЖДУЮ ноду: один выключенный WARP-пресет из
-/// подписки на 138 нод давал 138 идентичных warning'ов на сборку и вытеснял из
-/// debug-лога всё остальное (дамп 4PDA 2026-08-04 — 276 строк из 305).
-///
-/// §439 — ссылка detour (NodeLink) fail-closed: носитель висячей ссылки не
-/// эмитится (NODE_LINK §5.1), и строка говорит «skipped», а не «works
-/// directly». Агрегация та же: одна строка на ссылку и причину.
+
+
+
+
+
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   final template = WizardTemplate(
@@ -47,7 +47,7 @@ void main() {
     speedTestOptions: const {},
   );
 
-  /// Список из [count] нод, каждая с detour на несуществующий [target].
+
   UserServer ghostConsumers(String target, int count, {String id = 'ghosts'}) =>
       UserServer(
         id: id,
@@ -91,13 +91,13 @@ void main() {
       final line = r.lines.single;
       expect(line, startsWith('138 nodes ('));
       expect(line, contains('"warp gen"'));
-      // первые пять имён + счётчик остатка
+
       expect(line, contains('"Node-1"'));
       expect(line, contains('"Node-5"'));
       expect(line, isNot(contains('"Node-6"')));
       expect(line, contains('and 133 more'));
       expect(line, contains('never goes direct'));
-      // fail-closed: ни один носитель не эмитирован
+
       expect(r.tags.where((t) => t.startsWith('Node-')), isEmpty);
     });
 

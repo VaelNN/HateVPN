@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/tunnel_status.dart';
 
-/// §276 — контракт статуса native↔Dart.
-///
-/// Регресс-якорь: Dart раньше ждал статус-строку `'Revoked'`, которую native не
-/// слал никогда (`VpnStatus` = Stopped/Starting/Started/Stopping), из-за чего
-/// `TunnelStatus.revoked` был недостижим, а весь revoke-UX — мёртвым кодом.
-/// Revoke едет как `Stopped` + флаг `revoked`, потому что терминальный статус
-/// обязан остаться `Stopped` (на нём висит teardown в native).
+
+
+
+
+
+
+
 void main() {
   group('TunnelStatus.fromNative', () {
     test('маппит статусы, которые реально шлёт native', () {
@@ -33,7 +33,7 @@ void main() {
 
     test('неизвестный raw → unknown', () {
       expect(TunnelStatus.fromNative('Nonsense'), TunnelStatus.unknown);
-      // 'Revoked' статус-строкой native не шлёт — не должна распознаваться.
+
       expect(TunnelStatus.fromNative('Revoked'), TunnelStatus.unknown);
     });
   });
@@ -79,8 +79,8 @@ void main() {
       expect(event.status, TunnelStatus.disconnected);
     });
 
-    // Фича 478 / Д-1 — сырой текст ядра едет ОТДЕЛЬНЫМ ключом от
-    // локализованной витрины.
+
+
     test('core_error читается рядом с локализованным error', () {
       final event = TunnelStatusEvent.fromNative(<dynamic, dynamic>{
         'status': 'Stopped',

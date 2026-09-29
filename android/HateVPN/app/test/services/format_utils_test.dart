@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/format_utils.dart';
 
-/// §084 H4 — tests for unified byte/duration/time formatters.
+
 void main() {
   group('formatBytes — compact (spaced=false)', () {
     test('bytes', () => expect(formatBytes(500), '500B'));
@@ -28,9 +28,9 @@ void main() {
         formatDuration(const Duration(minutes: 5, seconds: 30)), '5m 30s'));
     test('hours+minutes', () => expect(
         formatDuration(const Duration(hours: 2, minutes: 5)), '2h 5m'));
-    // §219 — секунды на часовом разряде отбрасываются НАМЕРЕННО (чем длиннее
-    // интервал, тем ниже нужная точность). Не «баг несогласованности» с
-    // минутным разрядом — задокументировано в format_utils.
+
+
+
     test('hours+minutes+seconds → секунды отбрасываются', () => expect(
         formatDuration(const Duration(hours: 1, minutes: 5, seconds: 30)),
         '1h 5m'));
@@ -70,8 +70,8 @@ void main() {
         expect(formatTime(DateTime(2026, 1, 1, 23, 59, 59)), '23:59:59'));
   });
 
-  // §279 Phase 5 — intl-время HH:mm + композитный timestamp (ISO-порядок
-  // даты сознательно) + грубая длительность (было connections._formatDuration).
+
+
   group('formatTimeHm', () {
     test('HH:mm padded', () =>
         expect(formatTimeHm(DateTime(2026, 1, 1, 9, 5, 3)), '09:05'));
@@ -90,7 +90,7 @@ void main() {
     });
   });
 
-  // §219 — host:port extraction (было продублировано в connections/stats).
+
   group('hostOf / portOf', () {
     test('обычный host:port', () {
       expect(hostOf('example.com:443'), 'example.com');

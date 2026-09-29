@@ -35,9 +35,9 @@ import '../services/l10n/locale_controller.dart';
 import '../services/file_import.dart';
 import '../widgets/app_bottom_sheet.dart';
 
-/// §234 — экран папки серверов. Зеркалит SubscriptionDetailScreen: вкладка
-/// членов (per-member toggle, drag-reorder, long-press меню) + Settings
-/// (общий SubscriptionSettingsTab: tag prefix / detour на всю папку).
+
+
+
 class FolderDetailScreen extends StatefulWidget {
   const FolderDetailScreen({
     super.key,
@@ -49,8 +49,8 @@ class FolderDetailScreen extends StatefulWidget {
   final SubscriptionEntry entry;
   final SubscriptionController controller;
 
-  /// §255 — при открытии проскроллить к этому члену и мигнуть его строкой
-  /// (навигация из detour-cycle sheet к ноде-виновнику). null = нет.
+
+
   final int? focusMemberIndex;
 
   @override
@@ -63,42 +63,42 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
   bool _editing = false;
   late TextEditingController _nameCtrl;
 
-  // §236 — состояние Test servers. Результаты эфемерны (не персистятся).
-  // §326 — ключ = идентичность узла (`ProbeController.probeKeys`), НЕ позиция:
-  // удаление/вставка члена больше не сдвигает замеры соседей. Проекцию на
-  // индексы для позиционных bulk-хелперов даёт `_probeByIndex()`.
+
+
+
+
   final Map<String, ProbeResult> _probe = {};
   ProbeRunner? _runner;
-  // §286 — коалесцированный ребилд результатов пробы: onResult пишет в _probe
-  // без setState-на-члена (у «WARP GENERATOR» ~100 членов → ~100 ребилдов
-  // пачкой), а этот throttle сливает их в один setState раз в ~120мс.
+
+
+
   Timer? _probeFlushTimer;
   bool _testing = false;
   ProbeThresholds _thresholds = const ProbeThresholds();
 
-  // §236 UI-rework — локальный фильтр членов (как на главном: regex +
-  // протоколы). Тоже эфемерный (осознанно не сохраняется, ср. §048).
+
+
   final _filterRegexCtl = TextEditingController();
   bool _filterExpanded = false;
   bool _regexInvert = false;
   final Set<String> _selectedProtocols = {};
   bool _protocolsInvert = false;
 
-  // §248 — Направления: секция Directions в detour-пикере + подпись «⚙ <label>»
-  // Направления override-цели в Settings-вкладке.
+
+
   List<Direction> _directions = const [];
 
-  /// §393 A6 — префикс, под который написаны фильтры Направлений: значение
-  /// поля на момент последнего КОММИТА. Зеркало подписки
-  /// (`subscription_detail_screen`) — вкладка Settings общая.
+
+
+
   late String _committedTagPrefix;
 
   FolderServers get _folder => widget.entry.list as FolderServers;
 
-  // §255 — прокрутка к члену + вспышка строки (навигация из detour-cycle
-  // sheet). Локальная (таймер-вспышка). Скролл с retry: в lazy-списке строка
-  // за вьюпортом не смонтирована → currentContext null на первом кадре;
-  // пробуем несколько кадров, подтягивая список.
+
+
+
+
   final _scrollController = ScrollController();
   final _memberKeys = <int, GlobalKey>{};
   int? _highlightedMember;
@@ -106,9 +106,9 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
 
   GlobalKey _memberKey(int i) => _memberKeys.putIfAbsent(i, GlobalKey.new);
 
-  /// §239 — голые теги членов, служащих интра-целью detour другого члена
-  /// (⚙-бейдж; в билдере такие регистрируются по register-тогглам). Интра-
-  /// цель — пара с `id` этой папки (§439).
+
+
+
   Set<String> _chainLinkTags() {
     final folder = _folder;
     final bareByAddress = <NodeLink, String>{};
@@ -122,27 +122,27 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
       if (d.isEmpty || d.folderId != folder.id) continue;
       final bare = bareByAddress[d];
       if (bare == null) continue;
-      if (d == folderMemberAddress(folder, k)) continue; // self не считается
+      if (d == folderMemberAddress(folder, k)) continue;
       links.add(bare);
     }
     return links;
   }
 
-  /// Индекс entry по ссылке — список мог сместиться (reorder/delete).
+
   int get _index => widget.controller.entries.indexOf(widget.entry);
 
-  // §278 — entry может исчезнуть из controller.entries при открытом экране
-  // (DELETE /folders через Debug API §238; restore из backup → init()
-  // пересоздаёт все entries). Осиротевший экран выглядел рабочим, но каждое
-  // действие молча умирало в гейтах `if (_index < 0) return` — тот же
-  // анти-паттерн «немой гейт», что §277. Слушатель контроллера закрывает
-  // экран; сами гейты остаются защитой окна в один кадр до pop'а.
+
+
+
+
+
+
   bool _leaving = false;
 
   void _onEntriesChanged() {
     if (_leaving || _index >= 0) return;
     _leaving = true;
-    // notifyListeners может прийти во время build → pop после кадра.
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final route = ModalRoute.of(context);
@@ -150,13 +150,13 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
       if (route.isCurrent) {
         Navigator.pop(context);
       } else {
-        // Экран не верхний (диалог/шит/пикер поверх) — снимаем именно наш
-        // роут, обычный pop снял бы чужой верхний.
+
+
         Navigator.of(context).removeRoute(route);
       }
     });
-    // Пост-кадровый колбэк сам кадр не планирует — не полагаемся на то, что
-    // кадр запросят другие слушатели контроллера (home/subs-экраны).
+
+
     WidgetsBinding.instance.ensureVisualUpdate();
   }
 
@@ -165,8 +165,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
     _nameCtrl = TextEditingController(text: widget.entry.name);
-    _committedTagPrefix = widget.entry.tagPrefix; // §393 A6
-    widget.controller.addListener(_onEntriesChanged); // §278
+    _committedTagPrefix = widget.entry.tagPrefix;
+    widget.controller.addListener(_onEntriesChanged);
     unawaited(_loadThresholds());
     unawaited(_loadDirections());
     final focus = widget.focusMemberIndex;
@@ -176,10 +176,10 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     }
   }
 
-  /// §255 — проскроллить к члену [i] + вспышка. Retry по кадрам: строка за
-  /// пределами вьюпорта в lazy-списке не смонтирована на первом кадре
-  /// (currentContext null). Грубо прыгаем ScrollController'ом по оценке
-  /// позиции, ждём следующий кадр, повторяем ensureVisible — до [maxAttempts].
+
+
+
+
   void _focusMember(int i, {required int attempt}) {
     if (!mounted) return;
     if (attempt == 0) setState(() => _highlightedMember = i);
@@ -191,8 +191,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
           curve: Curves.easeOutCubic,
           alignment: 0.3));
     } else if (attempt < maxAttempts && _scrollController.hasClients) {
-      // Строка ещё не смонтирована — грубый прыжок по оценке (средняя высота
-      // строки ~64px), затем повтор на следующем кадре: список подтянет её.
+
+
       final target = (i * 64.0)
           .clamp(0.0, _scrollController.position.maxScrollExtent);
       _scrollController.jumpTo(target);
@@ -206,8 +206,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     });
   }
 
-  /// §393 A6 — префикс допечатан: переписать литеральные вхождения старого
-  /// префикса в фильтрах Направлений, про неоднозначные предупредить.
+
+
   Future<void> _commitTagPrefix() async {
     final oldPrefix = _committedTagPrefix;
     final newPrefix = widget.entry.tagPrefix;
@@ -222,12 +222,12 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
       sub: widget.controller,
     );
     if (!mounted || outcome.isEmpty) return;
-    await _loadDirections(); // переписанные фильтры — в буфер экрана
+    await _loadDirections();
     if (!mounted) return;
     showTagPrefixCascadeSnackBar(context, outcome);
   }
 
-  /// §248 — загрузка Направлений (initState + refresh перед пикером).
+
   Future<void> _loadDirections() async {
     final directions = await SettingsStorage.getDirections();
     if (!mounted) return;
@@ -236,10 +236,10 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onEntriesChanged); // §278
-    // Отмена доводит run() до finally → probeStop (сессия не повисает).
+    widget.controller.removeListener(_onEntriesChanged);
+
     _runner?.cancel();
-    _probeFlushTimer?.cancel(); // §286
+    _probeFlushTimer?.cancel();
     _probeFlushTimer = null;
     _tabCtrl.dispose();
     _nameCtrl.dispose();
@@ -255,10 +255,10 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     setState(() => _thresholds = t);
   }
 
-  // ─────────────────────── §236 — Test servers ───────────────────────
 
-  /// §286 — коалесцированный ребилд результатов пробы: trailing-throttle ~120мс.
-  /// Много onResult подряд → один setState на окно, а не setState на член.
+
+
+
   void _scheduleProbeFlush() {
     if (_probeFlushTimer != null) return;
     _probeFlushTimer = Timer(const Duration(milliseconds: 120), () {
@@ -276,28 +276,28 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
       return;
     }
     if (_folder.members.isEmpty) return;
-    // §236/§296 — probe-сессия (временный CommandServer без tun) не поднимается
-    // поверх живого туннеля. Общий гейт: при VPN-on показывает попап Stop VPN;
-    // true = можно тестировать (VPN off или успешно остановлен).
+
+
+
     if (await ensureVpnStoppedForProbe()) {
       await _runProbe();
     }
   }
 
-  /// §236 — сам прогон пробы (VPN уже выключен). Вынесен из [_toggleTest],
-  /// чтобы гейт-попап мог перезапустить его после Stop VPN.
+
+
   Future<void> _runProbe() async {
     if (_folder.members.isEmpty) return;
-    // §284 — опции теста самой папки (ping_url/ping_timeout_ms в объекте папки)
-    // перекрывают глобальные. Папка «WARP GENERATOR» так тестируется по IP без DNS.
+
+
     final (:url, :timeoutMs) = await ProbeController.resolvePingOptions(
       overrideUrl: _folder.pingUrl,
       overrideTimeoutMs: _folder.pingTimeoutMs,
     );
     if (!mounted) return;
-    // §326 — снимок ключей на старте прогона: onResult отдаёт позицию (runner
-    // работает над плоским списком нод и о папках не знает, §296), переводим
-    // её в ключ по этому снимку.
+
+
+
     final probeKeys = _memberProbeKeys();
     setState(() {
       _testing = true;
@@ -310,18 +310,18 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     });
     final runner = ProbeRunner();
     _runner = runner;
-    // §296 — probe над списком нод: члены папки (nullable, unfiltered, чтобы
-    // выключенные/битые сохранили индекс и вердикт — НЕ _folder.nodes, тот
-    // отфильтрован до enabled+parsed).
+
+
+
     final err = await runner.run(
       [for (final m in _folder.members) m.node],
       url: url,
       timeoutMs: timeoutMs,
       onResult: (i, r) {
         if (!mounted) return;
-        // §286 — накапливаем без setState-на-члена; throttle сольёт в один
-        // ребилд (~120мс). Иначе «WARP GENERATOR» (~100 членов) даёт ~100
-        // setState пачкой → главный поток лагает.
+
+
+
         if (i < probeKeys.length) _probe[probeKeys[i]] = r;
         _scheduleProbeFlush();
       },
@@ -330,8 +330,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     _probeFlushTimer = null;
     if (!mounted) return;
     setState(() => _testing = false);
-    // §236 — VPN стартовал между гейтом и probeStart (гонка): runner вернул
-    // маркер → тот же гейт-попап, не текст ошибки.
+
+
     if (err == kProbeVpnRunning) {
       if (mounted && await onProbeVpnRaceGate()) await _runProbe();
       return;
@@ -342,8 +342,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     }
   }
 
-  /// §236 UI-rework — настройки теста (long-press на кнопке, как на главном):
-  /// цель пинга (глобальные ping_options) + пороги цветовой шкалы.
+
+
   void _showTestSettings() {
     showAppBottomSheet<void>(
       context: context,
@@ -427,7 +427,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     await ProbeController.saveGlobalPing(url, timeoutMs: timeout);
   }
 
-  /// Число завершённых тестов (для строки-сводки).
+
   ({int ok, int dead, int broken}) _probeSummary() {
     var ok = 0, dead = 0, broken = 0;
     for (final r in _probe.values) {
@@ -440,7 +440,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
         case ProbeStatus.invalid:
           broken++;
         case ProbeStatus.pending:
-        case ProbeStatus.group: // §336 — не тестируется, в сводке не считаем
+        case ProbeStatus.group:
           break;
       }
     }
@@ -490,10 +490,10 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     setState(() {});
   }
 
-  /// §326 — кеш `probeKeys` текущего состава: ключ — sha256 по emit-map узла,
-  /// считать его на каждый ребилд каждой строки (itemBuilder) дорого. Инвалидация
-  /// по самому списку членов: `SubscriptionController` отдаёт новый `List` на
-  /// любую мутацию состава, а правка члена меняет `raw` → identical() ложно.
+
+
+
+
   List<FolderMember>? _probeKeysFor;
   List<String> _probeKeysCache = const [];
   List<String> _memberProbeKeys() {
@@ -505,11 +505,11 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     return _probeKeysCache;
   }
 
-  /// §326 — проекция результатов на текущие позиции членов. Bulk-решения
-  /// (`unreachableIndexes`/`slowerThan`/`pingSortOrder`) остаются индексными:
-  /// их выход скармливается позиционным мутаторам контроллера
-  /// (`setMembersEnabled`/`removeMembersAt`/`applyMembersOrder`). Граница
-  /// «ключ → индекс» ровно здесь.
+
+
+
+
+
   Map<int, ProbeResult> _probeByIndex() {
     final keys = _memberProbeKeys();
     return {
@@ -517,18 +517,18 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     };
   }
 
-  /// §389 — есть хотя бы один ЗАВЕРШЁННЫЙ вердикт теста (гейт пунктов меню
-  /// «Test actions»; семантика и мотивация — как в подписке).
+
+
   bool get _hasProbeVerdict =>
       _probe.values.any((r) => r.status != ProbeStatus.pending &&
           r.status != ProbeStatus.group);
 
-  /// §284/§296 — индексы членов, не прошедших последний тест (общий хелпер).
+
   Set<int> _unreachableIndexes() =>
       ProbeController.unreachableIndexes(_probeByIndex());
 
-  /// §284 — выключить (не удалять) недоступные по последнему тесту. Узлы
-  /// остаются в папке серыми; результаты теста сохраняются.
+
+
   Future<void> _disableUnreachable() async {
     final dead = _unreachableIndexes();
     if (dead.isEmpty) {
@@ -570,8 +570,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     if (idx < 0) return;
     await widget.controller.removeMembersAt(idx, dead);
     if (!mounted) return;
-    // §326 — результаты выживших остаются валидными: ключ = идентичность узла,
-    // а не позиция. До §326 здесь стоял `_probe.clear()` (индексы съезжали).
+
+
     setState(() {});
   }
 
@@ -582,12 +582,12 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
         ProbeController.pingSortOrder(_probeByIndex(), _folder.members.length);
     await widget.controller.applyMembersOrder(idx, order);
     if (!mounted) return;
-    // §326 — перепривязка не нужна: ключи едут вместе с членами.
+
     setState(() {});
   }
 
   Future<void> _editThresholds() async {
-    if (!mounted) return; // §278 — см. _editMember
+    if (!mounted) return;
     final g = TextEditingController(text: '${_thresholds.greenMs}');
     final y = TextEditingController(text: '${_thresholds.yellowMs}');
     final o = TextEditingController(text: '${_thresholds.orangeMs}');
@@ -658,7 +658,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
   }
 
   Future<void> _delete() async {
-    // Три исхода: cancel / вынести серверы одиночными / удалить всё.
+
     final choice =
         await showDeleteFolderDialog(context, _folder, widget.entry.displayName);
     if (choice == null || !mounted) return;
@@ -667,17 +667,17 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
       if (mounted) Navigator.pop(context);
       return;
     }
-    // §278 — свой явный pop ниже; гасим авто-pop слушателя (двойной pop
-    // снял бы экран под нами).
+
+
     _leaving = true;
     try {
       await widget.controller
           .deleteFolderAt(idx, keepServers: choice == 'keep');
     } catch (_) {
-      // deleteFolderAt мог упасть ПОСЛЕ removeAt (на _persist): notify и наш
-      // pop ниже не случатся, а защёлка навсегда заглушила бы авто-pop —
-      // экран стал бы вечным зомби с немыми гейтами. Снимаем и добираем
-      // осиротение вручную (упавший вызов сам не нотифицировал).
+
+
+
+
       _leaving = false;
       _onEntriesChanged();
       rethrow;
@@ -685,7 +685,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     if (mounted) Navigator.pop(context);
   }
 
-  // ─────────────────────────── Add flows ───────────────────────────
+
 
   Future<void> _showError(String err) async {
     if (err.isEmpty || !mounted) return;
@@ -713,7 +713,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
 
   Future<void> _addFromFiles() async {
     try {
-      // §372 — Android TV без файлового менеджера: подсказка вместо тупика.
+
       final outcome = await pickFileSafely(allowMultiple: true);
       if (outcome is! PickedFiles) {
         final problem = pickProblemText(outcome);
@@ -755,8 +755,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     }
   }
 
-  /// §322 — создать узел автовыбора в этой папке. Кандидаты в пул — её же
-  /// члены: группа не выходит за границы контейнера.
+
+
   Future<void> _addAutoNode() async {
     final idx = _index;
     if (idx < 0) return;
@@ -775,7 +775,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     );
     if (!mounted || res is! AutoGroupSaved) return;
 
-    // §439 — член `kind: auto`: группа хранится записью, а не текстом.
+
     final err =
         await widget.controller.addAutoMemberToFolder(idx, res.spec);
     if (!mounted) return;
@@ -786,8 +786,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     setState(() {});
   }
 
-  /// §322 — правка существующего узла автовыбора. Кандидаты считаем без
-  /// него самого: группа не может взять в пул саму себя.
+
+
   Future<void> _editAutoNode(int memberIndex, AutoSelectSpec node) async {
     final idx = _index;
     if (idx < 0) return;
@@ -821,9 +821,9 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     setState(() {});
   }
 
-  /// Члены папки, которые могут попасть в пул: обычные узлы с адресом, без
-  /// групп (вложенность urltest в urltest бессмысленна) и без нечитаемых raw.
-  /// Член адресуется парой `{id папки, сырой тег}` (§439).
+
+
+
   List<({NodeLink key, String label})> _poolCandidates(FolderServers folder) {
     final out = <({NodeLink key, String label})>[];
     for (final m in folder.members) {
@@ -853,7 +853,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
               autofocus: true,
               decoration: InputDecoration(
                 labelText: getLocalText.s("URL"),
-                // l10n-exempt: URL scheme example
+
                 hintText: 'https://…',
                 border: const OutlineInputBorder(),
               ),
@@ -896,15 +896,15 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     setState(() {});
   }
 
-  // ───────────────────────── Member actions ─────────────────────────
+
 
   Future<void> _editMember(int memberIndex) async {
-    // §278 — тап из шита, пережившего removeRoute экрана: State unmounted,
-    // геттер context бросит на первой же строке (showDialog).
+
+
     if (!mounted) return;
     final member = _folder.members[memberIndex];
 
-    // §322 — у узла автовыбора свой редактор: текста у группы нет (§439).
+
     final node = member.node;
     if (node is AutoSelectSpec) {
       await _editAutoNode(memberIndex, node);
@@ -952,7 +952,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
   }
 
   Future<void> _moveMember(int memberIndex) async {
-    if (!mounted) return; // §278 — см. _editMember
+    if (!mounted) return;
     final toIndex = await showFolderPicker(context, widget.controller,
         excludeId: widget.entry.id);
     if (toIndex == null || !mounted) return;
@@ -980,7 +980,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
   }
 
   Future<void> _deleteMember(int memberIndex) async {
-    if (!mounted) return; // §278 — см. _editMember
+    if (!mounted) return;
     final member = _folder.members[memberIndex];
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1008,9 +1008,9 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
   }
 
   void _showMemberMenu(int memberIndex) {
-    // Авто-узел из папки не выносится: текста у группы нет, одиночным
-    // сервером она стала бы пустой записью. «Move to folder…» остаётся —
-    // там пары членов переписываются.
+
+
+
     final isGroup = _folder.members[memberIndex].node?.isGroup == true;
     showAppBottomSheet<void>(
       context: context,
@@ -1069,7 +1069,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     return node.label.isNotEmpty ? node.label : node.tag;
   }
 
-  // ───────────────────────────── build ─────────────────────────────
+
 
   @override
   Widget build(BuildContext context) {
@@ -1127,7 +1127,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
                 PopupMenuItem(
                     value: 'url', child: Text(getLocalText.s("Add by URL…"))),
                 const PopupMenuDivider(),
-                // §322 — не сервер, а пул автовыбора среди членов ЭТОЙ папки.
+
                 PopupMenuItem(
                     value: 'auto',
                     child: Text(getLocalText.s("Add auto node…"))),
@@ -1187,8 +1187,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     final visible = _visibleMembers();
     final Widget list;
     if (_filterActive) {
-      // §236 UI-rework — при активном фильтре drag-reorder выключен (индексы
-      // отфильтрованного вида не соответствуют составу папки).
+
+
       list = ListView.builder(
         controller: _scrollController,
         padding: EdgeInsets.fromLTRB(
@@ -1207,13 +1207,13 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
         buildDefaultDragHandles: false,
         itemCount: members.length,
         onReorderItem: (oldIndex, newIndex) {
-          // onReorderItem уже приводит newIndex к списку БЕЗ перетаскиваемого
-          // элемента — ручной сдвиг «-1 при move вниз» здесь не нужен.
+
+
           final idx = _index;
           if (idx < 0) return;
           unawaited(widget.controller.reorderMember(idx, oldIndex, newIndex));
-          // §326 — сдвиг ключей больше не нужен: результат привязан к узлу,
-          // а не к позиции, и едет вместе со строкой.
+
+
         },
         itemBuilder: (context, i) =>
             _memberTile(i, members[i], reorderable: true),
@@ -1233,9 +1233,9 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     final cs = Theme.of(context).colorScheme;
     final highlighted = _highlightedMember == i;
     final keys = _memberProbeKeys();
-    final probe = i < keys.length ? _probe[keys[i]] : null; // §326
-    // §255 — reorder-key top-level (KeyedSubtree); GlobalKey + вспышка на
-    // внутреннем AnimatedContainer (навигация из detour-cycle sheet).
+    final probe = i < keys.length ? _probe[keys[i]] : null;
+
+
     return KeyedSubtree(
       key: ValueKey('member-$i-${m.raw.hashCode}'),
       child: AnimatedContainer(
@@ -1251,7 +1251,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
         child: _MemberTile(
           member: m,
       isChainLink:
-          m.node != null && _chainLinkTags().contains(m.node!.tag), // §239 ⚙
+          m.node != null && _chainLinkTags().contains(m.node!.tag),
       dragIndex: i,
       reorderable: reorderable,
       folderEnabled: widget.entry.enabled,
@@ -1265,8 +1265,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
             .then((_) => mounted ? setState(() {}) : null));
       },
       onLongPress: () => _showMemberMenu(i),
-      // §237 — тап открывает полный Node Settings (как у одиночного сервера);
-      // битый член (ноды нет) — прежнее меню (Edit raw / Delete).
+
+
       onTap: m.node == null
           ? () => _showMemberMenu(i)
           : () {
@@ -1296,11 +1296,11 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     );
   }
 
-  // ─── §236 UI-rework — полоса: инфо · действия · тест · фильтр ──────────
 
-  /// Полоса над списком (паттерн главного экрана): слева инфо/сводка теста,
-  /// справа — actions (при результатах), кнопка теста (`Icons.speed`, тап =
-  /// старт/отмена, long-press = настройки) и toggle фильтра (`filter_list`).
+
+
+
+
   Widget _buildControlBar(ThemeData theme) {
     final muted = theme.colorScheme.onSurfaceVariant;
     final s = _probeSummary();
@@ -1328,8 +1328,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
           Expanded(
             child: Text(info, style: TextStyle(fontSize: 12, color: muted)),
           ),
-          // Кнопка теста — как mass-ping на главном (Icons.speed / stop),
-          // long-press = настройки теста (URL/timeout + пороги шкалы).
+
+
           GestureDetector(
             onTap: _folder.members.isEmpty
                 ? null
@@ -1346,8 +1346,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
               ),
             ),
           ),
-          // Toggle фильтра — как на главном (§048): primary + точка при
-          // активных фильтрах.
+
+
           IconButton(
             tooltip: _filterExpanded
                 ? getLocalText.s("Hide filters")
@@ -1381,10 +1381,10 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
               ],
             ),
           ),
-          // §389 — кнопка на месте ВСЕГДА (не появляется/исчезает по наличию
-          // результатов): без завершённого теста пункты серые и некликабельные.
-          // `enabled: false` у PopupMenuItem даёт и серый текст, и отсутствие
-          // реакции на тап — отдельного стиля не нужно.
+
+
+
+
           PopupMenuButton<String>(
             tooltip: getLocalText.s("Test actions"),
             icon: const Icon(Icons.more_vert, size: 20),
@@ -1435,8 +1435,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     }
   }
 
-  /// Члены, проходящие фильтр, парами (оригинальный индекс, член) — probe и
-  /// bulk-операции работают по оригинальным индексам состава.
+
+
   List<(int, FolderMember)> _visibleMembers() {
     RegExp? re;
     final pattern = _filterRegexCtl.text.trim();
@@ -1444,7 +1444,7 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
       try {
         re = RegExp(pattern, caseSensitive: false);
       } catch (_) {
-        re = null; // битый regex = фильтр не применяем (поле подсветится)
+        re = null;
       }
     }
     final out = <(int, FolderMember)>[];
@@ -1464,8 +1464,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
     return out;
   }
 
-  /// §236 UI-rework — панель фильтра: regex + протокол-чипы (виджеты главного
-  /// экрана, §048/§095).
+
+
   Widget _buildFilterPanel(ThemeData theme) {
     final protocols = <String>{
       for (final m in _folder.members)
@@ -1508,18 +1508,18 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
   }
 
   Widget _buildSettingsTab(ThemeData theme) {
-    // §237 — полное detour-радио (Use / Add+Replace / None) нужно папке не
-    // только при родных цепочках (§111-логика подписки), но и когда у членов
-    // есть ЛИЧНЫЕ detour'ы: Replace = переписать их, append = дополнить тех,
-    // у кого личного нет. Иначе Replace-тоггл недостижим.
+
+
+
+
     final hasDetour = _folder.nodes.any((n) => n.chained != null) ||
         _folder.members.any((m) => m.detour.isNotEmpty);
     return SubscriptionSettingsTab(
       entry: widget.entry,
-      folderMode: true, // §239 — адаптированные тексты
-      directions: _directions, // §248 — подпись Направления override-цели
-      // §252 — разворот цели в цепочку «как пакет пойдёт»; интра-члены
-      // папки имеют приоритет (bare-тег, зеркало FolderDetourPlan).
+      folderMode: true,
+      directions: _directions,
+
+
       detourPathHopsOf: (stored) => detourPathHops(stored,
           controller: widget.controller,
           directions: _directions,
@@ -1532,14 +1532,14 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
         widget.entry.tagPrefix = val.trim();
         unawaited(widget.controller.persistSources());
       },
-      // Фича 565 фаза B — свёртка источника в группу (§74).
-      // §568 / задача 570 — занятые имена для редактора свёртки.
+
+
       otherSources: [for (final e in widget.controller.entries) e.list],
       onReplaceChanged: (r) async {
         setState(() => widget.entry.replace = r);
         await widget.controller.persistSources();
       },
-      // §393 A6 — каскад на regex-фильтры Направлений (см. подписку).
+
       onTagPrefixCommitted: (_) => unawaited(_commitTagPrefix()),
       onSetDetourMode: _setDetourMode,
       onRegisterDetourServersChanged: (val) {
@@ -1555,11 +1555,11 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
         setState(() => widget.entry.replaceDetourChain = val);
         unawaited(widget.controller.persistSources());
       },
-      // Subscription-only колбэки — для папки блок скрыт
-      // (`entry.list is SubscriptionServers` false), no-op заглушки.
+
+
       onCopyUrl: () {},
       onShowIntervalPicker: () {},
-      onShowOnUpdateActionPicker: () {}, // §323
+      onShowOnUpdateActionPicker: () {},
       onRefreshNow: () {},
       onEditSource: () {},
     );
@@ -1591,9 +1591,9 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
   }
 
   Future<void> _showOverrideDetourPicker() async {
-    // §239 — кандидаты: «свободные» одиночки + члены СВОЕЙ папки (интра-цель
-    // хранится голым тегом; exempt-набор в билдере не даёт циклов через цель).
-    // §248 — свежие Направления (могли измениться, пока экран открыт).
+
+
+
     await _loadDirections();
     if (!mounted) return;
     final chosen = await showDetourTargetPicker(
@@ -1611,8 +1611,8 @@ class _FolderDetailScreenState extends State<FolderDetailScreen>
   }
 }
 
-/// Строка члена папки: toggle + имя ноды + протокол/адрес. Grab-strip слева
-/// для drag-reorder (§098-паттерн).
+
+
 class _MemberTile extends StatelessWidget {
   const _MemberTile({
     required this.member,
@@ -1631,26 +1631,26 @@ class _MemberTile extends StatelessWidget {
   final FolderMember member;
   final int dragIndex;
 
-  /// §236 UI-rework — false при активном фильтре: grab-strip скрыта (drag по
-  /// индексам отфильтрованного вида ломал бы состав).
+
+
   final bool reorderable;
 
-  /// §239 — член служит интра-целью detour другого члена (⚙ как у звеньев
-  /// подписки; видимость в селекторах гейтится register-тогглами папки).
+
+
   final bool isChainLink;
   final bool folderEnabled;
   final VoidCallback onToggle;
   final VoidCallback onLongPress;
   final VoidCallback onTap;
 
-  /// Тап по бейджу результата — показать текст ошибки (диагностика err).
+
   final VoidCallback? onProbeBadgeTap;
 
-  /// §236 — результат последнего Test servers (null = не тестировался).
+
   final ProbeResult? probe;
   final ProbeThresholds thresholds;
 
-  /// §236 — бейдж результата теста; общий виджет [ProbeBadge] (§339).
+
   Widget? _probeBadge(BuildContext context, ThemeData theme) {
     final r = probe;
     if (r == null) return null;
@@ -1666,9 +1666,9 @@ class _MemberTile extends StatelessWidget {
     var title = node == null
         ? getLocalText.s("Unreadable entry")
         : (node.label.isNotEmpty ? node.label : node.tag);
-    if (isChainLink) title = '⚙ $title'; // §239 — авто-маркировка звена
-    // §435 — у безадресных (группа §322, Tailscale) адреса нет: только тип,
-    // без «:0».
+    if (isChainLink) title = '⚙ $title';
+
+
     final warnings =
         node == null ? const <NodeWarning>[] : mergedNodeWarnings(node, member.warnings);
     final hideProto = node != null && member.warnings.any((w) => w.isCoreRejected);
@@ -1677,7 +1677,7 @@ class _MemberTile extends StatelessWidget {
         : hideProto
             ? null
             : node is AutoSelectSpec && node.isManual
-                // §565 — род ручного выбора и выбранный член.
+
                 ? [
                     node.protocol.toUpperCase(),
                     if (node.manualDefault.isNotEmpty) node.manualDefault,

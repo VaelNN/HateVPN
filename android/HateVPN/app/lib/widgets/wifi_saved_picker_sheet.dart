@@ -8,21 +8,21 @@ import 'wifi_entry.dart';
 import '../services/l10n/locale_controller.dart';
 import 'app_bottom_sheet.dart';
 
-/// §053 Stage 1 — extract bottom sheet «Pick saved Wi-Fi» из
-/// `custom_rule_edit_screen.dart`. Self-contained: сам грузит данные
-/// (`getCustomRules` + `getWifiHistory` + `getAutoRecordWifi`),
-/// показывает modal, возвращает выбранный список.
-///
-/// `excludeRuleId` — текущее правило в editor. Его wifi entries уже
-/// видны как chips, в picker'е не дублируются.
-///
-/// Returns `null` если юзер cancel'нул, либо `List<WifiEntry>` с
-/// выбранными (может быть empty — но это equivalent cancel).
+
+
+
+
+
+
+
+
+
+
 Future<List<WifiEntry>?> showWifiSavedPickerSheet(
   BuildContext context, {
   required String excludeRuleId,
 }) async {
-  // Load: "used in other rules" + history + auto-record flag.
+
   final allRules = await SettingsStorage.getCustomRules();
   final fromRules = <WifiEntry, List<String>>{};
   for (final r in allRules) {
@@ -61,9 +61,9 @@ Future<List<WifiEntry>?> showWifiSavedPickerSheet(
 
         final entries = <Widget>[];
 
-        // §051 Phase 3 — info-banner когда auto-record выключен.
-        // Показываем всегда наверху списка (не только при пустой
-        // истории), чтобы юзер видел почему «Pick saved» не растёт сам.
+
+
+
         if (!autoRecordOn) {
           entries.add(_autoRecordOffBanner(ctx, context));
         }
@@ -122,8 +122,8 @@ Future<List<WifiEntry>?> showWifiSavedPickerSheet(
           }
         }
 
-        // Empty (нет rules, нет history) и auto-record ON → short hint.
-        // Когда auto-record OFF — banner выше уже всё объясняет.
+
+
         if (fromRules.isEmpty && history.isEmpty && autoRecordOn) {
           entries.add(
             Padding(
@@ -208,8 +208,8 @@ Widget _sectionHeader(BuildContext ctx, String text) => Padding(
   ),
 );
 
-/// Info-banner: «Auto-record off → enable in Settings».
-/// `outerCtx` нужен для Navigator.push (sheet ctx умрёт после pop).
+
+
 Widget _autoRecordOffBanner(BuildContext ctx, BuildContext outerCtx) {
   return Container(
     margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -283,10 +283,10 @@ Widget _historyRow({
   required void Function(bool?) onToggle,
   required Future<void> Function() onRemove,
 }) {
-  // Explicit row: Checkbox + текст + IconButton. CheckboxListTile с
-  // `secondary: IconButton` имел hit-testing issues — IconButton ловил
-  // тап но event пробулькивал к ListTile parent. Phase 3: ручная
-  // разметка с clear bounds на каждый control.
+
+
+
+
   return InkWell(
     onTap: () => onToggle(!isSelected),
     child: Padding(
@@ -332,14 +332,14 @@ Widget _historyRow({
   );
 }
 
-/// `5 минут назад` / `Yesterday` / `Mar 15` для wifi_history
-/// `last_seen`. Empty input → `never`; malformed ISO → `unknown` +
-/// AppLog warning (traceable malformed entries).
+
+
+
 String humanLastSeen(String iso) {
   if (iso.isEmpty) return getLocalText.s("never");
   final dt = DateTime.tryParse(iso);
   if (dt == null) {
-    // AppLog — machine-поверхность, остаётся английской (спека §4.4).
+
     AppLog.I.warning(
       '[wifi_history] humanLastSeen: malformed ISO timestamp "$iso"',
     );

@@ -13,16 +13,16 @@ import '../storage_migration/golden_harness.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §441/§443 (SPEC 129 Н10, D-118) — вторая линия fail-closed на сборке:
-// DNS-сервер, чей `detour` после подстановки висит, не эмитится; правила на
-// него становятся отказом, `dns.final` снимается с заглушкой `reject`
-// последним правилом, резолверы заменяются умолчанием шаблона или первым
-// пригодным сервером — одним местом ([healDetourDroppedDnsRefs]);
-// `detour: direct-out` снимается, как раньше.
+
+
+
+
+
+
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('healDetourDroppedDnsRefs', () {
@@ -149,7 +149,7 @@ void main() {
           reason: 'ссылка не на выпавший сервер не тронута');
       expect(((c['endpoints'] as List).single as Map)['domain_resolver'],
           {'server': 'dns_shield', 'strategy': 'ipv4_only'});
-      // 2 правила + final + route + n1 + wg + 4 DNS-сервера.
+
       expect(warnings, hasLength(10));
     });
 
@@ -324,8 +324,8 @@ void main() {
       addTearDown(box.dispose);
       await box.seed('rich_v0');
 
-      // my-doh (inline, `dns.final`) и google_dot (template) — на
-      // Направление, которого нет. google_udp — `direct-out`.
+
+
       final servers = [
         for (final s in await SettingsStorage.getDnsServers())
           switch (s) {
@@ -388,15 +388,15 @@ void main() {
           contains('DNS server "my-doh" dropped: its detour "vpn-ghost" is not in the config.'));
       expect(build.warnings,
           contains('DNS server "google_dot" dropped: its detour "vpn-ghost" is not in the config.'));
-      // Выбор пользователя не переписан: сервер вернётся вместе с Направлением.
+
       final vars = await SettingsStorage.getAllVars();
       expect(vars['dns_final'], 'my-doh');
       expect(vars['dns_default_domain_resolver'], 'google_dot');
     });
 
-    // SPEC 129 §6 (D-114): переменная типа `outbound` template-сервера —
-    // одиночная цель по имени, как цель правила. Удаление Направления лечит
-    // её в хранении, и сервер не выпадает на сборке.
+
+
+
     test('rich_v0: удаление vpn-3 — vars.outbound google_dot → vpn-1, как у правила; сервер в конфиге',
         () async {
       final box = await StorageSandbox.create();
@@ -442,9 +442,9 @@ void main() {
           isEmpty);
     });
 
-    // Снимок AVD: ключи узлов той же формы, что у настоящих, — конфиг
-    // проходит `sing-box check`. Проверка ядром — вручную:
-    // LX441_CONFIG_OUT=<путь> кладёт конфиг для `sing-box check -c <путь>`.
+
+
+
     test('avd_v0: domain_resolver серверов на выпавший google_udp вылечен', () async {
       final box = await StorageSandbox.create();
       addTearDown(box.dispose);

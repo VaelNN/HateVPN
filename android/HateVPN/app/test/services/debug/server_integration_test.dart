@@ -7,24 +7,24 @@ import 'package:lxbox/services/debug/debug_registry.dart';
 import 'package:lxbox/services/debug/transport/config.dart';
 import 'package:lxbox/services/debug/transport/server.dart';
 
-/// Integration-тесты крутят реальный [HttpServer.bind] на ephemeral-порту
-/// и стучатся curl-like запросами. Покрывают security-guarantees middleware
-/// и transport-wire level: что именно видит удалённый клиент.
-///
-/// Не трогаем handler'ов требующих controllers — их покрывают unit-тесты
-/// на serializers + pipeline.
+
+
+
+
+
+
 void main() {
-  // NB: НЕ вызываем `TestWidgetsFlutterBinding.ensureInitialized()` —
-  // оно подставляет HttpOverrides который возвращает mocked 400 на любой
-  // реальный HttpClient-запрос, ломая integration-тесты. Debug-модуль
-  // чистый Dart, platform-каналы не трогает.
+
+
+
+
 
   late int port;
 
   setUp(() async {
-    // Ephemeral port: bind на 0 → OS выдаёт свободный. Читаем через
-    // server.port после start. DebugServerConfig требует конкретный port —
-    // берём любой из диапазона 40000-45000 и надеемся что свободен.
+
+
+
     port = 40000 + (DateTime.now().microsecondsSinceEpoch % 5000);
 
     await DebugServer.I.start(

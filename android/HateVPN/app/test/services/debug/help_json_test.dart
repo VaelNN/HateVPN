@@ -9,9 +9,9 @@ import 'package:lxbox/services/debug/transport/request.dart';
 import 'package:lxbox/services/debug/transport/response.dart';
 import 'package:lxbox/services/debug/transport/server.dart';
 
-/// Репро для бага /help?format=json (HTTP 000, пустой ответ). Проверяем, что
-/// body ответа РЕАЛЬНО сериализуется тем же JsonEncoder, что в
-/// JsonResponse.writeTo — если кинет, это и есть причина обрыва соединения.
+
+
+
 void main() {
   DebugContext ctx() => DebugContext(
         registry: DebugRegistry.I,
@@ -30,7 +30,7 @@ void main() {
     final resp = await helpHandler(req('json'), ctx());
     expect(resp, isA<JsonResponse>());
     final body = (resp as JsonResponse).body;
-    // Ровно операция из JsonResponse.writeTo — тут воспроизведётся баг.
+
     final out = const JsonEncoder.withIndent('  ').convert(body);
     expect(out, isNotEmpty);
   });
@@ -103,8 +103,8 @@ void main() {
     expect(missing, isEmpty, reason: 'help json paths not mounted: $missing');
   });
 
-  // Ревью после v2.25.1, L1: `/pool` был в тексте `/help`, но не в JSON —
-  // инструмент, строящий список путей по JSON, считал роут несуществующим.
+
+
   test('каждый смонтированный префикс роутера есть в /help?format=json',
       () async {
     final jsonResp = await helpHandler(req('json'), ctx()) as JsonResponse;

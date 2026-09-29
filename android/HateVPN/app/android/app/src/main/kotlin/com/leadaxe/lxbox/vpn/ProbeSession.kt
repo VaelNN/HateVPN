@@ -22,37 +22,37 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 
-/// §236 — headless probe-сессия: ВРЕМЕННЫЙ CommandServer + конфиг БЕЗ tun,
-/// чтобы гонять `urlTestOutbound` по нодам папки, пока VPN ВЫКЛЮЧЕН.
-///
-/// Ограничение, диктующее модель: command.sock живёт в глобальном basePath
-/// (`Libbox.setup` — один на процесс) → два CommandServer одновременно
-/// невозможны. Поэтому:
-///  - probe стартует ТОЛЬКО при выключенном VPN (гейт по
-///    `BoxService.commandClient == null`);
-///  - старт VPN всегда приоритетнее: `BoxService` зовёт [stop] перед своим
-///    `startCommandServer()` (закрывает забытую/висящую сессию).
-///
-/// НЕ Android-сервис: VpnStatus-broadcast, уведомления и tun не затрагиваются.
-/// Все колбэки из Go — no-throw (JNI: unchecked exception = Runtime::Abort).
+
+
+
+
+
+
+
+
+
+
+
+
+
 object ProbeSession : CommandServerHandler {
     private const val TAG = "ProbeSession"
 
     private val server = AtomicReference<CommandServer?>(null)
     private val client = AtomicReference<CommandClient?>(null)
 
-    /// §237-fix — `LocalResolver` отвечает SERVFAIL, пока
-    /// `DefaultNetworkMonitor.defaultNetwork == null`, а монитор поднимает
-    /// только боевой VPN-flow. Probe-сессия стартует его сама (и гасит только
-    /// свой — если к моменту stop VPN уже жив, монитор принадлежит ему).
+
+
+
+
     private var probeScope: CoroutineScope? = null
     private var monitorOwned = false
 
     val active: Boolean get() = server.get() != null
 
-    /// Запуск сессии с готовым probe-конфигом (без inbound'ов). Возвращает ''
-    /// при успехе, иначе текст ошибки. Повторный вызов поверх живой сессии —
-    /// рестарт (старая закрывается).
+
+
+
     @Synchronized
     fun start(config: String): String {
         if (BoxService.commandClient != null) {
@@ -62,8 +62,8 @@ object ProbeSession : CommandServerHandler {
         return runCatching {
             val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             probeScope = scope
-            // Без монитора local-DNS (§049 F26) мертв → каждый lookup из
-            // probe-конфига падал SERVFAIL (device-репро 04.07.2026).
+
+
             runBlocking { DefaultNetworkMonitor.start(scope) { } }
             monitorOwned = true
             val cs = CommandServer(this, ProbePlatform)
@@ -82,9 +82,9 @@ object ProbeSession : CommandServerHandler {
         }
     }
 
-    /// Синхронный тест одной ноды (SPEC 014, Variant B: провал — в `error`
-    /// результата, не в исключении). Конкурентные вызовы допустимы — unary
-    /// gRPC мультиплексируется на одном клиенте (как pingClient §209).
+
+
+
     fun urlTest(tag: String, link: String, timeoutMs: Int): Map<String, Any> {
         val cl = client.get()
             ?: return mapOf("delay" to 0, "error" to "probe session not running")
@@ -96,18 +96,18 @@ object ProbeSession : CommandServerHandler {
         }
     }
 
-    /// §392 — диагностический HTTP GET через узел probe-сессии (kernel SPEC
-    /// 058). Тело ответа возвращается как есть; парсинг — сторона Dart.
-    ///
-    /// Провал обмена приезжает исключением (libbox-обёртка мапит payload-error
-    /// в Go-error), не-2xx — обычный результат со статусом. Форма Map зеркалит
-    /// [BoxCommandClient.getUrlViaOutbound]: у Dart один разбор на обе ветки.
+
+
+
+
+
+
     fun getUrl(tag: String, link: String, timeoutMs: Int, maxBytes: Int): Map<String, Any> {
         val cl = client.get()
             ?: return mapOf("error" to "probe session not running")
         return runCatching {
             val r = cl.getURLViaOutbound(tag, link, timeoutMs, maxBytes, null)
-            // Геттеры без `get`-префикса — см. BoxCommandClient.getUrlViaOutbound.
+
             mapOf(
                 "status" to r.status(),
                 "content" to r.content(),
@@ -134,8 +134,8 @@ object ProbeSession : CommandServerHandler {
         }
         if (monitorOwned) {
             monitorOwned = false
-            // VPN мог уже перехватить монитор (start VPN глушит probe и
-            // стартует монитор сам) — гасим только пока туннеля нет.
+
+
             if (BoxService.commandClient == null) {
                 runCatching { runBlocking { DefaultNetworkMonitor.stop() } }
             }
@@ -144,13 +144,13 @@ object ProbeSession : CommandServerHandler {
         probeScope = null
     }
 
-    // ─── CommandServerHandler (probe-инстанс) — минимальные no-op'ы ──────
+
 
     override fun serviceReload() {}
 
-    /// Ядро может попросить остановиться. НЕ synchronized-путь напрямую:
-    /// колбэк приходит из Go-потока, а монитор может держать start() —
-    /// разносим на отдельный поток, чтобы не словить deadlock через JNI.
+
+
+
     override fun serviceStop() {
         Thread { runCatching { stop() } }.start()
     }
@@ -158,8 +158,8 @@ object ProbeSession : CommandServerHandler {
     override fun getSystemProxyStatus(): SystemProxyStatus = SystemProxyStatus()
     override fun setSystemProxyEnabled(isEnabled: Boolean) {}
 
-    /// Error-метод: gomobile ловит исключение и вернёт его как Go error —
-    /// до JNI Runtime::Abort не доходит (паттерн BoxService).
+
+
     override fun connectSSHAgent(): Int =
         throw UnsupportedOperationException("SSH agent not supported")
 
@@ -169,14 +169,14 @@ object ProbeSession : CommandServerHandler {
         runCatching { Log.d(TAG, "[core] $message") }
     }
 
-    /// Платформа probe-инстанса: конфиг без tun → `openTun` не вызывается
-    /// (§119-инвариант); дефолты `PlatformInterfaceWrapper` покрывают
-    /// остальное. Уведомления глушим — сессия невидимая.
+
+
+
     private object ProbePlatform : PlatformInterfaceWrapper {
         override fun sendNotification(notification: io.nekohasekai.libbox.Notification) {}
     }
 
-    /// Клиент без подписок — только unary urlTestOutbound (аналог PingHandler).
+
     private object ProbeClientHandler : CommandClientHandler {
         override fun connected() { runCatching { Log.d(TAG, "client connected") } }
         override fun disconnected(message: String) {
@@ -193,7 +193,7 @@ object ProbeSession : CommandServerHandler {
         override fun writeGroups(groups: OutboundGroupIterator?) { runCatching { } }
         override fun writeOutbounds(outbounds: OutboundGroupItemIterator?) { runCatching { } }
         override fun writeConnectionEvents(message: ConnectionEvents?) { runCatching { } }
-        // §261 — CommandClientHandler расширен writeDNSQuery. Probe DNS не слушает.
+
         override fun writeDNSQuery(query: DnsQuery?) { runCatching { } }
     }
 }

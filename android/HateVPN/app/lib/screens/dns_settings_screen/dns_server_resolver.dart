@@ -6,27 +6,27 @@ import '../../services/builder/post_steps.dart'
 import '../../services/builder/preset_expand.dart' show normalizeDnsDetour;
 import 'resolved_server.dart';
 
-/// §044: render list — typed `ResolvedServer` для каждой ref-записи.
-///
-/// Single source of truth для полей:
-/// - `tag` — из ref'а (синтезируется в body для display)
-/// - `description` — из ref'а если переопределён, иначе из canonical
-/// - `enabled` — из ref'а
-/// - `body` — для inline это `ref.body` + injected tag; для template —
-///   §117-обёртка `{vars, server}` с подставленными `@var`'ами (значения из
-///   `ref.varValues` / дефолты) + нормализованный detour (display = emit);
-///   для preset — canonical lookup + strip meta + injected tag
-///
-/// `kind` / `overrides` / `presetLabel` / `vars` / `varValues` /
-/// `lockedByPreset` — typed accessors на `ResolvedServer`.
-///
-/// — pure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 List<ResolvedServer> resolveDisplayedServers(
   List<DnsServerRef> servers,
   Map<String, Map<String, dynamic>> templateByTag,
   Map<String, Map<String, dynamic>> presetServersByTag, {
-  // §117 задача 3: tag → имя routing-правила с активной DNS-опцией
-  // (lifecycle-лок «used by <правило>»).
+
+
   Map<String, String> ruleRefsByTag = const {},
 }) {
   final out = <ResolvedServer>[];
@@ -47,7 +47,7 @@ List<ResolvedServer> resolveDisplayedServers(
       case DnsServerInline():
         kind = ServerKind.inline;
         body = Map<String, dynamic>.from(ref.body);
-        // Override-detection (preset wins over template).
+
         if (presetServersByTag.containsKey(tag)) {
           overrides = ServerKind.preset;
           final p = presetServersByTag[tag]!;
@@ -61,7 +61,7 @@ List<ResolvedServer> resolveDisplayedServers(
       case DnsServerPreset():
         kind = ServerKind.preset;
         final p = presetServersByTag[tag];
-        if (p == null) continue; // orphan
+        if (p == null) continue;
         body = Map<String, dynamic>.from(p)
           ..remove('_preset_label')
           ..remove('_preset_id');
@@ -73,14 +73,14 @@ List<ResolvedServer> resolveDisplayedServers(
       case DnsServerTemplate():
         kind = ServerKind.template;
         final t = templateByTag[tag];
-        if (t == null) continue; // orphan
-        // §117: обёртка `{description, enabled, vars?, server}` — body это
-        // `server` с подставленными vars; display показывает emit-форму
-        // (detour normalized), поэтому direct-out в диалоге не светится.
+        if (t == null) continue;
+
+
+
         varValues = ref.varValues;
         final resolvedBody =
             resolveTemplateDnsServerBody(t, varValues: varValues);
-        if (resolvedBody == null) continue; // malformed wrapper
+        if (resolvedBody == null) continue;
         normalizeDnsDetour(resolvedBody);
         body = resolvedBody;
         vars = (t['vars'] as List<dynamic>? ?? const [])
@@ -90,14 +90,14 @@ List<ResolvedServer> resolveDisplayedServers(
         canonicalDescription = t['description']?.toString();
     }
 
-    // Synthesize tag в body (single source of truth — ref.tag).
-    // Strip meta (description/enabled из canonical body не нужны).
+
+
     body
       ..['tag'] = tag
       ..remove('description')
       ..remove('enabled');
 
-    // Resolved description: ref.description если есть; иначе canonical's.
+
     final refDesc = ref.description;
     final description = (refDesc != null && refDesc.isNotEmpty)
         ? refDesc
@@ -117,18 +117,18 @@ List<ResolvedServer> resolveDisplayedServers(
       usedByRule: ruleRefsByTag[tag],
     ));
   }
-  // §044: render-order — template → preset → inline (см. ServerKind enum).
-  // Stable sort: внутри каждой группы insertion-order сохраняется.
+
+
   out.sort((a, b) => a.kind.index.compareTo(b.kind.index));
   return out;
 }
 
-/// Tags доступные в dropdown'ах (DNS Final / Default Resolver / per-rule).
-/// Filter `enabled` на ref-level. §117: locked-сервер (реферится активным
-/// пресетом или правилом) build всегда force-include'ит — показываем его
-/// даже при выключенном тоггле.
-///
-/// pure.
+
+
+
+
+
+
 List<String> enabledServerTags(List<ResolvedServer> displayedServers) {
   final out = <String>[];
   for (final s in displayedServers) {
@@ -139,16 +139,16 @@ List<String> enabledServerTags(List<ResolvedServer> displayedServers) {
   return out;
 }
 
-/// §117 (задача 4b): rename тега inline-сервера — каскад по ссылкам в
-/// state'е DNS-экрана, чтобы переименование не орфанило рефы:
-/// - `domain_resolver` в body других inline-серверов;
-/// - значения vars типа `dns_servers` (dom_resolver) у template-серверов;
-/// - `server` в §061 DNS-правилах (kind inline/srs);
-/// - `dns_final` / `dns_default_domain_resolver`.
-///
-/// Мутирует [servers]/[rules] in-place; обновлённые resolver-значения
-/// возвращает record'ом. Рефы routing-правил (задача 3) — отдельным
-/// [renameRuleDnsServerTag] (другой storage). — pure.
+
+
+
+
+
+
+
+
+
+
 ({String dnsFinal, String defaultResolver}) renameDnsServerTagRefs({
   required List<DnsServerRef> servers,
   required List<DnsRuleRef> rules,
@@ -167,8 +167,8 @@ List<String> enabledServerTags(List<ResolvedServer> displayedServers) {
               body: {...body, 'domain_resolver': newTag});
         }
       case DnsServerTemplate(:final varValues) when varValues.isNotEmpty:
-        // Только vars типа dns_servers — enum-значение может текстуально
-        // совпасть с тегом, его не трогаем.
+
+
         final wrapper = templateByTag[entry.tag];
         final dnsVarNames = <String>{
           for (final d in (wrapper?['vars'] as List<dynamic>? ?? const [])
@@ -196,7 +196,7 @@ List<String> enabledServerTags(List<ResolvedServer> displayedServers) {
         rules[i] = entry.copyWith(rule: {...rule, 'server': newTag});
       case DnsRuleSrs(:final server) when server == oldTag:
         rules[i] = entry.copyWith(server: newTag);
-      // §439 A1 — сборка читает `server` и из `body` (форма §294).
+
       case DnsRuleSrs(:final body?) when body['server'] == oldTag:
         rules[i] = entry.copyWith(body: {...body, 'server': newTag});
       default:
@@ -210,9 +210,9 @@ List<String> enabledServerTags(List<ResolvedServer> displayedServers) {
   );
 }
 
-/// §117 (задача 4b): rename тега в DNS-опциях routing-правил (задача 3,
-/// `dns.serverTag`). Возвращает обновлённый список; если ссылок нет —
-/// исходный (identical — caller может не персистить). — pure.
+
+
+
 List<CustomRule> renameRuleDnsServerTag(
   List<CustomRule> rules,
   String oldTag,
@@ -227,18 +227,18 @@ List<CustomRule> renameRuleDnsServerTag(
       CustomRuleInline() => cr.copyWith(dns: dns.copyWith(serverTag: newTag)),
       CustomRuleSrs() => cr.copyWith(dns: dns.copyWith(serverTag: newTag)),
       CustomRulePreset() => cr,
-      // §225 — json-правило не имеет dns-опции (cr.dns==null отсеян выше).
+
       CustomRuleJson() => cr,
     };
   }).toList(growable: false);
   return changed ? out : rules;
 }
 
-/// §033: orphan-cleanup safety — only persist entries whose source still
-/// exists. UI mutation already filtered, но keep guard symmetric с
-/// resolveDnsRulesList semantics.
-///
-/// pure.
+
+
+
+
+
 List<DnsRuleRef> cleanDnsRulesForPersist(
   List<DnsRuleRef> rules,
   Map<String, Map<String, dynamic>> templateRulesByName,

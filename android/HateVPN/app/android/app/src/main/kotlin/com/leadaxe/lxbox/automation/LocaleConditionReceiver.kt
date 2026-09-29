@@ -7,15 +7,15 @@ import android.util.Log
 import com.leadaxe.lxbox.vpn.BoxVpnService
 import com.leadaxe.lxbox.vpn.VpnStatus
 
-/// §047 Шаг 2 — condition-плагин (Locale/Tasker «State → Plugin → L×Box»).
-///
-/// Host (Tasker) шлёт `QUERY_CONDITION` + `EXTRA_BUNDLE` периодически и читает
-/// **ordered-broadcast result code**: SATISFIED / UNSATISFIED / UNKNOWN.
-///
-/// Отвечать обязаны **синхронно** — Flutter-engine может спать. VPN up/down
-/// читаем из [BoxVpnService.currentStatus] (companion @Volatile, всегда жив).
-/// Активную ноду/группу — из native-кеша `lxbox_automation` prefs (Dart
-/// зеркалит туда при смене через `setAutomationActiveState`).
+
+
+
+
+
+
+
+
+
 class LocaleConditionReceiver : BroadcastReceiver() {
 
     companion object {
@@ -45,7 +45,7 @@ class LocaleConditionReceiver : BroadcastReceiver() {
             setResultCode(result)
         } catch (t: Throwable) {
             Log.e(TAG, "onReceive failed → UNKNOWN", t)
-            // setResultCode мог не успеть — выставляем UNKNOWN best-effort.
+
             runCatching { setResultCode(LocaleApi.RESULT_CONDITION_UNKNOWN) }
         }
     }
@@ -60,8 +60,8 @@ class LocaleConditionReceiver : BroadcastReceiver() {
         }
     }
 
-    /// Сравнение кешированного значения с ожидаемым. Нет кеша / нет ожидаемого
-    /// значения → UNKNOWN (Tasker не активирует profile на неизвестном).
+
+
     private fun matchCached(cached: String?, equals: String?): Int {
         if (equals.isNullOrEmpty() || cached == null) {
             return LocaleApi.RESULT_CONDITION_UNKNOWN

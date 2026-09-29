@@ -1,13 +1,13 @@
-/// Миграция документа хранения формы 2.23.2 в форму контракта 1.0 (§439 §3).
-///
-/// Чистая функция над документом: `lxbox_settings.json` на диске, файл слота
-/// Workspaces, блок `storage` внутреннего бэкапа, тело Debug
-/// `POST /backup/import`. Файлы, копия `.v0.bak` и журнал — у вызывающего
-/// (`settings_storage/io.dart`).
-///
-/// Путь данных: замороженный читатель 2.23.2 (`legacy_form_v0.dart`) →
-/// модели → кодек записей (`models/codec/`). Что прочитано не дословно,
-/// называется в [StorageMigrationResult.warnings] с именами записей.
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../models/codec/auto_group_record.dart';
@@ -30,7 +30,7 @@ import 'legacy_autogroup.dart';
 import 'legacy_form_v0.dart';
 import 'migrate_node_links.dart';
 
-/// Ключи формы 2.23.2, которые миграция переводит в записи 1.0.
+
 const Set<String> kLegacyStorageKeys = {
   _kServerLists,
   _kChains,
@@ -43,11 +43,11 @@ const _kChains = 'chains';
 const _kCustomRules = 'custom_rules';
 const _kDnsOptions = 'dns_options';
 
-/// Легаси-имена состава Направлений (до §393 A2).
+
 const _kLegacyDirections = 'channels';
 const _kLegacyDirectionsMigrated = 'channels_migrated';
 
-/// Ключи без читателей (§439 §1.1): удаляются миграцией.
+
 const Set<String> _kDeadTopLevelKeys = {
   'excluded_nodes',
   'preset_ids_remapped',
@@ -59,10 +59,10 @@ const Set<String> _kDeadTopLevelKeys = {
   'show_detour_servers',
 };
 
-/// Подключи `vars` без читателей.
+
 const Set<String> _kDeadVarKeys = {'auto_rebuild'};
 
-/// Итог [migrateStorageDoc].
+
 final class StorageMigrationResult {
   const StorageMigrationResult({
     required this.doc,
@@ -72,26 +72,26 @@ final class StorageMigrationResult {
     this.warnings = const [],
   });
 
-  /// Документ формы 1.0. Без миграции — входной документ как есть (тот же
-  /// объект), иначе новая карта; вход не мутируется.
+
+
   final Map<String, dynamic> doc;
 
-  /// Документ изменён: не было `storage_version` или были ключи 2.23.2.
+
   final bool migrated;
 
-  /// `storage_version` входа; null — ключа нет (форма 2.23.2).
+
   final int? foundVersion;
 
-  /// Что сделано: счётчики записей, переименования, удалённые ключи.
+
   final List<String> info;
 
-  /// Что прочитано не дословно или потеряно, с именами записей.
+
   final List<String> warnings;
 
-  /// Отчёт одной строкой (журнал).
+
   String get summary => info.join('; ');
 
-  /// Отчёт для ответа Debug API.
+
   Map<String, dynamic> toReportJson() => {
         'migrated': migrated,
         if (foundVersion != null) 'found_version': foundVersion,
@@ -100,14 +100,14 @@ final class StorageMigrationResult {
       };
 }
 
-/// Тег preset-сервера DNS в хранении 2.23.2 → `preset_id` пресета шаблона,
-/// который его объявляет (`selectable_rules[].dns_servers[].tag`).
-///
-/// Хранение 2.23.2 держит тег конфига — в пространстве пресета
-/// (`ru-direct:dns_ru`, `namespacePresetTags`); ключи этой формы. Тег внутри
-/// пресета (`dns_ru`, хранение до §103 C7) — запасной ключ, первый объявивший
-/// побеждает: сервер получает пространство пресета и сохраняет свой
-/// выключатель и `description`.
+
+
+
+
+
+
+
+
 Map<String, String> presetIdsByDnsServerTag(Iterable<SelectableRule> presets) {
   final out = <String, String>{};
   final local = <String, String>{};
@@ -125,45 +125,45 @@ Map<String, String> presetIdsByDnsServerTag(Iterable<SelectableRule> presets) {
   return out;
 }
 
-/// `storage_version` документа; null — ключа нет или значение не версия
-/// (целое от 1).
+
+
 int? storageDocVersion(Map<String, dynamic> doc) {
   final v = doc[kStorageVersionKey];
   return v is int && v >= 1 ? v : null;
 }
 
-/// Нужна ли документу [migrateStorageDoc]: нет версии, есть ключи 2.23.2
-/// или члены папок `autogroup://` (§439 N2). Дёшево — без разбора записей.
+
+
 bool storageDocNeedsMigration(Map<String, dynamic> doc) =>
     storageDocVersion(doc) == null ||
     kLegacyStorageKeys.any(doc.containsKey) ||
     _hasLegacyAutogroups(doc[kSourcesKey]);
 
-/// §439 §3.1 п. 3 — документ хранения → форма 1.0.
-///
-/// - Есть `storage_version` и нет ключей 2.23.2 — документ не трогается;
-///   исключение — члены папок `autogroup://` в `sources[]` (записи ранних
-///   сборок 2.23.3), их переводит [migrateAutogroupMembers].
-/// - Нет `storage_version` — `server_lists`/`chains` → `sources[]` (цепочки
-///   хвостом в порядке старого `order`; ссылки на узлы — NodeLink по
-///   словарю финальных тегов, [migrateNodeLinks], узлы подписок из
-///   [subscriptionBodies] «адрес → тело `sub_cache`»), `custom_rules` → `rules[]`,
-///   `dns_options` → `dns{servers, rules}` с `ref` preset-серверов по
-///   [presetIdByDnsServerTag] (пресет не найден — `ref` = тег); ставится
-///   `storage_version: 1`. §441 — `vars` template-серверов DNS и
-///   правил-пресетов пишутся по нормам Н2–Н4 против объявлений [recordVars]
-///   (необъявленное имя и значение, равное умолчанию, снимаются молча);
-///   [RecordVarDecls.none] — как прочитаны.
-/// - Есть `storage_version` и ключи 2.23.2 (2.23.2 поверх данных 2.23.3,
-///   §3.2) — ключи 2.23.2 отбрасываются с предупреждением, записи
-///   `sources`/`rules`/`dns` остаются, версия не меняется.
-///
-/// В обоих случаях миграции удаляются ключи без читателей, а
-/// `channels`/`channels_migrated` становятся `directions`/`directions_migrated`,
-/// если новых имён нет.
-///
-/// Идемпотентна: результат, поданный снова, не меняется. Не бросает: битая
-/// запись отбрасывается с предупреждением (исходник остаётся в `.v0.bak`).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 StorageMigrationResult migrateStorageDoc(
   Map<String, dynamic> doc, {
   Map<String, String> presetIdByDnsServerTag = const {},
@@ -216,8 +216,8 @@ StorageMigrationResult migrateStorageDoc(
   Map<String, dynamic>? dns;
   if (convert) {
     if (doc.containsKey(_kServerLists) || doc.containsKey(_kChains)) {
-      // §439 п. 8 — финальные теги ссылок → NodeLink по состоянию до
-      // миграции (узлы подписок — из `sub_cache`, [subscriptionBodies]).
+
+
       sources = migrateNodeLinks(
         migrateAutogroupMembers(
             _convertSources(doc, info, warnings), info, warnings),
@@ -242,11 +242,11 @@ StorageMigrationResult migrateStorageDoc(
 
   final dropped = <String>[];
   final renamed = <String>[];
-  // §393 A2 — легаси-пара рядом со списком Направлений (перенесённым из
-  // `channels` или уже лежащим под `directions`) ставила guard
-  // `directions_migrated: true` независимо от значения `channels_migrated`:
-  // прерванная установка писала список без маркера. Переименование держит то
-  // же, иначе список остался бы без guard'а.
+
+
+
+
+
   final legacyDirectionsGuard = (doc.containsKey(_kLegacyDirections) ||
           doc.containsKey(_kLegacyDirectionsMigrated)) &&
       !doc.containsKey('directions_migrated') &&
@@ -261,8 +261,8 @@ StorageMigrationResult migrateStorageDoc(
       case kStorageVersionKey:
         break;
       case _kServerLists || _kChains:
-        // Записи цепочек идут хвостом `sources[]` (§439 п. 7): ключ встаёт
-        // на место первого из двух.
+
+
         if (sources != null && !out.containsKey(kSourcesKey)) {
           out[kSourcesKey] = sources;
         }
@@ -276,7 +276,7 @@ StorageMigrationResult migrateStorageDoc(
         warnings.add('"$key" without storage_version is replaced by '
             'the legacy keys of the same document');
       case _kLegacyDirections:
-        // §393 A2 — новое имя сильнее легаси.
+
         if (e.value != null && !doc.containsKey('directions')) {
           out['directions'] = deepCloneJson(e.value);
           renamed.add('$key → directions');
@@ -331,7 +331,7 @@ StorageMigrationResult migrateStorageDoc(
   );
 }
 
-// ─── sources ────────────────────────────────────────────────────────────────
+
 
 List<Map<String, dynamic>> _convertSources(
   Map<String, dynamic> doc,
@@ -417,9 +417,9 @@ String _sourceName(Map<String, dynamic> j) {
   return '(${j['type']} id "$id"${name is String && name.isNotEmpty ? ' "$name"' : ''})';
 }
 
-// ─── autogroup (§439 N2) ────────────────────────────────────────────────────
 
-/// Член папки с исходником `autogroup://` (`FolderMember.raw` до §439 N2).
+
+
 bool _isLegacyAutogroup(Object? node) {
   if (node is! Map) return false;
   final origin = node['origin'];
@@ -434,22 +434,22 @@ bool _hasLegacyAutogroups(Object? sources) =>
         s['nodes'] is List &&
         (s['nodes'] as List).any(_isLegacyAutogroup));
 
-/// §439 N2 — шаг миграции над записями `sources[]`: член папки с исходником
-/// `autogroup://…` (текст, которым группа хранилась до N2; разбор снят, и
-/// кодек читает такой член `unsupported`) → запись `kind: auto`
-/// (`codec/auto_group_record.dart`).
-///
-/// - `RuleMembers` (`include`/`exclude`, «все члены») переносится как есть.
-/// - Явный состав — ключи `protocol|server|port|credential` — становится
-///   парами `{id папки, тег}` по узлам той же папки (`nodeIdentityKey` над
-///   разобранными членами). Ключ нескольких членов решает включённый, если
-///   он один (его и собирала сборка). Ключ без члена, неоднозначный ключ,
-///   член без тега или с тегом, который носит ещё кто-то в папке, — строка в
-///   [warnings], член из состава снимается.
-/// - Нечитаемый текст группы — строка в [warnings], член снимается (текст
-///   остаётся в `.v0.bak`).
-///
-/// Идемпотентен: записей `autogroup://` в результате нет.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 List<Map<String, dynamic>> migrateAutogroupMembers(
   List<Map<String, dynamic>> sources,
   List<String> info,
@@ -499,8 +499,8 @@ List<Map<String, dynamic>> migrateAutogroupMembers(
   return out;
 }
 
-/// Узел члена папки из исходника записи; нет исходника или не разобрался —
-/// `null`.
+
+
 NodeSpec? _recordNode(Object? node) {
   if (node is! Map) return null;
   final origin = node['origin'];
@@ -553,7 +553,7 @@ Map<String, dynamic>? _autogroupRecord(
   );
 }
 
-// ─── rules ──────────────────────────────────────────────────────────────────
+
 
 List<Map<String, dynamic>> _convertRules(
   Object? raw,
@@ -613,9 +613,9 @@ bool _isPort(String p) {
   return n != null && n >= 0 && n <= 65535;
 }
 
-/// §439 §2.3 п. 3, В2 — json-правило: объект → одна запись `verbatim` с
-/// телом; массив с объектами → по записи на объект ([splitJsonRuleArrays] —
-/// тот же путь, что у сохранения правил); прочее → маркер `verbatim` без тела.
+
+
+
 List<Map<String, dynamic>> _jsonRuleRecords(
   CustomRuleJson rule,
   List<String> warnings,
@@ -633,7 +633,7 @@ List<Map<String, dynamic>> _jsonRuleRecords(
   return records;
 }
 
-// ─── dns ────────────────────────────────────────────────────────────────────
+
 
 Map<String, dynamic> _convertDns(
   Object? raw,
@@ -715,7 +715,7 @@ Map<String, dynamic> _convertDns(
   }
 
   for (final k in raw.keys) {
-    // `rules_json` не читается с §061: удаляется молча.
+
     if (k == 'servers' || k == 'rules' || k == 'rules_json') continue;
     warnings.add('$_kDnsOptions.$k: unknown key, dropped');
   }

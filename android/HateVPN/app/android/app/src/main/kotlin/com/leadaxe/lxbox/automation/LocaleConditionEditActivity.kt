@@ -16,13 +16,13 @@ import android.widget.TextView
 import com.leadaxe.lxbox.R
 import com.leadaxe.lxbox.vpn.L10n
 
-/// §047 Шаг 2 — edit-экран condition-плагина («State → Plugin → L×Box»).
-/// Список проверок сразу (RadioGroup): VPN up / Active node = / Active group =.
-/// Для node/group показывается поле значения. Save → bundle + blurb.
+
+
+
 class LocaleConditionEditActivity : Activity() {
 
-    /// (check, label-resource, needs value).
-    /// §279 — check = wire (Tasker-bundle), label — ресурс (L10n).
+
+
     private val checks = listOf(
         Triple("vpn-up", R.string.automation_check_vpn_up, false),
         Triple("active-node", R.string.automation_check_active_node, true),
@@ -110,7 +110,7 @@ class LocaleConditionEditActivity : Activity() {
         val idx = if (checkedId in checks.indices) checkedId else 0
         val (check, labelRes, needsValue) = checks[idx]
         val value = if (needsValue) valueInput.text.toString().trim() else null
-        // §279 — блёрб display-only (host матчит по extras): активная локаль.
+
         val blurbLabel = L10n.str(this, labelRes)
         val blurb = if (needsValue && !value.isNullOrEmpty()) {
             "$blurbLabel $value"

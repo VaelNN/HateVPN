@@ -5,25 +5,25 @@ import 'package:analyzer/source/line_info.dart';
 
 import 'package:lxbox/services/l10n/plural_resolver.dart';
 
-// §285 Ф3 — natural-key CI-гейт (аналог мёртвого arb_check для ARB-мира).
-// Держит call-site'ы getLocalText и словарь assets/l10n/<tag>/ui.json в
-// синхроне. Логика чистая (без dart:io) — тестируется из
-// test/tool/ui_check_test.dart; entrypoint — tool/l10n/ui_check.dart.
-//
-// Скан AST-синтаксический (без резолюции типов), как hardcoded_scan: ловим
-// вызовы `.s(...)`/`.plural(...)` у известных локализатор-ресиверов
-// (getLocalText — глобальный getter; `t`/`loc` — GetLocalText-параметры в
-// renderWith/messageWith-телах; GetLocalText.en — пиненный английский). Из
-// каждого извлекаем английский КЛЮЧ-литерал (первый строковый аргумент, после
-// опционального ведущего int-индекса формы), индекс формы (0 если нет) и
-// признак .plural. Не-литеральный ключ (переменная/интерполяция) валидировать
-// нельзя — считаем в dynamicKeys, но не в keys.
 
-/// Ресиверы, которые считаем локализатором GetLocalText. `.s`/`.plural` на
-/// любом другом ресивере игнорируется (в lib/ пересечений нет — см. ui_check).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const Set<String> _localizerNames = {'getLocalText', 't', 'loc'};
 
-/// Одно собранное обращение к getLocalText из кода.
+
 class UiKeyUse {
   UiKeyUse({
     required this.file,
@@ -36,19 +36,19 @@ class UiKeyUse {
   final String file;
   final int line;
 
-  /// Английский ключ-литерал (канонизированный: интерполяции → `{}`; в
-  /// натуральных ключах их быть не должно, но канонизация консистентна со
-  /// сканом hardcoded).
+
+
+
   final String key;
 
-  /// 0 — корневая форма; N≥1 — special["N"].
+
   final int formIndex;
 
-  /// true — вызов .plural (ждём plural-объект); false — .s (ждём String).
+
   final bool isPlural;
 }
 
-/// Динамический (не-литеральный) ключ — валидировать нельзя, только считаем.
+
 class DynamicKeyUse {
   DynamicKeyUse(this.file, this.line, this.isPlural);
   final String file;
@@ -56,14 +56,14 @@ class DynamicKeyUse {
   final bool isPlural;
 }
 
-/// Результат AST-скана одного файла/строки.
+
 class UiScanResult {
   final List<UiKeyUse> uses = [];
   final List<DynamicKeyUse> dynamicKeys = [];
 }
 
-/// Парсит [content] (путь [path] — только для сообщений/сайтов) и собирает все
-/// обращения к локализатору.
+
+
 UiScanResult scanForUiKeys({required String path, required String content}) {
   final parsed =
       parseString(content: content, path: path, throwIfDiagnostics: false);
@@ -89,17 +89,17 @@ class _UiVisitor extends RecursiveAstVisitor<void> {
     super.visitMethodInvocation(node);
   }
 
-  /// Ресивер — локализатор: простой идентификатор из [_localizerNames] или
-  /// `GetLocalText.en`.
+
+
   bool _isLocalizer(Expression? target) {
     if (target == null) return false;
     if (target is SimpleIdentifier) return _localizerNames.contains(target.name);
-    // GetLocalText.en — PrefixedIdentifier (prefix=GetLocalText, ident=en).
+
     if (target is PrefixedIdentifier) {
       return target.prefix.name == 'GetLocalText' &&
           target.identifier.name == 'en';
     }
-    // Реже — PropertyAccess (напр. через this/скобки) c .en.
+
     if (target is PropertyAccess) {
       return target.propertyName.name == 'en' &&
           target.target?.toSource() == 'GetLocalText';
@@ -108,13 +108,13 @@ class _UiVisitor extends RecursiveAstVisitor<void> {
   }
 
   void _handle(MethodInvocation node, {required bool isPlural}) {
-    // Только позиционные аргументы участвуют в дизамбигуации формы/ключа
-    // (именованных у .s/.plural нет по сигнатуре).
+
+
     final args = node.argumentList.arguments;
     if (args.isEmpty) return;
     final line = lineInfo.getLocation(node.methodName.offset).lineNumber;
 
-    // Ведущий int-литерал = индекс особой формы; тогда ключ — второй аргумент.
+
     var idx = 0;
     var formIndex = 0;
     final first = args[0];
@@ -123,8 +123,8 @@ class _UiVisitor extends RecursiveAstVisitor<void> {
       idx = 1;
     }
     if (idx >= args.length) {
-      // `.s(1)` без ключа — синтаксически возможно, но бессмысленно; считаем
-      // динамическим (нечего валидировать).
+
+
       res.dynamicKeys.add(DynamicKeyUse(file, line, isPlural));
       return;
     }
@@ -143,14 +143,14 @@ class _UiVisitor extends RecursiveAstVisitor<void> {
     ));
   }
 
-  /// Строковый ключ: простой литерал или adjacent-строки. Интерполяция или
-  /// любое другое выражение → null (динамический ключ). Используем
-  /// canonicalLiteral, но принимаем только литералы без интерполяции —
-  /// натуральный ключ обязан быть статической строкой.
+
+
+
+
   String? _literalKey(Expression e) {
     if (e is SimpleStringLiteral) return e.value;
     if (e is AdjacentStrings) {
-      // Все части должны быть простыми строками.
+
       final buf = StringBuffer();
       for (final s in e.strings) {
         if (s is SimpleStringLiteral) {
@@ -161,17 +161,17 @@ class _UiVisitor extends RecursiveAstVisitor<void> {
       }
       return buf.toString();
     }
-    // StringInterpolation и прочее — динамический ключ.
+
     return null;
   }
 }
 
-// -- placeholder arity ----------------------------------------------------
 
-/// Множество placeholder-«слотов» в printf-строке. Последовательные `%s`/`%d`
-/// нумеруются по порядку (1..N); явные `%K$s`/`%K$d` дают слот K. `%%` —
-/// литеральный процент, не слот. Возвращаем множество 1-based индексов —
-/// сравнение по нему устойчиво к смешению явной/неявной нумерации.
+
+
+
+
+
 Set<int> placeholderSlots(String template) {
   final slots = <int>{};
   var seq = 0;
@@ -197,7 +197,7 @@ Set<int> placeholderSlots(String template) {
         i = j + 2;
         continue;
       }
-      // не форма %K$ — трактуем '%' буквально
+
       i++;
       continue;
     }
@@ -217,9 +217,9 @@ bool _isDigit(String c) {
   return u >= 0x30 && u <= 0x39;
 }
 
-// -- валидация словаря против собранных ключей ----------------------------
 
-/// Одна проблема валидации. Уровень (fail/warn) решает вызывающий по [kind].
+
+
 class UiFinding {
   UiFinding(this.kind, this.message);
   final UiFindingKind kind;
@@ -227,31 +227,31 @@ class UiFinding {
 }
 
 enum UiFindingKind {
-  /// Ключ из кода отсутствует в словаре. warn (strict→fail).
+
   missing,
 
-  /// Ключ словаря не встречается в коде. warn (strict→fail).
+
   orphan,
 
-  /// Особая форма N определена в словаре, но не используется с этим индексом.
-  /// warn (strict→fail).
+
+
   orphanSpecial,
 
-  /// Ключ зовут и как .s и как .plural — противоречие. fail всегда.
+
   usageConflict,
 
-  /// .plural-ключ без plural-объекта (или неполный набор форм); .s-ключ с
-  /// plural-объектом-значением. fail всегда.
+
+
   shape,
 
-  /// Расхождение арности плейсхолдеров ключ↔перевод/форма. fail всегда.
+
   arity,
 }
 
-/// Итог валидации: находки + счётчики для summary-строки.
+
 class UiValidation {
   final List<UiFinding> findings = [];
-  int keys = 0; // уникальных литеральных ключей
+  int keys = 0;
   int missing = 0;
   int orphan = 0;
   int arityErrors = 0;
@@ -263,10 +263,10 @@ class UiValidation {
       f.kind == UiFindingKind.arity);
 }
 
-/// Ядро валидации: чистая функция над собранными обращениями [uses],
-/// количеством динамических ключей [dynamicCount] и словарём [dict]
-/// (englishKey to entry-map, как в `assets/l10n/ru/ui.json`). [forms] —
-/// обязательный набор plural-форм активного resolver'а (RuPluralResolver.forms).
+
+
+
+
 UiValidation validateUiKeys({
   required List<UiKeyUse> uses,
   required int dynamicCount,
@@ -276,10 +276,10 @@ UiValidation validateUiKeys({
   final v = UiValidation();
   v.dynamicSkipped = dynamicCount;
 
-  // Индекс использований по ключу: как звали (.s/.plural) и какие формы.
+
   final asS = <String>{};
   final asPlural = <String>{};
-  // key → set of special-form indices used with .s / .plural (0 = root).
+
   final usedIndices = <String, Set<int>>{};
   for (final u in uses) {
     (u.isPlural ? asPlural : asS).add(u.key);
@@ -288,13 +288,13 @@ UiValidation validateUiKeys({
   final allKeys = {...asS, ...asPlural};
   v.keys = allKeys.length;
 
-  // 1. Конфликт использования: ключ и .s и .plural.
+
   for (final k in asS.intersection(asPlural)) {
     v.findings.add(UiFinding(UiFindingKind.usageConflict,
         'key "$k" is invoked both as .s and .plural — pick one'));
   }
 
-  // 2. Missing: ключ из кода отсутствует в словаре.
+
   for (final k in (allKeys.toList()..sort())) {
     if (!dict.containsKey(k)) {
       v.missing++;
@@ -303,7 +303,7 @@ UiValidation validateUiKeys({
     }
   }
 
-  // 3. Orphan: ключ словаря, не встречающийся в коде.
+
   for (final k in (dict.keys.toList()..sort())) {
     if (!allKeys.contains(k)) {
       v.orphan++;
@@ -312,16 +312,16 @@ UiValidation validateUiKeys({
     }
   }
 
-  // 4. Форма/арность по каждому присутствующему ключу.
+
   for (final k in (allKeys.toList()..sort())) {
     final entry = dict[k];
-    if (entry is! Map) continue; // missing уже зарепорчен
+    if (entry is! Map) continue;
 
     final wantsPlural = asPlural.contains(k);
     final wantsString = asS.contains(k);
     final rootValue = entry['value'];
 
-    // Форма корня (index 0) — если ключ используется с индексом 0.
+
     final indices = usedIndices[k] ?? const <int>{};
     final keySlots = placeholderSlots(k);
 
@@ -338,7 +338,7 @@ UiValidation validateUiKeys({
       );
     }
 
-    // Особые формы N≥1.
+
     final special = entry['special'];
     final specialMap = special is Map ? special : const {};
     for (final idx in indices.where((i) => i >= 1)) {
@@ -353,7 +353,7 @@ UiValidation validateUiKeys({
         key: k,
         label: 'special[$idx]',
         value: form['value'],
-        // Особая форма наследует .s/.plural-намерение того же ключа.
+
         wantsPlural: wantsPlural,
         wantsString: wantsString,
         forms: forms,
@@ -361,7 +361,7 @@ UiValidation validateUiKeys({
       );
     }
 
-    // Orphan-special: форма в словаре, не используемая ни одним индексом кода.
+
     for (final sk in specialMap.keys) {
       final n = int.tryParse('$sk');
       if (n == null) continue;
@@ -377,8 +377,8 @@ UiValidation validateUiKeys({
   return v;
 }
 
-/// Проверяет одну форму-значение (корень или special) на shape (.s→String,
-/// .plural→полный plural-объект) и арность плейсхолдеров против ключа.
+
+
 void _checkForm({
   required UiValidation v,
   required String key,
@@ -389,7 +389,7 @@ void _checkForm({
   required Set<String> forms,
   required Set<int> keySlots,
 }) {
-  // .plural — ждём plural-объект (Map со ВСЕМИ формами resolver'а).
+
   if (wantsPlural) {
     if (value is! Map) {
       v.findings.add(UiFinding(UiFindingKind.shape,
@@ -403,7 +403,7 @@ void _checkForm({
           'key "$key" $label plural object is missing forms: '
           '{${(missingForms.toList()..sort()).join(', ')}}'));
     }
-    // Арность по каждой присутствующей форме.
+
     for (final f in (forms.intersection(have).toList()..sort())) {
       final formStr = value[f];
       if (formStr is! String) {
@@ -416,7 +416,7 @@ void _checkForm({
     return;
   }
 
-  // .s — ждём строку.
+
   if (wantsString) {
     if (value is! String) {
       v.findings.add(UiFinding(UiFindingKind.shape,
@@ -440,12 +440,12 @@ void _checkArity(
   }
 }
 
-/// Экспорт для отладки/тестов: набор форм активного ru-resolver'а.
+
 Set<String> ruForms() => const RuPluralResolver().forms;
 
-/// Набор plural-форм языка — зеркало выбора resolver'а в
-/// `LocaleController._buildGetLocalText`. Новый язык с собственным
-/// resolver'ом дописывается в обе ветки одновременно.
+
+
+
 Set<String> formsForTag(String tag) => switch (tag) {
       'ru' => const RuPluralResolver().forms,
       'zh' => const ZhPluralResolver().forms,

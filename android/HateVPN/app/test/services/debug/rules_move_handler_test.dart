@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -25,15 +25,15 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §370 — `POST /rules/move` и синхронность Debug API с UI по оси `num`.
-///
-/// Ручка существует ради тестируемости порядка: без неё перестановку можно
-/// проверить только тапами по экрану. Идёт тем же путём, что drag в UI
-/// (`placeRuleAfter` + `sortRulesByNum` + персист), поэтому этот тест
-/// одновременно покрывает и UI-механику.
-///
-/// Шаблон грузится настоящий (`rootBundle` в тестах читает реальные assets) —
-/// значит проверяется фактическая раскладка §370 §2, а не синтетика.
+
+
+
+
+
+
+
+
+
 void main() {
   late Directory tempDir;
   late DebugContext ctx;
@@ -162,7 +162,7 @@ void main() {
   });
 
   test('storage без num (до §370) размечается на первом move', () async {
-    final a = CustomRuleInline(name: 'a'); // orderNum == null
+    final a = CustomRuleInline(name: 'a');
     final b = CustomRuleInline(name: 'b');
     final c = CustomRuleInline(name: 'c');
     await seed([a, b, c]);

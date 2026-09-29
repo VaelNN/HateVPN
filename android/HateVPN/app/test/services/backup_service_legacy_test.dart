@@ -12,17 +12,17 @@ import '../storage_migration/golden_harness.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §439 §3.4 — внутренний бэкап (`app: lxbox`, `kind: backup`) со снимком
-/// хранения 2.23.2: блок `storage` мигрирует при разборе, превью и
-/// категорийный фильтр видят форму 1.0 (источники делятся по
-/// `sources[].kind`: цепочка — Routing, прочее — Server lists), восстановление
-/// собирает тот же `config.json`, что и хранение до миграции.
+
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
-  /// Блок `storage`, каким его писал внутренний бэкап 2.23.2.
+
   Map<String, dynamic> legacyStorage() => {
         'vars': {
           'log_level': 'warn',
@@ -129,7 +129,7 @@ void main() {
       }
 
       expect(contents.availableCategories(), allStorageCategories);
-      // §524 — цепочки в счёте Server lists: они такие же записи списка.
+
       expect(contents.countFor(BackupCategory.serverLists), 5,
           reason: '3 контейнера + 2 цепочки');
       expect(contents.splitServerLists(), (subs: 1, custom: 2));
@@ -148,8 +148,8 @@ void main() {
           {'kind': 'preset', 'ref': 'ru-direct', 'enabled': true});
     });
 
-    // §524 — `sources[]` больше не режется по роду: цепочка едет галкой
-    // Server lists вместе с остальными записями (решение владельца 24.09).
+
+
     test('sources[] едет одной категорией Server lists целиком', () async {
       final storage =
           (await const BackupService().parseImport(envelope(legacyStorage())))
@@ -224,15 +224,15 @@ void main() {
       expect(lists.map((l) => l.id), ['sub-1', 'srv-1', 'fold-1']);
       expect(lists.first.name, 'Local copy',
           reason: 'id уже есть — запись хранения не заменяется');
-      // §524 — цепочки идут той же галкой: архив с цепочками заменяет их.
+
       expect((await SettingsStorage.getChains()).map((c) => c.tag),
           ['first', 'second']);
     });
 
-    // §524 — обратная совместимость ЧТЕНИЯ: старый архив экспортировали
-    // галкой Routing, и цепочки в нём лежат в том же ключе `sources[]`.
-    // Восстановление с одной галкой Routing цепочек больше не применяет — их
-    // категория теперь Server lists; сам файл читается по-прежнему.
+
+
+
+
     test('merge Routing старого архива цепочек не применяет, источники и '
         'цепочки хранения на месте (§524)', () async {
       await SettingsStorage.saveServerLists([
@@ -261,8 +261,8 @@ void main() {
           reason: 'цепочки хранения не тронуты — галка не их');
     });
 
-    // §524 — тот же старый архив, но галкой Server lists: цепочки, которые
-    // когда-то экспортировали как Routing, читаются и применяются.
+
+
     test('старый архив с цепочками читается галкой Server lists (§524)',
         () async {
       final svc = const BackupService();
@@ -277,11 +277,11 @@ void main() {
     });
   });
 
-  // §439 п. 8 — вход старой формы через внутренний бэкап мигрирует ссылки
-  // тем же словарём, что `_load` (тела подписок из `sub_cache`): источники и
-  // цепочки после разбора бэкапа — те же записи, что в файле после первого
-  // чтения хранения. До правки позиция на узел подписки («PR DE-1») в бэкапе
-  // оставалась корневой ссылкой, и rich_v0 терял chain-1 и chain-2.
+
+
+
+
+
   for (final name in kStorageFixtures) {
     test('$name: миграция блока бэкапа = миграция _load (sources[])',
         timeout: kGoldenTimeout, () async {
@@ -300,9 +300,9 @@ void main() {
     });
   }
 
-  // §4.2 — снимок хранения 2.23.2, восстановленный из внутреннего бэкапа в
-  // пустое хранение, собирает тот же config.json, что и само хранение
-  // (эталон golden_config_test).
+
+
+
   for (final name in kStorageFixtures) {
     test('$name: бэкап 2.23.2 → replace всех категорий → config.json = эталон',
         timeout: kGoldenTimeout, () async {

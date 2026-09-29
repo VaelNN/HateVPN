@@ -6,25 +6,25 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 
 import 'engine_test_setup.dart';
 
-/// §480 W5 — СЕКЦИИ ВИДА ИСТОЧНИКА `singbox`.
-///
-/// Секции порождены механически (норма `MAPPER_ENGINE.md` §8a, ответ
-/// лаунчера на находку 7 LxBox: «да, генерируйте»), поэтому проверяет их
-/// ЛИНТЕР ФОРМЫ, а не ревью глазами.
-///
-/// **Граница волны.** `parseSingboxEntry` — читатель тела в модель — и форма
-/// хранения `rawSource` (§454–§456) не меняются ни строкой: секция `singbox`
-/// работает ПЕРЕД санитайзером, как нормализатор диалекта. Поэтому тут нет
-/// сверки тел: сверять нечего, тела строит прежний код.
+
+
+
+
+
+
+
+
+
+
 const _registryRoot = 'assets/contract';
 const _draftRoot = 'assets/contract_draft';
 
-/// Типы тела, которые узлом НЕ становятся: группа и цепочка — способ
-/// собрать документ, а не запись сервера.
+
+
 const _notNodes = {'group', 'chain'};
 
-/// Живые элементы sing-box-документа: по одному на каждый вид тела, в том
-/// виде, в каком их присылают подписки.
+
+
 final Map<String, Map<String, dynamic>> _elements = {
   'trojan': {'type': 'trojan', 'server': 'h', 'server_port': 443},
   'vless': {'type': 'vless', 'server': 'h', 'server_port': 443, 'uuid': 'u'},
@@ -87,9 +87,9 @@ void main() {
       if (s.bodySource != 'singbox') {
         bad.add('$type: body_source=${s.bodySource}, ожидался singbox');
       }
-      // `keep`, а не `drop`: чужой ключ может быть расширением форка.
-      // Тип с `body.fields_unchecked` (контракт 1.1.99, openvpn-client)
-      // полей не описывает и unknown_key не несёт по решению владельца.
+
+
+
       if (!ContractRegistry.I.isUncheckedType(type)) {
         if (s.unknownKeyAction != 'keep') {
           bad.add('$type: unknown_key.action=${s.unknownKeyAction}');
@@ -101,8 +101,8 @@ void main() {
       if (defaults != 1) {
         bad.add('$type: веток default $defaults, норма требует ровно одну');
       }
-      // Записи появляются ТОЛЬКО там, где диалект есть. Пустая `params` —
-      // нормальное конечное состояние, и требовать записей нельзя.
+
+
     }
     expect(bad, isEmpty, reason: bad.join('\n'));
   }, skip: skip);
@@ -127,18 +127,18 @@ void main() {
     expect(endpoint.level, 'endpoint');
     final outbound = s.forms.firstWhere((f) => f.id == 'outbound');
     expect(outbound.level, 'outbound');
-    // Порядок нормативен: точный предикат идёт РАНЬШЕ ветки «всё остальное»,
-    // иначе `default` перехватил бы элемент с peers[].
+
+
     expect(s.forms.indexOf(endpoint), lessThan(s.forms.indexOf(outbound)));
   }, skip: skip);
 
-  // §533 / контракт 1.1.53 (§49 п.9) — ЧЕРНОВИКА `singbox/` БОЛЬШЕ НЕТ:
-  // контракт забрал все 13 секций в реестр (`mappers.singbox` у каждой
-  // схемы), и при исполняемой секции реестра загрузчик берёт реестр.
-  // Прежний тест требовал у каждого файла пометку `_generated` и пустую
-  // `params`; теперь проверяется обратное — что каталог не вернулся. Копия
-  // рядом с исполняемой секцией реестра молча проигрывает ей и протухает
-  // незаметно, то есть ровно та ловушка, из-за которой файлы и сняты.
+
+
+
+
+
+
+
   test('черновика singbox/ нет: секции приехали реестром', () {
     expect(Directory('$_draftRoot/singbox').existsSync(), isFalse,
         reason: 'каталог $_draftRoot/singbox вернулся. Секции mappers.singbox '

@@ -8,18 +8,18 @@ import 'package:lxbox/services/parser/uri_utils.dart';
 
 import 'engine_test_setup.dart';
 
-/// §459 (контракт §24.2 п. 7.11) — `vmess.security` = enum ядра.
-///
-/// `sing-vmess@v0.2.8` `client.go:42-54` принимает ровно шесть значений и на
-/// любом другом возвращает `ErrUnsupportedSecurityType` — фатал на ВЕСЬ
-/// конфиг, а не на один узел. Раньше парсер пропускал `aes-128-ctr` (ядро его
-/// не знает) и схлопывал рабочий `aes-128-cfb` в `auto`.
-///
-/// Все три входа (URI v2rayN `scy`, sing-box JSON, Xray JSON) идут через одну
-/// воронку [normalizeVmessSecurity].
+
+
+
+
+
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   String vmessUri(String scy) {

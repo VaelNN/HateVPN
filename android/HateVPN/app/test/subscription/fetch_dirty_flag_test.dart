@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -24,20 +24,20 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §331 (ревью) — жизненный цикл `configDirty` в fetch-пути.
-///
-/// Дефект: `_persist()` поднимал флаг на ЛЮБУЮ запись, включая чистые
-/// метаданные (пометка попытки, фейл-статус, consecutiveFails). Каждый
-/// неудачный авто-фетч (провайдер лёг, авиарежим) давал синюю плашку
-/// «Settings changed» раз в час — тот же класс жалобы, что и исходная §323,
-/// только по пути фейла. Плюс гонка: restore-хак затирал реальную правку
-/// юзера, сделанную во время fetch'а.
-///
-/// Инвариант после ревью: флаг поднимает РОВНО один persist фетч-пути —
-/// успешный, с реально изменившимся составом. Всё остальное — keepDirtyFlag.
+
+
+
+
+
+
+
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
@@ -63,7 +63,7 @@ void main() {
     await Directory('${tempDir.path}/support').create();
     PathProviderPlatform.instance = _FakePathProvider(tempDir.path);
     SettingsStorage.resetCacheForTesting();
-    // Без реального сна между ретраями (см. rehydrate_race_test §101).
+
     fetchBackoffsForTesting = const [Duration.zero, Duration.zero];
   });
 
@@ -72,7 +72,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -118,7 +118,7 @@ void main() {
     test('фейл НЕ гасит уже стоявший флаг (чужие pending-изменения)',
         () async {
       final c = await boot('http://x/a');
-      c.configDirty = true; // реальная правка до фетча
+      c.configDirty = true;
       c.httpClientForTesting =
           MockClient((req) async => throw const SocketException('offline'));
 
@@ -144,9 +144,9 @@ void main() {
 
     test('§349: выключенная подписка с новым составом → dirty остаётся false',
         () async {
-      // §337 обновляет и выключенные, но билдер их не эмитит: состав на
-      // конфиг не влияет, плашке гореть не с чего. Раньше — ложная синяя
-      // плашка на каждом проходе с новым составом.
+
+
+
       final c = await boot('http://x/a', enabled: false);
       c.configDirty = false;
       c.httpClientForTesting =
@@ -168,8 +168,8 @@ void main() {
       final c = await boot('http://x/a');
       c.httpClientForTesting =
           MockClient((req) async => http.Response(bodyA, 200));
-      await c.refreshEntry(c.entries.single); // первый — новый состав
-      c.configDirty = false; // «применили»
+      await c.refreshEntry(c.entries.single);
+      c.configDirty = false;
 
       final changed = await c.refreshEntry(c.entries.single);
 
@@ -186,12 +186,12 @@ void main() {
       await c.refreshEntry(c.entries.single);
       c.configDirty = false;
 
-      // Правка юзера прилетает пока fetch в сети. Старый вариант запоминал
-      // флаг ДО fetch'а (false) и «восстанавливал» его после — затирая эту
-      // правку. Теперь метаданные-персисты флаг не трогают вовсе.
+
+
+
       c.httpClientForTesting = MockClient((req) async {
-        c.configDirty = true; // конкурентная правка в окне сети
-        return http.Response(bodyA, 200); // состав тот же
+        c.configDirty = true;
+        return http.Response(bodyA, 200);
       });
 
       final changed = await c.refreshEntry(c.entries.single);
@@ -207,7 +207,7 @@ void main() {
       c.httpClientForTesting =
           MockClient((req) async => http.Response(bodyA, 200));
       await c.refreshEntry(c.entries.single);
-      // dirty уже true от первого фетча; второй меняет состав → true.
+
       c.httpClientForTesting =
           MockClient((req) async => http.Response(bodyB, 200));
 

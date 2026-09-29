@@ -8,7 +8,7 @@ import 'package:lxbox/services/builder/post_steps.dart';
 import 'package:lxbox/services/builder/rule_set_registry.dart';
 import 'package:lxbox/services/storage_migration/legacy_form_v0.dart';
 
-/// Правило через запись хранения и обратно — путь `SettingsStorage`.
+
 CustomRule _storageRoundTrip(CustomRule r) =>
     ruleFromRecord(ruleToRecord(r), unknownAsVerbatim: true).value!;
 
@@ -161,7 +161,7 @@ void main() {
         ),
       ]);
       final match = reg.getRuleSets().first['rules'].first as Map;
-      // network/protocol — routing-rule level, не в headless match.
+
       expect(match.containsKey('network'), isFalse);
       final rule = reg.getRules().first;
       expect(rule['network'], ['udp']);
@@ -333,8 +333,8 @@ void main() {
     });
   });
 
-  // §439 — хранение правил: запись `rules[]` кодеком (путь `SettingsStorage`
-  // читает с `unknownAsVerbatim`).
+
+
   group('CustomRule: запись rules[] round-trip', () {
     test('inline со всеми полями', () {
       final src = CustomRuleInline(
@@ -389,8 +389,8 @@ void main() {
   });
 
   group('CustomRule.summary', () {
-    // summary рендерит через getLocalText (в тестах — fallback на английский
-    // ключ: dict не загружен, плюрал печатается из самого ключа).
+
+
     test('пустой inline → empty', () {
       expect(CustomRuleInline(name: 'x').summary(), '');
     });
@@ -416,10 +416,10 @@ void main() {
     });
   });
 
-  // §051 / §030 new_fields — wifi_ssid / wifi_bssid.
-  //
-  // ⚠ С sing-box 1.14 wifi_* эмитятся в **headless rule_set** (раньше под 1.12
-  // были на routing-rule level). Эти тесты обновлены под 1.14-форму.
+
+
+
+
   group('§051 wifi conditions (1.14: headless)', () {
     test('inline wifi-only → headless rule_set с wifi_ssid', () {
       final reg = RuleSetRegistry();
@@ -430,7 +430,7 @@ void main() {
           outbound: 'direct-out',
         ),
       ]);
-      // §030/new_fields: wifi теперь внутри headless rule_set (1.14).
+
       expect(reg.getRuleSets(), hasLength(1));
       expect(reg.getRuleSets().first['rules'], [
         {'wifi_ssid': ['lexRouter']},
@@ -477,7 +477,7 @@ void main() {
           outbound: 'direct-out',
         ),
       ]);
-      // §030/new_fields: domain И wifi заходят в headless rule_set (AND).
+
       expect(reg.getRuleSets(), hasLength(1));
       expect(reg.getRuleSets().first['rules'], [
         {
@@ -503,9 +503,9 @@ void main() {
           outbound: 'direct-out',
         ),
       ], srsPaths: {
-        // CustomRuleSrs needs cached path, иначе skipped с warning.
-        // Pass id-key = generated id; используем factory-call id для этого
-        // не получится (UUID каждый запуск разный). Создадим с id явно:
+
+
+
       });
     });
 
@@ -529,7 +529,7 @@ void main() {
       ]);
     });
 
-    // ## 12 контракта (D-100) — несколько наборов в одном правиле.
+
     group('## 12 srs с несколькими наборами', () {
       final multi = CustomRuleSrs(
         id: 'm',
@@ -630,7 +630,7 @@ void main() {
     });
   });
 
-  // §030/new_fields — source_ip_cidr / source_ip_is_private / inbound.
+
   group('§030 new_fields source + inbound', () {
     test('inline source_ip_cidr → headless rule_set', () {
       final reg = RuleSetRegistry();
@@ -641,7 +641,7 @@ void main() {
           outbound: 'direct-out',
         ),
       ]);
-      // source_ip_cidr принимается headless rule_set (sing-box 1.14).
+
       expect(reg.getRuleSets(), hasLength(1));
       expect(reg.getRuleSets().first['rules'], [
         {'source_ip_cidr': ['192.168.1.0/24']},
@@ -678,7 +678,7 @@ void main() {
           outbound: 'direct-out',
         ),
       ]);
-      // headless его не принимает → пустой match → нет rule_set, route-rule.
+
       expect(reg.getRuleSets(), isEmpty);
       expect(reg.getRules(), [
         {'source_ip_is_private': true, 'outbound': 'direct-out'},
@@ -694,7 +694,7 @@ void main() {
           outbound: 'direct-out',
         ),
       ]);
-      // inbound в headless нет → route-rule без rule_set (НЕ skip — гейт).
+
       expect(reg.getRuleSets(), isEmpty);
       expect(reg.getRules(), [
         {'inbound': ['mixed-in'], 'outbound': 'direct-out'},
@@ -775,7 +775,7 @@ void main() {
       expect(restored.sourceIpIsPrivate, isTrue);
       expect(restored.inbounds, ['mixed-in']);
 
-      // Старый JSON без новых ключей → пустые/false.
+
       final legacy = readLegacyCustomRule({
         'kind': 'inline',
         'name': 'Legacy',
@@ -785,7 +785,7 @@ void main() {
       expect(legacy.sourceIpIsPrivate, isFalse);
       expect(legacy.inbounds, isEmpty);
 
-      // Запись не пишет пустые.
+
       final emptyBody = ruleToRecord(legacy)['body'] as Map<String, dynamic>;
       expect(emptyBody.containsKey('source_ip_cidr'), isFalse);
       expect(emptyBody.containsKey('source_ip_is_private'), isFalse);
@@ -793,7 +793,7 @@ void main() {
     });
   });
 
-  // §051 — round-trip записи rules[] для wifi-полей.
+
   group('§051 wifi: запись rules[] round-trip', () {
     test('inline: запись пишет wifi_ssid/wifi_bssid, чтение восстанавливает', () {
       final r = CustomRuleInline(
@@ -861,7 +861,7 @@ void main() {
     });
   });
 
-  // §225 (#17) — raw-JSON правило.
+
   group('applyCustomRules — json', () {
     test('объект → добавляется в route.rules как есть', () {
       final reg = RuleSetRegistry();
@@ -1001,15 +1001,15 @@ void main() {
       expect(record['body'], {'action': 'hijack-dns'});
       final restored = _storageRoundTrip(r);
       expect(restored, isA<CustomRuleJson>());
-      // Текст переформатируется, тело то же.
+
       expect(jsonDecode((restored as CustomRuleJson).json),
           {'action': 'hijack-dns'});
       expect(restored.kind, CustomRuleKind.json);
     });
   });
 
-  // §247 — resolve-опция правила: route + resolve (пара правил) /
-  // resolve-only (одно нетерминальное) / гейт по доменному матчу.
+
+
   group('§247 resolve action', () {
     test('inline + resolve (route mode) → ДВА правила: resolve перед route, '
         'один tag', () {
@@ -1035,7 +1035,7 @@ void main() {
         CustomRuleInline(
           name: 'RU v4',
           domainSuffixes: ['ru'],
-          outbound: 'direct-out', // в модели остаётся — билдер игнорирует
+          outbound: 'direct-out',
           resolve: const RuleResolve(only: true, strategy: 'ipv4_only'),
         ),
       ]);
@@ -1179,7 +1179,7 @@ void main() {
       expect(rr.timeout, '2s');
       expect(rr.clientSubnet, '10.0.0.0/8');
 
-      // Старая запись без resolve.
+
       final legacy = readLegacyCustomRule({
         'name': 'Old',
         'kind': 'inline',

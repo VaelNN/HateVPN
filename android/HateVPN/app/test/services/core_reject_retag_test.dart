@@ -1,13 +1,13 @@
-// Фича 478 — ревью после v2.25.1, H1: тег между кругами переезжает к тёзке.
-//
-// Два узла подписки с одним именем получают теги `Dup` и `Dup-1`
-// (`allocateTag`). Стоит выключить первого — пересборка отдаёт второму уже
-// литеральный `Dup`. Защита от зацикливания по СТРОКЕ тега принимала это за
-// «тот же тег повторно» и обрывала прогон на втором же негодном: VPN не
-// поднимался, выключался один узел за нажатие Start.
-//
-// Хост здесь — поддельное ядро поверх НАСТОЯЩЕЙ сборки (`buildConfig`), чтобы
-// динамика тегов была та же, что на устройстве, а не придуманная в тесте.
+
+
+
+
+
+
+
+
+
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/config/consts.dart';
 import 'package:lxbox/models/core_reject_verdict.dart';
@@ -54,14 +54,14 @@ final _template = WizardTemplate(
   speedTestOptions: const {},
 );
 
-/// Ядро, которое отвергает конфиг, пока в нём есть хоть один негодный узел, и
-/// называет его ТЕМ тегом, который выдала текущая сборка.
+
+
 class _RealBuildCore implements CoreRejectHost {
   _RealBuildCore(this.nodes, this.bad);
 
   final List<NodeSpec> nodes;
 
-  /// Негодные узлы — по идентичности объекта, не по тегу.
+
   final Set<NodeSpec> bad;
 
   final disabled = <NodeSpec>[];

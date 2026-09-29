@@ -1,16 +1,16 @@
-/// §445 — ключи узлов Tailscale для каталогов состояния (`state_directory`).
-///
-/// Ключ — строка индекса `tailscale_state.json`, не имя каталога:
-///
-/// - одиночный сервер — `<id сервера>`, второй и следующие узлы Tailscale
-///   того же сервера — `<id>#2`…; переименование и смена префикса ключ не
-///   меняют;
-/// - член папки и узел подписки — `<id контейнера>/<сырой тег>` (тот же сырой
-///   тег, что в адресе NodeLink, `node_link_address.dart`); тёзка с тем же
-///   тегом в папке — `…#2`.
-///
-/// Ключи считаются по ВСЕМ хранимым узлам: выключенный узел, член, папка или
-/// источник ключ сохраняет. Функции чистые; файлы — `state_store.dart`.
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../models/node_spec.dart';
@@ -18,18 +18,18 @@ import '../../models/server_list.dart';
 import '../node_link_address.dart';
 import '../tag_resolver.dart';
 
-/// §435 — имя каталога состояния из финальной формы тега: всё вне
-/// `[A-Za-z0-9._-]` → `_` (пробелы, `/`, `:` префикса), пустой результат →
-/// `tailscale`. Тот же allowlist, что у лаунчера (`<exec>/bin/tailscale/…`),
-/// чтобы каталог был один на узел, а не дерево. §445: применяется только к
-/// выдаваемому имени, личность узла держит ключ индекса.
+
+
+
+
+
 String tailscaleStateDirName(String finalTag) {
   final cleaned =
       finalTag.replaceAll(RegExp(r'[^A-Za-z0-9._-]', unicode: true), '_');
   return cleaned.isEmpty ? 'tailscale' : cleaned;
 }
 
-/// Узел Tailscale источника с ключом индекса.
+
 final class TailscaleStateNode {
   const TailscaleStateNode({
     required this.node,
@@ -39,16 +39,16 @@ final class TailscaleStateNode {
 
   final TailscaleSpec node;
 
-  /// Ключ индекса (см. библиотеку).
+
   final String key;
 
-  /// Имя каталога без суффикса: `tailscaleStateDirName(<префикс> <тег>)` —
-  /// финальная форма без уникализации сборки. По нему выдаётся новое имя и
-  /// ищется каталог 2.24.0 при миграции.
+
+
+
   final String baseName;
 }
 
-/// Итог обхода источников.
+
 final class TailscaleStateScan {
   const TailscaleStateScan({
     required this.nodes,
@@ -56,22 +56,22 @@ final class TailscaleStateScan {
     required this.explicitDirs,
   });
 
-  /// Узлы Tailscale в порядке источников и узлов (выключенные включены).
+
   final List<TailscaleStateNode> nodes;
 
-  /// id контейнеров, узлы которых сейчас не разобраны (подписка без тела,
-  /// сервер с нечитаемым телом, член папки с битым текстом): их записи
-  /// индекса не снимаются.
+
+
+
   final Set<String> unresolvedContainers;
 
-  /// Явные `state_directory` из тел узлов: индекс им запись не заводит, а
-  /// каталоги с такими путями не удаляются.
+
+
   final Set<String> explicitDirs;
 
   Set<String> get keys => {for (final n in nodes) n.key};
 }
 
-/// Обход всех хранимых узлов Tailscale [lists].
+
 TailscaleStateScan scanTailscaleStateNodes(List<ServerList> lists) {
   final nodes = <TailscaleStateNode>[];
   final unresolved = <String>{};
@@ -139,7 +139,7 @@ TailscaleStateScan scanTailscaleStateNodes(List<ServerList> lists) {
   );
 }
 
-/// Есть ли в [lists] хоть один узел Tailscale (включая выключенные).
+
 bool hasTailscaleNodes(List<ServerList> lists) {
   for (final l in lists) {
     for (final n in containerNodes(l)) {
@@ -149,17 +149,17 @@ bool hasTailscaleNodes(List<ServerList> lists) {
   return false;
 }
 
-/// Ключ [key] принадлежит контейнеру [id].
+
 bool tailscaleKeyInContainer(String key, String id) =>
     key == id || key.startsWith('$id/') || key.startsWith('$id#');
 
-/// Сменившиеся ключи узлов Tailscale между [before] и [after] операции
-/// контроллера. Узел сопоставляется сам с собой по ссылке объекта или через
-/// [renamed] («прежний узел → узел, который его заменил»), как в
-/// `diffNodeAddresses`. Узел без пары или переставший быть Tailscale —
-/// [gone]; с другим ключом — [moves]. [goneContainers] — id источников,
-/// которых после операции нет: их записи снимаются целиком, включая записи
-/// неразобранных узлов.
+
+
+
+
+
+
+
 ({
   Map<String, String> moves,
   Set<String> gone,

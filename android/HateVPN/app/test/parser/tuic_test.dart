@@ -9,23 +9,23 @@ import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 import 'parse_link_as.dart';
 
-/// §472 шаг 5 — заглушки `u` и `aaaa-bbbb` в ссылках заменены настоящими
-/// UUID. Причина та же, по которой их заменил у себя корпус контракта (SPEC
-/// 131 W2c): ядро отвечает на мусорный uuid «invalid uuid» фаталом на ВЕСЬ
-/// конфиг, то есть кейсы нормировали тело, которое не запускается. Реестр
-/// объявляет у поля `format: uuid`, и с переездом схемы на конвейер такой
-/// узел отбраковывается разбором. Проверяемое кейсами (congestion, relay
-/// mode, alpn, круг) от формы uuid не зависит.
+
+
+
+
+
+
+
 void main() {
-  // §472 шаг 5 — схема переехала на конвейер, и значения судит РЕЕСТР. Без
-  // него санитайзер не работает вовсе, то есть тест проверял бы разбор,
-  // которого в приложении не бывает (`main()` грузит реестр до `runApp`).
-  //
-  // §480 W4 — гейт переставлен с вендоренной копии `app/contract/` на ЗЕРКАЛО
-  // `assets/contract`. Копии на CI нет вовсе (она в `.gitignore`), и под её
-  // гейтом тест молча пропускался бы именно там, где нужен. Заодно грузятся
-  // секции-мапперы: с переездом схемы на движок разбор без них не работает —
-  // рукописного запасного пути у tuic больше нет.
+
+
+
+
+
+
+
+
+
   final mirrored = Directory('assets/contract/registry').existsSync();
   final skip = mirrored ? null : 'зеркало реестра не найдено';
 
@@ -91,12 +91,12 @@ void main() {
       expect(t2.tls.alpn, spec.tls.alpn);
     });
 
-    // §103 D-016(в) — было: мусорное значение нормализовалось до 'cubic' и
-    // писалось в эмит явно. Канон: мусор == «параметр не задан», эмиттер
-    // опускает ключ, ядро подставляет свой дефолт само (не эмитим то, что
-    // сами придумали). Совпадает с Go — см. corpus
-    // tuic/unknown_congestion_dropped (node_parser_tuic_test.go:70), где
-    // конфиг вообще не содержит `congestion_control`.
+
+
+
+
+
+
     test('invalid congestion_control → not set (omitted on emit)', () {
       final spec = parseLinkAs<TuicSpec>(
         'tuic://11111111-2222-3333-4444-555555555555:p@h:443?congestion_control=bogus',

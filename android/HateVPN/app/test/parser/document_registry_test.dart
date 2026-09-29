@@ -8,21 +8,21 @@ import 'package:lxbox/services/parser/engine/document.dart';
 import 'package:lxbox/services/parser/engine/section_loader.dart';
 import 'package:lxbox/services/parser/mappers/draft_sections.dart';
 
-/// §480 W6 — ОПОЗНАНИЕ ВИДА ИСТОЧНИКА объявлено данными.
-///
-/// Два инварианта, ради которых волна и затеяна:
-///
-/// 1. **Ровно одна ветка на документ.** Ноль или две — красное: «первая
-///    попавшаяся ветка» и есть тот рукописный сниффер, который волна
-///    снимает.
-/// 2. **Тот же ответ, что у прежнего порядка.** Реестр списан с
-///    `body_decoder` буква в букву, и расхождение формы означало бы сдвиг
-///    разбора у живой подписки.
+
+
+
+
+
+
+
+
+
+
 const _registryRoot = 'assets/contract';
 const _draftRoot = 'assets/contract_draft';
 
-/// Живые формы документов, на которых сверяется опознание. Собраны из
-/// корпуса фикстур плюс формы, которых там нет (Clash, пустой ввод).
+
+
 final Map<String, String> _documents = {
   'список ссылок': 'trojan://pw@h.example:443#a\nvless://u@h2.example:443#b',
   'список с комментариями':
@@ -53,7 +53,7 @@ final Map<String, String> _documents = {
   'мусор': 'это просто текст без ссылок',
 };
 
-/// Имя типа формы — им и сверяются оба пути.
+
 String _kindOf(DecodedBody b) => switch (b) {
       UriLines() => 'UriLines(${b.lines.length},${b.skippedComments})',
       IniConfig() => 'IniConfig',
@@ -66,8 +66,8 @@ void main() {
   final mirrored = Directory('$_registryRoot/registry').existsSync();
   final skip = mirrored ? null : 'зеркало реестра не найдено';
 
-  /// Ответ ПРЕЖНЕГО рукописного порядка снимается до загрузки реестра:
-  /// без него `decode` идёт запасным путём, то есть ровно старым кодом.
+
+
   final legacy = <String, String>{
     for (final e in _documents.entries) e.key: _kindOf(decode(e.value)),
   };
@@ -93,17 +93,17 @@ void main() {
     for (final e in _documents.entries) {
       final hits = reg.matchAll(e.value);
       if (hits.isEmpty) {
-        // Ноль предикатов — законно только для ветки «всё остальное».
+
         final m = reg.detect(e.value, unwrappers: const {});
         if (m != null && m.source.isDefault) continue;
         bad.add('${e.key}: не опознан ни одной веткой');
         continue;
       }
-      // Норма §2: совпало несколько — побеждает МЕНЬШИЙ `priority`, и
-      // неоднозначность это НИЧЬЯ, а не множественное совпадение. Ветка
-      // «массив конфигов» и ветка «массив конфигов sing-box» обязаны
-      // совпадать вместе: вторая уточняет первую, и порядок между ними
-      // объявлен числом, а не местом в файле.
+
+
+
+
+
       final best = hits.map((s) => s.priority).reduce((a, b) => a < b ? a : b);
       final winners = hits.where((s) => s.priority == best).toList();
       if (winners.length > 1) {
@@ -116,20 +116,20 @@ void main() {
             '${bad.join("\n")}');
   }, skip: skip);
 
-  /// §483 — запасной путь отвечает той же ВЕТКОЙ, что реестр.
-  ///
-  /// Перечисления форм в коде больше нет: вид источника читается ключом
-  /// `kind`, а обход элементов — строкой `elements`. Разъехавшийся `elements`
-  /// у запасной ветки дал бы без реестра другой состав подписки, и сказал бы
-  /// об этом только пользователь.
+
+
+
+
+
+
   test('запасные ветки совпадают с реестровыми по mapper и elements', () {
     final registry = MapperSections.I.documents!;
     final byKind = {for (final s in registry.sources) s.kind: s};
     final diffs = <String>[];
     for (final f in kFallbackDocumentSources) {
       final s = byKind[f.kind];
-      // Вид без ветки в реестре законен ровно пока он не даёт узлов
-      // (`clash_yaml`, `unknown`): маппера у него нет, и обходить нечего.
+
+
       if (s == null) {
         if (f.mapper != null) {
           diffs.add('${f.kind}: даёт узлы, а ветки в реестре нет');
@@ -167,10 +167,10 @@ void main() {
     expect((decode(twice) as UriLines).lines.single, inner);
   }, skip: skip);
 
-  /// §480 — ОБХОД ЭЛЕМЕНТОВ читает `elements`, а не рукописный `switch`.
-  ///
-  /// Прежде `elements` читал один линтер: опознание документа было объявлено
-  /// данными, а путь к его элементам оставался ветвями в `parse_all`.
+
+
+
+
   group('обход элементов объявлен реестром', () {
     test('у каждой ветки с mapper объявлен путь к элементам', () {
       final registry = MapperSections.I.documents!;
@@ -182,9 +182,9 @@ void main() {
     }, skip: skip);
 
     test('грамматика elements разбирается движком, а не кодом разбора', () {
-      // Формы пути, которыми сегодня пользуется реестр. Каждая обязана дать
-      // ГРУППЫ: границы конфига несут смысл для дедупа (§404) и владения
-      // именем (§342), и плоский список их потерял бы.
+
+
+
       const cfg = {
         'outbounds': [
           {'type': 'trojan'},
@@ -216,8 +216,8 @@ void main() {
             },
           ],
           reason: 'члены корневого массива принадлежат ОДНОМУ конфигу');
-      // Форма документа не та, что объявлена строкой: обойти нечем, и
-      // вызывающий обязан узнать об этом, а не получить пустой список.
+
+
       expect(DocumentRegistry.groupsFor('[].outbounds[]', {'a': 1}), isNull);
       expect(DocumentRegistry.groupsFor(r'$self', [1, 2]), isNull);
     });

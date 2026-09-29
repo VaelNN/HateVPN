@@ -1,26 +1,26 @@
-/// Кодек правил маршрута: [CustomRule] ↔ запись `rules[]` контракта 1.0
-/// (`contract/docs/ONE_NAMESPACE.md` §1, спека §439 §1.2).
-///
-/// **Запись = метаданные приложения + `body` = правило sing-box как есть.**
-/// Метаданные — `kind`, `id`, `name`, `enabled`, `num`, `refs`, `ref`, `vars`;
-/// поля LxBox рядом с телом — `dns{}`, `resolve{}`, `update_interval_hours`
-/// (srs), `verbatim` (inline).
-///
-/// Один кодек на хранение, бэкап, файл правил, секции узла и Debug API, поэтому
-/// строки (`id`, `name`) не режутся: имя srs-правила — тег `rule_set` в
-/// конфиге (§439 §2.3 п. 12).
-///
-/// Вид `json` (§225) в записи не живёт: [CustomRuleJson] пишется как
-/// `inline` + `verbatim: true`, тело-объект — в `body`; текст, который
-/// объектом не разбирается (битый JSON, массив), — маркер без `body`. Массив
-/// раскладывает на записи вызывающий до кодека ([splitJsonRuleArrays], §439
-/// В2).
-///
-/// Чтение терпимо: чужой `kind` и битая форма — [RecordRead.dropped], не
-/// исключение; скаляр вместо списка читается списком; незнакомые ключи корня
-/// записи игнорируются молча. Незнакомые ключи `body` — в
-/// [RecordRead.unknownKeys]; с `unknownAsVerbatim` inline-запись с ними
-/// читается [CustomRuleJson] с телом целиком.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import 'dart:convert';
@@ -29,8 +29,8 @@ import '../../config/consts.dart' show kDirectOutboundTag;
 import '../custom_rule.dart';
 import 'record_read.dart';
 
-/// Ключи `body` правила маршрута, которые типизированная модель держит (имена
-/// sing-box). Всё остальное при чтении — в `unknownKeys`.
+
+
 const Set<String> kRuleBodyKeys = {
   'domain',
   'domain_suffix',
@@ -49,23 +49,23 @@ const Set<String> kRuleBodyKeys = {
   'wifi_bssid',
   'outbound',
   'action',
-  // `rule_set` намеренно НЕ в списке: в теле записи это ссылка на набор
-  // конфига, наборы едут `refs[]`. Вырезать молча нельзя — правило без
-  // единственного матчера стало бы match-all (норма лаунчера 14.09.2026, B3).
+
+
+
 };
 
-/// Текст тела [CustomRuleJson], прочитанного из записи.
+
 const JsonEncoder _verbatimText = JsonEncoder.withIndent('  ');
 
-/// §439 В2 — запись правила держит один объект sing-box, поэтому правило
-/// вида json с массивом, в котором есть объекты, раскладывается до кодека на
-/// правила по объекту: первое сохраняет `id` и имя, следующие — `<имя> #2`,
-/// `<имя> #3`… с новым `id`; `enabled` и `num` общие (как экспорт 438).
-/// Элементы-не-объекты отбрасываются (сборка их и так не эмитит), строка об
-/// этом уходит в [notes]. Прочие правила, включая json, который массивом с
-/// объектами не разбирается, идут как есть. Порядок сохраняется.
-///
-/// Один путь деления на хранение и миграцию формы 2.23.2.
+
+
+
+
+
+
+
+
+
 List<CustomRule> splitJsonRuleArrays(
   Iterable<CustomRule> rules, {
   List<String>? notes,
@@ -96,7 +96,7 @@ List<CustomRule> splitJsonRuleArrays(
   return out;
 }
 
-/// Массив из текста json-правила; прочее — null.
+
 List<dynamic>? _arrayOf(String text) {
   try {
     final decoded = jsonDecode(text);
@@ -106,7 +106,7 @@ List<dynamic>? _arrayOf(String text) {
   }
 }
 
-/// Правило LxBox → запись 1.0.
+
 Map<String, dynamic> ruleToRecord(CustomRule r) {
   final out = <String, dynamic>{
     'kind': r is CustomRuleJson ? 'inline' : r.kind.name,
@@ -119,8 +119,8 @@ Map<String, dynamic> ruleToRecord(CustomRule r) {
     case CustomRuleInline():
       out['body'] = _ruleBody(r, includeMatch: true);
     case CustomRuleSrs():
-      // Источники наборов — снаружи `body`: это не sing-box. `rule_set` в
-      // тело вписывает сборка (ONE_NAMESPACE §1, D-100).
+
+
       out['refs'] = List<String>.of(r.srsUrls);
       if (r.updateIntervalHours != kDefaultSrsTtlHours) {
         out['update_interval_hours'] = r.updateIntervalHours;
@@ -153,8 +153,8 @@ Map<String, dynamic> _ruleBody(CustomRule r, {required bool includeMatch}) {
     }
     if (r.ipCidrs.isNotEmpty) b['ip_cidr'] = List<String>.of(r.ipCidrs);
   }
-  // Типы sing-box: `port` — числа (нечисловые отбрасываются, сборка их тоже
-  // не эмитит), `port_range` — строки `"a:b"`.
+
+
   final ports = r.intPorts;
   if (ports.isNotEmpty) b['port'] = ports;
   if (r.portRanges.isNotEmpty) b['port_range'] = List<String>.of(r.portRanges);
@@ -169,8 +169,8 @@ Map<String, dynamic> _ruleBody(CustomRule r, {required bool includeMatch}) {
   if (r.inbounds.isNotEmpty) b['inbound'] = List<String>.of(r.inbounds);
   if (r.wifiSsids.isNotEmpty) b['wifi_ssid'] = List<String>.of(r.wifiSsids);
   if (r.wifiBssids.isNotEmpty) b['wifi_bssid'] = List<String>.of(r.wifiBssids);
-  // Пустая цель пишется как есть: сборка такое правило пропускает, а запись
-  // без `outbound` читается целью по умолчанию и попала бы в конфиг.
+
+
   if (r.outbound == kOutboundReject) {
     b['action'] = 'reject';
   } else {
@@ -179,13 +179,13 @@ Map<String, dynamic> _ruleBody(CustomRule r, {required bool includeMatch}) {
   return b;
 }
 
-/// Запись 1.0 → правило LxBox.
-///
-/// [unknownAsVerbatim] — путь хранения: inline-запись, тело которой модель не
-/// выражает (незнакомый матчер, `rule_set`, `action` кроме `reject`,
-/// `method`), читается [CustomRuleJson] с телом целиком, ключи всё равно
-/// перечислены в [RecordRead.unknownKeys]. Без флага (секции узла, импорт)
-/// читается типизированное правило, ключи потеряны, решает вызывающий.
+
+
+
+
+
+
+
 RecordRead<CustomRule> ruleFromRecord(
   Map<String, dynamic> j, {
   bool unknownAsVerbatim = false,
@@ -223,10 +223,10 @@ RecordRead<CustomRule> ruleFromRecord(
       final unknown = [
         for (final k in b.keys)
           if (!kRuleBodyKeys.contains(k)) k,
-        // §438 — `action` модель выражает ровно одним значением, `reject`
-        // (цель kOutboundReject). Самостоятельный эффект ядра (`sniff`,
-        // `resolve`, `hijack-dns`, …) у типизированного правила дома не имеет:
-        // прочитанный как правило на direct-out, он молча стал бы маршрутом.
+
+
+
+
         if (b.containsKey('action') && b['action'] != 'reject') 'action',
       ]..sort();
       if (kind == 'inline' && unknownAsVerbatim && unknown.isNotEmpty) {
@@ -281,7 +281,7 @@ RecordRead<CustomRule> ruleFromRecord(
           name: name,
           enabled: enabled,
           orderNum: orderNum,
-          // `refs` главнее одиночного `ref` (## 12).
+
           srsUrls: refs.isNotEmpty ? refs : [if (ref is String) ref],
           updateIntervalHours:
               CustomRuleSrs.ttlHoursFrom(j['update_interval_hours']),
@@ -323,15 +323,15 @@ RecordRead<CustomRule> ruleFromRecord(
   }
 }
 
-/// Цель из тела: `action: reject` → [kOutboundReject]; строковый `outbound`
-/// как есть (пустой тоже); без ключа — цель по умолчанию.
+
+
 String _outboundOf(Map<String, dynamic> body) {
   if (body['action'] == 'reject') return kOutboundReject;
   final o = body['outbound'];
   return o is String ? o : kDirectOutboundTag;
 }
 
-/// Текст правила вида json → объект тела; массив, скаляр и мусор → null.
+
 Map<String, dynamic>? _objectOf(String text) {
   try {
     final decoded = jsonDecode(text);
@@ -341,8 +341,8 @@ Map<String, dynamic>? _objectOf(String text) {
   }
 }
 
-/// Список строк из значения JSON: массив → элементы `toString()`; скаляр →
-/// один элемент (sing-box принимает и строку, и массив). `null`/пусто → [].
+
+
 List<String> _strList(Object? v) {
   if (v == null) return const [];
   if (v is List) return [for (final e in v) e.toString()];
@@ -350,8 +350,8 @@ List<String> _strList(Object? v) {
   return [v.toString()];
 }
 
-/// Порты тела: только числа 0–65535, строками модели. Нечисловое отбрасывается
-/// на чтении так же, как на записи ([CustomRule.intPorts]).
+
+
 List<String> _portList(Object? v) => [
       for (final e in _strList(v))
         if (int.tryParse(e) case final p? when p >= 0 && p <= 65535) '$p',

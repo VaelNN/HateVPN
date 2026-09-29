@@ -4,10 +4,10 @@ import '../services/node_emoji.dart';
 import '../services/l10n/locale_controller.dart';
 import 'app_bottom_sheet.dart';
 
-/// §090 G2b — кнопка-пикер эмодзи. Открывает bottom-sheet с палитрой
-/// [kEmojiPalette]; тап по эмодзи зовёт [onPick]. Caller сам вставляет
-/// эмодзи в нужное поле (тег). Переиспользуется в node_settings и форме
-/// создания сервера.
+
+
+
+
 class EmojiPickerButton extends StatelessWidget {
   const EmojiPickerButton({super.key, required this.onPick});
 

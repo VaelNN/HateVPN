@@ -1,21 +1,21 @@
-/// §585 — комментарии `//` и `/* */` во вставленном sing-box JSON.
-///
-/// Узел, написанный руками, часто несёт пометки («// United States Central»).
-/// Строгий `jsonDecode` на них падает, и вставка отвечала «не распознано».
-/// В источник записи пишется текст БЕЗ комментариев: иначе он не разбирается
-/// как JSON-объект, и тело не становится авторским (`verbatimBodyOf`).
-///
-/// Снимаются только комментарии: прочие байты текста остаются как были
-/// (пробелы в конце строки перед `//` тоже снимаются). Внутри строковых
-/// литералов `//` и `/*` не трогаются (`"https://…"`).
+
+
+
+
+
+
+
+
+
+
 library;
 
 import 'dart:convert';
 
-/// Текст без комментариев, когда выполнены все условия: (1) текст начинается
-/// с `{` или `[`; (2) строгий JSON-разбор исходного текста падает; (3) в
-/// тексте вне строк есть комментарий; (4) текст без комментариев — строгий
-/// JSON. Иначе `null`: вызывающий берёт исходный текст как есть.
+
+
+
+
 String? uncommentedJson(String text) {
   final head = text.trimLeft();
   if (!head.startsWith('{') && !head.startsWith('[')) return null;
@@ -34,7 +34,7 @@ bool _isJson(String text) {
   }
 }
 
-/// Снять комментарии вне строковых литералов. `null` — снимать нечего.
+
 String? stripJsonComments(String text) {
   final out = StringBuffer();
   var found = false;
@@ -79,7 +79,7 @@ String? stripJsonComments(String text) {
   return found ? out.toString() : null;
 }
 
-/// Пробелы и табы в конце буфера (перед снятым `//`).
+
 void _trimTrailingBlanks(StringBuffer out) {
   final s = out.toString();
   var end = s.length;

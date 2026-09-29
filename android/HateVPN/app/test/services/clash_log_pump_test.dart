@@ -1,4 +1,4 @@
-// §043: parseLevel — sing-box log format level extraction.
+
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -50,14 +50,14 @@ void main() {
     });
 
     test('error приоритетнее warn в смешанной строке (защита от спорных случаев)', () {
-      // Если по какой-то причине строка содержит и WARN и ERROR token'ы,
-      // ERROR имеет приоритет.
+
+
       const line = '+0300 2026-05-06 12:34:56 ERROR  WARN was reported earlier';
       expect(ClashLogPump.parseLevel(line), DebugLevel.error);
     });
 
-    // §043 fix — sing-box default formatter (после strip'а ANSI) выдаёт
-    // уровень слитно с timer'ом: `INFO[0006]` без пробела перед `[`.
+
+
     test('default-formatter формат INFO[NNNN] → DebugLevel.info', () {
       const line = 'INFO[0006] [402815533 25ms] router: found package name: com.leadaxe.lxbox';
       expect(ClashLogPump.parseLevel(line), DebugLevel.info);
@@ -74,8 +74,8 @@ void main() {
     });
 
     test('WARNING (substring внутри слова) — наш regex word-boundary матчит WARN', () {
-      // Edge case: regex `\bWARN\b` НЕ матчит WARNING (там нет границы после
-      // 4 букв). Hard guarantee для filter'а.
+
+
       const line = 'INFO[0006] router: WARNING substring should not flag warning';
       expect(ClashLogPump.parseLevel(line), DebugLevel.info);
     });

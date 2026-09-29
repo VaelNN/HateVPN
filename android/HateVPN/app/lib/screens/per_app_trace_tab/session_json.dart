@@ -1,11 +1,11 @@
 import '../../services/traffic_profiler.dart';
 
-/// §044/new-profiler — экспорт **списка событий**. Profiler/Live работают с
-/// rolling-buffer'ом событий. Экспортируем видимый отфильтрованный список +
-/// пересчитанные на лету агрегаты (тем же `computeTraceAggregates`, что и
-/// `TraceExplorer`).
-///
-/// [events] — уже отфильтрованный набор (что юзер видит на экране, то и в JSON).
+
+
+
+
+
+
 Map<String, Object?> eventsToJson(List<TrafficEvent> events) {
   final agg = computeTraceAggregates(events);
   return {

@@ -8,9 +8,9 @@ import '../subscription_detail_format.dart';
 import '../../../services/l10n/locale_controller.dart';
 import 'node_warnings_sheet.dart';
 
-/// Header/meta block on the Nodes tab: url + copy, last-updated, node counts,
-/// traffic quota bar, expiry, support/web-page chips. Extracted verbatim from
-/// `_buildMeta`/`_buildTrafficBar`.
+
+
+
 class SubscriptionMeta extends StatelessWidget {
   const SubscriptionMeta({
     super.key,
@@ -22,9 +22,9 @@ class SubscriptionMeta extends StatelessWidget {
   final SubscriptionEntry entry;
   final Future<void> Function(String) onOpenUrl;
 
-  /// §283 — сколько нод выключено per-node toggle'ом («M off» в счётчике).
-  /// §391 — bulk-переключатель в probe-баре (`_buildProbeBar`), здесь только
-  /// счётчик.
+
+
+
   final int offCount;
 
   @override
@@ -86,7 +86,7 @@ class SubscriptionMeta extends StatelessWidget {
                     entry.detourCount > 0
                         ? getLocalText.plural("%1\$d +%2\$d⚙ nodes", entry.nodeCount, entry.detourCount)
                         : getLocalText.plural("%d nodes", entry.nodeCount),
-                    // §283 — счётчик выключенных (ключ общий с папками §234).
+
                     if (offCount > 0) getLocalText.s("%d off", offCount),
                   ].join(' · '),
                   style: theme.textTheme.bodySmall,
@@ -94,18 +94,18 @@ class SubscriptionMeta extends StatelessWidget {
               ),
             ],
           ),
-          // §561 — записи тела, не ставшие узлами (`dropped[]` последнего
-          // разбора): причины — в той же шторке уведомлений, что у узла.
+
+
           if (entry.dropped.isNotEmpty) ...[
             const SizedBox(height: 4),
             _DroppedRow(entry: entry),
           ],
-          // Traffic quota
+
           if (entry.totalBytes > 0) ...[
             const SizedBox(height: 8),
             _buildTrafficBar(context, entry, theme),
           ],
-          // Expire
+
           if (entry.expireTimestamp > 0) ...[
             const SizedBox(height: 4),
             Row(
@@ -119,7 +119,7 @@ class SubscriptionMeta extends StatelessWidget {
               ],
             ),
           ],
-          // Support & web page links
+
           if (entry.supportUrl.isNotEmpty || entry.webPageUrl.isNotEmpty) ...[
             const SizedBox(height: 8),
             Wrap(
@@ -170,7 +170,7 @@ class SubscriptionMeta extends StatelessWidget {
   }
 }
 
-/// §561 — строка сводки «N entries dropped»; тап открывает шторку причин.
+
 class _DroppedRow extends StatelessWidget {
   const _DroppedRow({required this.entry});
 

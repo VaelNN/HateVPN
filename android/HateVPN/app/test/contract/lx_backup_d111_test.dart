@@ -5,11 +5,11 @@ import 'package:lxbox/models/custom_rule.dart';
 import 'package:lxbox/models/record_codec.dart';
 import 'package:lxbox/services/lx_backup.dart';
 
-/// D-111 (BACKUP.md §2 «Одно правило — одно тело») на обоих входах LX Backup:
-/// запись 1.0 с массивом тел в `body` и правило `kind: json` 0.x с массивом в
-/// `match` раскладываются на записи по элементу-объекту — `имя`, `имя #2`… с
-/// общими `enabled` и `num`, `id` только у первой, тело каждой части как есть.
-/// Элемент не объект — `backup_unknown_field`, прочие части идут.
+
+
+
+
+
 
 String _file10(List<Map<String, dynamic>> rules) => jsonEncode({
       'lx_backup': 2,
@@ -35,8 +35,8 @@ const _second = {
 };
 const _sniff = {'action': 'sniff', 'inbound': ['tun-in']};
 
-/// Тело правила так, как оно уйдёт в конфиг: у json — его текст, у прочих —
-/// `body` записи хранения.
+
+
 Object? _body(CustomRule r) =>
     r is CustomRuleJson ? jsonDecode(r.json) : ruleToRecord(r)['body'];
 
@@ -68,8 +68,8 @@ void main() {
           reason: 'самостоятельный action — тело целиком');
       expect(_codes(file), [kWarnUnknownField]);
       expect(file.warnings.single.detail, contains('[2]'));
-      // `id` файла держит первая часть, у остальных свой: id — идентичность
-      // правила, двух правил с одним id не бывает.
+
+
       expect(file.rules.first.id, 'r-arr');
       expect(file.rules.map((r) => r.id).toSet(), hasLength(3));
     });

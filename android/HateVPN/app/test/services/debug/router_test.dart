@@ -23,7 +23,7 @@ void main() {
 
     test('не матчит по substring', () {
       final r = Router()..mount('/state', _stub('state'));
-      expect(r.resolve('/statemap'), isNull); // `/statemap` != `/state*`
+      expect(r.resolve('/statemap'), isNull);
     });
 
     test('longest-prefix wins', () async {

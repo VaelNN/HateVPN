@@ -6,7 +6,7 @@ import '../../services/parser/parse_all.dart';
 import '../../services/subscription/input_helpers.dart';
 import '../../services/hate_invitation.dart';
 
-/// Result of analyzing clipboard text before adding it as a server/sub.
+
 class ClipboardAnalysis {
   ClipboardAnalysis({
     required this.type,
@@ -19,9 +19,9 @@ class ClipboardAnalysis {
   final String title;
   final String subtitle;
 
-  /// §561 / задача 570 — записи вставки, которые не станут узлами, с
-  /// причиной (`dropped[]` того же разбора, что сделает импорт). Пусто —
-  /// отбраковок нет. Диалог показывает счётчик и шторку причин.
+
+
+
   final List<NodeWarning> dropped;
 
   ClipboardAnalysis withDropped(List<NodeWarning> d) => d.isEmpty
@@ -34,24 +34,24 @@ class ClipboardAnalysis {
           dropped: d,
         );
 
-  /// §368 §8 — секции конфига, которые мы не переносим (`route`, `dns`,
-  /// `inbounds`). Только фактически присутствовавшие: в конфиге без `dns`
-  /// упоминать `dns` незачем. Пусто — предупреждать не о чем.
+
+
+
   final List<String> notImported;
 }
 
-/// §368 — верхнеуровневые секции, которые импорт не переносит: наша модель
-/// генерирует их сама из своих настроек (§6).
+
+
 const _kIgnoredConfigSections = ['route', 'dns', 'inbounds'];
 
-/// §561 / задача 570 — отбраковки сухого разбора вставки (тот же вход, что
-/// у импорта). Сбой разбора — не отбраковка: пусто, дальше решает импорт.
+
+
 List<NodeWarning> _droppedOf(DecodedBody decoded) {
   final dropped = <NodeWarning>[];
   try {
     final nodes = parseAll(decoded, dropped: dropped);
-    // §585 — узел незнакомого типа импорт принимает своей записью
-    // (`acceptsOwnUnknownType`); превью обязано сказать то же.
+
+
     if (nodes.isEmpty && acceptsOwnUnknownType(decoded) != null) {
       return const [];
     }
@@ -91,8 +91,8 @@ ClipboardAnalysis analyzeClipboard(String text) {
       subtitle: endpoint.isNotEmpty ? endpoint : '[Interface] + [Peer]',
     );
   }
-  // §110 — Amnezia vpn://: декодим сразу, чтобы показать endpoint и число
-  // контейнеров. Битая ссылка → unknown (юзер увидит стандартный диалог).
+
+
   if (isAmneziaVpnLink(text)) {
     final decoded = decode(text);
     if (decoded is AmneziaConfig) {
@@ -123,12 +123,12 @@ ClipboardAnalysis analyzeClipboard(String text) {
     ).withDropped(_droppedOf(decode(text)));
   }
 
-  // §368 §7.2 — JSON-формы: превью читает ТОТ ЖЕ результат, что и импорт.
-  // Раньше здесь была своя эвристика (`startsWith('{') && contains('"type"')`),
-  // третья по счёту, и она разошлась с гейтом контроллера: превью обещало
-  // «Outbound JSON» там, где импорт отказывал.
-  // §585 — комментарии `//` и `/* */` снимаются тем же правилом, что у
-  // импорта (`addFromInput`).
+
+
+
+
+
+
   final decoded = decode(uncommentedJson(text) ?? text);
   if (decoded is JsonConfig) {
     final analysis = _analyzeJson(decoded);
@@ -138,11 +138,11 @@ ClipboardAnalysis analyzeClipboard(String text) {
   return ClipboardAnalysis(type: 'unknown', title: getLocalText.s("Unknown"), subtitle: '');
 }
 
-/// §368 §7.2 — превью JSON-формы. Счётчики берём сухим прогоном парсера, а не
-/// повторной эвристикой: то, что показано, и есть то, что приедет.
+
+
 ClipboardAnalysis? _analyzeJson(JsonConfig j) {
-  // §483 — вид источника берётся у ветки, которой документ опознан: превью
-  // и импорт читают ОДИН ответ движка, а не два имени одной формы.
+
+
   switch (j.source.kind) {
     case SourceKind.singboxOutbound:
       final map = j.value is Map<String, dynamic>
@@ -199,10 +199,10 @@ ClipboardAnalysis? _analyzeJson(JsonConfig j) {
         notImported: ignored,
       );
 
-    // §480 Д-3 — документ Xray бывает и объектом (одиночный outbound,
-    // полный конфиг), а не только массивом конфигов. Счёт по `value` как
-    // по списку дал бы таким формам «0 elements»: пересчитываем по
-    // разобранным узлам, как это делает ветка sing-box выше.
+
+
+
+
     case SourceKind.xrayConfigArray:
     case SourceKind.xrayConfig:
     case SourceKind.xrayOutbound:
@@ -215,8 +215,8 @@ ClipboardAnalysis? _analyzeJson(JsonConfig j) {
         subtitle: getLocalText.plural("%d elements", count),
       );
 
-    // Clash, нераспознанный JSON и вид, о котором код не знает: превью не
-    // обещает того, чего импорт не сделает — дальше стандартный диалог.
+
+
     default:
       return null;
   }

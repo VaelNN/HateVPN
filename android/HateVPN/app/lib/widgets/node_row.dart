@@ -7,17 +7,17 @@ import '../screens/subscription_detail_screen/widgets/node_warning_row.dart';
 import 'node_view_item.dart';
 import '../services/networks_direction.dart';
 import '../services/l10n/locale_controller.dart';
-// §535 — CcEndpointState: имена состояний endpoint'а приходят из ядра.
+
 import '../vpn/cc_channel.dart' show CcEndpointState;
 
-/// One row в node list на главной screen'е. Read-only widget от
-/// [NodeViewItem] data + callbacks.
-///
-/// Specs:
-/// - §068 — extract view-model class (item-based constructor вместо 14
-///   explicit args)
-/// - §048 — `item.matches == false` → render с opacity 0.4 (single source
-///   of opacity, magic 0.4 не утекает в caller)
+
+
+
+
+
+
+
+
 class NodeRow extends StatelessWidget {
   const NodeRow({
     super.key,
@@ -39,42 +39,42 @@ class NodeRow extends StatelessWidget {
   final VoidCallback onActivate;
   final VoidCallback onPing;
 
-  /// Called when user wants the original URI (vless://, wireguard://, …).
+
   final VoidCallback? onCopyUri;
   final VoidCallback? onViewJson;
 
-  /// Non-null only for URLTest group tags — triggers `/group/<tag>/delay`
-  /// которое forces sing-box re-test всех members и update `now`.
+
+
   final VoidCallback? onRunUrltest;
 
-  /// §203 — non-null только для auto/urltest-ноды с текущим выбором
-  /// (`urltestNow`): «Select server» в меню → подсветка + scroll к выбранному
-  /// сервером тегу. Иначе null → пункт меню скрыт.
+
+
+
   final VoidCallback? onSelectServer;
 
-  /// §208 — non-null только для auto-ноды round_robin-Направления: «View pool» в меню
-  /// → попап с текущим составом пула (getPool). Иначе null → пункт скрыт.
+
+
   final VoidCallback? onViewPool;
 
-  /// §355 — тап по ⚠-метке корня беды ([NodeViewItem.isSickRoot]) — caller
-  /// открывает sheet со списком пострадавших. null при isSickRoot=false.
+
+
   final VoidCallback? onSickTap;
 
-  /// §557 (ядро SPEC 106) — «Turn off» / «Turn on» в меню. Non-null только
-  /// для WG/AWG-узла (ядро отдало `endpointState`) при живом туннеле; иначе
-  /// пункта нет. Направление переключения — по [NodeViewItem.endpointState].
+
+
+
   final VoidCallback? onToggleEndpoint;
 
-  /// Right-side delay label (или PING… / ERR), цвет по latency.
-  ///
-  /// §325 — префикс `~` («приблизительно») у замера из другого Направления: число
-  /// показано как ориентир, но получено чужим тестом (ping-URL и таймаут
-  /// резолвятся per-group, §040). Значок текстовый и однознаковый намеренно —
-  /// бейдж узкий и моноширинный, иконка сломала бы выравнивание колонки.
-  /// Задача 579 — строка NETWORKS: узел не выбирается и не замеряется.
+
+
+
+
+
+
+
   bool get _isTailnet => item.tailnetState != null;
 
-  /// Задача 579 — подпись состояния узла NETWORKS на месте задержки.
+
   String get _tailnetLabel {
     final st = item.tailnetState;
     if (st == null) return '';
@@ -90,7 +90,7 @@ class NodeRow extends StatelessWidget {
       case TailnetStateKind.stopped:
         return getLocalText.s("stopped");
       case TailnetStateKind.other:
-        return st.text; // l10n-exempt: core state text as is
+        return st.text;
     }
   }
 
@@ -103,10 +103,10 @@ class NodeRow extends StatelessWidget {
 
   String get _delayLabel {
     if (_isTailnet) return _tailnetLabel;
-    // §557 — выключенный узел (SPEC 106) отвергает дайлы: провал замера тут
-    // не сбой узла. Вместо пинга, таймаута и PING… — нейтральный прочерк,
-    // слева подпись «off».
-    if (_isDisabled) return '—'; // l10n-exempt: dash placeholder, not text
+
+
+
+    if (_isDisabled) return '—';
     if (item.pingBusy) return 'PING…';
     final delay = item.delay;
     if (delay == null) return '';
@@ -114,16 +114,16 @@ class NodeRow extends StatelessWidget {
     return delay < 0 ? '${prefix}ERR' : '$prefix${delay}MS';
   }
 
-  /// §535/§540 (ядро SPEC 097) — однословная подпись состояния WG/AWG-
-  /// endpoint'а: `up` / `sleep` / `down` / `off` (§557, выключен вручную). Детали (полное состояние ядра и
-  /// простой) — в свойствах узла. Узел в `down` — это НЕ таймаут: ядро
-  /// поднимет его на первом дайле за 0,5–1 с. Пусто = узел не endpoint,
-  /// состояние неизвестно или идёт сборка (`building`).
+
+
+
+
+
   bool get _isDisabled => item.endpointState == CcEndpointState.disabled;
 
   String get _endpointStateLabel {
     final st = item.endpointState;
-    // §557 — выключен вручную: отдельная подпись, не сон и не «down».
+
     if (st == CcEndpointState.disabled) return getLocalText.s("off");
     if (st == CcEndpointState.up) return getLocalText.s("up");
     if (st == CcEndpointState.asleep) return getLocalText.s("sleep");
@@ -146,7 +146,7 @@ class NodeRow extends StatelessWidget {
       );
 
   Color? _delayColor(BuildContext context) {
-    if (_isDisabled) return null; // §557 — прочерк нейтральным цветом
+    if (_isDisabled) return null;
     final delay = item.delay;
     if (delay == null || item.pingBusy) return null;
     final Color base;
@@ -159,17 +159,17 @@ class NodeRow extends StatelessWidget {
     } else {
       base = Theme.of(context).colorScheme.error;
     }
-    // §325 — чужой замер приглушаем: цветовая шкала остаётся читаемой (видно,
-    // что «зелёный»), но бейдж не спорит за внимание со своими, актуальными.
+
+
     return item.delayIsForeign ? base.withValues(alpha: 0.55) : base;
   }
 
-  /// `[ACTIVE] [protocol]              [50MS]` — left part flex, ping right-aligned.
+
   Widget _buildSubtitleRow(BuildContext context, ColorScheme cs) {
     final hasActive = item.active;
     final hasArrow = item.urltestNow != null && item.urltestNow!.isNotEmpty;
-    // §322 — у группы автовыбора вместо протокола метка режима, и живёт она
-    // слева от стрелки: «🔀 [15/7] → 🇩🇪 Германия».
+
+
     final auto = item.autoGroupLabel;
     final hasAuto = auto != null && auto.isNotEmpty;
     final hasProto = !hasAuto &&
@@ -178,10 +178,10 @@ class NodeRow extends StatelessWidget {
     final notificationWarnings = item.notificationWarnings;
     final hasNotificationBadge = notificationWarnings != null &&
         notificationWarnings.isNotEmpty;
-    // §201 — у block нет осмысленного delay (всегда ERR): бейдж не рисуем.
+
     final dl = _isBlock ? '' : _delayLabel;
-    // §535 — подпись «узел не поднят / спит» живёт в левой части строки:
-    // правый бейдж узкий и моноширинный, фраза туда не влезает.
+
+
     final stateLabel = _isBlock ? '' : _endpointStateLabel;
 
     if (!hasActive &&
@@ -230,8 +230,8 @@ class NodeRow extends StatelessWidget {
           )
         : null;
 
-    // §557 — выключенный узел: «off» оранжевым (тот же оранжевый, что у
-    // пинга 200–500 мс), курсивом, как соседние up/sleep/down.
+
+
     final Widget? endpointStateText = stateLabel.isEmpty
         ? null
         : Flexible(
@@ -249,8 +249,8 @@ class NodeRow extends StatelessWidget {
                 Flexible(
                   child: Text(
                     item.protocolLabel!,
-                    // §199 — транспорт уступает серверу: обрезается ellipsis'ом,
-                    // не переполняет (внутри Flexible).
+
+
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.ellipsis,
@@ -280,10 +280,10 @@ class NodeRow extends StatelessWidget {
             ),
           );
 
-    // Пинг (`right`) ВСЕГДА прижат к правому краю строки. Вся левая часть
-    // (active / arrow / proto) живёт в одном Expanded, который съедает остаток
-    // ширины и толкает пинг вправо — без конкуренции flex-ов между proto и
-    // Spacer'ом (из-за неё пинг раньше всплывал в середину строки).
+
+
+
+
     return Padding(
       padding: const EdgeInsets.only(top: 3),
       child: Row(
@@ -295,10 +295,10 @@ class NodeRow extends StatelessWidget {
                   activePill,
                   const SizedBox(width: 6),
                 ],
-                // §199 — в строке auto/urltest ВАЖЕН выбранный сервер
-                // (`→ <node>`): он держит место (flex:3), транспорт (proto)
-                // уступает по остаточному принципу (flex:1) — обрезается/
-                // исчезает первым при нехватке ширины.
+
+
+
+
                 if (arrow != null)
                   Flexible(
                     flex: 3,
@@ -314,8 +314,8 @@ class NodeRow extends StatelessWidget {
                     fit: FlexFit.loose,
                     child: proto,
                   ),
-                // §535 — состояние endpoint'а идёт последним в левой части:
-                // при нехватке ширины уступает протоколу и выбранному серверу.
+
+
                 if (endpointStateText != null) ...[
                   if (proto != null || arrow != null)
                     const SizedBox(width: 6),
@@ -331,10 +331,10 @@ class NodeRow extends StatelessWidget {
     );
   }
 
-  // §125 — служебная нода (direct/auto): по типу из конфига, не по маске имени.
-  /// §125/§322 — служебная нода (direct/auto-двойник/block): подменённое имя
-  /// и иконка. urltest-группа §322 сюда НЕ входит — она показывает своё имя,
-  /// хотя тип у неё тот же `urltest` (различитель — тег Направления, `isDirectionAuto`).
+
+
+
+
   bool get _isSpecial => _special != null;
 
   SpecialNodeDisplay? get _special {
@@ -344,18 +344,18 @@ class NodeRow extends StatelessWidget {
     return s;
   }
 
-  // §201 — block: дропает трафик, urltest всегда ERR. Не пингуем и не
-  // показываем delay-бейдж (был бы всегда «ERR»).
+
+
   bool get _isBlock => item.outboundType == 'block';
 
   Future<void> _openLongPressMenu(BuildContext context) async {
-    // §201 — block не пингуется (всегда ERR): пункт Ping disabled.
+
     final canPing = item.tunnelUp && !item.busy && !item.pingBusy && !_isBlock;
     final canActivate = item.tunnelUp && !item.busy && !item.active;
-    // §322 — у группы автовыбора ссылки для копирования нет: её члены —
-    // узлы своего контейнера (§439: запись `kind: auto`, а не текст). Гейт по
-    // ТИПУ, а не по `_isSpecial`: группа §322 из
-    // «спец»-категории выведена намеренно (своё имя, своё место в списке).
+
+
+
+
     final showCopy = !_isSpecial && item.outboundType != 'urltest';
     final box = context.findRenderObject() as RenderBox?;
     final overlay =
@@ -372,7 +372,7 @@ class NodeRow extends StatelessWidget {
       context: context,
       position: position,
       items: [
-        // Задача 579 — у строки NETWORKS нет замера и выбора узла.
+
         if (!_isTailnet)
         PopupMenuItem<String>(
           value: 'ping',
@@ -420,9 +420,9 @@ class NodeRow extends StatelessWidget {
               title: Text(getLocalText.s("Run URLTest")),
             ),
           ),
-        // §203 — «Select server»: только для auto/urltest-ноды с текущим
-        // выбором (onSelectServer != null). Подсвечивает и скроллит к серверу,
-        // который urltest выбрал быстрейшим.
+
+
+
         if (onSelectServer != null)
           PopupMenuItem<String>(
             value: 'select_server',
@@ -433,8 +433,8 @@ class NodeRow extends StatelessWidget {
               title: Text(getLocalText.s("Select server")),
             ),
           ),
-        // §208 — «View pool»: только для auto-ноды round_robin-Направления
-        // (onViewPool != null). Попап со слотами пула (getPool).
+
+
         if (onViewPool != null)
           PopupMenuItem<String>(
             value: 'view_pool',
@@ -466,8 +466,8 @@ class NodeRow extends StatelessWidget {
           ),
         if (onViewJson != null) const PopupMenuDivider(),
         if (onViewJson != null)
-          // §258 — экран стал Overview/JSON, пункт переименован в View
-          // details (внутреннее значение 'view_json' не трогаем).
+
+
           PopupMenuItem<String>(
             value: 'view_json',
             child: ListTile(
@@ -488,7 +488,7 @@ class NodeRow extends StatelessWidget {
               title: Text(getLocalText.s("Copy URI")),
             ),
           ),
-        // §099 — Copy JSON / detour / server+detour перенесены в View JSON.
+
       ],
     );
     if (!context.mounted) return;
@@ -543,9 +543,9 @@ class NodeRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Builder(builder: (context) {
-                      // §125 — служебные ноды (direct/auto) показываем
-                      // подменённым label'ом + иконкой; тип берём ТОЧНО из
-                      // конфига (item.outboundType), не по маске имени.
+
+
+
                       final special = _special;
                       final displayText = special?.label ?? item.tag;
                       return Row(
@@ -570,8 +570,8 @@ class NodeRow extends StatelessWidget {
                                   ),
                             ),
                           ),
-                          // §355 — корень беды: мёртвая нода, от которой
-                          // зависят DNS/ноды. Тап → sheet со списком.
+
+
                           if (item.isSickRoot) ...[
                             const SizedBox(width: 6),
                             GestureDetector(
@@ -587,7 +587,7 @@ class NodeRow extends StatelessWidget {
                   ],
                 ),
               ),
-              // Задача 579 — строка NETWORKS: кнопки выбора узла нет.
+
               if (!_isTailnet)
               IconButton(
                 visualDensity: VisualDensity.compact,
@@ -612,9 +612,9 @@ class NodeRow extends StatelessWidget {
       ),
     );
 
-    // §048 — single source of opacity. Caller передаёт `matches` через
-    // `NodeViewItem`, widget сам решает как render себя в matching/non-matching
-    // состоянии. Magic 0.4 не утекает в caller.
+
+
+
     return Opacity(
       opacity: item.matches ? 1.0 : 0.4,
       child: content,

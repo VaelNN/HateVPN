@@ -5,7 +5,7 @@ import 'package:lxbox/models/config_node.dart';
 
 import '../contract_paths.dart';
 
-/// §091 — unit tests for ConfigNode / ParsedConfig (structural per-node meta).
+
 void main() {
   String cfg(Map<String, dynamic> m) => jsonEncode(m);
 
@@ -35,7 +35,7 @@ void main() {
       expect(pc['wg']?.kind, 'endpoint');
       expect(pc.kindOf('a'), 'outbound');
       expect(pc.kindOf('wg'), 'endpoint');
-      expect(pc.kindOf('missing'), 'outbound'); // default
+      expect(pc.kindOf('missing'), 'outbound');
     });
 
     test('detour field (own hop-target)', () {
@@ -46,7 +46,7 @@ void main() {
 
     test('isControl', () {
       expect(pc['a']?.isControl, false);
-      expect(pc['wg']?.isControl, false); // wireguard endpoint = payload
+      expect(pc['wg']?.isControl, false);
       expect(pc['sel']?.isControl, true);
       expect(pc['auto']?.isControl, true);
     });
@@ -59,7 +59,7 @@ void main() {
     test('protocolOf: payload type, null для control/missing', () {
       expect(pc.protocolOf('a'), 'vless');
       expect(pc.protocolOf('wg'), 'wireguard');
-      expect(pc.protocolOf('sel'), isNull); // control
+      expect(pc.protocolOf('sel'), isNull);
       expect(pc.protocolOf('missing'), isNull);
     });
   });
@@ -74,7 +74,7 @@ void main() {
       }));
       expect(pc.protocolOf('weird'), isNull);
       expect(pc.protocolOf('notype'), isNull);
-      // но нода существует в модели (для raw / chain).
+
       expect(pc['weird'], isNotNull);
     });
   });
@@ -161,7 +161,7 @@ void main() {
   });
 
   group('§102 — transport/security слоты для subtitle', () {
-    // Подпись уровня (awg*) — данные реестра (§56/§60): разбор после загрузки.
+
     late ParsedConfig pc;
     setUpAll(() async {
       await loadTestRegistry();
@@ -178,8 +178,8 @@ void main() {
           'transport': {'type': 'http'},
         },
         {'tag': 'plain', 'type': 'trojan'},
-        // §130/§393 — MASQUE: версия HTTP из своего ключа `vhttp` (h3/h2),
-        // пусто → h3. Legacy-имя `network` тоже читается (конфиги до миграции).
+
+
         {'tag': 'mq3', 'type': 'masque', 'vhttp': 'h3'},
         {'tag': 'mq2', 'type': 'masque', 'vhttp': 'h2'},
         {'tag': 'mqlegacy', 'type': 'masque', 'network': 'h2'},
@@ -220,8 +220,8 @@ void main() {
         },
       ],
       'endpoints': [
-        // §148 — версии AmneziaWG: 2.0 = ranged-H ("N-M") или s3/s4;
-        // 1.5 = signature-пакеты i1–i5; 1.0 = база (jc/s1/одиночные h).
+
+
         {'tag': 'awg2h', 'type': 'wireguard', 'jc': 10, 'h1': '10-20'},
         {'tag': 'awg2s', 'type': 'wireguard', 'jc': 10, 's3': 60, 's4': 60},
         {'tag': 'awg15i1', 'type': 'wireguard', 'jc': 10, 'i1': '<r 24>'},
@@ -229,14 +229,14 @@ void main() {
         {'tag': 'awg2over', 'type': 'wireguard', 'i1': '<r 24>', 'h1': '10-20'},
         {'tag': 'awg1', 'type': 'wireguard', 'jc': 10, 's1': 20, 'h1': 1},
         {'tag': 'wg', 'type': 'wireguard'},
-        // §148 — masquerade ip/id/ib = ядро разворачивает в i1 ⇒ сам по себе
-        // 1.5. `awg+` невозможен: 1.0/нет-базы → awg1.5+, только 2.0 → awg2+.
+
+
         {'tag': 'awgp', 'type': 'wireguard', 'jc': 10, 'ip': '1.2.3.4'},
         {'tag': 'awg15p', 'type': 'wireguard', 'i1': '<r 24>', 'id': 'x'},
         {'tag': 'awg2p', 'type': 'wireguard', 's3': 60, 'ib': 'y'},
         {'tag': 'awgponly', 'type': 'wireguard', 'ip': 'quic'},
-        // §421 — AWG 3.x: 3.1 = random_trailers/disable_cookies; 3.0 = любой
-        // другой AWG3-ключ корня или диапазонный keepalive пира. Старше 2.0.
+
+
         {'tag': 'awg31', 'type': 'wireguard', 'jc': 4, 'random_trailers': true},
         {'tag': 'awg31dc', 'type': 'wireguard', 'disable_cookies': true},
         {
@@ -271,8 +271,8 @@ void main() {
         () {
       expect(pc['mq3']?.transportLabel, 'h3');
       expect(pc['mq2']?.transportLabel, 'h2');
-      // D-078 — плоское legacy-имя `network` больше не читается: узел
-      // показывает дефолт, а не значение из старого ключа.
+
+
       expect(pc['mqlegacy']?.transportLabel, 'h3');
       expect(pc['mqdef']?.transportLabel, 'h3');
     });
@@ -294,38 +294,38 @@ void main() {
     test('Vision (flow=xtls-rprx-vision) → суффикс +Vision', () {
       expect(pc['vision']?.securityLabel, 'Reality+Vision');
       expect(pc['visiontls']?.securityLabel, 'TLS+Vision');
-      // без flow — без суффикса
+
       expect(pc['rlt']?.securityLabel, 'Reality');
     });
 
     test('§148 security: awg2 (ranged-H/s3/s4) vs awg1.5 (i1–i5) vs awg vs WG',
         () {
-      expect(pc['awg2h']?.securityLabel, 'awg2'); // ranged h1 "10-20"
-      expect(pc['awg2s']?.securityLabel, 'awg2'); // s3/s4
-      expect(pc['awg15i1']?.securityLabel, 'awg1.5'); // i1
-      expect(pc['awg15i2']?.securityLabel, 'awg1.5'); // i2 — тоже 1.5
-      expect(pc['awg2over']?.securityLabel, 'awg2'); // i1+ranged-H → 2.0 старше
-      expect(pc['awg1']?.securityLabel, 'awg'); // база + одиночный h1=1
-      expect(pc['wg']?.securityLabel, isNull); // plain WG
+      expect(pc['awg2h']?.securityLabel, 'awg2');
+      expect(pc['awg2s']?.securityLabel, 'awg2');
+      expect(pc['awg15i1']?.securityLabel, 'awg1.5');
+      expect(pc['awg15i2']?.securityLabel, 'awg1.5');
+      expect(pc['awg2over']?.securityLabel, 'awg2');
+      expect(pc['awg1']?.securityLabel, 'awg');
+      expect(pc['wg']?.securityLabel, isNull);
     });
 
     test('§421 security: awg3.1 (trailers/cookies) > awg3 (AWG3-ключ, ranged '
         'keepalive) > awg2; masquerade → awg3+/awg3.1+', () {
       expect(pc['awg31']?.securityLabel, 'awg3.1');
       expect(pc['awg31dc']?.securityLabel, 'awg3.1');
-      expect(pc['awg3hk']?.securityLabel, 'awg3'); // старше awg2 (s3+ranged h)
+      expect(pc['awg3hk']?.securityLabel, 'awg3');
       expect(pc['awg3t']?.securityLabel, 'awg3');
-      expect(pc['awg3ka']?.securityLabel, 'awg3'); // только диапазонный keepalive
+      expect(pc['awg3ka']?.securityLabel, 'awg3');
       expect(pc['awg3p']?.securityLabel, 'awg3+');
       expect(pc['awg31p']?.securityLabel, 'awg3.1+');
     });
 
     test('§148 security: masquerade ip/id/ib — awg+ невозможен, мин. awg1.5+',
         () {
-      expect(pc['awgp']?.securityLabel, 'awg1.5+'); // 1.0-база + ip → 1.5+
-      expect(pc['awg15p']?.securityLabel, 'awg1.5+'); // i1 + id
-      expect(pc['awg2p']?.securityLabel, 'awg2+'); // s3 + ib → только 2.0+
-      expect(pc['awgponly']?.securityLabel, 'awg1.5+'); // только ip, без базы
+      expect(pc['awgp']?.securityLabel, 'awg1.5+');
+      expect(pc['awg15p']?.securityLabel, 'awg1.5+');
+      expect(pc['awg2p']?.securityLabel, 'awg2+');
+      expect(pc['awgponly']?.securityLabel, 'awg1.5+');
     });
   });
 
@@ -345,7 +345,7 @@ void main() {
           {'tag': 'wg1', 'type': 'wireguard'},
         ],
       }));
-      expect(pc.nodeCount, 3); // n1 + n2 + wg1
+      expect(pc.nodeCount, 3);
     });
 
     test('malformed JSON → empty', () {

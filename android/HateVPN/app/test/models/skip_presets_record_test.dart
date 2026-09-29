@@ -5,8 +5,8 @@ import 'package:lxbox/services/lx_backup_slice.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §578 — поле записи `skip_presets`: своё значение у сервера и члена папки,
-/// хранится только `true`, едет в резервной копии.
+
+
 void main() {
   setUpAll(loadEngineSections);
 

@@ -4,9 +4,9 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/warp/scan/scan_pool.dart';
 
-/// §284 — пул скана: парс `scan`-блока + CIDR→random IP в границах подсети.
+
 void main() {
-  /// Истинно, если [ip] попадает в [cidr] (bitmask-сравнение, v4+v6).
+
   bool inCidr(String ip, String cidr) {
     final parts = cidr.split('/');
     final net = InternetAddress(parts[0]).rawAddress;
@@ -130,7 +130,7 @@ void main() {
       });
       expect(pool!.masquePortsFor('h3'), [443, 4443]);
       expect(pool.masquePortsFor('h2'), [500, 8443]);
-      // Неизвестный транспорт → h3-набор дефолтом.
+
       expect(pool.masquePortsFor('foo'), [443, 4443]);
     });
 
@@ -144,7 +144,7 @@ void main() {
           });
 
       expect(pool(25)!.wgKeepalive, 25);
-      // JSON правит человек — строку принимаем.
+
       expect(pool('25')!.wgKeepalive, 25);
       expect(pool('nope')!.wgKeepalive, 0, reason: 'мусор → 0 = не писать');
       final noKey = pool(null)!;
@@ -223,10 +223,10 @@ void main() {
         },
       })!;
       expect(pool.masqueV4Cidr, ['162.159.198.0/24', '162.159.199.0/24']);
-      // hosts_preset старого override — как был (семантика не меняется).
+
       expect(pool.masqueHostsPreset,
           ['consumer-masque.cloudflareclient.com', '162.159.198.2']);
-      // /32 из h3_v4_cidr → h3-хосты сверх пресета; не-/32 отбрасываются.
+
       expect(pool.masqueH3HostsExtra, ['162.159.198.1']);
       expect(pool.masqueH2Exclude, isEmpty);
       expect(pool.masquePortsH3, [443]);
@@ -254,14 +254,14 @@ void main() {
         expect(h2, isNot('162.159.198.1'));
         expect(h2!.startsWith('162.159.198.'), isTrue);
       }
-      // Блок из одних исключений → null, не бесконечный цикл.
+
       final allExcluded = ScanPool.fromFullJson({
         'masque': {
           'h2': {'v4_cidr': ['162.159.198.1/32'], 'exclude': ['162.159.198.1']},
         },
       })!;
       expect(allExcluded.randomMasqueIp('h2', rng), isNull);
-      // Только h3-хосты, без h2-блока: пул валиден, h2-рандом пуст.
+
       final h3only = ScanPool.fromFullJson({
         'masque': {'hosts_preset': ['162.159.198.2']},
       })!;

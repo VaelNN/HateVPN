@@ -15,11 +15,11 @@ import '../widgets/lx_code_editor.dart';
 import '../services/file_import.dart';
 import '../widgets/safe_bottom.dart';
 
-/// §333 — страховочный порог: выше него редактор открывается read-only.
-/// Даже построчному редактору многомегабайтный конфиг на слабом устройстве
-/// даётся плохо, а правка такого объёма на телефоне — не сценарий: Share →
-/// внешний редактор → Load from file. Порог в символах `configRaw`
-/// (конфиг — практически ASCII, так что символы ≈ байты).
+
+
+
+
+
 const int kConfigEditMaxChars = 1024 * 1024;
 
 bool configTooLargeToEdit(String raw) => raw.length > kConfigEditMaxChars;
@@ -46,8 +46,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
     unawaited(_initLoad(raw));
   }
 
-  /// §333 — pretty-print в изоляте: json5-парс сотен КБ в main isolate
-  /// фризил открытие экрана.
+
+
   Future<void> _initLoad(String raw) async {
     final pretty = await prettyJsonForDisplayAsync(raw);
     if (!mounted) return;
@@ -109,8 +109,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
   Future<void> _loadFromFile() async {
     try {
-      // §372 — на устройстве без файлового менеджера (Android TV) подсказываем
-      // буфер/URL вместо технической ошибки пикера.
+
+
       final outcome = await pickFileSafely();
       if (outcome is! PickedFiles) {
         final problem = pickProblemText(outcome);
@@ -121,7 +121,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
         return;
       }
       final file = outcome.single;
-      // §333 — utf8, не fromCharCodes (см. PickedFile.text).
+
       final text = file.text;
       final pretty = await prettyJsonForDisplayAsync(text.trim());
       if (!mounted) return;
@@ -229,8 +229,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
                           tooltip: getLocalText.s("Copy"),
                           visualDensity: VisualDensity.compact,
                           onPressed: () async {
-                            // §219 — await + mounted перед snackbar (как _copy():40),
-                            // иначе гонка Future/context.
+
+
                             await Clipboard.setData(
                                 ClipboardData(text: _textController.text));
                             if (!context.mounted) return;

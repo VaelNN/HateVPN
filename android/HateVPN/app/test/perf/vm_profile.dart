@@ -4,15 +4,15 @@ import 'dart:developer';
 import 'dart:io';
 import 'dart:isolate';
 
-/// Общая обвязка профиля для бенчей `test/perf/` (вынесена из §548, нужна
-/// §550): сэмплирующий профилировщик VM через свой же VM service, голым
-/// JSON-RPC по WebSocket. VM service `flutter test` поднимает только с
-/// `--coverage` (или `--start-paused`).
-///
-/// Профиль сэмплирующим профилировщиком VM через свой же VM service.
-///
-/// [work] крутится [dur], затем `getCpuSamples` за это окно. Self — кадр на
-/// вершине стека, inclusive — функция встречается в стеке хоть раз.
+
+
+
+
+
+
+
+
+
 Future<String> vmProfile(
   void Function() work,
   Duration dur, {
@@ -87,8 +87,8 @@ Future<String> vmProfile(
     final stack = ((s as Map)['stack'] as List).cast<int>();
     if (stack.isEmpty) continue;
     self.update(fns[stack.first], (v) => v + 1, ifAbsent: () => 1);
-    // Self, свёрнутый до кода приложения: время в `Map.[]`/`String.==`
-    // приписывается ближайшему кадру lxbox, который их позвал.
+
+
     final firstOwn = stack.firstWhere((i) => own[i], orElse: () => -1);
     if (firstOwn >= 0) {
       selfOwn.update(fns[firstOwn], (v) => v + 1, ifAbsent: () => 1);
@@ -132,7 +132,7 @@ String _fnName(Map f) {
   return name;
 }
 
-/// Код приложения: `resolvedUrl` у профилировщика бывает и `package:`, и
-/// `file://` — смотря как VM загрузила библиотеку.
+
+
 bool _isOwn(String url) =>
     url.startsWith('package:lxbox/') || url.contains('/app/lib/');

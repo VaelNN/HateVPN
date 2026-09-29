@@ -1,12 +1,12 @@
-/// §480 W1 — МОСТ: движок секций на месте рукописного маппера.
-///
-/// Наружу движок отдаёт тот же `UriMapping`, что отдавали рукописные мапперы,
-/// и остальной конвейер (санитайзер → `parseSingboxEntry`) не меняется вовсе.
-/// Это граница волны: W1 доказывает грамматику на одной схеме, не трогая ни
-/// одного слоя ниже.
-///
-/// Диспетчер выбирает движок ТОЛЬКО когда для схемы есть секция
-/// ([MapperSections.has]); прочие схемы идут прежними мапперами до своих волн.
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../../models/node_warning.dart';
@@ -16,13 +16,13 @@ import '../mappers/uri_mapper.dart';
 import 'interpreter.dart';
 import 'section_loader.dart';
 
-/// Разобрать ссылку движком по секции вида `uri`.
-///
-/// [singboxType] — тип тела, он же имя секции. Имени СХЕМЫ движок не знает:
-/// её написание приезжает лексером из самого текста, а тип тела называет
-/// диспетчер по реестру.
-///
-/// `null` — секции нет либо запись не построилась (нет обязательного поля).
+
+
+
+
+
+
+
 UriMapping? mapViaEngine(String uri, String singboxType,
     {XrayDropVerdict? dropped}) {
   final section = MapperSections.I.sectionFor('uri', singboxType);
@@ -36,30 +36,30 @@ UriMapping? mapViaEngine(String uri, String singboxType,
     extensionFields: res.extensionFields,
     wsEarlyDataHeaderImplicit: res.wsEarlyDataHeaderImplicit,
     tagAddress: res.tagAddress,
-    // Рода, объявленные ВХОДОМ (`kind_when` секции): правило реестра судит
-    // тело, а вход мог попросить подвид протокола и не донести ни одного
-    // годного поля. Имя рода — строка ИЗ ДАННЫХ, движок его не толкует.
+
+
+
     kinds: res.kinds,
-    // §480 — вход НАЗЫВАЕТ СЕБЯ САМ: секция объявила `body_source`, и
-    // санитайзер судит по нему `except_sources`.
+
+
     bodySource: BodySource.byRegistryName(res.bodySource),
   );
 }
 
-/// §480 — разобрать текст `.conf` движком по секции вида `conf`.
-///
-/// [singboxType] — тип тела, он же имя секции: вид источника `conf` схемы не
-/// несёт вовсе (INI её не объявляет), и называет секцию вызывающий — формат
-/// опознан раньше, реестром видов источника.
-///
-/// [nameHint] — имя, предложенное вызывающим (имя файла при импорте, тег
-/// записи хранения, поле Tag редактора). Место подсказки в цепочке метки
-/// объявляет секция (`label.source`), а не этот мост.
-///
-/// [context] — значения от распаковщика контейнера, источники `context.*`
-/// секции (контракт 1.1.63: `container`, `profile` у Amnezia).
-///
-/// `null` — секции нет либо запись не построилась.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 UriMapping? mapIniViaEngine(
   String text,
   String singboxType, {
@@ -83,11 +83,11 @@ UriMapping? mapIniViaEngine(
   );
 }
 
-/// §480 W5 — результат перевода ОБЪЕКТНОГО элемента (Xray/sing-box-JSON).
-///
-/// Отличается от [UriMapping] тем, что метку сюда движок не отдаёт: имя
-/// узла объектного входа приходит от ЭЛЕМЕНТА документа (`remarks`, `tag`),
-/// а это уровень сборки документа, а не маппера одного узла.
+
+
+
+
+
 final class JsonMapping {
   const JsonMapping({
     required this.body,
@@ -100,29 +100,29 @@ final class JsonMapping {
   final List<NodeWarning> warnings;
   final bool wsEarlyDataHeaderImplicit;
 
-  /// Написание имени в теге-фолбэке безымянного узла, когда оно не равно
-  /// типу тела: объявляется секцией (`label.fallback.scheme`).
+
+
   final String? tagScheme;
 }
 
-/// Перевести ОБЪЕКТНЫЙ элемент документа секцией вида [kind].
-///
-/// Диспетчера по имени протокола здесь нет: секцию выбирает `detect` самой
-/// секции ([MapperSections.matchJson]) — это и есть «опознание элемента
-/// декларативно» (§2 НОРМЫ). Движку остаётся исполнить найденную таблицу.
-///
-/// `null` — ни одна секция не опознала элемент либо обязательная запись не
-/// нашла значения (тем же `null` отвечал рукописный диспетчер).
-///
-/// [document] — соседи элемента по документу (у Xray — массив `outbounds`),
-/// в которых запись с `deref` ищет цель своей ссылки (контракт 1.1.63).
+
+
+
+
+
+
+
+
+
+
+
 JsonMapping? mapJsonViaEngine(String kind, Map<String, dynamic> element,
     {XrayDropVerdict? dropped, List<dynamic>? document}) {
   final section = MapperSections.I.matchJson(kind, element);
   if (section == null) {
-    // §560 — элемент не опознала НИ ОДНА секция: протокол не ведётся
-    // (PARSING_PRINCIPLES §4.1 `protocol_unsupported`). Служебные outbound'ы сюда не
-    // доходят — их отсеивает вызывающий до разбора.
+
+
+
     if (dropped != null && dropped.reason == null) {
       dropped.reason = const RegistryWarning(code: 'protocol_unsupported');
     }

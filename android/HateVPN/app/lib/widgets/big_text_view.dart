@@ -3,19 +3,19 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'safe_bottom.dart';
 
-/// §333 — построчный просмотр большого read-only текста.
-///
-/// `Text`/`SelectableText` кладут весь текст в один `Paragraph`: layout и
-/// память O(N) по документу, фриз при открытии, на слабых устройствах —
-/// смерть от lmkd. Здесь текст режется на строки-элементы `ListView.builder`
-/// (layout только видимых). Сквозное «выделить всё пальцем» при виртуализации
-/// невозможно — рядом с такими вьюерами всегда есть кнопка Copy; выделение
-/// в пределах видимого работает через [SelectionArea] у [BigTextView].
-///
-/// Строки длиннее [kBigTextChunkChars] режутся на куски: undecoded
-/// base64-тело подписки — это ОДНА строка на сотни КБ, без чанкования она
-/// снова стала бы единым гигантским параграфом. Стык чанков при wrap
-/// неотличим от обычного переноса строки.
+
+
+
+
+
+
+
+
+
+
+
+
+
 const int kBigTextChunkChars = 4096;
 
 List<String> chunkTextLines(String text, {int maxChunk = kBigTextChunkChars}) {
@@ -33,8 +33,8 @@ List<String> chunkTextLines(String text, {int maxChunk = kBigTextChunkChars}) {
   return out;
 }
 
-/// Standalone-вьюер: сам себе скролл (замена
-/// `SingleChildScrollView(child: SelectableText(...))`).
+
+
 class BigTextView extends StatefulWidget {
   const BigTextView({
     super.key,
@@ -75,8 +75,8 @@ class _BigTextViewState extends State<BigTextView> {
         padding: widget.padding.withSafeBottom(context),
         itemCount: _chunks.length,
         itemBuilder: (context, i) => Text(
-          // Пустая строка схлопнулась бы в 0-высотный Text — визуально
-          // пропадает пустая строка исходника.
+
+
           _chunks[i].isEmpty ? ' ' : _chunks[i],
           style: widget.style,
         ),
@@ -85,8 +85,8 @@ class _BigTextViewState extends State<BigTextView> {
   }
 }
 
-/// Sliver-вариант для встраивания в `CustomScrollView` после «шапки»
-/// (замена `SelectableText` внутри `ListView(children: [...])`).
+
+
 class BigTextSliver extends StatefulWidget {
   const BigTextSliver({super.key, required this.text, this.style});
 

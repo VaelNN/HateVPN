@@ -4,7 +4,7 @@ import 'package:lxbox/services/subscription/input_helpers.dart';
 import '../parser/engine_test_setup.dart';
 
 void main() {
-  // §562 — набор схем ссылки даёт только реестр: литеральной копии в Dart нет.
+
   setUpAll(loadEngineSections);
 
   group('isSubscriptionUrl (night T5-3)', () {
@@ -43,15 +43,15 @@ void main() {
       'awg': 'awg://...',
       'socks5': 'socks5://u:p@h:1080',
       'socks': 'socks://h:1080',
-      // §222 — HTTP(S) CONNECT proxy (дефис-формы).
+
       'proxy-http': 'proxy-http://h:8080',
       'proxy-https': 'proxy-https://h:8443',
-      // §268 — ранее выпадали из классификатора импорта.
+
       'naive+https': 'naive+https://u:p@h:443',
       'masque': 'masque://u@h:443',
-      // §269 — AnyTLS.
+
       'anytls': 'anytls://p@h:443',
-      // §268 — плюс-алиасы proxy для единообразия с naive+https.
+
       'proxy+http': 'proxy+http://h:8080',
       'proxy+https': 'proxy+https://h:8443',
     };
@@ -91,11 +91,11 @@ void main() {
       const cfg = '[Interface]\nPrivateKey = x\n[Peer]\nPublicKey = y';
       expect(isWireGuardConfig(cfg), isTrue);
     });
-    // §480 — род документа судит грамматика реестра: `wireguard_conf`
-    // опознаётся по ПЕРВОЙ не-комментарной секции `[Interface]`, а `[Peer]`
-    // НЕ требуется (contract_draft/source_kinds.json, сверено с лаунчером —
-    // TASKS_LXBOX §24.27 п.3). Заготовка без пира — законный wg-конфиг, и
-    // прежнее требование обеих секций уронило бы её в URI-ветку.
+
+
+
+
+
     test('только [Interface] → true (заготовка без пира — тоже wg-конфиг)', () {
       expect(isWireGuardConfig('[Interface]\nPrivateKey = x'), isTrue);
     });
@@ -118,7 +118,7 @@ void main() {
       expect(isFileSubscription(''), isFalse);
     });
     test('file без двоеточия (случайное) — по префиксу true', () {
-      // Дискриминатор — строгий префикс `file:`; `filename` не матчит.
+
       expect(isFileSubscription('filename.txt'), isFalse);
     });
   });

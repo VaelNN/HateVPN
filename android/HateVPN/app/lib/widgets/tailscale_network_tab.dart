@@ -12,8 +12,8 @@ import '../vpn/cc_channel.dart';
 import 'app_bottom_sheet.dart';
 import 'safe_bottom.dart';
 
-/// Задача 581 — вызовы ядра вкладки Network. Отдельно от [CcChannel], чтобы
-/// тесты подставляли свои.
+
+
 class TailscaleNetworkActions {
   const TailscaleNetworkActions();
 
@@ -30,13 +30,13 @@ class TailscaleNetworkActions {
   Stream<CcTailscalePingResult> get pings => CcChannel.instance.tailscalePing;
 }
 
-/// Задача 581 — вкладка Network узла Tailscale (экраны `node_settings_screen`
-/// и `node_inspect_screen`): состояние узла, свой узел, exit node, устройства
-/// сети.
-///
-/// [liveTag] — тег узла в работающем конфиге. [body] — тело узла (источник
-/// записанного `exit_node`). [onSaveExitNode] — запись выбора в тело узла
-/// (`null` убирает поле); `null` — кнопки Save choice нет (узел подписки).
+
+
+
+
+
+
+
 class TailscaleNetworkTab extends StatefulWidget {
   const TailscaleNetworkTab({
     super.key,
@@ -52,12 +52,12 @@ class TailscaleNetworkTab extends StatefulWidget {
   final Map<String, dynamic> body;
   final Future<void> Function(String? value)? onSaveExitNode;
 
-  /// Тесты: поток состояния вместо [CcChannel.tailscaleStatus] (подписка ядра
-  /// тогда не поднимается).
+
+
   @visibleForTesting
   final Stream<List<CcTailscaleStatus>>? statusSource;
 
-  /// Тесты: VPN включён / выключен без обращения к сервису.
+
   @visibleForTesting
   final bool? vpnUp;
 
@@ -75,7 +75,7 @@ class _TailscaleNetworkTabState extends State<TailscaleNetworkTab> {
   StreamSubscription<TunnelStatusEvent>? _vpnSub;
   bool _acquired = false;
 
-  // Раздел «Риски»: не чаще раза в секунду.
+
   static const _minRedraw = Duration(seconds: 1);
   DateTime _lastRedraw = DateTime.fromMillisecondsSinceEpoch(0);
   Timer? _redrawTimer;
@@ -103,7 +103,7 @@ class _TailscaleNetworkTabState extends State<TailscaleNetworkTab> {
     if (source != null) {
       _sub = source.listen(_onStatus);
     } else {
-      // §122 — слушатель до старта подписки.
+
       _sub = CcChannel.instance.tailscaleStatus.listen(_onStatus);
       _acquired = true;
       unawaited(CcChannel.instance.acquireTailscaleStatus());
@@ -178,7 +178,7 @@ class _TailscaleNetworkTabState extends State<TailscaleNetworkTab> {
       if (devices.isEmpty)
         ListTile(dense: true, title: Text(getLocalText.s("No devices"))),
     ];
-    // Устройства — ленивой частью списка (сети из сотен устройств).
+
     final rows = <Object>[];
     if (grouped) {
       for (final g in s.userGroups) {
@@ -228,7 +228,7 @@ class _TailscaleNetworkTabState extends State<TailscaleNetworkTab> {
     ),
   );
 
-  // ── Status ──
+
 
   Widget _statusBlock(BuildContext context, CcTailscaleStatus s) {
     final needsLogin = s.backendState == 'NeedsLogin';
@@ -302,7 +302,7 @@ class _TailscaleNetworkTabState extends State<TailscaleNetworkTab> {
     if (err != null) _snack(getLocalText.s("Failed: %s", err));
   }
 
-  // ── This device ──
+
 
   Widget _thisDeviceBlock(BuildContext context, CcTailscalePeer self) {
     return Column(
@@ -338,7 +338,7 @@ class _TailscaleNetworkTabState extends State<TailscaleNetworkTab> {
     return '${d.year}-${two(d.month)}-${two(d.day)} ${two(d.hour)}:${two(d.minute)}';
   }
 
-  // ── Exit node ──
+
 
   Widget _exitNodeBlock(BuildContext context, CcTailscaleStatus s) {
     final options = exitNodeOptions(s);
@@ -431,7 +431,7 @@ class _TailscaleNetworkTabState extends State<TailscaleNetworkTab> {
     }
   }
 
-  // ── Devices ──
+
 
   Widget _deviceRow(
     BuildContext context,
@@ -514,8 +514,8 @@ class _TailscaleNetworkTabState extends State<TailscaleNetworkTab> {
   }
 }
 
-/// Подпись состояния узла — значения таблицы раздела 3 спеки 579; прочие
-/// состояния — текстом ядра.
+
+
 String tailscaleStateLabel(CcTailscaleStatus s) => switch (s.backendState) {
   'Running' => getLocalText.s("running"),
   'NeedsLogin' => getLocalText.s("sign-in needed"),
@@ -523,12 +523,12 @@ String tailscaleStateLabel(CcTailscaleStatus s) => switch (s.backendState) {
   _ =>
     s.stateText.isNotEmpty
         ? s
-              .stateText // l10n-exempt: core state text as is
-        : s.backendState, // l10n-exempt: core state as is
+              .stateText
+        : s.backendState,
 };
 
-/// Задача 581 раздел 7 — проверка устройства: до закрытия листа или пяти
-/// ответов.
+
+
 class TailscalePingSheet extends StatefulWidget {
   const TailscalePingSheet({
     super.key,

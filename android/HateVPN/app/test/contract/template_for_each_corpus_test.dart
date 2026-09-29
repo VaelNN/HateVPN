@@ -9,21 +9,21 @@ import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/builder/if_engine.dart';
 import 'package:lxbox/services/builder/preset_expand.dart';
 
-// Конформанс-раннер корпуса `corpus/template/for_each/` (контракт 1.1.86,
-// LxBox §578/§83) — сторона LxBox, аналог общего раннера шаблонов
-// (`template_contract_test.dart`), но по ИНОМУ формату кейса (см.
-// `contract/corpus/template/README.md` → «Раздел for_each/»):
-//
-//   <case>.preset.json   {"_comment": "…", "preset": {...}, "nodes": [...]}
-//   <case>.vars.json      значения переменных ПРЕСЕТА строками
-//   <case>.expected.json  {"load"?, "rules": [...], "dns_servers": [...],
-//                          "dns_rules": [...], "warnings": [...]}
-//
-// `preset` несёт только ключи языка (`for_each`, `vars`, `rule_set`, `rules`,
-// `dns_servers`, `dns_rules`) — оболочку (`preset_id`, `ui`) добавляет этот
-// раннер, как и предписано README. `nodes` — узлы конфига в порядке файла;
-// `enabled: false` / `in_config: false` отфильтровываются здесь (сборка
-// LxBox их до `for_each` не доводит — см. `PresetNode`/`expandPreset`).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class _ForEachCase {
   _ForEachCase({
@@ -74,13 +74,13 @@ _ForEachCase _loadCase(String base) {
   );
 }
 
-/// Вердикт load-валидации `for_each` этого кейса: сегодня LxBox валидирует
-/// `for_each` только в контексте целого шаблона (`validateTemplateConstructs`
-/// в `template_loader.dart`) — у корпуса `for_each/` вместо шаблона голый
-/// фрагмент пресета, поэтому здесь проверяется ТОТ ЖЕ рубеж напрямую:
-/// `node_type`/`as` обязательны (`PresetForEach.fromJson` возвращает null),
-/// иначе (§83) весь ШАБЛОН всё равно грузится — рубеж этого корпуса уже
-/// про то, раскрывается ли САМ пресет, а не про судьбу остального шаблона.
+
+
+
+
+
+
+
 bool _rejectedOnLoad(Map<String, dynamic> presetJson) {
   final forEachRaw = presetJson['for_each'];
   if (forEachRaw == null) return false;

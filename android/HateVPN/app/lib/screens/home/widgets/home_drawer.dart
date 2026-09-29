@@ -15,9 +15,9 @@ import '../../stats_screen.dart';
 import '../../subscriptions_screen.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// Навигационное меню (Drawer) главного экрана: переход в разделы приложения.
-/// Каждый пункт закрывает drawer и push'ит экран. «Statistics» доступен только
-/// при поднятом туннеле (данные из CommandClient push-стримов, §122).
+
+
+
 class HomeDrawer extends StatelessWidget {
   const HomeDrawer({
     super.key,
@@ -114,7 +114,7 @@ class HomeDrawer extends StatelessWidget {
               onTap: () => _go(
                 context,
                 StatsScreen(
-                  configRaw: controller.state.activeConfigRaw, // §311 — срез ядра
+                  configRaw: controller.state.activeConfigRaw,
                   subController: subController,
                   homeController: controller,
                 ),

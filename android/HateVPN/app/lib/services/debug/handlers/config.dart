@@ -7,19 +7,19 @@ import '../contract/errors.dart';
 import '../transport/request.dart';
 import '../transport/response.dart';
 
-/// `/config[/pretty|/path|/running]` — GET возвращает сохранённый sing-box
-/// конфиг (`/running` — снапшот работающего ядра, §311).
-/// `PUT /config` — прямой override (body = raw sing-box JSON). Минует
-/// `buildConfig(...)`, подписки, custom rules — пишет bytes как есть
-/// через `HomeController.saveParsedConfig`.
-///
-/// Raw ответ на GET — ровно то что лежит в памяти HomeController (`configRaw`),
-/// без round-trip'а через jsonDecode. Pretty — валидный JSON parse + indent 2.
-///
-/// §311 — `/config` отдаёт СОХРАНЁННЫЙ файл; при живом туннеле он может
-/// опережать ядро (пересборка до рестарта). «Что реально крутится» —
-/// `GET /config/running` (kernel SPEC 036); факт расхождения виден по
-/// `running_config_length` vs `config_length` в `GET /state`.
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> configHandler(DebugRequest req, DebugContext ctx) async {
   if (req.path == '/config' && req.method == 'PUT') {
     return _put(req, ctx);
@@ -36,12 +36,12 @@ Future<DebugResponse> configHandler(DebugRequest req, DebugContext ctx) async {
   };
 }
 
-/// §311 — канонический снапшот конфига РАБОТАЮЩЕГО ядра (kernel SPEC 036
-/// `GetRunningConfig`; захвачен на старте ядра, живёт в
-/// `HomeState.runningConfigRaw`). Это re-marshal распарсенных options
-/// (post-override tun, omitempty) — сравнивать с `/config` только
-/// семантически. 409 — туннель down, ядро без метода (< lx.16-rc.3) или
-/// снапшот ещё не подтянут lazy-fetch'ем.
+
+
+
+
+
+
 Future<DebugResponse> _running(DebugContext ctx) async {
   final home = ctx.requireHome();
   final raw = home.state.runningConfigRaw;
@@ -53,13 +53,13 @@ Future<DebugResponse> _running(DebugContext ctx) async {
   return RawJsonResponse(raw);
 }
 
-/// `PUT /config` — body это сырой sing-box JSON (объект). Валидируется
-/// только парсингом (`jsonDecode` не бросил → принимаем). sing-box при
-/// reload сам скажет о семантических проблемах; endpoint сугубо transport.
-///
-/// **Важно:** этот override — временный. Любой последующий
-/// `POST /action/rebuild-config` (включая `?rebuild=true` в других
-/// CRUD endpoint'ах) сотрёт его, сгенерив конфиг заново из settings.
+
+
+
+
+
+
+
 Future<DebugResponse> _put(DebugRequest req, DebugContext ctx) async {
   if (req.body.isEmpty) {
     throw const BadRequest('body required (raw sing-box JSON)');
@@ -70,7 +70,7 @@ Future<DebugResponse> _put(DebugRequest req, DebugContext ctx) async {
   } on FormatException catch (e) {
     throw BadRequest('body is not valid UTF-8: ${e.message}');
   }
-  // Валидация — парсим и убеждаемся, что это объект.
+
   try {
     final parsed = jsonDecode(text);
     if (parsed is! Map) {
@@ -105,7 +105,7 @@ Future<DebugResponse> _body(DebugContext ctx, {required bool pretty}) async {
     final parsed = jsonDecode(raw);
     return JsonResponse(parsed, pretty: true);
   } on FormatException {
-    // Config в памяти не валидный JSON (необычно, но возможно) — отдаём как есть.
+
     return RawJsonResponse(raw);
   }
 }

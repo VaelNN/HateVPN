@@ -1,7 +1,7 @@
-/// Фича 565 фаза B (контракт 1.1.78 §74) — редактор свёртки папки или
-/// подписки в группу: галочка, режим (Manual / Auto / Both), имя группы и
-/// параметры автовыбора — те же поля и умолчания, что у автовыбора
-/// Направления (`direction_edit_screen.dart`).
+
+
+
+
 library;
 
 import 'package:flutter/material.dart';
@@ -14,17 +14,17 @@ import '../services/l10n/locale_controller.dart';
 import '../widgets/safe_bottom.dart';
 import '../widgets/urltest_idle_hint.dart';
 
-/// Итог редактора: `null` у [replace] — свёртка снята.
+
 typedef SourceReplaceResult = ({SourceReplace? replace});
 
-/// §568 / задача 570 — кто уже носит имя, которое вводят группе свёртки.
+
 enum ReplaceTagOwner { node, fold, direction }
 
-/// §568 / задача 570 — занятые имена для предупреждения редактора свёртки:
-/// теги узлов других источников (с их префиксом), имена других свёрток и
-/// теги Направлений. Свой источник [selfId] не считается: его узлы свёртка
-/// и заменяет. При совпадении побеждает первый вид в порядке Направление →
-/// свёртка → узел.
+
+
+
+
+
 Map<String, ReplaceTagOwner> replaceTagOwnersOf({
   required Iterable<ServerList> sources,
   required String selfId,
@@ -48,7 +48,7 @@ Map<String, ReplaceTagOwner> replaceTagOwnersOf({
   return out;
 }
 
-/// Открывает редактор. `null` — ушли без сохранения.
+
 Future<SourceReplaceResult?> openSourceReplaceEditor(
   BuildContext context, {
   required SourceReplace? initial,
@@ -73,11 +73,11 @@ class SourceReplaceScreen extends StatefulWidget {
 
   final SourceReplace? initial;
 
-  /// §568 / задача 570 — занятые имена ([replaceTagOwnersOf]): редактор
-  /// предупреждает, но сохранять не мешает.
+
+
   final Map<String, ReplaceTagOwner> takenTags;
 
-  /// Имя группы по умолчанию — имя источника.
+
   final String defaultTag;
 
   @override
@@ -146,9 +146,9 @@ class _SourceReplaceScreenState extends State<SourceReplaceScreen> {
     return v.isEmpty ? fallback : v;
   }
 
-  /// §568 / задача 570 — предупреждение о занятом имени (не запрет):
-  /// узел-тёзка получит суффикс, две свёртки с одним именем дадут две
-  /// группы с одним тегом, Направление-тёзка спорит с группой за ссылки.
+
+
+
   String? _tagClash() {
     final tag = _orDefault(_tagCtrl, widget.defaultTag.trim());
     return switch (widget.takenTags[tag]) {
@@ -291,7 +291,7 @@ class _SourceReplaceScreenState extends State<SourceReplaceScreen> {
           Expanded(
             child: TextField(
               controller: _intervalCtrl,
-              // l10n-exempt: duration literal, locale-independent
+
               decoration: deco(getLocalText.s("Interval"),
                   hint: '15m',
                   helper: getLocalText.s("Larger values save battery")),
@@ -311,7 +311,7 @@ class _SourceReplaceScreenState extends State<SourceReplaceScreen> {
       const SizedBox(height: 8),
       TextField(
         controller: _idleCtrl,
-        // l10n-exempt: duration literal, locale-independent
+
         decoration: deco(getLocalText.s("Idle timeout"), hint: '30m'),
       ),
       if (urltestIdleRaiseTarget(interval, idle) case final target?) ...[
@@ -368,7 +368,7 @@ class _SourceReplaceScreenState extends State<SourceReplaceScreen> {
           children: [
             for (final k in StickyHashKey.values)
               FilterChip(
-                // l10n-exempt: core key names
+
                 label: Text(k.wire.replaceAll('_', ' '),
                     style: const TextStyle(fontSize: 12)),
                 selected: _sticky.contains(k),

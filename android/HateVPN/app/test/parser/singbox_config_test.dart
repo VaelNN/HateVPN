@@ -11,7 +11,7 @@ import 'package:lxbox/services/parser/body_decoder.dart';
 import 'package:lxbox/services/parser/parse_all.dart';
 import 'package:lxbox/services/parser/singbox_config.dart';
 
-/// §368 — разбор sing-box JSON: паритет с Xray-веткой.
+
 
 Map<String, dynamic> vless(String tag, String server,
         {String? detour, int port = 443, String uuid = 'u-1'}) =>
@@ -32,8 +32,8 @@ List<NodeSpec> parse(List<Map<String, dynamic>> configs,
         [List<NodeWarning>? dropped]) =>
     parseSingboxConfigs(configs, dropped: dropped);
 
-/// Разбор через публичный вход (decode → parseAll): проверяет и опознание
-/// вида источника.
+
+
 List<NodeSpec> parseText(Object json) => parseAll(decode(jsonEncode(json)));
 
 void main() {
@@ -91,7 +91,7 @@ void main() {
 
     test('неоднозначный элемент остаётся массивом Xray (ветка уже работает)',
         () {
-      // Ни `type`, ни `protocol` — классификацию менять нельзя.
+
       final r = decode(jsonEncode([
         {
           'outbounds': [
@@ -176,7 +176,7 @@ void main() {
       final server = vless('proxy', 'shared.com');
       final named = {...server, 'tag': '🇪🇸 Испания'};
       final r = parse([
-        // Пул (2 узла) стоит первым в файле, одиночная «карточка» — вторым.
+
         cfg([server, vless('other', 'other.com')]),
         cfg([named]),
       ]);
@@ -264,7 +264,7 @@ void main() {
     });
   });
 
-  // §561 — отбраковка записи живёт только в `dropped[]`: сосед чист.
+
   group('§368 P5 — ничего не теряется молча', () {
     List<String> refs(List<NodeWarning> dropped, String code) => [
           for (final w in dropped.whereType<RegistryWarning>())
@@ -287,7 +287,7 @@ void main() {
     });
 
     test('битая форма outbound не роняет соседей', () {
-      // `transport` строкой вместо объекта — конвертер бросит TypeError внутри.
+
       final dropped = <NodeWarning>[];
       final r = parse([
         cfg([
@@ -385,9 +385,9 @@ void main() {
           vless('b', 'b.com', detour: 'a', uuid: 'u-b'),
         ])
       ]);
-      // Кольцо рвётся на первом обойдённом узле (`a`), поэтому `a` остаётся
-      // самостоятельным узлом, а `b` приезжает его звеном. Молчаливой потери
-      // нет: серверы из конфига доехали оба.
+
+
+
       final servers = <String>{};
       for (var n in r) {
         servers.add(n.server);
@@ -509,8 +509,8 @@ void main() {
       final g = r.last as AutoSelectSpec;
       expect(g.label, 'auto');
       expect(g.membership, isA<ExplicitMembers>());
-      // §439 — члены — ссылки на сырые теги узлов своего контейнера (без
-      // folder_id: id подписки парсер не знает, NODE_LINK §5.1 № 8).
+
+
       expect((g.membership as ExplicitMembers).members, const [
         NodeLink(tag: 'a'),
         NodeLink(tag: 'b'),
@@ -630,7 +630,7 @@ void main() {
       final r = parse([
         cfg([
           vless('a', 'a.com'),
-          vless('b', 'a.com'), // тот же сервер → одна идентичность
+          vless('b', 'a.com'),
           group(['a', 'b']),
         ])
       ]);
@@ -688,10 +688,10 @@ void main() {
     });
   });
 
-  // §404 п.5 / TASKS_LXBOX п.6 — hysteria2 из sing-box JSON. JSON отдаёт
-  // числа как float64 и списки как List<dynamic>: жёсткое приведение
-  // (`as int` / `as List<String>`) молча теряло полосу и диапазоны портов.
-  // Потеря именно молчаливая — узел приезжал, просто без ограничений.
+
+
+
+
   group('§404 hysteria2: полоса числами, server_ports массивом', () {
     Hysteria2Spec parseOne(Map<String, dynamic> entry) {
       final nodes = parseSingboxConfigs([
@@ -720,9 +720,9 @@ void main() {
     });
 
     test('DOUBLE-полоса не теряется: провайдеры пишут 100.0', () {
-      // `as int` на 100.0 бросил бы TypeError, и узел выпал бы целиком
-      // (try/catch на гранулярности узла) — либо, до §404, поле молча
-      // обнулялось.
+
+
+
       final spec = parseOne(hy2({'up_mbps': 30.0, 'down_mbps': 60.5}));
       final map = spec.emit(TemplateVars.empty).map;
       expect(map['up_mbps'], 30);

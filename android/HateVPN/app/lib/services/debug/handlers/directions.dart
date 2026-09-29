@@ -7,30 +7,30 @@ import '../transport/request.dart';
 import '../transport/response.dart';
 import '_shared.dart';
 
-/// §238 — `/directions/*` — CRUD Направлений роутинга (§125).
-///
-/// Тонкая обёртка над `DirectionMutations.add / update / delete` (§275 —
-/// storage-мутация + зеркальный ресинк `_entries` контроллера одной
-/// операцией) — та же семантика, что у UI:
-/// vpn-1 неудаляем и всегда enabled; лимита на количество нет (§393 A3).
-/// Heal ссылок в
-/// storage: rules-ссылки → vpn-1 при удалении/выключении (§202-механика;
-/// установка detour-флага rules НЕ лечит — §274, флаг = разрешение);
-/// detour-ссылки → '' при удалении/выключении/снятии флага (§248);
-/// счётчики вылеченного — блок `healed` в ответах мутаций.
-///
-/// Routes:
-/// - `GET    /directions`            → list (Direction.toJson, snake_case)
-/// - `POST   /directions`            → create (body: `{"label":"...",
-///                                    "tag":"..."}` + опционально любые
-///                                    PATCH-поля; `tag` только при создании)
-/// - `POST   /directions/reorder`    → reorder (body: `{"order":[tag,...]}`)
-/// - `GET    /directions/{tag}`      → single
-/// - `PATCH  /directions/{tag}`      → partial update
-/// - `DELETE /directions/{tag}`      → remove
-///
-/// Все write'ы принимают `?rebuild=true`. Порядок Направлений = порядок эмита
-/// в конфиге, поэтому reorder тоже config-significant.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> directionsHandler(DebugRequest req, DebugContext ctx) async {
   final path = req.path;
 
@@ -80,24 +80,24 @@ Future<DebugResponse> _single(String tag) async {
 Future<DebugResponse> _create(DebugRequest req, DebugContext ctx) async {
   final body = req.jsonBodyAsMap();
   final label = fieldString(body, 'label');
-  // §393 A3 — опциональный пользовательский тег; отсутствует → первый
-  // свободный `vpn-N`. Валидацию (пустой/служебный/дубль/тёзка `<tag>-auto`)
-  // делает storage — одна точка для UI и API.
+
+
+
   final tag = fieldString(body, 'tag');
   final Direction created;
   try {
     created = await DirectionMutations.add(label: label, tag: tag);
   } on StateError catch (e) {
-    // Конфликт тега — precondition: юзер может выбрать другой и повторить.
+
     throw Conflict(e.message);
   }
-  // Остальные поля body — как PATCH сразу после создания (один вызов
-  // вместо POST+PATCH). label уже применён.
+
+
   var ch = created;
-  // Свежий tag обычно ни на что не ссылается (счётчики нули), но re-create
-  // тега после restore из backup может встретить stale-ссылку — heal тот же,
-  // что у PATCH, поэтому и shape ответа единый. Достижимый путь: body с
-  // `enabled:false` даёт disabling-переход, а он лечит ОБА рода ссылок.
+
+
+
+
   DirectionHealResult healed =
       (rules: 0, detours: 0, includes: 0, chainPositions: 0, dnsServers: 0);
   final patched = _applyPatch(ch, body, tagConsumed: true);
@@ -111,13 +111,13 @@ Future<DebugResponse> _create(DebugRequest req, DebugContext ctx) async {
     'healed': {
       'rules': healed.rules,
       'detours': healed.detours,
-      'includes': healed.includes, // §393 A3
-      // §393 D2 — ПОЗИЦИИ цепочек, снятые вместе с удалённым Направлением
-      // (сами цепочки остались). Маршрут мог укоротиться — агент обязан
-      // увидеть это в ответе, а не по пропавшему хопу в конфиге.
+      'includes': healed.includes,
+
+
+
       'chain_positions': healed.chainPositions,
-      // §441 — DNS-серверы, называвшие Направление (переменная типа
-      // `outbound` у template, `body.detour` у user, секции узлов), → vpn-1.
+
+
       'dns_servers': healed.dnsServers,
     },
     ...extras,
@@ -133,20 +133,20 @@ Future<DebugResponse> _update(String tag, DebugRequest req, DebugContext ctx) as
   final next = _applyPatch(ch, body) ?? ch;
   final healed = await DirectionMutations.update(next, ctx.registry.sub);
   final extras = await maybeRebuild(req, ctx);
-  // §238-паттерн «снапшот в ответе»: healed-счётчики — API-аналог
-  // UI-SnackBar'а о вылеченных ссылках (§202/§248), heal молчаливым не бывает.
+
+
   return JsonResponse({
     ...next.toJson(),
     'healed': {
       'rules': healed.rules,
       'detours': healed.detours,
-      'includes': healed.includes, // §393 A3
-      // §393 D2 — ПОЗИЦИИ цепочек, снятые вместе с удалённым Направлением
-      // (сами цепочки остались). Маршрут мог укоротиться — агент обязан
-      // увидеть это в ответе, а не по пропавшему хопу в конфиге.
+      'includes': healed.includes,
+
+
+
       'chain_positions': healed.chainPositions,
-      // §441 — DNS-серверы, называвшие Направление (переменная типа
-      // `outbound` у template, `body.detour` у user, секции узлов), → vpn-1.
+
+
       'dns_servers': healed.dnsServers,
     },
     ...extras,
@@ -160,7 +160,7 @@ Future<DebugResponse> _delete(String tag, DebugRequest req, DebugContext ctx) as
   try {
     healed = await DirectionMutations.delete(tag, ctx.registry.sub);
   } on StateError catch (e) {
-    throw Conflict(e.message); // vpn-1 is not deletable
+    throw Conflict(e.message);
   }
   final extras = await maybeRebuild(req, ctx);
   return JsonResponse({
@@ -170,13 +170,13 @@ Future<DebugResponse> _delete(String tag, DebugRequest req, DebugContext ctx) as
     'healed': {
       'rules': healed.rules,
       'detours': healed.detours,
-      'includes': healed.includes, // §393 A3
-      // §393 D2 — ПОЗИЦИИ цепочек, снятые вместе с удалённым Направлением
-      // (сами цепочки остались). Маршрут мог укоротиться — агент обязан
-      // увидеть это в ответе, а не по пропавшему хопу в конфиге.
+      'includes': healed.includes,
+
+
+
       'chain_positions': healed.chainPositions,
-      // §441 — DNS-серверы, называвшие Направление (переменная типа
-      // `outbound` у template, `body.detour` у user, секции узлов), → vpn-1.
+
+
       'dns_servers': healed.dnsServers,
     },
     ...extras,
@@ -215,14 +215,14 @@ Future<DebugResponse> _reorder(DebugRequest req, DebugContext ctx) async {
   });
 }
 
-/// Применяет PATCH-поля body к [ch]. Возвращает новый Direction или null,
-/// если ни одно изменяемое поле не передано. Бросает [BadRequest] /
-/// [Conflict] на невалидные значения и нарушение инвариантов.
+
+
+
 Direction? _applyPatch(Direction ch, Map<String, dynamic> body,
     {bool tagConsumed = false}) {
-  // §393 A3 — POST принимает `tag` (пожелание для СОЗДАНИЯ, уже применён
-  // выше); PATCH — нет: после создания тег immutable, на него ссылаются
-  // правила/detour'ы.
+
+
+
   if (!tagConsumed && body.containsKey('tag')) {
     throw const BadRequest('field "tag" is immutable (system id, edit "label" instead)');
   }
@@ -237,9 +237,9 @@ Direction? _applyPatch(Direction ch, Map<String, dynamic> body,
   _requireValidRegex('node_filter', nodeFilter);
   _requireValidRegex('default_filter', defaultFilter);
 
-  // auto: null (ключ присутствует) = снять галку; object = merge в текущий
-  // (или дефолтный) DirectionAuto — PATCH одним полем не должен сбрасывать
-  // остальные urltest-опции в дефолты. balancer{} мержится одним уровнем.
+
+
+
   var clearAuto = false;
   DirectionAuto? auto;
   if (body.containsKey('auto')) {
@@ -266,20 +266,20 @@ Direction? _applyPatch(Direction ch, Map<String, dynamic> body,
   final label = fieldString(body, 'label');
   final includeDirect = fieldBool(body, 'include_direct');
   final includeBlock = fieldBool(body, 'include_block');
-  // §393 A3 — `include`: теги других Направлений опциями селектора. Здесь
-  // проверяем только ФОРМУ (список строк): «стоит ли цель выше по списку»
-  // зависит от порядка, а порядок меняет отдельный `/directions/reorder` —
-  // санитайзить хранилище на каждый чих значило бы молча стирать ссылку,
-  // которую вернёт следующий reorder. Инвариант деградирует ВЫХЛОП: билдер
-  // не эмитит ссылку вниз и предупреждает (см. `_buildDirectionGroups`).
+
+
+
+
+
+
   final include = fieldStringList(body, 'include');
   final nodeFilterInvert = fieldBool(body, 'node_filter_invert');
   final interrupt = fieldBool(body, 'interrupt_exist_connections');
 
-  // §248/§274 — detour-флаг = разрешение выбирать Направление как detour-мишень;
-  // роль в правилах ортогональна, include_block совместим (запрет Q1 снят
-  // §274). vpn-1 — главное Направление (дефолтная мишень всего и heal-резерв),
-  // detour ему запрещён: продуктовое решение.
+
+
+
+
   final detour = fieldBool(body, 'detour');
   if (detour == true && ch.isRequired) {
     throw Conflict(
@@ -317,8 +317,8 @@ Direction? _applyPatch(Direction ch, Map<String, dynamic> body,
   );
 }
 
-/// Битый regex в node_filter/default_filter ронял бы сборку конфига —
-/// отклоняем на входе.
+
+
 void _requireValidRegex(String field, String? value) {
   if (value == null || value.isEmpty) return;
   try {

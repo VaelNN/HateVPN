@@ -21,11 +21,11 @@ import 'package:lxbox/services/settings_storage/node_link_registry.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §439 §2.5, D-113/D-114, NODE_LINK §6 — реестр ссылок на узлы: операция,
-// меняющая АДРЕС узла (переименование, перенос), переписывает ссылки во всех
-// носителях — detour источника и члена, позиции цепочек, состав autogroup;
-// удаление гасит их и называет задетых; смена `tag_policy` папки адрес не
-// меняет и ссылки не трогает, новый финальный тег даёт сборка.
+
+
+
+
+
 
 String _uri(String name, {String host = 'h.example'}) =>
     'vless://11111111-1111-1111-1111-111111111111@$host:443'
@@ -66,8 +66,8 @@ FolderMember _group(String tag, List<NodeLink> members) => FolderMember.auto(
         label: tag,
         membership: ExplicitMembers(members)));
 
-/// Состояние: папка f1 (A, B → A, группа G {A}), папка f2 (C), корневой R → A,
-/// цепочка [A, R].
+
+
 ({List<ServerList> lists, List<SourceChain> chains}) _state() {
   const a = NodeLink(folderId: _f1, tag: 'A');
   return (
@@ -102,8 +102,8 @@ NodeLinkRelink _relink(
 }
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('реестр ссылок (чистые функции)', () {
@@ -198,8 +198,8 @@ void main() {
       expect(r.chains.single.hops, const [NodeLink(tag: 'R')],
           reason: 'позиция уходит, цепочка остаётся');
 
-      // Член autogroup — не detour (находка AVD: «detour removed from 2
-      // source(s)» при одном detour-носителе и группе).
+
+
       expect(r.cleared.detourCarriers, ['B', 'R']);
       expect(r.cleared.touchedGroups, ['G']);
       expect(r.cleared.groupMembers, 1);

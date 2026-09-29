@@ -5,18 +5,18 @@ import '../resolved_server.dart';
 import 'dns_badge.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §044: единый builder через typed `ResolvedServer`. Никаких Map['_kind'] —
-/// classification через typed accessors на ResolvedServer.
-///
-/// §117 задача 4 (locked decision №8): тайл ужат до switch (enabled) +
-/// title/subtitle + badge; **тап → полноэкранный редактор**
-/// (`openDnsServerEditor`). Инлайн-тюнер и иконки edit/reset/delete
-/// переехали в редактор (Params/JSON + AppBar-actions).
-///
-/// §117 lifecycle (locked №7): `locked` (сервер реферится активным пресетом
-/// ИЛИ routing-правилом с DNS-опцией) — enabled-switch заблокирован и
-/// показывается включённым (build force-include), в subtitle
-/// «used by <пресет/правило>» с замком.
+
+
+
+
+
+
+
+
+
+
+
+
 class MergedServerTile extends StatelessWidget {
   const MergedServerTile({
     super.key,
@@ -29,11 +29,11 @@ class MergedServerTile extends StatelessWidget {
   final ResolvedServer entry;
   final void Function(String tag, bool value) onToggleEnabled;
 
-  /// Тап по тайлу — открыть редактор сервера.
+
   final void Function(String tag) onTap;
 
-  /// §312 — live-состояние DNS-группы от ядра (SPEC 035); null = туннель
-  /// down / ядро без метода / сервер не группа. Рисуется доп. строкой.
+
+
   final CcDnsGroup? liveGroup;
 
   @override
@@ -43,7 +43,7 @@ class MergedServerTile extends StatelessWidget {
     final theme = Theme.of(context);
     final locked = entry.locked;
 
-    // Короткие labels (§044).
+
     final (String badgeText, Color badgeColor) = switch (entry.kind) {
       ServerKind.template => (
         getLocalText.s("Template"),
@@ -62,7 +62,7 @@ class MergedServerTile extends StatelessWidget {
             : (getLocalText.s("User"), theme.colorScheme.secondary),
     };
 
-    // §312 — у группы вместо адреса: режим + число членов.
+
     final groupInfo = type == 'group'
         ? ' · ${(entry.body['mode'] as String?) ?? 'stable'}'
               ' · ${(entry.body['servers'] as List?)?.length ?? 0}'
@@ -77,7 +77,7 @@ class MergedServerTile extends StatelessWidget {
         leading: SizedBox(
           width: 40,
           child: Switch(
-            // §117: locked-сервер build force-include'ит — показываем ON.
+
             value: entry.enabled || locked,
             onChanged: locked ? null : (v) => onToggleEnabled(entry.tag, v),
           ),
@@ -121,7 +121,7 @@ class MergedServerTile extends StatelessWidget {
                   ),
                 ],
               ),
-            // §312 — live-состояние группы (pull на открытии экрана).
+
             if (liveGroup != null) _LiveGroupLine(liveGroup!),
           ],
         ),
@@ -131,9 +131,9 @@ class MergedServerTile extends StatelessWidget {
   }
 }
 
-/// §312 — компактная live-строка состояния DNS-группы (SPEC 035): текущая
-/// цель + по каждому члену чистота/ошибки/RTT. Wrap — членов может быть
-/// много; данные — снапшот на открытии экрана (решение №2, без таймера).
+
+
+
 class _LiveGroupLine extends StatelessWidget {
   const _LiveGroupLine(this.g);
   final CcDnsGroup g;
@@ -150,7 +150,7 @@ class _LiveGroupLine extends StatelessWidget {
         children: [
           if (g.current.isNotEmpty)
             Text(
-              // l10n-exempt: compact live-status arrow
+
               '→ ${g.current}',
               style: TextStyle(
                 fontSize: 11,
@@ -172,20 +172,20 @@ class _LiveGroupLine extends StatelessWidget {
     );
   }
 
-  /// `google ✓ 12ms ●` / `quad9 ✗2 (34s)`. Wire-теги и цифры — не переводим.
+
   String _memberLabel(CcDnsGroupMember m) {
     final b = StringBuffer(m.tag);
     if (m.clean) {
-      b.write(' ✓'); // ✓
+      b.write(' ✓');
       if (m.lastRttMs > 0) b.write(' ${m.lastRttMs}ms');
       if (g.mode == 'fastest' && m.liveWins > 0) b.write(' w${m.liveWins}');
     } else {
-      b.write(' ✗${m.liveErrors}'); // ✗N
+      b.write(' ✗${m.liveErrors}');
       if (m.lastErrorAgeMs >= 0) {
         b.write(' (${(m.lastErrorAgeMs / 1000).round()}s)');
       }
     }
-    if (m.current) b.write(' ●'); // ●
+    if (m.current) b.write(' ●');
     return b.toString();
   }
 }

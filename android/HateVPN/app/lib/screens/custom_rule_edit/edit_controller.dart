@@ -21,30 +21,30 @@ import 'wifi_zip.dart';
 
 export 'sections/srs_section.dart' show SrsDownloadState;
 
-/// §053 Stage 3 — единая точка истины для editor'а custom-правила.
-///
-/// До Stage 3 весь state жил в `_CustomRuleEditScreenState` (1330 LOC).
-/// Sections принимали controllers + callbacks как props напрямую от
-/// editor'а. Stage 3 выделяет state в `ChangeNotifier`, который раздаётся
-/// вниз через `CustomRuleEditScope` (InheritedNotifier). Editor scaffold
-/// больше ничего о state не знает — только AppBar + Tab + dispose.
-///
-/// **Что владеет controller:**
-/// - 8 `TextEditingController` (name + 6 match-полей + srs URL). При
-///   создании read'аются из `initial`, на keystroke forward'ятся в
-///   `notifyListeners` чтобы AppBar Save-icon и параметрические tab'ы
-///   могли пересчитывать `isDirty`.
-/// - All flags / collections (enabled, kind, outbound, protocols, packages,
-///   wifiNetworks, varsValues, ipIsPrivate).
-/// - Async state: `srsState`, `presetSrsPaths`, `boolVarDownloading`.
-/// - `snapshot()` / `isDirty()` — pure read из текущего state.
-/// - Pure async actions без BuildContext: `downloadSrs`, `clearSrsCache`,
-///   `onBoolVarToggle` (нет UI-side-effect'ов кроме mutate+notify; вызов
-///   snackbar/dialog — на caller'е).
-///
-/// **Что НЕ владеет controller:** ничего что нужно BuildContext —
-/// dialog'и save/back/delete, picker'ы, snackbar'ы, navigation.
-/// Эти живут на screen State и принимают controller как dependency.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class CustomRuleEditController extends ChangeNotifier {
   CustomRuleEditController({
     required this.initial,
@@ -56,32 +56,32 @@ class CustomRuleEditController extends ChangeNotifier {
     _init();
   }
 
-  /// §578 — узлы для превью пресета с `for_each` в View-табе.
+
   final List<PresetNode> presetNodes;
 
-  /// Исходное правило (до open editor'а). На save сравнивается со
-  /// `snapshot()` для dirty-check. Также — источник `id` (rule id не
-  /// меняется через editor).
+
+
+
   final CustomRule initial;
 
-  /// Bundle-пресет (§033). Не-null когда `initial.kind == preset` И
-  /// пресет ещё существует в шаблоне. Null = broken preset (rule
-  /// рендерит fallback UI с Delete).
+
+
+
   final SelectableRule? preset;
 
-  /// Имена существующих правил (для auto-rename при коллизии). Не
-  /// включает `initial.name` — собирается RoutingScreen'ом. §279 —
-  /// display-резолвнутые (live-label'ы пресетов + снапшоты).
+
+
+
   final Set<String> existingNames;
 
-  /// §279 (§3.5.1) — live display-имя preset-правила для read-only Name-поля
-  /// (label из локализованного шаблона + порядковый суффикс копии). null —
-  /// не preset либо display недоступен (fallback: `preset.label` /
-  /// `initial.name`). `nameCtrl` при этом ПРОДОЛЖАЕТ держать сохранённый
-  /// снапшот — save не переписывает его локализованным label'ом.
+
+
+
+
+
   final String? displayName;
 
-  // ─── Text controllers ────────────────────────────────────────────────
+
 
   late final TextEditingController nameCtrl;
   late final TextEditingController domainCtrl;
@@ -93,10 +93,10 @@ class CustomRuleEditController extends ChangeNotifier {
   late final TextEditingController portRangeCtrl;
   late final TextEditingController srsUrlCtrl;
 
-  /// §225 — тело raw-JSON правила (kind == json).
+
   late final TextEditingController jsonCtrl;
 
-  // ─── Mutable state ───────────────────────────────────────────────────
+
 
   late bool _enabled;
   late bool _ipIsPrivate;
@@ -113,50 +113,50 @@ class CustomRuleEditController extends ChangeNotifier {
   late RuleResolve? _resolve;
   List<String> _dnsServerTags = const [];
 
-  /// §030/new_fields — есть ли в текущем vpn_mode `mixed-in` inbound (режимы
-  /// proxy/vpn_proxy, §119). Гейтит чекбокс `Proxy interface` в INBOUND-секции.
-  /// Читается async в `_init` через [SettingsStorage.getVpnMode].
+
+
+
   bool _hasMixedInbound = false;
 
-  /// §264 — глобальные vars для превью пресета в View-табе (expandPreset
-  /// globalVars): `@vpn_mode`/`@resolve_strategy` в правилах пресета
-  /// (traffic-processing) резолвятся из глобали, иначе `#if @vpn_mode` не
-  /// срабатывает → inbound[] пустеет в превью. Заполняется в `_loadVpnMode`.
+
+
+
+
   Map<String, String> _globalVars = const {};
   Map<String, String> get globalVars => _globalVars;
 
-  /// §265 — резолвленные определения ref-vars пресета: имя ref → `WizardVar`
-  /// целевой глобали (type/options/title/tooltip из секции-владельца). UI
-  /// (preset_params_tab) рисует по ним контрол, значение читает/пишет в
-  /// глобальный userVars (`globalVars` / `setGlobalVar`), НЕ в varsValues.
+
+
+
+
   Map<String, WizardVar> _refVarDefs = const {};
   Map<String, WizardVar> get refVarDefs => _refVarDefs;
 
   Map<String, String> _presetSrsPaths = const {};
   SrsDownloadState _srsState = SrsDownloadState.none;
 
-  /// §366 — TTL кэша rule-set'а (часы, из [kSrsTtlChoicesHours]).
+
   int _srsTtlHours = kDefaultSrsTtlHours;
 
-  /// §366 — готовая строка «когда обновлялся» под полем URL. Null пока
-  /// метаданные не прочитаны либо файла нет.
+
+
   String? _srsLastUpdatedText;
   final Set<String> _boolVarDownloading = <String>{};
 
   bool _disposed = false;
 
-  // ─── Getters ─────────────────────────────────────────────────────────
+
 
   bool get enabled => _enabled;
   bool get ipIsPrivate => _ipIsPrivate;
   bool get sourceIpIsPrivate => _sourceIpIsPrivate;
 
-  /// §030/new_fields — выбранные inbound-теги (`tun-in`/`mixed-in`).
+
   Set<String> get inbounds => _inbounds;
 
-  /// §030/new_fields — доступные inbound-варианты для INBOUND-секции. Лейбл
-  /// человекочитаемый, значение = тег билдера (§119). `mixed-in` гейтится по
-  /// текущему vpn_mode ([_hasMixedInbound]) — в tun-only его нет.
+
+
+
   List<({String tag, String label})> get inboundChoices => [
         (tag: 'tun-in', label: 'TUN — system interface'),
         if (_hasMixedInbound) (tag: 'mixed-in', label: 'Proxy interface'),
@@ -166,7 +166,7 @@ class CustomRuleEditController extends ChangeNotifier {
   String get outbound => _outbound;
   Set<String> get protocols => _protocols;
 
-  /// §240 — выбранные L4-транспорты (`network`: tcp/udp/icmp).
+
   Set<String> get network => _network;
   List<String> get packages => _packages;
   List<WifiEntry> get wifiNetworks => _wifiNetworks;
@@ -174,10 +174,10 @@ class CustomRuleEditController extends ChangeNotifier {
   Map<String, String> get presetSrsPaths => _presetSrsPaths;
   SrsDownloadState get srsState => _srsState;
 
-  /// §366 — строка «Updated 3d ago» / об ошибке последней попытки.
+
   String? get srsLastUpdatedText => _srsLastUpdatedText;
 
-  /// §366 — читает sidecar-метаданные кэша для строки под полем URL.
+
   Future<void> _loadSrsMeta(String id) async {
     final meta = await RuleSetDownloader.readMeta(id);
     if (_disposed) return;
@@ -194,7 +194,7 @@ class CustomRuleEditController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// §366 — выбранный TTL кэша rule-set'а в часах (`0` = не обновлять).
+
   int get srsTtlHours => _srsTtlHours;
 
   set srsTtlHours(int v) {
@@ -204,16 +204,16 @@ class CustomRuleEditController extends ChangeNotifier {
   }
   Set<String> get boolVarDownloading => _boolVarDownloading;
 
-  /// §117 задача 3 — DNS-опция правила (null = не настраивалась).
+
   RuleDns? get dns => _dns;
 
-  /// §247 — resolve-опция правила (null = обычный outbound).
+
   RuleResolve? get resolve => _resolve;
 
-  /// §247: live-гейт применимости resolve — по ТЕКУЩЕМУ состоянию формы
-  /// (не по initial). inline: domain-группа непуста (чистый ip/port/proto
-  /// резолвить нечего → ⚙ скрыта); srs: всегда true (домены в `.srs`
-  /// возможны, содержимое не парсим).
+
+
+
+
   bool get resolveEligible => switch (_kind) {
         CustomRuleKind.srs => true,
         CustomRuleKind.inline =>
@@ -226,20 +226,20 @@ class CustomRuleEditController extends ChangeNotifier {
         _ => false,
       };
 
-  /// §117: теги существующих DNS-серверов для дропдауна (storage-refs ∪
-  /// template; правило ссылается по tag, не вводит адрес — решение №2).
+
+
   List<String> get dnsServerTags => _dnsServerTags;
 
-  /// §117 гейт: headless rule_set не выражает port/protocol (и они неизвестны
-  /// в момент DNS-запроса) → DNS-чекбокс серый при непустых ports/protocols.
-  /// Live по текущему состоянию формы.
+
+
+
   bool get dnsGateBlocked =>
       norm.normalizedPorts(portCtrl.text).isNotEmpty ||
       norm.normalizedPortRanges(portRangeCtrl.text).isNotEmpty ||
       _protocols.isNotEmpty ||
       _network.isNotEmpty;
 
-  // ─── Init / dispose ──────────────────────────────────────────────────
+
 
   List<TextEditingController> get _allTextCtrls => [
         nameCtrl,
@@ -266,10 +266,10 @@ class CustomRuleEditController extends ChangeNotifier {
     sourceIpCidrCtrl = TextEditingController(text: r.sourceIpCidrs.join('\n'));
     portCtrl = TextEditingController(text: r.ports.join('\n'));
     portRangeCtrl = TextEditingController(text: r.portRanges.join('\n'));
-    // ## 12 — по одному URL на строку.
+
     srsUrlCtrl = TextEditingController(text: r.srsUrls.join('\n'));
-    // §366 — TTL есть только у srs-правил; у прочих остаётся дефолт и в
-    // сохранение не идёт.
+
+
     if (r is CustomRuleSrs) _srsTtlHours = r.updateIntervalHours;
     jsonCtrl = TextEditingController(text: r.json);
     _enabled = r.enabled;
@@ -288,8 +288,8 @@ class CustomRuleEditController extends ChangeNotifier {
     unawaited(_loadDnsServerTags());
     unawaited(_loadVpnMode());
 
-    // Forward text changes — AppBar Save-icon (dirty indicator) и
-    // tab'ы re-evaluate isDirty / снимок при каждом keystroke.
+
+
     for (final c in _allTextCtrls) {
       c.addListener(_onTextChanged);
     }
@@ -301,7 +301,7 @@ class CustomRuleEditController extends ChangeNotifier {
             cached ? SrsDownloadState.cached : SrsDownloadState.none;
         notifyListeners();
       });
-      unawaited(_loadSrsMeta(r.id)); // §366
+      unawaited(_loadSrsMeta(r.id));
     }
     if (r is CustomRulePreset && preset != null) {
       _resolvePresetSrsPaths(r, preset!);
@@ -310,17 +310,17 @@ class CustomRuleEditController extends ChangeNotifier {
 
   void _onTextChanged() {
     if (_disposed) return;
-    // §247: сброс resolve при опустении доменных полей НЕ здесь — keystroke
-    // транзиентен (юзер стирает домен, чтобы вписать новый; live-сброс терял
-    // бы настройку безвозвратно). Гейт живёт в snapshot() (Save без доменов
-    // → resolve отпадает) и в билдере (resolveActive); UI прячет ⚙/статус
-    // через resolveEligible.
+
+
+
+
+
     notifyListeners();
   }
 
-  /// §117: теги DNS-серверов для дропдауна — storage-refs (kind-ref'ы §043,
-  /// синхронизируются на каждом build/DNS-screen open) ∪ template-серверы
-  /// (fallback для свежей установки, где storage ещё пуст).
+
+
+
   Future<void> _loadDnsServerTags() async {
     final stored = await SettingsStorage.getDnsServers();
     final template = await TemplateLoader.load();
@@ -328,15 +328,15 @@ class CustomRuleEditController extends ChangeNotifier {
       for (final s in stored)
         if (s.tag.isNotEmpty) s.tag,
     };
-    // §279 — typed DnsOptionsModel вместо raw-скана dns_options.servers.
+
     tags.addAll(template.dnsOptionsModel.servers.map((s) => s.tag));
     if (_disposed) return;
     _dnsServerTags = tags.toList();
     notifyListeners();
   }
 
-  /// §030/new_fields — читает текущий vpn_mode для гейта `mixed-in`-чекбокса
-  /// в INBOUND-секции. `mixed-in` существует только в proxy/vpn_proxy (§119).
+
+
   Future<void> _loadVpnMode() async {
     final cfg = await SettingsStorage.getVpnMode();
     final userVars = await SettingsStorage.getAllVars();
@@ -344,8 +344,8 @@ class CustomRuleEditController extends ChangeNotifier {
     if (_disposed) return;
     _hasMixedInbound = cfg.hasMixed;
 
-    // §265 — резолвим ref-vars пресета: для каждой `{"ref": name}` берём
-    // определение глобали из template + значение (userVars или её default).
+
+
     final refDefs = <String, WizardVar>{};
     final refDefaults = <String, String>{};
     final p = preset;
@@ -353,33 +353,33 @@ class CustomRuleEditController extends ChangeNotifier {
       for (final v in p.vars) {
         if (!v.isRef) continue;
         final global = template.globalVar(v.ref);
-        if (global == null) continue; // битая ссылка → UI пропустит
+        if (global == null) continue;
         refDefs[v.ref] = global;
         refDefaults[v.ref] = global.defaultValue;
       }
     }
     _refVarDefs = refDefs;
 
-    // §264 — globalVars: template-дефолты ref-целей (fallback) < userVars
-    // (юзерский выбор) + vpn_mode из VpnModeConfig (он приходит не через
-    // userVars, а прямым присваиванием в билдере). Дефолты нужны, чтобы
-    // ref-var контрол показывал текущее значение, даже если юзер её не трогал.
+
+
+
+
     _globalVars = {...refDefaults, ...userVars, 'vpn_mode': cfg.mode};
     notifyListeners();
   }
 
-  /// §265 — запись значения ref-var (глобальной) в userVars. В отличие от
-  /// [setVarValue] (varsValues пресета), пишет в глобальный storage —
-  /// единый источник (напр. resolve_strategy питает и config.dns.strategy).
+
+
+
   Future<void> setGlobalVar(String name, String val) async {
     await SettingsStorage.setVar(name, val);
     _globalVars = {..._globalVars, name: val};
     notifyListeners();
   }
 
-  /// Async-prefetch cached paths для remote rule_set'ов пресета (§011).
-  /// Без этого View tab показывал бы warnings «no cached file» для
-  /// уже скачанного пресета.
+
+
+
   Future<void> _resolvePresetSrsPaths(
       CustomRulePreset rule, SelectableRule preset) async {
     final paths = <String, String>{};
@@ -406,18 +406,18 @@ class CustomRuleEditController extends ChangeNotifier {
     super.dispose();
   }
 
-  // ─── Mutators ────────────────────────────────────────────────────────
+
 
   void setEnabled(bool v) {
     if (_enabled == v) return;
     _enabled = v;
     notifyListeners();
-    _applyPresetOnChange(); // §266 — @rule_enable сменился
+    _applyPresetOnChange();
   }
 
-  /// §266 — каскад on_change пресета (пишет глобальные цели вроде
-  /// resolve_enabled в userVars). Псевдо-vars берутся из текущего snapshot
-  /// (enabled + varsValues). No-op для не-preset правил / пресета без on_change.
+
+
+
   void _applyPresetOnChange() {
     final p = preset;
     if (p == null) return;
@@ -439,7 +439,7 @@ class CustomRuleEditController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// §030/new_fields — тоггл inbound-тега (`tun-in`/`mixed-in`).
+
   void toggleInbound(String tag, bool checked) {
     if (checked) {
       if (!_inbounds.add(tag)) return;
@@ -452,14 +452,14 @@ class CustomRuleEditController extends ChangeNotifier {
   void setKind(CustomRuleKind v) {
     if (_kind == v) return;
     _kind = v;
-    // Переключение на srs без кэша → правило нельзя держать включённым.
+
     if (_kind == CustomRuleKind.srs &&
         _srsState != SrsDownloadState.cached) {
       _enabled = false;
     }
-    // §247: resolve при смене kind НЕ сбрасываем — snapshot()-гейт не даст
-    // ему попасть в неприменимый snapshot (json/preset его вообще не несут),
-    // а round-trip inline→json→inline не теряет настройку.
+
+
+
     notifyListeners();
   }
 
@@ -469,15 +469,15 @@ class CustomRuleEditController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// §247 — установка resolve-опции из окна «Action & Resolve». null = снять
-  /// (вернуться к простому outbound).
+
+
   void setResolve(RuleResolve? v) {
     _resolve = v;
     notifyListeners();
   }
 
-  /// §225 — тело json-правила изменилось (jsonCtrl уже в _allTextCtrls, но
-  /// нужен явный notify для live-пересчёта jsonError → helper/Save-гейт).
+
+
   void notifyJsonChanged() => notifyListeners();
 
   void toggleProtocol(String p, bool checked) {
@@ -489,7 +489,7 @@ class CustomRuleEditController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// §240 — toggle L4-транспорта (`network`: tcp/udp/icmp).
+
   void toggleNetwork(String n, bool checked) {
     if (checked) {
       if (!_network.add(n)) return;
@@ -499,7 +499,7 @@ class CustomRuleEditController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// §240 — сброс обеих осей (network + protocol) из попапа «Clear all».
+
   void clearNetworkAndProtocol() {
     if (_network.isEmpty && _protocols.isEmpty) return;
     _network.clear();
@@ -520,8 +520,8 @@ class CustomRuleEditController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Bulk-add (для Pick saved): возвращает кол-во реально добавленных
-  /// (с учётом дедупа).
+
+
   int addWifiEntries(Iterable<WifiEntry> entries) {
     var added = 0;
     for (final e in entries) {
@@ -546,10 +546,10 @@ class CustomRuleEditController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// §441 (Н3/Н4) — запись значения переменной пресета: подрезанное;
-  /// пустое или равное умолчанию объявления снимает ключ (выбор умолчания —
-  /// сброс к шаблону). Имя без объявления (универсальная замена цели
-  /// `outbound`) пишется без сверки с умолчанием.
+
+
+
+
   void _putVarValue(String name, String val) {
     WizardVar? decl;
     for (final v in preset?.vars ?? const <WizardVar>[]) {
@@ -571,15 +571,15 @@ class CustomRuleEditController extends ChangeNotifier {
     }
   }
 
-  /// §117: тоггл DNS-опции. Выбранный serverTag сохраняется при выключении
-  /// (повторное включение не теряет выбор). Первое включение без выбора —
-  /// преселект `google_udp` (дефолтный резолвер) или первый доступный tag.
+
+
+
   void setDnsEnabled(bool v) {
     if (!v) {
-      // §257: снятие галки «Send DNS to dedicated server» = удалить сервер
-      // (не просто выключить). serverTag стирается — правило перестаёт нести
-      // server-аспект и уходит из DNS Settings (если Force тоже нет → dns
-      // обнуляется, не копим мёртвый RuleDns).
+
+
+
+
       final force = _dns?.forceIpv4 ?? false;
       _dns = force ? const RuleDns(forceIpv4: true) : null;
       notifyListeners();
@@ -591,21 +591,21 @@ class CustomRuleEditController extends ChangeNotifier {
           ? 'google_udp'
           : (_dnsServerTags.isNotEmpty ? _dnsServerTags.first : '');
     }
-    // §256: copyWith сохраняет forceIpv4 (ортогонален dedicated-серверу).
+
     _dns = (_dns ?? const RuleDns()).copyWith(enabled: true, serverTag: tag);
     notifyListeners();
   }
 
-  /// §117: выбор DNS-сервера для mirror'а (по tag из существующих).
+
   void setDnsServerTag(String tag) {
     _dns = (_dns ?? const RuleDns()).copyWith(serverTag: tag);
     notifyListeners();
   }
 
-  /// §256: галка Force IPv4 (AAAA-глушилка). Ортогональна enabled/serverTag —
-  /// `RuleDns` может существовать только из-за неё (enabled=false, serverTag='').
-  /// Снятие галки на «пустой» dns (без dedicated-сервера) обнуляет _dns целиком
-  /// — иначе в storage/backup остаётся мёртвый `RuleDns{}` (шумит isDirty).
+
+
+
+
   void setForceIpv4(bool v) {
     final next = (_dns ?? const RuleDns()).copyWith(forceIpv4: v);
     _dns = (!next.forceIpv4 && !next.enabled && next.serverTag.isEmpty)
@@ -614,15 +614,15 @@ class CustomRuleEditController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── SRS download (used by SrsSection cloud-button) ──────────────────
+
 
   Future<void> downloadSrs() async {
     final urls = parseSrsUrlsText(srsUrlCtrl.text);
     if (urls.isEmpty) return;
     _srsState = SrsDownloadState.loading;
     notifyListeners();
-    // ## 12 — все наборы по порядку в свои файлы кэша; первый провал =
-    // провал правила (частично скачанное не включаем).
+
+
     var ok = true;
     for (var i = 0; i < urls.length; i++) {
       final path = await RuleSetDownloader.download(
@@ -635,16 +635,16 @@ class CustomRuleEditController extends ChangeNotifier {
     }
     _srsState = ok ? SrsDownloadState.cached : SrsDownloadState.error;
     notifyListeners();
-    // §366 — обновить строку «Updated …»: метаданные записал downloader.
+
     unawaited(_loadSrsMeta(initial.id));
   }
 
-  /// Cloud-menu «Clear cached file»: удаляет локальный `.srs`, не
-  /// трогая правило в storage. _enabled сбрасывается — без cache
-  /// правило не может работать.
+
+
+
   Future<void> clearSrsCache() async {
-    // ## 12 — файлы всех наборов: и сохранённых, и набранных в поле (юзер
-    // мог скачать новый список, не сохраняя правило).
+
+
     final saved = initial.srsUrls.length;
     final typed = parseSrsUrlsText(srsUrlCtrl.text).length;
     final n = saved > typed ? saved : typed;
@@ -654,11 +654,11 @@ class CustomRuleEditController extends ChangeNotifier {
     if (_disposed) return;
     _srsState = SrsDownloadState.none;
     _enabled = false;
-    _srsLastUpdatedText = null; // §366 — метаданные ушли вместе с файлом
+    _srsLastUpdatedText = null;
     notifyListeners();
   }
 
-  /// ## 12 — правило «скачано», когда есть файлы ВСЕХ его наборов.
+
   static Future<bool> _allSrsCached(CustomRule r) async {
     if (r is! CustomRuleSrs || r.srsUrls.isEmpty) return false;
     for (final cacheId in r.cacheIds) {
@@ -667,29 +667,29 @@ class CustomRuleEditController extends ChangeNotifier {
     return true;
   }
 
-  /// На URL-edit: если состояние было `error`, сбрасываем в `none`
-  /// (юзер начал править — пусть не висит красная иконка).
+
+
   void resetSrsErrorIfAny() {
     if (_srsState != SrsDownloadState.error) return;
     _srsState = SrsDownloadState.none;
     notifyListeners();
   }
 
-  // ─── §045 bool-var toggle (preset rendering) ─────────────────────────
 
-  /// Toggle bool-var. Если var управляет remote rule_set'ом (гейт набора —
-  /// `#enable` или легаси `enabled`, отбор через [ruleSetsEnabledByVar],
-  /// §534) — toggle-on auto-downloads .srs; на fail toggle откатывается и
-  /// метод возвращает `true` (caller покажет snackbar).
-  ///
-  /// Toggle-off — без downloads, всегда `false`.
+
+
+
+
+
+
+
   Future<bool> onBoolVarToggle(WizardVar v, bool val) async {
     final p = preset;
     if (p == null) return false;
 
-    // §265 — ref-var пишется в ГЛОБАЛЬНЫЙ userVars, не в varsValues пресета.
-    // UI-слой (bool-case) уже роутит ref через setGlobalVar до вызова, но
-    // guard на случай прямого вызова: не даём ref-значению утечь в varsValues.
+
+
+
     if (v.isRef) {
       await setGlobalVar(v.ref, val ? 'true' : 'false');
       return false;
@@ -698,15 +698,15 @@ class CustomRuleEditController extends ChangeNotifier {
     if (!val) {
       _putVarValue(v.name, 'false');
       notifyListeners();
-      _applyPresetOnChange(); // §266 — dns_enable вход формулы on_change
+      _applyPresetOnChange();
       return false;
     }
 
     final initial = this.initial;
     final presetId =
         initial is CustomRulePreset ? initial.presetId : p.presetId;
-    // §534 — наборы, которые включает эта переменная: семантика гейта
-    // билдера (обе формы, составные условия), а не поиск строки "@<name>".
+
+
     final controlled = ruleSetsEnabledByVar(
       p,
       CustomRulePreset(name: '', presetId: presetId, varsValues: _varsValues),
@@ -717,7 +717,7 @@ class CustomRuleEditController extends ChangeNotifier {
     if (controlled.isEmpty) {
       _putVarValue(v.name, 'true');
       notifyListeners();
-      _applyPresetOnChange(); // §266
+      _applyPresetOnChange();
       return false;
     }
 
@@ -733,7 +733,7 @@ class CustomRuleEditController extends ChangeNotifier {
       _putVarValue(v.name, 'true');
       _presetSrsPaths = {..._presetSrsPaths};
       notifyListeners();
-      _applyPresetOnChange(); // §266
+      _applyPresetOnChange();
       return false;
     }
 
@@ -757,24 +757,24 @@ class CustomRuleEditController extends ChangeNotifier {
     if (!anyFailed) {
       _putVarValue(v.name, 'true');
       _presetSrsPaths = {..._presetSrsPaths, ...newPaths};
-      _applyPresetOnChange(); // §266
+      _applyPresetOnChange();
     }
     notifyListeners();
     return anyFailed;
   }
 
-  // ─── Snapshot / dirty ────────────────────────────────────────────────
 
-  /// Текущее состояние формы как `CustomRule`. Не валидирует name-
-  /// collision (это делает `save` flow на screen State).
-  ///
-  /// §381 — `orderNum` (ось §370) переносится из `initial` во ВСЕ ветки:
-  /// редактор позицию правила не меняет, а потеря номера читалась как две
-  /// разные жалобы. Без него `isDirty()` (равенство моделей) видел разницу по
-  /// `orderNum` ещё до первой правки — «Save changes?» на пустом выходе; а
-  /// сохранённое правило уезжало в storage с `num == null` и при следующей
-  /// загрузке экрана размечалось `markRuleOrder` заново от `kUserRuleNumStart`,
-  /// то есть прыгало в начало пользовательской зоны.
+
+
+
+
+
+
+
+
+
+
+
   CustomRule snapshot() {
     final name = nameCtrl.text.trim();
     switch (_kind) {
@@ -803,8 +803,8 @@ class CustomRuleEditController extends ChangeNotifier {
           name: name,
           enabled: _enabled,
           orderNum: initial.orderNum,
-          srsUrls: parseSrsUrlsText(srsUrlCtrl.text), // ## 12
-          updateIntervalHours: _srsTtlHours, // §366
+          srsUrls: parseSrsUrlsText(srsUrlCtrl.text),
+          updateIntervalHours: _srsTtlHours,
           ports: norm.normalizedPorts(portCtrl.text),
           portRanges: norm.normalizedPortRanges(portRangeCtrl.text),
           packages: List.of(_packages),
@@ -818,8 +818,8 @@ class CustomRuleEditController extends ChangeNotifier {
           wifiBssids: wifi.bssids,
           outbound: _outbound,
           dns: _dns,
-          // §247: гейт на случай snapshot до notify (сброс live в
-          // _onTextChanged, но подстраховка дешёвая).
+
+
           resolve: resolveEligible ? _resolve : null,
         );
       case CustomRuleKind.inline:
@@ -848,30 +848,30 @@ class CustomRuleEditController extends ChangeNotifier {
           wifiBssids: wifi.bssids,
           outbound: _outbound,
           dns: _dns,
-          resolve: resolveEligible ? _resolve : null, // §247
+          resolve: resolveEligible ? _resolve : null,
         );
     }
   }
 
-  /// Правило вида json равно по содержимому JSON; редактор считает правкой и
-  /// смену форматирования текста.
+
+
   bool isDirty() =>
       snapshot() != initial ||
       (_kind == CustomRuleKind.json && jsonCtrl.text != initial.json);
 
-  /// §447 — единственная проверка перед сохранением: Save формы, Save в
-  /// AppBar и Save из диалога несохранённых правок. `null` — сохранять можно,
-  /// иначе текст причины (тот же, что под полем JSON). Текст формы не
-  /// трогается — пользователь исправляет набранное.
+
+
+
+
   String? get saveBlockReason => jsonError;
 
-  /// §225 — валиден ли текущий текст json-правила (для inline-хелпера в
-  /// JsonSection и гейта Save). `null` = ок (нет ошибки), иначе краткое
-  /// описание. Пустой ввод считается «ещё не заполнено» (ошибка), т.к.
-  /// сохранять пустое json-правило смысла нет.
-  ///
-  /// §439 В2 — массив не сохраняется: запись правила держит один объект
-  /// sing-box, несколько правил заводятся отдельно.
+
+
+
+
+
+
+
   String? get jsonError {
     if (_kind != CustomRuleKind.json) return null;
     final text = jsonCtrl.text.trim();
@@ -891,17 +891,17 @@ class CustomRuleEditController extends ChangeNotifier {
   }
 }
 
-/// §045: tag+url пара для batch download'а внутри `onBoolVarToggle`.
+
 class _PendingDownload {
   const _PendingDownload({required this.tag, required this.url});
   final String tag;
   final String url;
 }
 
-/// §053 Stage 3 — InheritedNotifier для раздачи controller'а вниз по
-/// tree без prop-drilling. Любой widget внутри `body` editor'а делает
-/// `CustomRuleEditScope.of(context)` и подписывается на rebuild при
-/// `notifyListeners`.
+
+
+
+
 class CustomRuleEditScope extends InheritedNotifier<CustomRuleEditController> {
   const CustomRuleEditScope({
     super.key,
@@ -915,5 +915,5 @@ class CustomRuleEditScope extends InheritedNotifier<CustomRuleEditController> {
     assert(scope != null, 'CustomRuleEditScope.of: no scope in context');
     return scope!.notifier!;
   }
-  // §141 P2.3i — `read()` (non-listening lookup) удалён: 0 call-sites.
+
 }

@@ -4,14 +4,14 @@ import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/builder/if_engine.dart';
 import 'package:lxbox/services/settings_storage.dart' show VpnModeConfig;
 
-/// §119/§120 — VPN-mode теперь декларативен: tun-in/mixed-in/route-rules
-/// собираются `#if`-walker'ом в substitution-фазе по `@vpn_mode`/`@proxy_*`.
-/// `applyVpnMode` удалён. Эти тесты гоняют тот же шаблонный фрагмент
-/// (inbounds + route.rules) через [walk] с разными `VpnModeConfig` и проверяют
-/// семантику (вместо вызова удалённого императивного шага).
 
-/// Фрагмент шаблона §120: inbounds + route.rules с `#if`. Соответствует
-/// `wizard_template.json` (tun-in / mixed-in / resolve / sniff / hijack-dns).
+
+
+
+
+
+
+
 Map<String, dynamic> _templateConfig() => {
       'inbounds': <dynamic>[
         {
@@ -30,8 +30,8 @@ Map<String, dynamic> _templateConfig() => {
                 '@tun_address',
                 {'#if': {'and': ['@ipv6_enabled'], 'value': '@tun_address6'}},
               ],
-              // §232 — route_address за галкой route_address_enable (вложенный
-              // map-spread #if внутри value внешнего vpn_mode-#if).
+
+
               '#if': {
                 'and': ['@route_address_enable'],
                 'value': {
@@ -142,7 +142,7 @@ Map<String, dynamic> _templateConfig() => {
       },
     };
 
-/// Ноды переменных §120 (type metadata, как в шаблоне).
+
 final _nodes = <String, WizardVar>{
   'vpn_mode': WizardVar(name: 'vpn_mode', type: 'enum', defaultValue: 'vpn'),
   'proxy_type': WizardVar(name: 'proxy_type', type: 'text', defaultValue: 'mixed'),
@@ -169,9 +169,9 @@ final _nodes = <String, WizardVar>{
       name: 'route_address_enable', type: 'bool', defaultValue: 'false'),
 };
 
-/// Прогоняет шаблон через walk, повторяя проброс §120 из build_config:
-/// прямое присваивание vpn_mode/proxy_* из VpnModeConfig в плоский vars,
-/// proxy_auth = effectiveAuth && непустой пароль.
+
+
+
 Map<String, dynamic> _build(VpnModeConfig? cfg,
     {bool sniff = true, bool ipv6 = false, bool customRoutes = false}) {
   final config = _templateConfig();
@@ -214,7 +214,7 @@ Map<String, dynamic>? _firstWhere(
           orElse: () => null,
         );
 
-/// inbound теперь Listable[string] (array). Хелпер: содержит ли rule тег.
+
 bool _ruleHasInbound(Map r, String tag) {
   final inb = r['inbound'];
   if (inb is List) return inb.contains(tag);
@@ -239,7 +239,7 @@ void main() {
       expect(inb.length, 1);
       expect(inb.first['type'], 'tun');
       expect(_firstWhere(inb, (i) => i['tag'] == 'mixed-in'), isNull);
-      // resolve inbound = [tun-in].
+
       final resolve = _firstWhere(_rules(cfg), (r) => r['action'] == 'resolve')!;
       expect(_ruleHasInbound(resolve, 'tun-in'), true);
       expect(_ruleHasInbound(resolve, 'mixed-in'), false);
@@ -286,7 +286,7 @@ void main() {
       final cfg = _build(_proxyAuth.copyWith(mode: 'vpn_proxy'));
       final inb = _inbounds(cfg);
       expect(inb.length, 2);
-      expect(inb.first['type'], 'tun'); // tun первый → applyTunPackages находит
+      expect(inb.first['type'], 'tun');
       expect(_firstWhere(inb, (i) => i['tag'] == 'mixed-in'), isNotNull);
     });
 
@@ -369,10 +369,10 @@ void main() {
         proxyAuthEnabled: false,
         proxyPassword: '',
       );
-      expect(m.effectiveAuth, true); // 0.0.0.0 форсит
+      expect(m.effectiveAuth, true);
       final cfg = _build(m);
       final mixed = _firstWhere(_inbounds(cfg), (i) => i['tag'] == 'mixed-in')!;
-      // НЕ должно быть users:[{...,password:""}] — защита от broken auth.
+
       expect(mixed.containsKey('users'), false);
     });
 
@@ -436,7 +436,7 @@ void main() {
         proxyProtocol: 'mixed',
         proxyPort: 2080,
         proxyListen: '192.168.1.5',
-        proxyAuthEnabled: false, // снято — но не-loopback форсит
+        proxyAuthEnabled: false,
         proxyUsername: 'user',
         proxyPassword: 'x',
       );
@@ -463,12 +463,12 @@ void main() {
       expect(VpnModeConfig.isValidListenAddr('0.0.0.0'), true);
       expect(VpnModeConfig.isValidListenAddr('192.168.1.5'), true);
       expect(VpnModeConfig.isValidListenAddr('255.255.255.255'), true);
-      expect(VpnModeConfig.isValidListenAddr('256.0.0.1'), false); // октет > 255
-      expect(VpnModeConfig.isValidListenAddr('1.2.3'), false); // мало октетов
-      expect(VpnModeConfig.isValidListenAddr('1.2.3.4.5'), false); // много
+      expect(VpnModeConfig.isValidListenAddr('256.0.0.1'), false);
+      expect(VpnModeConfig.isValidListenAddr('1.2.3'), false);
+      expect(VpnModeConfig.isValidListenAddr('1.2.3.4.5'), false);
       expect(VpnModeConfig.isValidListenAddr('abc'), false);
       expect(VpnModeConfig.isValidListenAddr(''), false);
-      expect(VpnModeConfig.isValidListenAddr('1.2.3.'), false); // пустой октет
+      expect(VpnModeConfig.isValidListenAddr('1.2.3.'), false);
     });
 
     test('isLoopback — 127.x', () {
@@ -504,7 +504,7 @@ void main() {
     });
   });
 
-  // §232 — IPv6/route_address за галками (защитный opt-in).
+
   group('§232 IPv6 & custom routes gating', () {
     Map<String, dynamic> tun(Map<String, dynamic> cfg) =>
         _firstWhere(_inbounds(cfg), (i) => i['tag'] == 'tun-in')!;
@@ -541,8 +541,8 @@ void main() {
     });
   });
 
-  // §292 — валидаторы порта/протокола на модели (инвариант, общий для UI +
-  // Debug API). Ловят мусор, который иначе дошёл бы до sing-box inbounds.
+
+
   group('§292 isValidPort', () {
     test('в диапазоне 1024..65535 → true', () {
       expect(VpnModeConfig.isValidPort(2080), isTrue);
@@ -558,7 +558,7 @@ void main() {
       expect(VpnModeConfig.isValidPort(99999), isFalse);
     });
     test('граница совпадает с UI vpn_mode_tab (1024)', () {
-      // Регресс-якорь: UI _applyPort отвергает <1024; модель обязана тоже.
+
       expect(VpnModeConfig.isValidPort(1024), isTrue);
       expect(VpnModeConfig.isValidPort(1023), isFalse);
     });

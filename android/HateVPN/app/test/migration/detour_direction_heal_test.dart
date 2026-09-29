@@ -12,14 +12,14 @@ import 'package:lxbox/models/node_link.dart';
 import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/services/settings_storage.dart';
 
-/// §248/§274 — storage-heal ссылок при смене detour-роли Направления (Решение B
-/// §202, необратимо): flag-unset/disable/delete → detour-ссылки
-/// (overrideDetour одиночки/подписки/папки + FolderMember.detour) → '';
-/// disable/delete дополнительно лечат rules-ссылки (route_final/правила) →
-/// vpn-1. Flag-SET ничего НЕ лечит (§274: флаг — разрешение, Направление остаётся
-/// целью правил). Ссылка «на Направление» = tag ИЛИ `<tag>-auto`. Интра-омонимы
-/// (значение = bare-тег члена той же папки) пропускаются. Harness — как
-/// direction_heal_refs_test.dart.
+
+
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -51,9 +51,9 @@ void main() {
   String memberRaw(String name) =>
       'vless://u-$name@h.com:443?type=ws&security=tls#$name';
 
-  /// Storage: detour-Направление vpn-3 + detour-ссылки на него всех четырёх видов
-  /// (одиночка tag, подписка autoTag, папка policy+member) + папка-омоним
-  /// (член с bare-тегом 'vpn-3': её ссылки — интра, heal их не трогает).
+
+
+
   Future<void> seedDetourRefsOnVpn3({bool vpn3Detour = true}) async {
     final data = {
       'directions_migrated': true,
@@ -92,8 +92,8 @@ void main() {
             FolderMember(raw: memberRaw('node-b')),
           ],
         )),
-        // Папка-омоним: член с сырым тегом 'vpn-3' → ссылки на него — пары
-        // {f2, vpn-3} (D-112), с корневым именем Направления не совпадают.
+
+
         sourceToRecord(FolderServers(
           id: 'f2',
           name: 'Homonym',
@@ -132,12 +132,12 @@ void main() {
     final f1 = await listById('f1') as FolderServers;
     expect(f1.detourPolicy.overrideDetour, NodeLink.none);
     expect(f1.members.first.detour, NodeLink.none);
-    // Омоним-папка: и policy, и member ссылаются на ЧЛЕНА 'vpn-3' — не трогаем.
+
     const member = NodeLink(folderId: 'f2', tag: 'vpn-3');
     final f2 = await listById('f2') as FolderServers;
     expect(f2.detourPolicy.overrideDetour, member);
     expect(f2.members[1].detour, member);
-    // Счётчики: u1 + s1(autoTag) + f1.policy + f1.member = 4.
+
     expect(res.detours, 4);
     expect(res.rules, 0);
   });
@@ -174,7 +174,7 @@ void main() {
     expect(res.detours, 4);
   });
 
-  // Стерегут регресс назад к §248-семантике (flag-set лечил rules → vpn-1).
+
   group('§274 — flag-set НЕ лечит rules-ссылки', () {
     Future<void> seedRulesRefsOnVpn3({String routeFinal = 'vpn-3'}) async {
       final data = {
@@ -214,7 +214,7 @@ void main() {
       expect(await SettingsStorage.getRouteFinal(), 'vpn-3');
       final rules = await SettingsStorage.getCustomRules();
       expect(rules.map((r) => r.outbound), everyElement('vpn-3'));
-      // srs-правило цело наравне с inline/preset — heal вообще не вызывался.
+
       expect(rules.whereType<CustomRuleSrs>().single.outbound, 'vpn-3');
       expect(res.rules, 0);
       expect(res.detours, 0);

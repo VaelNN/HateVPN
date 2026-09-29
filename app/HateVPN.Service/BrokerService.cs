@@ -97,8 +97,8 @@ internal sealed class BrokerService : ServiceBase
                 Tunnel.Service.Add(Program.AmneziaConfigPath,false,true);
                 TunnelDns.Apply(awg);
                 _owner=sid; _profileId=request.ProfileId; _amneziaConfig=awg; _started=DateTime.UtcNow;
-                // The first network request drives the handshake; do not delay the connect reply
-                // while the tunnel's status pipe is still becoming available.
+
+
                 return new(true,State:new("connecting",_profileId,awg.Endpoint,awg.FullTunnel,Engine:"AmneziaWG"));
             }
             catch { StopTunnel(); throw; }

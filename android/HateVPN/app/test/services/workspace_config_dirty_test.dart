@@ -9,14 +9,14 @@ import 'package:lxbox/services/workspaces/workspace_controller.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §447 — загрузка слота Workspaces помечает конфиг грязным явно. Раньше
-/// признаком был только mtime настроек (§417 §2.3 шаг 8), а его гасили flush
-/// перед загрузкой (touch конфига в ту же секунду) и любой `_save()` при
-/// снятом флаге: новый HomeScreen видел `dirty=false`, VPN шёл с конфигом
-/// прежнего слота.
+
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory docs;
@@ -56,21 +56,21 @@ void main() {
       try {
         if (d.existsSync()) await d.delete(recursive: true);
       } on FileSystemException {
-        // AppLog пишет persistent-лог в docs async — race с delete.
+
       }
     }
   });
 
-  /// Запись собранного конфига, как её делает `saveParsedConfig`: файл
-  /// конфига (в тестах канала нет — рядом с настройками) + снятый флаг и
-  /// выровненный mtime.
+
+
+
   Future<void> applyConfig(String config) async {
     await File('${docs.path}/singbox_config.json').writeAsString(config);
     SettingsStorage.configDirty = false;
     await SettingsStorage.flushToDisk();
   }
 
-  /// Bootstrap нового HomeScreen: `init` → при `configDirty` пересборка.
+
   Future<SubscriptionController> bootstrap() async {
     final c = SubscriptionController();
     await c.init();
@@ -89,7 +89,7 @@ void main() {
     await applyConfig((await c.generateConfig())!);
     await ws.saveAs('Work');
 
-    // Home на сцене, конфиг пересобран и чист.
+
     await ws.load('Home', stopVpn: () async => false);
     final home = await bootstrap();
     expect(home.configDirty, isTrue);
@@ -99,13 +99,13 @@ void main() {
     await applyConfig(homeConfig);
     expect(SettingsStorage.configDirty, isFalse);
 
-    // Сценарий бага: Home → Work сразу после чистой записи.
+
     await ws.load('Work', stopVpn: () async => false);
     expect(SettingsStorage.configDirty, isTrue,
         reason: 'загрузка слота помечает конфиг грязным явно');
 
-    // Запись настроек между загрузкой и bootstrap'ом (шаги перечитывания,
-    // фоновые писатели) при поднятом флаге mtime конфига не выравнивает.
+
+
     await SettingsStorage.setVar('workspace_dirty_probe', '1');
 
     final work = await bootstrap();

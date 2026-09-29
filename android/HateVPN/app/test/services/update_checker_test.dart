@@ -42,7 +42,7 @@ void main() {
     });
 
     test('strips suffix after first non-numeric', () {
-      // local-build с "-dirty" не должен ложно быть newer
+
       expect(isNewer('v1.4.2-dirty', '1.4.2'), isFalse);
       expect(isNewer('v1.4.3-rc1', '1.4.2'), isTrue);
     });
@@ -52,8 +52,8 @@ void main() {
       expect(isNewer('not-a-version', '1.4.2'), isFalse);
       expect(isNewer('v1.4.2', ''), isFalse);
       expect(isNewer('v1.x.y', '1.4.2'), isFalse);
-      expect(isNewer('v1', '1.4.2'), isFalse); // single component invalid
-      expect(isNewer('v1.2.3.4', '1.4.2'), isFalse); // too many parts
+      expect(isNewer('v1', '1.4.2'), isFalse);
+      expect(isNewer('v1.2.3.4', '1.4.2'), isFalse);
     });
 
     test('whitespace tolerated', () {
@@ -61,9 +61,9 @@ void main() {
     });
   });
 
-  // §090 G1 — dismissCurrent должен персистить dismissed-версию + чистить
-  // notifier (read-guard'ы дальше не покажут этот релиз). Паттерн mock —
-  // как в settings_storage_test (path_provider MethodChannel + temp dir).
+
+
+
   group('dismissCurrent (§090 G1)', () {
     late Directory tmp;
     const channel = MethodChannel('plugins.flutter.io/path_provider');

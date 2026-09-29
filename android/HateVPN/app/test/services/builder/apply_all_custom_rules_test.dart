@@ -5,11 +5,11 @@ import 'package:lxbox/models/parser_config.dart';
 import 'package:lxbox/services/builder/post_steps.dart';
 import 'package:lxbox/services/builder/rule_set_registry.dart';
 
-/// §062 — `applyAllCustomRules` сохраняет storage order между preset/inline/srs.
-///
-/// Старый pipeline (`applyPresetBundles` → `applyCustomRules`) делал 2 прохода
-/// и собирал [все preset] + [все inline/srs] в config.route.rules — что
-/// ломало юзер-управляемый order. Эти тесты пинят правильное поведение.
+
+
+
+
+
 void main() {
   group('applyAllCustomRules (§062 unified order)', () {
     test('storage [preset, inline, preset] → config rules в том же order',
@@ -28,7 +28,7 @@ void main() {
         ),
         CustomRulePreset(
           name: 'B',
-          // другой presetId чтобы не получить identical-skip
+
           presetId: 'ru-direct-2',
           varsValues: {'outbound': 'vpn-1'},
         ),
@@ -158,11 +158,11 @@ void main() {
 
       final result = applyAllCustomRules(reg, rules, [preset]);
 
-      // Один уникальный rule_set от двух identical preset (identical-skip),
-      // плюс один inline rule_set ("inline-X").
+
+
       expect(reg.getRuleSets().length, 2,
           reason: 'identical preset rule_set дедуплицирован, inline свой');
-      // 3 routing rules в порядке storage: preset, inline, preset.
+
       final outbounds =
           reg.getRules().map((r) => r['outbound']).toList(growable: false);
       expect(outbounds, ['direct-out', 'vpn-2', 'direct-out']);
@@ -202,7 +202,7 @@ void main() {
       final rules = <CustomRule>[
         CustomRulePreset(
           name: 'X',
-          enabled: false, // routing-тоггл выключен
+          enabled: false,
           presetId: 'ru-direct',
           varsValues: {'outbound': 'direct-out', 'dns_server': 'yandex_doh'},
         ),
@@ -215,7 +215,7 @@ void main() {
         [preset],
       );
 
-      // §121: выключенный routing-тоггл = пресет мёртв целиком.
+
       expect(reg.getRules(), isEmpty, reason: 'нет routing-правила');
       expect(result.extraDnsServers, isEmpty,
           reason: 'серверы пресета не эмитятся');
@@ -267,8 +267,8 @@ SelectableRule _ruDirect() => SelectableRule(
       ],
     );
 
-// Same shape but different presetId / rule_set tag — чтобы избежать
-// identical-skip и иметь два разных preset для cross-kind order тестов.
+
+
 SelectableRule _ruDirect2() => SelectableRule(
       label: 'Russian domains 2',
       defaultEnabled: true,

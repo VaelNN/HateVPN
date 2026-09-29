@@ -16,8 +16,8 @@ import 'package:lxbox/services/parser/parse_all.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §455 — источник записи JSON → тело узла в конфиг дословно (объект
-/// источника), а не emit() модели; ссылка/INI — через модель, как раньше.
+
+
 class _Ctx extends EmitContext {
   final entries = <SingboxEntry>[];
   final warnings = <String>[];
@@ -54,8 +54,8 @@ class _Ctx extends EmitContext {
 }
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   const pem = '-----BEGIN CERTIFICATE-----\nMII…\n-----END CERTIFICATE-----\n';
@@ -88,8 +88,8 @@ void main() {
     return ctx.entries.single.map;
   }
 
-  // Д-1 (эмулятор 19.09.2026) — одиночный Xray-outbound объектом: тот же
-  // диалект, что и в массиве `outbounds[]`, но добавленный одним объектом.
+
+
   String xray(String tag) => jsonEncode({
         'protocol': 'vless',
         'tag': tag,
@@ -123,9 +123,9 @@ void main() {
           'wg_ini');
     });
 
-    // Д-1 — вид ЗАПИСИ у Xray-объекта прежний (`json`): контракт знает три
-    // значения, `raw` хранится как есть, и миграции хранения не нужно.
-    // Режим сборки по нему больше не решается.
+
+
+
     test('Xray-объект — вид записи тот же json', () {
       expect(originKindOf(xray('x')), 'json');
     });
@@ -156,15 +156,15 @@ void main() {
           isNull);
     });
 
-    // Д-1 — Xray-источник дословным НЕ бывает: диалект чужой.
+
     test('Xray-объект → null (через модель)', () {
       final raw = xray('x');
       expect(verbatimBodyOf(raw, parseAll(decode(raw)).single), isNull);
     });
   });
 
-  // §576 п.4 — дословно только при всех четырёх условиях; по одному отказу
-  // на каждое.
+
+
   group('§576 дословность: четыре условия', () {
     test('1. контейнер: узел подписки идёт через модель', () {
       final raw = jsonEncode(naive);
@@ -224,8 +224,8 @@ void main() {
     });
   });
 
-  // Д-1 — одиночный Xray-outbound как UserServer: в конфиге sing-box-тело,
-  // равное телу того же узла из массива `outbounds[]`.
+
+
   group('Д-1: одиночный Xray-объект', () {
     Map<String, dynamic> bodyFromArray(String one) {
       final arrayRaw = '[$one]';
@@ -266,13 +266,13 @@ void main() {
       test('$scheme: тело sing-box, равное телу из массива outbounds[]', () {
         final one0 = one.isEmpty ? xray('vl') : one;
         final m = built(server(one0));
-        // Диалект Xray в конфиг не уехал.
+
         expect(m['type'], isA<String>());
         expect((m['type'] as String).isNotEmpty, isTrue);
         expect(m.containsKey('protocol'), isFalse);
         expect(m.containsKey('settings'), isFalse);
         expect(m.containsKey('streamSettings'), isFalse);
-        // И оно то же, что у того же узла из массива.
+
         final fromArray = bodyFromArray(one0);
         expect(m, fromArray);
       });
@@ -291,7 +291,7 @@ void main() {
       expect(m['unknown_to_model'], {'x': 1});
       expect((m['tls'] as Map)['certificate'], pem);
       expect(m['tag'], 'naive-out');
-      // detour тела снят; политика по умолчанию detour не ставит.
+
       expect(m.containsKey('detour'), isFalse);
     });
 
@@ -334,8 +334,8 @@ void main() {
       final ctx = _Ctx();
       folder.build(ctx);
       final main = ctx.entries.firstWhere((e) => e.map['type'] == 'naive');
-      // detour ссылкой ставит второй проход сборки (deferDetour); в теле
-      // ключ `detour: someone-else` источника не должен остаться.
+
+
       expect(main.map['detour'], isNot('someone-else'));
     });
   });

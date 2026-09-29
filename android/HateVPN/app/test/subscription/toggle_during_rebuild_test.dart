@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -22,11 +22,11 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §360 — гонка toggle ↔ пересборка: мутация, попавшая в окно `_busy`, не
-/// должна терять `configDirty`.
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
@@ -46,7 +46,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -56,11 +56,11 @@ void main() {
     await c.addFolder('F');
     await c.addMembersToFolder(0, uriA);
 
-    // Пересборка в полёте: не ждём её, а переключаем подписку внутри окна
-    // `_busy` — ровно то, что делает юзер, тапнув галку сразу после возврата.
+
+
     final gen = c.generateConfig();
-    // `generateConfig` открывается с await на storage-lock, поэтому `_busy`
-    // взводится не синхронно — дожидаемся реального окна.
+
+
     while (!c.busy) {
       await Future<void>.delayed(Duration.zero);
     }

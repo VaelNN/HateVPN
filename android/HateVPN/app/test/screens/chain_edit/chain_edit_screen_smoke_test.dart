@@ -11,10 +11,10 @@ import 'package:lxbox/services/contract/chain_strip.dart';
 
 import '../../contract_paths.dart';
 
-// §393 C7 — экран цепочки строится и переживает взаимодействие. Не тест на
-// вёрстку и не на тексты (AGENTS.md): проверяем, что форма поднимается, что
-// блокирующая находка реально запирает сохранение и что порядок позиций
-// меняется тем, чем нарисован.
+
+
+
+
 
 ParsedConfig _config() => ParsedConfig.parse(jsonEncode({
       'outbounds': [
@@ -82,14 +82,14 @@ void main() {
     await tester.pumpWidget(_host(
         const SourceChain(tag: 'via-de', hops: [NodeLink(tag: 'home'), NodeLink(tag: 'de-exit')])));
     await tester.pumpAndSettle();
-    // Логика порядка, не жест: дёргаем колбэк списка так же, как это сделал бы
-    // drag позиции 1 на место позиции 2. onReorderItem уже нормализует
-    // newIndex под удалённый элемент, поэтому «вниз на одну» это ровно 1.
+
+
+
     final list = tester.widget<ReorderableListView>(
         find.byType(ReorderableListView));
     list.onReorderItem!(0, 1);
     await tester.pumpAndSettle();
-    // Порядок читаем по номерам-аватарам: позиция 1 теперь de-exit.
+
     final tiles = tester.widgetList<ListTile>(find.byType(ListTile)).toList();
     final titles = [
       for (final t in tiles)
@@ -98,8 +98,8 @@ void main() {
     expect(titles.indexOf('de-exit'), lessThan(titles.indexOf('home')));
   });
 
-  // §57 — REALITY × снятый uTLS: предупреждение по реестру, не блокировка
-  // (сборка снимет ключ с патча и соберёт цепочку).
+
+
   testWidgets('снятый tls.utls на reality-звене сохранение НЕ запирает',
       (tester) async {
     await tester.pumpWidget(_host(const SourceChain(
@@ -120,8 +120,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
-    // `home` уже стоит позицией — в пикере его быть не должно; в форме он
-    // остался ровно один раз.
+
+
     expect(find.text('home'), findsOneWidget);
     expect(find.text('de-exit'), findsOneWidget);
   });
@@ -133,7 +133,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(ExpansionTile));
     await tester.pumpAndSettle();
-    // Каталог strip — из реестра (chain.json): показываем ровно его ключи.
+
     expect(chainStripKeys(), isNotEmpty);
     for (final key in chainStripKeys()) {
       expect(find.text(key), findsOneWidget);
@@ -150,15 +150,15 @@ void main() {
         .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
         .toList();
     expect(boxes, hasLength(chainStripKeys().length));
-    // Нетронутое состояние — именно null, а не false: «как у ядра» и «я так
-    // решил» обязаны различаться уже в форме.
+
+
     expect(boxes.every((b) => b.value == null), isTrue);
   });
 
   testWidgets('свой тег среди тегов конфига конфликтом не считается',
       (tester) async {
-    // Собранная цепочка сама лежит в конфиге узлом `type: chain` — принять
-    // это за «имя занято» значило бы запереть форму у любой рабочей цепочки.
+
+
     await tester.pumpWidget(MaterialApp(
       home: ChainEditScreen(
         initial: const SourceChain(tag: 'via-de', hops: [NodeLink(tag: 'home'), NodeLink(tag: 'de-exit')]),

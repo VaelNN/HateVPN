@@ -3,11 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/platform_channels.dart';
 import 'package:lxbox/vpn/cc_channel.dart';
 
-/// §392 — `CcGetUrlResult` (GetURLViaOutbound, kernel SPEC 058) и проброс
-/// параметров вызова через MethodChannel.
-///
-/// Главный инвариант под тестом: **не-2xx — это результат, а не ошибка**.
-/// Единственный признак несостоявшегося обмена — непустой `error`.
+
+
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -35,8 +35,8 @@ void main() {
         'content': '{"error":"rate limit"}',
         'error': '',
       });
-      // 429 от гео-сервиса — данные, ради которых проба и существует;
-      // помечать узел нерабочим по такому ответу нельзя.
+
+
       expect(r.ok, true);
       expect(r.status, 429);
       expect(r.content, isNotEmpty);
@@ -63,7 +63,7 @@ void main() {
       expect(r.content, isEmpty);
       expect(r.truncated, false);
       expect(r.elapsedMs, 0);
-      expect(r.ok, true); // error пуст — обмен формально состоялся
+      expect(r.ok, true);
     });
 
     test('num (double из platform channel) приводится к int', () {

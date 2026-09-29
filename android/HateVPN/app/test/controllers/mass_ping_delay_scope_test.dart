@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:async';
 import 'dart:io';
@@ -21,12 +21,12 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationSupportPath() async => tempRoot;
 }
 
-/// §325 — замеры пинга разложены по Направлениям: изоляция записи + фоллбэк чтения.
-///
-/// Регресс жалоб 4PDA #1289/#1290/#1376/#1381/#1382 («нажатие тест-пинга
-/// сбрасывает данные глобально, а тест идёт только для текущего Направления»).
-/// Раньше `lastDelay` был одной плоской картой: mass-ping чистил её целиком, а
-/// заполнял лишь нодами выбранного Направления.
+
+
+
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -59,7 +59,7 @@ void main() {
     if (await tempDir.exists()) await tempDir.delete(recursive: true);
   });
 
-  // Два Направления с замерами; выбран A.
+
   void seedTwoDirections() => controller.debugSeedNodeState(
         group: 'ch-a',
         activeNode: 'a1',
@@ -77,10 +77,10 @@ void main() {
       unawaited(controller.runMassUrltest(order: const ['a1', 'shared']));
       expect(controller.massPingRunning, isTrue, reason: 'прогон должен идти');
 
-      // Направление B нетронут целиком.
+
       expect(controller.state.delayByDirection['ch-b'],
           const {'b1': 90, 'shared': 310});
-      // В Направлении A замеры пингуемых нод убраны — их место занял индикатор.
+
       expect(controller.state.delayByDirection['ch-a'], isEmpty);
       expect(controller.state.pingBusy['a1'], '…');
       expect(controller.state.pingBusy['shared'], '…');
@@ -101,7 +101,7 @@ void main() {
       seedTwoDirections();
       final s = controller.state;
 
-      // 'shared' есть в обоих — берём значение выбранного Направления A.
+
       expect(s.delayOf('shared'), 200);
       expect(s.delayIsForeign('shared'), isFalse);
       expect(s.delayOf('a1'), 120);
@@ -112,7 +112,7 @@ void main() {
       seedTwoDirections();
       final s = controller.state;
 
-      // 'b1' мерили только в Направлении B — показываем как ориентир, но помечаем.
+
       expect(s.delayOf('b1'), 90);
       expect(s.delayIsForeign('b1'), isTrue);
     });
@@ -131,19 +131,19 @@ void main() {
       controller.setSelectedGroup('ch-b');
       final s = controller.state;
 
-      // Своё в B.
+
       expect(s.delayOf('b1'), 90);
       expect(s.delayIsForeign('b1'), isFalse);
       expect(s.delayOf('shared'), 310);
       expect(s.delayIsForeign('shared'), isFalse);
-      // Чужое из A — показано, но помечено (список не пустеет: жалоба #1290).
+
       expect(s.delayOf('a1'), 120);
       expect(s.delayIsForeign('a1'), isTrue);
     });
   });
 
   test('замеры вне Направления живут в scratch-ключе', () async {
-    // selectedGroup == null — Направления нет (папки, проба подписок).
+
     controller.debugHandleStatusEvent(
       TunnelStatusEvent(status: TunnelStatus.connected, raw: 'Started'),
     );

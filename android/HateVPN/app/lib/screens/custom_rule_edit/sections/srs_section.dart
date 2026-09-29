@@ -7,12 +7,12 @@ import '../../../models/custom_rule.dart'
     show kDefaultSrsTtlHours, kSrsTtlChoicesHours, parseSrsUrlsText;
 import '../../../services/l10n/locale_controller.dart';
 
-/// §053 Stage 2 — состояние ☁ кнопки рядом с SRS URL.
-/// Public (раньше был private `_SrsDownloadState`).
+
+
 enum SrsDownloadState { none, loading, cached, error }
 
-/// §053 Stage 2 — RULE-SET URL section: URL field + ☁ download button
-/// (тап → fetch, long-press → menu Refresh / Clear cache).
+
+
 class SrsSection extends StatefulWidget {
   const SrsSection({
     super.key,
@@ -30,18 +30,18 @@ class SrsSection extends StatefulWidget {
   final SrsDownloadState state;
   final VoidCallback onDownload;
 
-  /// §366 — TTL кэша в часах (значение из [kSrsTtlChoicesHours]).
+
   final int ttlHours;
   final ValueChanged<int> onTtlChanged;
 
-  /// §366 — «Updated 3d ago» / текст ошибки. Null — файла ещё нет.
+
   final String? lastUpdatedText;
 
-  /// Long-press на ☁ — показать context menu (Refresh / Clear). Параметр —
-  /// глобальная позиция тапа (Offset из onLongPressStart.globalPosition).
+
+
   final void Function(Offset globalPos) onShowCloudMenu;
 
-  /// Юзер изменил URL — parent может сбросить error state в none.
+
   final VoidCallback onUrlChanged;
 
   @override
@@ -75,8 +75,8 @@ class _SrsSectionState extends State<SrsSection> {
     widget.onUrlChanged();
   }
 
-  /// §366 — подпись варианта TTL. Набор вшит ([kSrsTtlChoicesHours]),
-  /// поэтому обходимся switch'ем без арифметики над часами.
+
+
   String _ttlLabel(int hours) => switch (hours) {
         0 => getLocalText.s("Never"),
         24 => getLocalText.s("Every day"),
@@ -91,8 +91,8 @@ class _SrsSectionState extends State<SrsSection> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    // ## 12 — несколько наборов, по одному URL на строку; ☁ активна, когда
-    // валидны все.
+
+
     final urls = parseSrsUrlsText(widget.urlCtrl.text);
     final urlValid = urls.isNotEmpty && urls.every(v.isValidUrl);
 
@@ -143,14 +143,14 @@ class _SrsSectionState extends State<SrsSection> {
         ),
         TextField(
           controller: widget.urlCtrl,
-          // ## 12 — по одному URL на строку.
+
           maxLines: null,
           keyboardType: TextInputType.multiline,
           style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
             isDense: true,
-            // l10n-exempt: example URL, locale-independent
+
             hintText: 'https://example.com/rules.srs',
             prefixIcon: IconButton(
               icon: const Icon(Icons.link, size: 18),
@@ -181,8 +181,8 @@ class _SrsSectionState extends State<SrsSection> {
           ),
         ),
         const SizedBox(height: 4),
-        // §366 — как часто перепроверять источник. Проверка идёт при запуске
-        // приложения и при подъёме VPN, не по фоновому таймеру.
+
+
         Row(
           children: [
             Icon(Icons.update, size: 16, color: t.colorScheme.onSurfaceVariant),
@@ -194,8 +194,8 @@ class _SrsSectionState extends State<SrsSection> {
               child: DropdownButton<int>(
                 value: kSrsTtlChoicesHours.contains(widget.ttlHours)
                     ? widget.ttlHours
-                    // Значение вне вшитого набора (правка бэкапа руками) —
-                    // не роняем dropdown, показываем ближайший смысл.
+
+
                     : kDefaultSrsTtlHours,
                 isExpanded: true,
                 isDense: true,
@@ -223,9 +223,9 @@ class _SrsSectionState extends State<SrsSection> {
                         fontSize: 11, color: t.colorScheme.onSurfaceVariant),
                   ),
                 ),
-                // §366 — ручное обновление уже скачанного файла. Качает
-                // безусловно: юзер нажал «обновить», совпадение ETag его
-                // останавливать не должно.
+
+
+
                 TextButton.icon(
                   icon: const Icon(Icons.update, size: 14),
                   label: Text(getLocalText.s("Update now"),

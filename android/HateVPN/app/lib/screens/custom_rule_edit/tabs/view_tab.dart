@@ -11,11 +11,11 @@ import '../../../services/builder/rule_set_registry.dart';
 import '../edit_controller.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §053 Stage 3 — View tab: showcase storage JSON + sing-box config preview.
-///
-/// Подписан на `CustomRuleEditController`. Storage shape = raw `initial`
-/// JSON (то что лежит в `lxbox_settings.json`). Sing-box preview =
-/// результат `applyCustomRules` или `expandPreset` от `snapshot()`.
+
+
+
+
+
 class ViewTab extends StatelessWidget {
   const ViewTab({super.key});
 
@@ -34,29 +34,29 @@ class ViewTab extends StatelessWidget {
               '// broken preset: "${c.initial.presetId}" — no definition in template';
         } else {
           final snap = c.snapshot();
-          // _snapshot() в preset-ветке возвращает CustomRulePreset — cast OK.
+
           final fragments = expandPreset(
             snap as CustomRulePreset,
             preset,
             srsPaths: c.presetSrsPaths,
-            globalVars: c.globalVars, // §264 — @vpn_mode/@resolve_strategy в превью
-            nodes: c.presetNodes, // §578 — `for_each` раскрывается по узлам
+            globalVars: c.globalVars,
+            nodes: c.presetNodes,
           );
           warnings = fragments.warnings;
-          // §264 — показываем только НЕПУСТЫЕ секции: пресет без DNS/rule_set
-          // (напр. traffic-processing — только route-правила) не должен рисовать
-          // пустые `servers: []` / `rule_set: []` — это читается как «есть», а
-          // их нет. Собираем блоки условно.
+
+
+
+
           final dnsOptions = <String, dynamic>{
             if (fragments.dnsServers.isNotEmpty) 'servers': fragments.dnsServers,
-            // §253: пресет может эмитить несколько DNS-правил
-            // (напр. AAAA-гейт + маршрут у ru-direct при Force IPv4).
+
+
             if (fragments.dnsRules.isNotEmpty) 'rules': fragments.dnsRules,
           };
           final route = <String, dynamic>{
             if (fragments.ruleSets.isNotEmpty) 'rule_set': fragments.ruleSets,
-            // §246: пресет может эмитить несколько route-правил
-            // (напр. resolve + route у ru-direct).
+
+
             if (fragments.routingRules.isNotEmpty)
               'rules': fragments.routingRules,
           };
@@ -67,19 +67,19 @@ class ViewTab extends StatelessWidget {
         }
       } else {
         final reg = RuleSetRegistry();
-        // Всегда подставляем плейсхолдер — чтобы preview отображал
-        // структуру даже для не-скачанных srs-правил (юзер видит «что
-        // будет» после download'а). Реальный путь живёт в build_config'е
-        // runtime'а.
+
+
+
+
         final srsPaths = <String, String>{};
         if (c.kind == CustomRuleKind.srs) {
           srsPaths[c.initial.id] = c.srsState == SrsDownloadState.cached
               ? '<cached file path>'
               : '<download first>';
         }
-        // skipDisabled: false — preview показывает «что родит правило при
-        // включении», не отфильтровывая по `enabled`. Юзер открыл editor
-        // именно для inspect'а формы; Switch — отдельная UX-плоскость.
+
+
+
         warnings = applyCustomRules(reg, [c.snapshot()],
             srsPaths: srsPaths, skipDisabled: false);
         json = const JsonEncoder.withIndent('  ').convert({
@@ -91,11 +91,11 @@ class ViewTab extends StatelessWidget {
       json = '// error: $e';
     }
 
-    // Storage shape — запись `rules[]` так, как она лежит в
-    // lxbox_settings.json (§439: кодек записи; поля initial, не snapshot).
-    // Полезно когда юзер хочет видеть что реально сохранено — все поля
-    // включая wifi_ssids / wifi_bssids которые могут быть только partially
-    // exposed в Params tab UI.
+
+
+
+
+
     final storageJson =
         const JsonEncoder.withIndent('  ').convert(ruleToRecord(c.initial));
 
@@ -105,7 +105,7 @@ class ViewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ─── Storage shape ───
+
           Row(
             children: [
               Expanded(
@@ -133,7 +133,7 @@ class ViewTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          // ─── Sing-box config preview ───
+
           Row(
             children: [
               Expanded(

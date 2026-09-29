@@ -5,12 +5,12 @@ import 'package:lxbox/services/dns/tailscale_endpoint_options.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §435/§575 — опции `endpoint` формы DNS-сервера `tailscale`: перечень
-/// включённых узлов Tailscale источников, чистая функция над
-/// `List<ServerList>`, без storage.
+
+
+
 void main() {
-  // §480 W7 — эмит ссылки исполняет секции реестра; рукописного `toUri` у
-  // схем не осталось.
+
+
   setUpAll(loadEngineSections);
 
   TailscaleSpec ts(String tag) => TailscaleSpec(

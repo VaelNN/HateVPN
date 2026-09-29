@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/dependency_graph.dart';
 
-/// §355 — граф detour-зависимостей: health-правила и BFS-распространение.
+
 void main() {
-  /// Мини-конфиг инцидента 02.08.2026: dns `yandex_udp` → detour vpn-2
-  /// (selector), в vpn-2 выбирается «RU»; плюс нода `chained` с прямым
-  /// detour на «RU» и второе Направление vpn-9 поверх `chained` с dns `doh2`.
+
+
+
   String config({List<String> vpn2Members = const ['RU', 'DE']}) =>
       jsonEncode({
         'outbounds': [
@@ -50,15 +50,15 @@ void main() {
     );
     expect(sick.keys, ['RU']);
     final tags = {for (final d in sick['RU']!) d.tag: d};
-    // Прямой detour на корень — via null.
+
     expect(tags['chained']!.via, isNull);
     expect(tags['chained']!.kind, 'node');
-    // Через Направление vpn-2 — via=vpn-2.
+
     expect(tags['yandex_udp']!.via, 'vpn-2');
     expect(tags['yandex_udp']!.isDns, isTrue);
     expect(tags['wg-ep']!.via, 'vpn-2');
-    // chained болен → vpn-9 (selected=chained не задан) — doh2 НЕ заражён
-    // без выбора chained в vpn-9.
+
+
     expect(tags.containsKey('doh2'), isFalse);
   });
 
@@ -95,8 +95,8 @@ void main() {
 
   test('dead-нода без зависимых — не корень', () {
     final g = DependencyGraph.fromConfig(config());
-    // DE мертва, но выбор vpn-2 — RU (жива, замера нет), на DE никто не
-    // ссылается detour'ом.
+
+
     final sick = g.computeSick(
       selections: {'vpn-2': 'RU'},
       delays: delays({'DE': -1}),
@@ -118,8 +118,8 @@ void main() {
       ],
       'dns': {'servers': []},
     }));
-    // Выбор auto-x=RU в selections подавать нельзя по контракту — но даже
-    // если подали, selector-набора auto-x нет → выбор игнорируется.
+
+
     final sick = g.computeSick(
       selections: {'auto-x': 'RU'},
       delays: delays({'RU': -1}),
@@ -145,7 +145,7 @@ void main() {
       selections: const {},
       delays: delays({'RU': -1, 'DE': -3}),
     );
-    // Оба корня видят onAuto через мёртвый auto-x.
+
     expect(sick.keys, containsAll(['RU', 'DE']));
     expect(sick['RU']!.single.tag, 'onAuto');
     expect(sick['RU']!.single.via, 'auto-x');
@@ -157,8 +157,8 @@ void main() {
       selections: {'vpn-2': 'DE'},
       delays: delays({'RU': -1, 'DE': 120}),
     );
-    // RU мертва, но выбор Направления — DE; зависимых через Направление нет. Прямой
-    // detour chained на RU остаётся — RU корень с одним пострадавшим.
+
+
     expect(sick.keys, ['RU']);
     expect(sick['RU']!.map((d) => d.tag), ['chained']);
   });

@@ -1,5 +1,5 @@
-// §56 (контракт 1.1.60) — узловой гейт ядра по данным реестра:
-// `build_tag`/`min_core` + `on_core_unsupported` у тела, поля и `range_form`.
+
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -62,12 +62,12 @@ void main() {
     expect(r?.code, 'awg3_core_unsupported');
     expect(r?.path, 'peers[].persistent_keepalive_interval');
     expect(nodeCoreRefusal('wireguard', wg(keepalive: 25), oldCore), isNull);
-    // Ядро без with_awg — диапазон не годится и на новой версии.
+
     final noAwg = CoreInfo(
         version: '1.14.2-lx.4', tags: kCoreBuildTags.difference({'with_awg'}));
     expect(nodeCoreRefusal('wireguard', wg(keepalive: '5-10'), noAwg)?.code,
         'awg3_core_unsupported');
-    // Встроенное ядро — годен.
+
     const cur = CoreInfo(version: '1.14.2-lx.4', tags: kCoreBuildTags);
     expect(nodeCoreRefusal('wireguard', wg(keepalive: '5-10'), cur), isNull);
   });

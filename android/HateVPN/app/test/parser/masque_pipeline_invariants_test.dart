@@ -15,13 +15,13 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 import 'package:lxbox/services/warp/masque_account.dart';
 import 'parse_link_as.dart';
 
-/// §472 шаг 7, раздел 3 спеки — инварианты переезда masque на конвейер.
-/// §480 W4 — РЕЕСТР из ЗЕРКАЛА: вендоренной копии на CI нет, и под её гейтом
-/// файл пропускался бы целиком. КОРПУС остаётся за копией — в зеркале его нет.
 
-/// Снимок identity, снятый СТАРЫМ путём ДО правки (18.09.2026). В нём и
-/// корпус, и ссылки `app/test`, и узлы, которые строит фабрика WARP
-/// (`MasqueAccount.toMasqueUri`) — именно они у пользователей самые массовые.
+
+
+
+
+
+
 const _identityFixture = 'test/fixtures/masque/pipeline_identity_before.json';
 
 Map<String, Map<String, dynamic>> _identityBefore() {
@@ -52,7 +52,7 @@ List<String> _corpusUris() {
 List<RegistryWarning> _registry(NodeSpec n) =>
     n.warnings.whereType<RegistryWarning>().toList();
 
-/// Узел WARP-фабрики: та самая ссылка, которую строит визард MASQUE.
+
 MasqueAccount _warpAccount() => MasqueAccount(
       privKeyDer: 'MHcCAQEEIB5oxGzgOdLvTY2aAbRsyJslxnlvPpOzLR076h3cgsnc'
           'oAoGCCqGSM49AwEHoUQDQgAEDQBTbtpEikpJDklVHdnMhgIR8YatYDJLUILDQWGd'
@@ -109,8 +109,8 @@ void main() {
     });
 
     test('узел фабрики WARP не сдвинулся ни на одной версии HTTP', () {
-      // MASQUE-узлы WARP у пользователей самые массовые, и строит их ссылка
-      // `MasqueAccount.toMasqueUri` — тот же вход, что у ручной вставки.
+
+
       final before = _identityBefore();
       for (final vhttp in const ['h3', 'h2', 'auto']) {
         final spec = parseLinkAs<MasqueSpec>(_warpAccount().toMasqueUri(vhttp: vhttp))!;
@@ -138,7 +138,7 @@ void main() {
             reason: 'круг изменил identity: $u');
         checked++;
       }
-      // Круг проходят ВСЕ разбираемые кейсы, без исключений.
+
       expect(checked, 6);
     }, skip: corpusSkip);
   });
@@ -189,7 +189,7 @@ void main() {
         expect(spec.emit(TemplateVars.empty).map['private_key'], 'PRIVDER==',
             reason: 'фолбэк $key');
       }
-      // §106 — сырой `/` в base64(DER) userinfo не теряет ключ.
+
       final slash = parseUri('masque://PR/IV@192.0.2.44:443'
           '?publickey=PUBDER%3D%3D&address=172.16.0.2%2F32#n')!;
       expect(slash.emit(TemplateVars.empty).map['private_key'], 'PR/IV');
@@ -218,8 +218,8 @@ void main() {
     });
 
     test('profile и mtu — дефолты ССЫЛКИ, пишутся явно', () {
-      // Реестр объявляет их `default`, но `default` по PARSING_PRINCIPLES §2.4 в тело не
-      // материализуется; корпус их присутствия ждёт, и на них стоит identity.
+
+
       final body = parseUri(bare)!.emit(TemplateVars.empty).map;
       expect(body['profile'], 'cloudflare');
       expect(body['mtu'], 1280);
@@ -239,23 +239,23 @@ void main() {
       expect(w.path, 'vhttp');
       expect(w.value, 'tcp',
           reason: 'значение в коде — то, что написал автор ссылки');
-      // Рукописного класса на пути ссылки больше нет: производитель один.
-      // §472 шаг 9 — `MasqueVhttpInvalidWarning` снят совсем, и проверять его
-      // отсутствие больше нечем: он не компилируется.
+
+
+
     });
 
     test('profile вне набора снимается реестром, узел живёт на дефолте', () {
-      // Санитайзер снимает негодное значение (`on_invalid: drop`), и дальше
-      // `parseSingboxEntry` читает отсутствующее поле как дефолт МОДЕЛИ
-      // (`cloudflare`), а `emitMasque` пишет его всегда. То есть узел уезжает
-      // на рабочем профиле, и человек видит, ЧТО именно было снято.
+
+
+
+
       final spec = parseUri(bare.replaceAll('#n', '&profile=junk#n'))!;
       expect(spec.emit(TemplateVars.empty).map['profile'], 'cloudflare');
       expect(_registry(spec).map((w) => '${w.code}@${w.path}'),
           contains('type_invalid@profile'));
       expect(_registry(spec).firstWhere((w) => w.path == 'profile').value,
           'junk');
-      // Значение из набора проходит молча.
+
       final ok = parseUri(bare.replaceAll('#n', '&profile=standard#n'))!;
       expect(ok.emit(TemplateVars.empty).map['profile'], 'standard');
       expect(_registry(ok), isEmpty);
@@ -274,8 +274,8 @@ void main() {
     });
   });
 
-  // БЕЗ ГЕЙТА: тест идёт через `parseSingboxEntry` напрямую, реестр ему не
-  // нужен, а симметрию эмиттера и парсера тела он стережёт на любом прогоне.
+
+
   group('§472 — состав ветки json_parsers сверен с body.fields', () {
     test('всё, что пишет emitMasque, парсер тела читает обратно', () {
       final a = parseUri('masque://PRIVDER%3D%3D@192.0.2.44:443'

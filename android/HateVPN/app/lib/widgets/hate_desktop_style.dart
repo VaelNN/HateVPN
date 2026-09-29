@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// The small shared visual system used by both HateVPN desktop and Android.
+
 abstract final class HateColors {
   static const background = Color(0xFF080A0C);
   static const sheet = Color(0xFF0B0D0F);

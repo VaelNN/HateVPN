@@ -1,20 +1,20 @@
-/// §56/§60 (контракт 1.1.60) — подпись уровня протокола узла по реестру.
-///
-/// Тело протокола объявляет `levels` (по возрастанию), поле — `level` и
-/// `level_mark`, форма-диапазон `awg_range` — `range_form.level`. Подпись =
-/// старший уровень заданных полей и их форм-диапазонов плюс суффиксы
-/// `level_mark` заданных полей. Имён протоколов и полей здесь нет: что и на
-/// каком уровне — данные реестра.
+
+
+
+
+
+
+
 library;
 
 import 'registry.dart';
 
-/// Значение формы-диапазона `N-M` (строка с дефисом между числами).
+
 final _reRange = RegExp(r'^\s*\d+\s*-\s*\d+\s*$');
 
-/// Подпись уровня тела [raw] протокола [singboxType]: `awg2`, `awg1.5+`.
-/// `null` — у схемы нет `levels` (реестр не загружен, протокол без уровней)
-/// или ни одно заданное поле уровня не несёт.
+
+
+
 String? protocolLevelByRegistry(String singboxType, Map<String, dynamic> raw) {
   final schema = ContractRegistry.I.schemaFor(singboxType);
   if (schema == null || schema.levels.isEmpty) return null;
@@ -62,7 +62,7 @@ String? protocolLevelByRegistry(String singboxType, Map<String, dynamic> raw) {
   }
 
   walk(raw, schema.order, schema.fields);
-  // Суффикс без уровня не бывает: поле с `level_mark` несёт и свой `level`.
+
   if (top < 0) return null;
   return '${levels[top]}${marks.join()}';
 }

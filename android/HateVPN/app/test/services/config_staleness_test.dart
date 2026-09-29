@@ -4,12 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/config_staleness.dart';
 import 'package:lxbox/services/platform_channels.dart';
 
-/// §324 — зеркало `OverrideOptions` и сравнение канонических форм.
-///
-/// Зеркало обязано повторять `BoxService.buildOverrideOptions` (Kotlin) и
-/// `daemon/instance.go:92-101` (Go) с точностью до порядка элементов: сравнение
-/// побайтовое, поэтому `append` vs `merge` и «первый tun» vs «все tun» —
-/// не стилистика, а корректность.
+
+
+
+
+
+
 
 Map<String, dynamic> _decode(String json) =>
     jsonDecode(json) as Map<String, dynamic>;
@@ -23,8 +23,8 @@ Map<String, dynamic>? _firstTun(String json) {
   return null;
 }
 
-/// Конфиг с одним tun-inbound. [includePackage]/[excludePackage] — как их
-/// положил бы §046 post-step (`applyTunPackages`).
+
+
 String _config({
   List<String>? includePackage,
   List<String>? excludePackage,
@@ -37,9 +37,9 @@ String _config({
       <String, dynamic>{
         'type': 'tun',
         'tag': 'tun-in-$i',
-        // Ключ появляется только когда значение задано: конфиг без per-app и
-        // без auto_redirect не должен нести пустые поля (как их не несёт §046
-        // post-step).
+
+
+
         'include_package': ?includePackage,
         'exclude_package': ?excludePackage,
         'auto_redirect': ?autoRedirect,
@@ -65,14 +65,14 @@ void main() {
         _config(includePackage: ['com.a', 'com.b']),
         const OverrideSnapshot(includeSelfPackage: true),
       );
-      // Порядок значим для байтового сравнения: ядро делает append, значит
-      // пакеты профиля остаются первыми, свой — последним.
+
+
       expect(_firstTun(out)!['include_package'], ['com.a', 'com.b', self]);
     });
 
     test('не сортирует и не дедуплицирует', () {
-      // Ядро — тупой append. Если пакет уже есть, он появится дважды; наша
-      // задача повторить это, а не «исправить».
+
+
       final out = applyOverrides(
         _config(includePackage: ['com.z', self, 'com.a']),
         const OverrideSnapshot(includeSelfPackage: true),
@@ -81,8 +81,8 @@ void main() {
     });
 
     test('include_package строкой (Listable с одним элементом) → список', () {
-      // Ядро сериализует одноэлементный Listable голой строкой; на входе она
-      // тоже может встретиться. Разворачиваем, чтобы append не склеил строки.
+
+
       final out = applyOverrides(
         _config().replaceFirst('"tag":"tun-in-0"',
             '"tag":"tun-in-0","include_package":"com.only"'),
@@ -94,8 +94,8 @@ void main() {
 
   group('§324 applyOverrides — deny-режим и его отсутствие', () {
     test('deny (exclude_package) → свой пакет НЕ дописан', () {
-      // §124: include + exclude в одном tun → Android бросает
-      // UnsupportedOperationException. Native в deny свой пакет не добавляет.
+
+
       final out = applyOverrides(
         _config(excludePackage: ['com.a']),
         const OverrideSnapshot(includeSelfPackage: true),
@@ -132,8 +132,8 @@ void main() {
     });
 
     test('РЕГРЕСС: false перетирает true профиля (ядро пишет безусловно)', () {
-      // Ядро делает присваивание, а не `||`. Если пропустить запись при false,
-      // профиль с auto_redirect:true даст расхождение с running.
+
+
       final out = applyOverrides(
         _config(autoRedirect: true),
         const OverrideSnapshot(autoRedirect: false),
@@ -199,14 +199,14 @@ void main() {
 
   group('§324 инвариант: список зеркалимых полей', () {
     test('совпадает с buildOverrideOptions (Kotlin)', () {
-      // Инвариант §324 (по образцу §221): OverrideOptions имеет ТРИ поля, но
-      // native заполняет только два. Появилась третья докрутка в
-      // buildOverrideOptions — обязана появиться и здесь, иначе компаратор
-      // молча начнёт врать.
-      //
-      // exclude_package НЕ зеркалим осознанно: native не заполняет его никогда
-      // (в deny-режиме пакеты кладёт §046 post-step в сам конфиг, а не
-      // override).
+
+
+
+
+
+
+
+
       expect(OverrideSnapshot.mirroredFields,
           {'auto_redirect', 'include_package'});
     });
@@ -228,7 +228,7 @@ void main() {
     });
 
     test('нет канонической формы → unknown (НЕ fresh)', () {
-      // Критично: на сбое ядра плашка не должна молча исчезнуть.
+
       expect(
         compareCanonical(canonicalSaved: null, runningSnapshot: '{"a":1}'),
         StalenessVerdict.unknown,
@@ -240,8 +240,8 @@ void main() {
     });
 
     test('нет снапшота работающего → unknown', () {
-      // Туннель up, но снапшота нет: старое ядро, attached-путь, окно между
-      // connected и захватом (§311).
+
+
       expect(
         compareCanonical(canonicalSaved: '{"a":1}', runningSnapshot: null),
         StalenessVerdict.unknown,

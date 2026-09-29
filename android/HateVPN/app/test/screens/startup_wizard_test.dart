@@ -9,12 +9,12 @@ import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/platform_channels.dart';
 import 'package:lxbox/vpn/box_vpn_client.dart';
 
-/// Feature 126 — persist-контракт first-run-шагов визарда. Проверяется через
-/// реальный SettingsStorage (mock path_provider) + mock MethodChannel'а
-/// VpnPlugin. Рендер самих barrier-диалогов не нужен — здесь только логика
-/// «показать один раз»: какие native-вызовы шаг делает и какой флаг ставит.
-///
-/// Harness идентичен migration-тестам: tmp-dir + resetCacheForTesting.
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const ppChannel = MethodChannel('plugins.flutter.io/path_provider');
@@ -55,22 +55,22 @@ void main() {
             case 'requestAddTile':
               return 'added';
             case 'isIgnoringBatteryOptimizations':
-              return true; // whitelisted — battery-шаг выйдет рано
+              return true;
             default:
               return null;
           }
         });
   }
 
-  // ВАЖНО: используем обычный `test()`, НЕ `testWidgets`. Проверяемые функции
-  // при этих мок-ответах НЕ доходят до `showDialog(context)` — context живёт
-  // только в ветках, которые здесь не достигаются (early-return по флагу /
-  // whitelisted). Native-вызов идёт через `BoxVpnClient._invoke` с
-  // `.timeout()`-таймером; в обычном `test()` MethodChannel-мок отвечает
-  // синхронно → таймер отменяется мгновенно (как в box_vpn_client_test.dart).
-  // testWidgets же гоняет это в fake-async зоне, где реальный Timer не
-  // резолвится → pending timer → 10-минутный hang в CI. Фейковый context
-  // нужен только чтобы удовлетворить сигнатуру — он не разыменовывается.
+
+
+
+
+
+
+
+
+
   group('maybeShowAddTilePrompt', () {
     test('first run: calls requestAddTile and sets persist flag', () async {
       mockVpn();
@@ -89,9 +89,9 @@ void main() {
 
   group('maybeShowBatteryOptimizationDialog', () {
     test('whitelisted → early return, no persist flag set', () async {
-      mockVpn(); // isIgnoringBatteryOptimizations → true
+      mockVpn();
       await maybeShowBatteryOptimizationDialog(_FakeContext(), BoxVpnClient());
-      // Не в whitelist → флаг не ставится (повторно спросим когда понадобится).
+
       expect(await SettingsStorage.getVar('wizard_battery_v1', '0'), '0');
     });
   });
@@ -115,8 +115,8 @@ void main() {
   );
 }
 
-// Access to Navigator or inherited widgets would fail: no extra dialog should
-// be built before the native permission request.
+
+
 class _MountedContext implements BuildContext {
   @override
   bool get mounted => true;
@@ -124,10 +124,10 @@ class _MountedContext implements BuildContext {
   dynamic noSuchMethod(Invocation invocation) => null;
 }
 
-/// Заглушка `BuildContext` — функции под тестом до него не доходят (early-
-/// return), сигнатура удовлетворяется без разыменования. `mounted=false` —
-/// защитный гард `if (!context.mounted) return` в диалог-функциях выйдет раньше
-/// любого реального обращения к контексту, даже если поток дойдёт туда.
+
+
+
+
 class _FakeContext implements BuildContext {
   @override
   bool get mounted => false;

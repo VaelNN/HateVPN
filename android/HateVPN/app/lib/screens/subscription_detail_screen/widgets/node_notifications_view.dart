@@ -9,18 +9,18 @@ import '../../../services/l10n/locale_controller.dart';
 import '../../../services/url_launcher.dart' as ul;
 import '../../../widgets/banner_palette.dart';
 
-/// §479 — уведомления узла: один компонент на три места (секция
-/// Notifications во вкладке Diagnostics §501, нижняя шторка из списка и
-/// шторка отказа ввода §500). До §479 это были две разные поверхности:
-/// плоский список карточек в шторке и строка-простыня наверху экрана узла —
-/// одно событие выглядело по-разному в зависимости от того, откуда на него
-/// посмотрели.
-///
-/// Логика заимствована у лаунчера (решение владельца 19.09.2026): шапка со
-/// счётчиками по уровням, подразделы Errors → Warnings → Info, запись —
-/// короткий заголовок, который разворачивается в разбор. Перенесена логика,
-/// а не пиксели: экран телефонный, тултипов нет, и на строку уведомления
-/// приходится одна строка высоты, пока её не открыли.
+
+
+
+
+
+
+
+
+
+
+
+
 class NodeNotificationsView extends StatelessWidget {
   const NodeNotificationsView(this.warnings, {super.key});
 
@@ -29,19 +29,19 @@ class NodeNotificationsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final byLevel = groupWarningsBySeverity(warnings);
-    // Уровень без записей раздела не получает — и в счётчике не участвует.
+
     final present = byLevel.entries.where((e) => e.value.isNotEmpty).toList();
     if (present.isEmpty) return const SizedBox.shrink();
 
-    // Подзаголовок нужен, только когда уровней несколько: над единственной
-    // группой он повторял бы шапку со счётчиком.
+
+
     final single = present.length == 1;
-    // §572 — внутри уровня записи одного кода сворачиваются в группу.
+
     final items = {
       for (final e in present) e.key: groupWarningsByCode(e.value),
     };
-    // Единственную плитку разворачиваем сразу: лишний тап ради одной
-    // записи (или одной группы) на телефоне не окупается.
+
+
     final soleTile =
         items.values.fold<int>(0, (n, level) => n + level.length) == 1;
 
@@ -51,8 +51,8 @@ class NodeNotificationsView extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-          // §572 — счётчики считают записи, а не группы: число совпадает со
-          // значками в списках узлов.
+
+
           child: _Counters(byLevel),
         ),
         for (final entry in present) ...[
@@ -72,12 +72,12 @@ class NodeNotificationsView extends StatelessWidget {
   }
 }
 
-/// §572 — записи одного уровня, собранные по коду (`warningCodeOf`).
-///
-/// Код, встреченный дважды и больше, даёт одну группу; одиночный код и
-/// рукописный класс без кода остаются отдельными элементами. Порядок — по
-/// первому вхождению кода, внутри группы — исходный: список уведомлений
-/// повторяет порядок разбора, и группировка его не перемешивает.
+
+
+
+
+
+
 List<List<NodeWarning>> groupWarningsByCode(List<NodeWarning> level) {
   final out = <List<NodeWarning>>[];
   final byCode = <String, List<NodeWarning>>{};
@@ -99,20 +99,20 @@ List<List<NodeWarning>> groupWarningsByCode(List<NodeWarning> level) {
   return out;
 }
 
-/// §572 — подстановка, которая у записей группы расходится.
-const groupDiffersMark = '…'; // l10n-exempt: знак «значения разные», не текст
 
-/// §572 — подстановки для текстов группы одним [RegistryWarning].
-///
-/// Значение (`path`, `value`, каждый ключ `params`) идёт как есть, если оно
-/// одинаково у всех записей группы, и [groupDiffersMark], если различается:
-/// разбор один на группу и не должен приписывать ей имя одного случайного
-/// поля. Сборка в [RegistryWarning] — чтобы текст собрали те же
-/// `message()` / `registryText` / `registryCause` / `registryFix`, что и у
-/// одиночной плитки, а не второй шаблонизатор.
-///
-/// Записи уже замаскированы (§511). `null` — в группе нет ни одного
-/// [RegistryWarning]: подстановок нет и у одиночной плитки такого класса.
+const groupDiffersMark = '…';
+
+
+
+
+
+
+
+
+
+
+
+
 RegistryWarning? mergeGroupSubstitutions(List<NodeWarning> group) {
   final subs = group.whereType<RegistryWarning>().toList();
   if (subs.isEmpty) return null;
@@ -128,14 +128,14 @@ RegistryWarning? mergeGroupSubstitutions(List<NodeWarning> group) {
     value: common(subs.map((r) => r.value)),
     params: {
       for (final k in keys)
-        // Ключ, которого у части записей нет, — тоже расхождение.
+
         k: common(subs.map((r) => r.params[k])) ?? groupDiffersMark,
     },
   );
 }
 
-/// Предупреждения по уровням, старшее первым. Порядок ключей — порядок
-/// разделов; пустые уровни остаются в карте (счётчик их пропускает сам).
+
+
 Map<WarningSeverity, List<NodeWarning>> groupWarningsBySeverity(
     List<NodeWarning> warnings) {
   return {
@@ -148,8 +148,8 @@ Map<WarningSeverity, List<NodeWarning>> groupWarningsBySeverity(
   };
 }
 
-/// `✖ 1 · ⚠ 2 · ⓘ 3` — нулевые уровни не показываются: «0 ошибок» читается
-/// как ошибка, которую не смогли назвать.
+
+
 class _Counters extends StatelessWidget {
   const _Counters(this.byLevel);
 
@@ -165,7 +165,7 @@ class _Counters extends StatelessWidget {
       if (parts.isNotEmpty) {
         parts.add(Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6),
-          // l10n-exempt: разделитель счётчиков, не текст
+
           child: Text('·', style: theme.textTheme.bodySmall),
         ));
       }
@@ -173,7 +173,7 @@ class _Counters extends StatelessWidget {
         Icon(icon, size: 14, color: color),
         const SizedBox(width: 3),
         Text(
-          '${e.value.length}', // l10n-exempt: число рядом со значком уровня
+          '${e.value.length}',
           style: theme.textTheme.bodySmall?.copyWith(color: color),
         ),
       ]);
@@ -182,7 +182,7 @@ class _Counters extends StatelessWidget {
   }
 }
 
-/// Подзаголовок уровня — значок, цвет и имя уровня.
+
 class _LevelHeader extends StatelessWidget {
   const _LevelHeader(this.severity);
 
@@ -207,21 +207,21 @@ class _LevelHeader extends StatelessWidget {
   }
 }
 
-/// Имя уровня. `Info` — форма 1 словаря: корневой `Info` уже занят разделом
-/// «Protocol and server details» экрана узла («Информация»), а здесь нужно
-/// «К сведению» — то же английское слово в другом смысле (§285 collisions).
+
+
+
 String severityTitle(WarningSeverity severity) => switch (severity) {
       WarningSeverity.error => getLocalText.s("Errors"),
       WarningSeverity.warning => getLocalText.s("Warnings"),
       WarningSeverity.info => getLocalText.s(1, "Info"),
     };
 
-/// Одно уведомление: заголовок в одну строку и раскрывающийся разбор.
-///
-/// Заголовок — `message()`: у кода реестра это `title_<lang>` (короткая
-/// строка про событие), у рукописного класса — его собственный текст. Он же
-/// стоит в строке под узлом: две формулировки одного события расходились бы
-/// при первой правке.
+
+
+
+
+
+
 class _NotificationTile extends StatelessWidget {
   const _NotificationTile(this.warning, {required this.initiallyExpanded});
 
@@ -234,9 +234,9 @@ class _NotificationTile extends StatelessWidget {
     final (color, icon) = warningSeverityStyle(context, warning.severity);
 
     final code = warningCodeOf(warning);
-    // §511 l1 — значение секретного поля (атрибут `secret` реестра) маскируется
-    // здесь, в общем компоненте: карточку открывают список подписки, Servers,
-    // Diagnostics и главный экран, а не только лист отказа ввода.
+
+
+
     final w = switch (warning) {
       final RegistryWarning r => r.withSecretValueMasked(),
       final other => other,
@@ -257,7 +257,7 @@ class _NotificationTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: theme.textTheme.bodyMedium?.copyWith(color: color),
       ),
-      // §561 / задача 570 — отбраковка называет свою запись источника.
+
       subtitle: warning.ownerTag.isEmpty
           ? null
           : Text(
@@ -272,11 +272,11 @@ class _NotificationTile extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              path, // l10n-exempt: путь поля в теле узла, wire-имя
+              path,
               style: _monospace,
             ),
           ),
-        // §585 — у рукописного класса без кода реестра свой текст.
+
         if (warning case final UnknownNodeTypeWarning u)
           Align(
             alignment: Alignment.centerLeft,
@@ -289,12 +289,12 @@ class _NotificationTile extends StatelessWidget {
   }
 }
 
-/// §572 — несколько записей одного кода в одном уровне: одна плитка.
-///
-/// Заголовок — заголовок кода, справа число записей; в раскрытии — строка на
-/// запись (что именно у неё случилось) и разбор один раз на всю группу.
-/// Узел из Xray-JSON иначе давал семь плиток `json_field_unknown` подряд с
-/// одним и тем же разбором под каждой.
+
+
+
+
+
+
 class _NotificationGroupTile extends StatelessWidget {
   const _NotificationGroupTile(this.group, {required this.initiallyExpanded});
 
@@ -308,8 +308,8 @@ class _NotificationGroupTile extends StatelessWidget {
     final (color, icon) = warningSeverityStyle(context, first.severity);
     final code = warningCodeOf(first)!;
     final known = ContractRegistry.I.textFor(code) != null;
-    // §511 — маска до всего остального: значение уходит и в строку записи,
-    // и в подстановки текстов группы.
+
+
     final entries = [
       for (final w in group)
         switch (w) {
@@ -318,8 +318,8 @@ class _NotificationGroupTile extends StatelessWidget {
         },
     ];
     final subst = mergeGroupSubstitutions(entries);
-    // Текстов кода нет (реестр не синхронизирован) — заголовком остаётся
-    // `message()` первой записи, как у одиночной плитки без текстов.
+
+
     final title =
         known && subst != null ? subst.message() : entries.first.message();
     final keyBase = '${first.severity.name}-$code';
@@ -343,7 +343,7 @@ class _NotificationGroupTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '${group.length}', // l10n-exempt: число записей группы
+            '${group.length}',
             key: ValueKey('notification-group-count-$keyBase'),
             style: theme.textTheme.bodySmall?.copyWith(color: color),
           ),
@@ -366,18 +366,18 @@ class _NotificationGroupTile extends StatelessWidget {
   }
 }
 
-/// §572 — строка записи в группе: путь поля (с `= value`, если значение
-/// есть), иначе запись источника (§561 / задача 570 — у отбраковок разных
-/// записей подзаголовка `Entry:` у группы нет, запись называет строка),
-/// иначе собственный текст записи.
+
+
+
+
 String _groupRowText(NodeWarning w) {
   if (w is RegistryWarning) {
     final path = w.path;
     if (path != null && path.isNotEmpty) {
       final value = w.value;
       return value == null || value.isEmpty
-          ? path // l10n-exempt: путь поля в теле узла, wire-имя
-          : '$path = $value'; // l10n-exempt: путь и значение поля, wire
+          ? path
+          : '$path = $value';
     }
   }
   if (w.ownerTag.isNotEmpty) return getLocalText.s("Entry: %s", w.ownerTag);
@@ -386,24 +386,24 @@ String _groupRowText(NodeWarning w) {
 
 const _monospace = TextStyle(fontSize: 12, fontFamily: 'monospace');
 
-/// Разбор кода: `What happened` / `Why it happens` / `What you can do` и
-/// ссылка `Details`. Общий у одиночной плитки и группы (§572): у группы
-/// [subst] — подстановки после [mergeGroupSubstitutions].
-///
-/// Подстановки несёт только RegistryWarning: у рукописного класса свои
-/// поля, и текст он собрал сам. Тексты реестра для его кода при этом
-/// остаются осмысленными — они про код, а не про конкретное значение.
-///
-/// §577 — [notApplied]: правило реестра не применено к авторскому телу.
-/// Текст реестра «что произошло» утверждает, что поле изменено, поэтому
-/// вместо него — общая строка; причина и что делать — из реестра.
+
+
+
+
+
+
+
+
+
+
+
 List<Widget> _breakdown(
     BuildContext context, String? code, RegistryWarning? subst,
     {bool notApplied = false}) {
   final theme = Theme.of(context);
-  // Код есть у класса, а текстов может не быть: реестр не синхронизирован,
-  // либо код в нём рукописный без описания. Ссылку даём только когда
-  // страница про этот код действительно есть — то есть реестр его знает.
+
+
+
   if (code == null || ContractRegistry.I.textFor(code) == null) {
     return const [];
   }
@@ -441,7 +441,7 @@ List<Widget> _breakdown(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // l10n-exempt: маркер списка, не текст
+
                     Text('•  ', style: theme.textTheme.bodySmall),
                     Expanded(
                       child: Text(step, style: theme.textTheme.bodySmall),

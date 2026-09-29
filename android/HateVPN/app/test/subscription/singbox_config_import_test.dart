@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -22,11 +22,11 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §368 — импорт sing-box JSON через контроллер: какой контейнер получается.
-///
-/// Порог тот же, что у файлового импорта (§129): один узел — сервер
-/// (`UserServer`), несколько — набор (файловая подписка). `UserServer` устроен
-/// как «один сервер», и конфиг на десяток узлов с группой в него не помещается.
+
+
+
+
+
 void main() {
   late Directory tempDir;
 
@@ -65,7 +65,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -87,7 +87,7 @@ void main() {
       final entry = c.entries.single;
       expect(entry.list, isA<SubscriptionServers>());
       final sub = entry.list as SubscriptionServers;
-      // Файловая форма §129: свой url + авто-обновление выключено.
+
       expect(sub.url, startsWith('file:'));
       expect(sub.updateIntervalHours, -1);
     });
@@ -97,7 +97,7 @@ void main() {
       await c.addFromInput(wholeConfig);
 
       final nodes = c.entries.single.list.nodes;
-      // DE + NL + группа. `jump` — звено DE, служебный `direct` не в счёт.
+
       expect(nodes, hasLength(3));
 
       final de = nodes.firstWhere((n) => n.label == 'DE');
@@ -117,7 +117,7 @@ void main() {
           '"server_port":443,"uuid":"u-b"}'
           ']');
       expect(c.lastError, isNull);
-      // Раньше массив раскладывался по записи на элемент («v1 parity»).
+
       expect(c.entries, hasLength(1));
       expect(c.entries.single.list.nodes, hasLength(2));
     });
@@ -148,8 +148,8 @@ void main() {
     const proxy2 = '{"type":"trojan","tag":"NL","server":"nl.example",'
         '"server_port":443,"password":"p-nl"}';
 
-    // §575 — секции узла упразднены: ни извлечённой, ни канонической связки
-    // узел не получает, её даёт пресет шаблона `tailscale` (§578).
+
+
     test('endpoint + прокси → два UserServer, секций нет', () async {
       final c = SubscriptionController();
       await c.addFromInput(
@@ -162,12 +162,12 @@ void main() {
           (e) => e.list.nodes.single is TailscaleSpec);
       expect(tsEntry.list, isA<UserServer>());
 
-      // Остаток — один узел, значит свой UserServer, а не файловая подписка.
+
       final rest = c.entries.firstWhere((e) => e != tsEntry);
       expect(rest.list, isA<UserServer>());
-      // §576 п.2 — в источнике голое тело узла, и дефолтный эмодзи ставится
-      // ему так же, как вставленному голому телу (у документа тег лежал не в
-      // корне, и эмодзи не доезжал).
+
+
+
       expect(rest.list.nodes.single.label, '⚡ DE');
       expect(sourceKindOf((rest.list as UserServer).rawBody),
           'singbox_outbound');
@@ -192,8 +192,8 @@ void main() {
           .whereType<SubscriptionServers>()
           .single;
       expect(sub.nodes.map((n) => n.label), ['DE', 'NL']);
-      // Кэш файловой подписки перечитывается на старте — tailscale обязан
-      // из него исчезнуть, иначе узел вернулся бы дублем.
+
+
       final cached = await HttpCache.loadBody(sub.url);
       expect(cached, isNotNull);
       expect(cached, isNot(contains('tailscale')));

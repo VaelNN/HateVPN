@@ -1,20 +1,20 @@
-// §393 D1 — СТРОКА источника-цепочки в общем списке источников.
-//
-// Цепочка — ТАКОЙ ЖЕ ИСТОЧНИК, как подписка, одиночный сервер и папка
-// (директива оператора 24.08; так же у лаунчера — `source_tab`, один список).
-// Поэтому она рисуется не отдельной секцией, а обычным рядом ТОГО ЖЕ вида:
-// grab-strip слева, тумблер, заголовок, подзаголовок `tag · N hops`, справа —
-// иконка типа (как `Icons.dns` у одиночного сервера и `Icons.folder_outlined`
-// у папки). И перетаскивается наравне со всеми.
-//
-// Прежняя отдельная секция «Цепочки хопов» над подписками отвергнута: она
-// говорила пользователю, что цепочка — что-то другое, чем остальные
-// источники, и заодно делала её порядок отдельным от общего.
-//
-// Строение виджета повторяет [SubscriptionEntryTile] дословно (IntrinsicHeight
-// → Row → grab-strip + Column(tile, Divider)): оба ряда живут в ОДНОМ
-// `ReorderableListView`, и разойтись в высоте строки или в положении полосы
-// захвата им нельзя — это была бы видимая «другая» строка.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import 'package:flutter/material.dart';
 
@@ -33,8 +33,8 @@ class ChainEntryTile extends StatelessWidget {
 
   final SourceChain chain;
 
-  /// Индекс в `ReorderableListView` для drag-старта (§098) — тот же счёт, что
-  /// у подписок: список общий.
+
+
   final int dragIndex;
   final VoidCallback onTap;
   final VoidCallback onToggle;
@@ -61,14 +61,14 @@ class ChainEntryTile extends StatelessWidget {
           color: chain.enabled ? null : cs.onSurfaceVariant,
         ),
       ),
-      // Тег + число позиций: тег — то, чем цепочка зовётся в конфиге и в
-      // фильтрах Направлений, число хопов — единственное, что отличает
-      // маршруты друг от друга с одного взгляда.
+
+
+
       subtitle: Text(
         '${chain.tag} · ${getLocalText.plural("%d hops", chain.hops.length)}',
         style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
       ),
-      trailing: Icon(Icons.route, size: 20, color: cs.onSurfaceVariant), // §393 — route: цепочка = маршрут (alt_route — развилка, смысл Направления)
+      trailing: Icon(Icons.route, size: 20, color: cs.onSurfaceVariant),
       onTap: onTap,
     );
     return IntrinsicHeight(

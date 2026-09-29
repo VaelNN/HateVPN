@@ -163,8 +163,8 @@ void main() {
         'flow': {
           'source': 'query.flow',
           'maps_to': 'flow',
-          // Тождественная пара нужна, иначе `_isUntranslatedCanon` уже
-          // удерживает канон и новый приоритет хозяина пути не исполняется.
+
+
           'value_map': {
             'xtls-rprx-vision-udp443': 'xtls-rprx-vision',
             'xtls-rprx-vision': 'xtls-rprx-vision',

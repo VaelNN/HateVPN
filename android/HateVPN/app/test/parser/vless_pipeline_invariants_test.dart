@@ -14,31 +14,31 @@ import 'package:lxbox/services/contract/warning_codes.dart';
 import 'package:lxbox/services/node_hash.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §472 шаг 3, раздел 3 спеки — инварианты переезда vless на конвейер.
-///
-/// Инварианты 1 и 2 (корпус и golden) держат свои тесты: корпус URI —
-/// `test/contract/`, эталоны конфигов — `test/builder/`. Здесь то, что
-/// специфично для переезда протокола: identity, round-trip и цена.
-/// §480 W2 — РЕЕСТР берётся из зеркала, а не из вендоренной копии
-/// `app/contract`: второй на CI нет вовсе, и под её гейтом тест молча
-/// пропускался бы ровно там, где он нужен. Схема переехала на движок, и без
-/// секций реестра она не разбирается совсем.
 
-/// КОРПУС лежит только в вендоренной копии — в зеркало едет один `registry/`
-/// (оно бандлится в APK, и корпусу там делать нечего). Поэтому гейт у тестов
-/// корпуса свой: корпуса нет — пропускаем именно их, а не разбор.
 
-/// Снимок identity, снятый СТАРЫМ путём ДО правки (18.09.2026).
-///
-/// Зачем фикстура файлом, а не картой в коде: vless-кейсов корпуса 89, и
-/// восемьдесят семь хешей в литерале читать невозможно. Формат тот же, что у
-/// шага 2 (`trojan_pipeline_invariants_test.dart`), — имя кейса → хеш, — но
-/// вместе с САМОЙ ССЫЛКОЙ: тест обязан падать и тогда, когда кейс корпуса
-/// переписали, а не только когда изменился разбор.
-///
-/// Расхождение здесь значит, что у пользователей слетят выбор узла,
-/// отключения и цепочки (`node_hash.dart`: identity = сырой тег, дедуп
-/// подписки — `legacyNodeIdentityHash` от тела).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const _identityFixture = 'test/fixtures/vless/pipeline_identity_before.json';
 
 Map<String, Map<String, dynamic>> _identityBefore() {
@@ -48,7 +48,7 @@ Map<String, Map<String, dynamic>> _identityBefore() {
   );
 }
 
-/// Все vless-ссылки корпуса, в порядке файлов.
+
 List<String> _corpusUris() {
   final out = <String>[];
   final files = Directory('$kVendorRoot/corpus/uri/vless')
@@ -87,9 +87,9 @@ void main() {
         final want = e.value['identity'] as String?;
         final spec = parseUri(uri);
         if (want == null) {
-          // «Ссылка не разбирается вовсе» — тоже свойство, которое обязано
-          // сохраниться: узел, которого раньше не было, появившись, влез бы
-          // в подписку новым.
+
+
+
           expect(spec, isNull, reason: 'кейс ${e.key} стал разбираться');
           continue;
         }
@@ -110,39 +110,39 @@ void main() {
         if (spec != null) nodes.add(spec);
       }
       expect(nodes, isNotEmpty);
-      // Идентичность = сырой тег: у узла с именем она есть всегда.
+
       expect(sourceNodeIdentities(nodes).length, nodes.length);
     }, skip: corpusSkip);
   });
 
   group('§472 инвариант 3 — parseUri(toUri()) ≈ spec', () {
-    // Кейсы, которые круг не переживали и ДО переезда. Как и у trojan (шаг 2),
-    // все расхождения принадлежат ОБЩЕЙ URI-эмиссии (`transport.dart` +
-    // `node_spec_emit.dart`), не тронутой этим шагом.
-    //
-    // `enc-pq` — `encryption` длиной ~1600 символов: собранная обратно ссылка
-    //   перерастает `maxURILength`, и `parseUri` её не берёт. Свойство
-    //   потолка длины, а не разбора.
-    //
-    // `xhttp-mode-invalid`, `xhttp-bogus-plc` — значение вне enum'а XHTTP.
-    //   ДО переезда оно жило в модели и уезжало обратно в ссылку
-    //   (`mode=garbage`), а в тело не попадало: его срезал `toSingbox()`.
-    //   Теперь его снимает санитайзер, и круг даёт ссылку без мусора. Тело и
-    //   identity при этом те же — расходится только текст ссылки, и в
-    //   сторону очистки.
-    //
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const notIdempotent = {'enc-pq', 'xhttp-mode-invalid', 'xhttp-bogus-plc'};
 
-    // Явный `path=/` в транспорте: эмиссия его опускает как равный умолчанию
-    // (`omit_default` записи; до §480 W7 — условие `p != '/'` рукописного
-    // `transportToQuery`, снятого вместе со слоем), и на обратном разборе
-    // путь становится пустым. Тот же кейс, что `tr` у trojan (шаг 2,
-    // раздел 8.5), и такой же до переезда. Разница видна только в теле
-    // (`path:"/"` против отсутствия ключа), ядро трактует их одинаково.
-    //
-    // Отбор по СВОЙСТВУ тела, а не списком тегов: корпус растёт, и список
-    // пришлось бы дописывать на каждый новый кейс с `path=%2F`, пряча за
-    // ним настоящие расхождения.
+
+
+
+
+
+
+
+
+
+
     bool hasExplicitRootPath(NodeSpec s) {
       final t = s.emit(TemplateVars.empty).map['transport'];
       return t is Map && t['path'] == '/';
@@ -157,8 +157,8 @@ void main() {
         if (hasExplicitRootPath(a)) continue;
         final b = parseUri(a.toUri());
         expect(b, isNotNull, reason: 'круг потерял узел: $u');
-        // Сравнение по ТЕЛУ: `id` случаен, `rawSource` у второго — уже
-        // сгенерированная ссылка, и оба в identity не входят.
+
+
         expect(
           b!.emit(TemplateVars.empty).map,
           a.emit(TemplateVars.empty).map,
@@ -168,32 +168,32 @@ void main() {
             reason: 'круг изменил identity: $u');
         checked++;
       }
-      // Страж от «список исключений съел корпус».
+
       expect(checked, greaterThan(75));
     }, skip: corpusSkip);
   });
 
   group('§472 инвариант 5 — цена разбора', () {
-    // Замер на рабочей машине (2000 узлов vless+reality+ws, прогон
-    // `flutter test` в одиночку, вторая итерация — после прогрева JIT):
-    //
-    //   старый полный путь (parseVless + annotateAllWithRegistry)  ~222 мс
-    //   конвейер (parseUri)                                        ~216 мс
-    //   отношение                                                  ×0,97
-    //
-    // Инвариант 5 спеки — «не хуже ×1,5 к текущему». Сравнение честно только
-    // на ПОЛНОЙ воронке: у старого пути санитайзер шёл отдельным проходом
-    // ПОСЛЕ разбора, и разбор в отрыве от него мерил половину работы (шаг 2,
-    // раздел 8.5). Конвейер здесь ДЕШЕВЛЕ старого пути: второго прохода по
-    // `emit()` у его узлов нет вовсе (`isPipelineParsed`).
-    //
-    // Порог ниже — абсолютный потолок, а не проценты: миллисекунды на
-    // CI-раннере и на ноутбуке несопоставимы, и тест на ±20 % был бы
-    // флаки-генератором. Он ловит уход в квадратичность, запас десятикратный.
-    // Берётся ЛУЧШИЙ из трёх прогонов: `flutter test -j 2` гоняет изоляты
-    // параллельно, и рядом идёт такой же цикл trojan — первый замер под
-    // соседом растягивался до ~12 с. При уходе в квадратичность медленны ВСЕ
-    // три, так что чувствительности это не снижает.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     test('2000 vless-узлов разбираются за разумное время', () {
       const n = 2000;
       final uris = [
@@ -204,7 +204,7 @@ void main() {
               '&sni=example-$i.com&fp=chrome&alpn=h2,http/1.1#node$i',
       ];
 
-      // Прогрев кэша схем и JIT.
+
       for (var i = 0; i < 200; i++) {
         parseUri(uris[i]);
       }
@@ -264,9 +264,9 @@ void main() {
     });
 
     test('негодный pbk снимает REALITY молча, кроме одного кода', () {
-      // §169 — узел деградирует до plain TLS, а не выбрасывается. Коды
-      // зависимых полей (`short_id`, `key_share`) при этом не ставятся: их
-      // потеря уже объяснена (`body_sanitizer.dart`, `explainedDrops`).
+
+
+
       final spec = parseUri('vless://u@h.example:443?security=tls&sni=x.com'
           '&pbk=enabled&sid=abcd&key_share=hybrid#n')!;
       final codes =
@@ -277,8 +277,8 @@ void main() {
     });
 
     test('sid только в другом регистре — нормализация без кода', () {
-      // Корпус `reality_valid_pbk_sid`: `ABCD` → `abcd` молча. Регистр ничего
-      // не ЗАБИРАЕТ, а `normalize_code` объявляет именно потерю.
+
+
       final spec = parseUri('vless://u@h.example:443?security=reality&sni=x.com'
           '&pbk=AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw&sid=ABCD#n')!;
       expect(spec.warnings.map(warningCodeOf),
@@ -289,9 +289,9 @@ void main() {
     });
 
     test('§453 dial-поля идут мимо санитайзера и не теряются', () {
-      // Реестр их не описывает (`dialer.json` → `skipped`), и в теле
-      // санитайзер снимал бы их как `unknown_key` вместе с настройкой
-      // человека. См. `UriMapping.extensionFields`.
+
+
+
       final spec = parseUri('vless://u@h.example:443'
           '?tcp_keep_alive=30s&tcp_keep_alive_interval=15s'
           '&disable_tcp_keep_alive=1#KA')!;
@@ -302,8 +302,8 @@ void main() {
     });
 
     test('encryption из ссылки доезжает до тела', () {
-      // §335 — до шага 3 `parseSingboxEntry` поле не читал вовсе, и на
-      // конвейере узел уехал бы без постквантового слоя.
+
+
       final spec = parseUri('vless://u@h.example:443?security=none'
           '&encryption=mlkem768x25519plus.native.1rtt.AbCd#n')!;
       expect((spec as VlessSpec).encryption,
@@ -314,8 +314,8 @@ void main() {
   });
 
   group('§477 — vless encryption: форма по реестру', () {
-    // Нормативный порядок, одинаковый на всех входах:
-    //   декодировать → обрезать края → пусто / точное `none` → pattern.
+
+
 
     test('годное значение проходит: ключ 32, ключ 1184, padding-блоки', () {
       const key32 = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
@@ -333,7 +333,7 @@ void main() {
     });
 
     test('края обрезаются тихо, в тело едет обрезанное', () {
-      // Ядро само делает TrimSpace всей строки — кода за это нет.
+
       const enc = 'mlkem768x25519plus.native.0rtt.AAAAAAAAAAAAAAAAAAAAAAAA';
       final spec = parseUri('vless://u@h.example:443?security=none'
           '&encryption=${Uri.encodeQueryComponent('  $enc  ')}#n')!;
@@ -343,8 +343,8 @@ void main() {
     });
 
     test('пробел ВНУТРИ сегмента законен', () {
-      // Ядро тримит сегменты начиная с четвёртого, поэтому `….0rtt. KEY`
-      // годно; запрет пробелов отбраковал бы рабочий узел.
+
+
       const enc = 'mlkem768x25519plus.native.0rtt. AAAAAAAAAAAAAAAAAAAAAAAA';
       final spec = parseUri('vless://u@h.example:443?security=none'
           '&encryption=${Uri.encodeQueryComponent(enc)}#n')!;
@@ -365,9 +365,9 @@ void main() {
     });
 
     test('None другого регистра — НЕ выключатель, узел отбракован', () {
-      // Изменение против прежнего поведения: маппер сравнивал EqualFold.
-      // Ядро сличает литерал точно, и `None` для него настоящее значение, на
-      // котором падает ВЕСЬ конфиг, — прятать его нельзя.
+
+
+
       for (final enc in ['None', 'NONE']) {
         expect(
             parseUri(
@@ -378,15 +378,15 @@ void main() {
     });
 
     test('негодная форма отбраковывает УЗЕЛ, а не снимает поле', () {
-      // Узел без encryption к серверу, который слой требует, всё равно не
-      // подключится, а молча снять шифрование — тихое понижение защиты.
+
+
       for (final enc in [
-        'mlkem768x25519plus.native.0rtt', // три части
-        'mlkem768x25519plus.native..0rtt.KEY', // пустой сегмент
-        'mlkem1024x25519plus.native.0rtt.KEY', // другой метод
-        'MLKEM768X25519PLUS.native.0rtt.KEY', // метод в другом регистре
+        'mlkem768x25519plus.native.0rtt',
+        'mlkem768x25519plus.native..0rtt.KEY',
+        'mlkem1024x25519plus.native.0rtt.KEY',
+        'MLKEM768X25519PLUS.native.0rtt.KEY',
         'garbage',
-        'mlkem768x25519plus.native.0rtt.KEY.', // хвостовая точка
+        'mlkem768x25519plus.native.0rtt.KEY.',
       ]) {
         expect(
             parseUri('vless://u@h.example:443?security=none'
@@ -397,7 +397,7 @@ void main() {
     });
 
     test('в код уезжает СЫРОЕ значение, до обрезки', () {
-      // Человеку нужно видеть, что он написал, а не что из этого осталось.
+
       const raw = '  garbage  ';
       final res = RegistrySanitizer.sanitize(<String, dynamic>{
         'type': 'vless',
@@ -415,8 +415,8 @@ void main() {
     });
 
     test('тело sing-box судится тем же правилом, что и ссылка', () {
-      // Одна запись реестра закрывает оба входа — её исполняет санитайзер по
-      // ТЕЛУ, а не маппер ссылки.
+
+
       Map<String, dynamic> body(String enc) => <String, dynamic>{
             'type': 'vless',
             'server': 'h.example',
@@ -431,11 +431,11 @@ void main() {
             applyCoreGates: false,
           ).body;
 
-      // точное none — поля нет, запись живёт
+
       expect(clean('none')?.containsKey('encryption'), isFalse);
-      // None — запись снята
+
       expect(clean('None'), isNull);
-      // края обрезаны, значение в теле обрезанное
+
       expect(clean('  mlkem768x25519plus.native.0rtt.KEYKEYKEY  ')?['encryption'],
           'mlkem768x25519plus.native.0rtt.KEYKEYKEY');
     });

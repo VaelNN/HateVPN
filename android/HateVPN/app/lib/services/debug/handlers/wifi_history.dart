@@ -5,19 +5,19 @@ import '../transport/request.dart';
 import '../transport/response.dart';
 import '_shared.dart';
 
-/// `/wifi_history/*` — CRUD для §051 Phase 3 wifi history list.
-///
-/// Используется в editor Pick saved picker'е. Auto-record naturally заполняет
-/// через native `WifiNetworkObserver` (если toggle ON), но через API можно
-/// инжектить / удалять записи без UI flow:
-///
-/// - `GET    /wifi_history`            → list `[{ssid, bssid, last_seen}]`
-/// - `POST   /wifi_history`            → upsert `{ssid, bssid?}` body
-/// - `DELETE /wifi_history`            → remove `{ssid, bssid?}` body
-/// - `DELETE /wifi_history/all`        → clear all
-///
-/// Кеп 50 записей (LRU evict by `last_seen`) — общий для UI и API. Storage
-/// path тот же `wifi_history` var в `lxbox_settings.json`.
+
+
+
+
+
+
+
+
+
+
+
+
+
 Future<DebugResponse> wifiHistoryHandler(
     DebugRequest req, DebugContext ctx) async {
   final path = req.path;

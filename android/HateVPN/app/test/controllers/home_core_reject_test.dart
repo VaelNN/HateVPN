@@ -1,6 +1,6 @@
-// ignore_for_file: depend_on_referenced_packages
 
-// Фича 478 — ревью guard_builder_api: ожидание вердикта и stale-terminal.
+
+
 import 'dart:async';
 import 'dart:io';
 
@@ -204,7 +204,7 @@ void main() {
     expect(err, contains('bad key'));
   });
 
-  // Ревью после v2.25.1, M2: Stop мимо кнопки фазы цикла тоже гасит прогон.
+
   group('M2 — любой Stop гасит идущий прогон страховки', () {
     Future<CoreRejectRun> startRun(_GatedCheckCore core) {
       final guard = CoreRejectGuard(core);
@@ -227,7 +227,7 @@ void main() {
       await core.checkEntered.future;
       expect(CoreRejectState.I.phase, CoreRejectPhase.checking);
 
-      // `POST /action/stop-vpn` и кнопка Stop сходятся сюда.
+
       await controller.stop();
       core.release.complete();
       final run = await fut;
@@ -245,8 +245,8 @@ void main() {
       final fut = startRun(core);
       await core.checkEntered.future;
 
-      // Плитка QS / Intent API / Locale: BoxVpnService.stop → VpnPlugin.
-      // notifyStopRequested → automationAction на канале методов.
+
+
       final done = Completer<void>();
       await messenger.handlePlatformMessage(
         'com.leadaxe.lxbox/methods',
@@ -267,8 +267,8 @@ void main() {
   });
 }
 
-/// Один негодный узел; `check` ждёт [release] — окно, в котором человек жмёт
-/// Stop. Фазы уходят в [CoreRejectState], как у живого хоста.
+
+
 class _GatedCheckCore implements CoreRejectHost {
   final checkEntered = Completer<void>();
   final release = Completer<void>();

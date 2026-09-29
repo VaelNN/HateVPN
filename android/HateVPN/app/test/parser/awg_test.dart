@@ -13,19 +13,19 @@ import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 import 'parse_link_as.dart';
 
-/// §097 Phase 1 — AmneziaWG2 (AWG) сквозной проход: URI/JSON/INI → Awg → emit →
-/// round-trip. По образцу singbox-launcher SPEC 073 (Фазы 1-4, 6).
-// SPEC 103 D-023/D-030 — normalizeWGKey требует РОВНО 32 байта; короткие
-// плейсхолдеры вроде "PRIV"/"PUB"/"K" больше не парсятся (null-skip).
-// Валидные 32-байтные base64-заглушки для фикстур (см. test/parser/
-// wireguard_edge_test.dart для канонического источника этой практики).
+
+
+
+
+
+
 const _testPriv = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA=';
 const _testPub = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbA=';
 const _testPsk = 'ccccccccccccccccccccccccccccccccccccccccccA=';
 
 void main() {
-  // §480 W4 — гейт на ЗЕРКАЛО реестра: wireguard разбирает движок, и без
-  // секций у схемы запасного пути не осталось.
+
+
   final mirrored = Directory('assets/contract/registry').existsSync();
 
   setUpAll(() async {
@@ -45,19 +45,19 @@ void main() {
       '&i1=${Uri.encodeQueryComponent(i1)}'
       '&i3=${Uri.encodeQueryComponent(i3)}#awg-server';
 
-  // §480 W4 — ФАЙЛ ТЕПЕРЬ ГРУЗИТ РЕЕСТР И СЕКЦИИ, и это смена предмета
-  // проверки, а не правка под зелёный.
-  //
-  // Прежняя редакция намеренно проверяла работу БЕЗ реестра: запасное число
-  // `kAwgMtuFallback` ставил конвейер сам, потому что реестр не был
-  // обязательным условием работы приложения (§460 — не загрузился, живём как
-  // до него). Фича 480 это отменила критерием 7 спеки: «движок без реестра не
-  // работает вовсе, рукописного запасного пути не остаётся, отсутствие
-  // реестра в сборке — ошибка сборки». Запасного пути у wireguard больше нет,
-  // и проверять его поведение стало нечем.
-  //
-  // Потолок MTU при этом никуда не делся — его ставит САНИТАЙЗЕР по
-  // `body.fields.mtu` (`max_when`, §473), и ровно это группа ниже и проверяет.
+
+
+
+
+
+
+
+
+
+
+
+
+
   group('§473 — потолок MTU по реестру', () {
     String wg(String extra) => 'wireguard://$_testPriv@h.example:51820'
         '?publickey=$_testPub&address=10.0.0.2/32$extra#n';
@@ -68,7 +68,7 @@ void main() {
           reason: 'без потолка узел уехал бы в ядро с 1420: туннель '
               'поднимается, данные не идут');
       expect(spec.emit(TemplateVars.empty).map['mtu'], kAwgMtuFallback);
-      // Замена не молчит: код объявлен реестром (`awg_mtu_clamped`).
+
       expect(spec.warnings.whereType<RegistryWarning>().map((w) => w.code),
           contains('awg_mtu_clamped'));
     });
@@ -108,15 +108,15 @@ void main() {
 
     test('битое число (jc=abc) → поле пропущено; одинокий jmin снят (§24.6)',
         () {
-      // §463 — `jmin` без `jmax` снимается правилом `requires` реестра:
-      // отсутствующий `jmax` ядро читает как 0 и валит ВЕСЬ конфиг
-      // («amneziawg: jmin (50) must be <= jmax (0)»). Раньше `jmin=50`
-      // оставался в теле и ронял всё.
+
+
+
+
       final spec = parseLinkAs<WireguardSpec>(
           'wireguard://$_testPriv@h:51820?publickey=$_testPub&address=10.0.0.2/32&jc=abc&jmin=50')!;
       expect(spec.awg, isNull, reason: 'оба AWG-поля сняты — набор пуст');
-      // Узел при этом остаётся AmneziaWG: ссылка просила AWG, и кламп MTU
-      // 1280 — свойство запрошенного протокола, а не уцелевших полей.
+
+
       expect(spec.mtu, 1280);
     });
 
@@ -147,7 +147,7 @@ void main() {
       final json = jsonEncode(map);
       expect(json.contains('"jc":10'), true, reason: 'number, не "10"');
       expect(json.contains('"jc":"10"'), false);
-      // type-fidelity: re-decode → jc остаётся числом.
+
       final back = jsonDecode(json) as Map<String, dynamic>;
       expect(back['jc'], isA<num>());
       expect(back['i1'], isA<String>());
@@ -204,26 +204,26 @@ void main() {
       expect(spec.mtu, 1280);
     });
 
-    // SPEC 103 D-026 — canon = Go: без явного mtu= в URI поле не эмитится
-    // вовсе (ядро само ставит 1408). Было закреплено, что plain WG дефолтит
-    // 1408 в самой модели — неканоничное поведение, тест обновлён.
+
+
+
     test('plain WG не трогаем: без mtu → не задан, mtu=1420 → 1420', () {
       expect(parseLinkAs<WireguardSpec>(base)!.mtu, isNull);
       expect(parseLinkAs<WireguardSpec>('$base&mtu=1420')!.mtu, 1420);
     });
 
-    // §219/D-026 — plain WG без mtu НЕ дефолтит 1408 в модели (ядро само
-    // ставит его).
-    //
-    // §473 (контракт 1.1.5) — ПОДСТАНОВКА дефолта у AWG-узла осталась той же
-    // на всех входах, а ЗАМЕНА завышенного значения на JSON-входе снята:
-    // тело sing-box написали в собственной форме ядра человек или подписка, и
-    // молча переписывать его нельзя (`max_when.except_sources`, решение
-    // владельца 18.09.2026). Узел вместо замены получает info-код
-    // `awg_mtu_high` — его ставит санитайзер по дословной карте, см.
-    // `test/contract/parse_warnings_test.dart`. Это единственное место
-    // контракта, где вход узла влияет на результат, и парность входов здесь
-    // нарушена НАМЕРЕННО.
+
+
+
+
+
+
+
+
+
+
+
+
     test('JSON endpoint: AWG без mtu → 1280, завышенный mtu сохраняется', () {
       Map<String, dynamic> entry({bool awg = false, int? mtu}) => {
             'type': 'wireguard',
@@ -297,9 +297,9 @@ void main() {
           'Address = 10.0.0.2/32\n'
           'MTU = 1408\n'
           'Jc = 10\n'
-          // §463 — `Jmin` без `Jmax` снял бы себя правилом `requires`
-          // реестра (одинокий jmin роняет весь конфиг), поэтому в фикстуре
-          // задана пара: тест проверяет разбор полей, а не это правило.
+
+
+
           'Jmin = 50\n'
           'Jmax = 1000\n'
           'S1 = 20\n'
@@ -330,13 +330,13 @@ void main() {
       expect(awg.fields['h2'], isA<int>());
     });
 
-    // §481 (контракт 1.1.11) — КОД теперь ставит реестр, а не разбор: маппер
-    // отдаёт мусор санитайзеру как есть, и поле снимается с
-    // `awg_header_invalid` на всех входах, а не только на ссылке (проверяет
-    // `body_sanitizer_test.dart`). Здесь реестр не загружен (см. шапку файла),
-    // и последним читателем тела остаётся `Awg.fromJson` — он мусор не
-    // понимает и поле не заводит. Наблюдаемый итог тот же, что был: заголовков
-    // в узле нет, `jc` цел, парс не падает.
+
+
+
+
+
+
+
     test('битые формы (10-, a-b, -5, 1-2-3) → поля нет, парс не падает', () {
       final awg = parseLinkAs<WireguardSpec>(
           '$base&h1=10-&h2=a-b&h3=-5&h4=1-2-3&jc=4')!.awg!;
@@ -364,7 +364,7 @@ void main() {
       }) as WireguardSpec;
       expect(spec.awg!.fields['h1'], '43613244-384550127');
       expect(spec.awg!.fields['h2'], 826869626);
-      expect(spec.awg!.fields['h3'], 5); // нормализация строки-числа
+      expect(spec.awg!.fields['h3'], 5);
       expect(spec.awg!.fields['h3'], isA<int>());
     });
 
@@ -422,7 +422,7 @@ void main() {
       expect(map['s3'], 25);
     });
 
-    // §243 — имя файла → tag; AWG-поля при этом не теряются.
+
     test('awg2-INI с nameHint (имя файла) → tag = имя файла, AWG на месте',
         () {
       const conf = '[Interface]\n'
@@ -442,8 +442,8 @@ void main() {
       expect(f['jc'], 5);
       expect(f['h1'], '43613244-384550127');
       expect(f['i1'], '<b 0x084481800001>');
-      // Round-trip через синтетический URI (путь рестарта) — tag и AWG живы.
-      // §456 — источник — INI; имя при перечитывании — hint (тег записи).
+
+
       final again =
           parseWireguardIni(spec.rawSource, nameHint: 'awg2 export (home)')!;
       expect(again.tag, 'awg2 export (home)');
@@ -451,11 +451,11 @@ void main() {
     });
   });
 
-  // §421 — AmneziaWG 3.0/3.1: защита заголовка, паддинг, хвосты, тайминги.
-  // Эталон — Go awg3.go (SPEC 123); ключи синтетические (32 байта, не нули).
+
+
   group('§421 — AmneziaWG 3.x', () {
     const hk = 'Bw4VHCMqMTg/Rk1UW2JpcHd+hYyTmqGor7a9xMvS2eA=';
-    // '+' и '/' ключа в query — percent-encoded, как эмитит buildQuery.
+
     final hkQ = Uri.encodeQueryComponent(hk).replaceAll('+', '%20');
     String uri(String extra, {String base = ''}) =>
         'wireguard://$_testPriv@host.example.com:30565'
@@ -475,15 +475,15 @@ void main() {
       expect(f['header_protection_key'], hk);
       expect(f['content_padding_addition'], '10-100');
       expect(f['rekey_after_time'], '100-120');
-      expect(f['max_handshake_attempts'], 15); // одиночное → int
+      expect(f['max_handshake_attempts'], 15);
       expect(f['random_trailers'], true);
       expect(f['disable_cookies'], true);
-      expect(f['h1'], 1); // H1–H4 = 1..4 нормальны при защите заголовка
-      expect(spec.mtu, 1280); // AWG3 клампится как AWG2 (решение 2026-09-05)
+      expect(f['h1'], 1);
+      expect(spec.mtu, 1280);
       expect(spec.peers.single.persistentKeepalive, '25-35');
-      // §473 — замена потолком БОЛЬШЕ НЕ МОЛЧИТ: человек написал 1376 и
-      // обязан узнать, что уехало 1280. Код один, и он про `mtu`; прочих
-      // предупреждений у полного набора нет.
+
+
+
       expect(spec.warnings.map((w) => w is RegistryWarning ? w.code : '$w'),
           ['awg_mtu_clamped']);
       expect((spec.warnings.single as RegistryWarning).value, '1376');
@@ -521,28 +521,28 @@ void main() {
       }
     });
 
-    // §481 (контракт 1.1.11) — КОД у таймингов ставит теперь РЕЕСТР, и путь у
-    // него — имя поля ТЕЛА (`content_padding_addition`), как нормирует корпус,
-    // а не имя параметра ссылки (`contentpaddingaddition`), которое ставил
-    // маппер. Здесь реестр не загружен (см. шапку файла), поэтому кода нет
-    // вовсе; проверяет его `contract_test.dart`
-    // (`awg3_timing_range_reversed_dropped`) и `body_sanitizer_test.dart`.
-    // Булевы (`randomtrailers`/`disablecookies`) с контракта 1.1.23 ведёт
-    // секция реестра: у записи объявлен `value_map` с `on_no_match: keep`,
-    // негодное написание доезжает до тела и снимается там правилом поля
-    // (`type: bool`, `on_invalid: drop` с кодом `awg3_field_invalid`).
-    // Рукописного `Awg3FieldInvalidWarning` на этом входе больше не
-    // возникает, а реестр под этим файлом не загружен (см. шапку) — поэтому
-    // кода здесь нет вовсе, ровно как у остальных строк таблицы. Проверяет
-    // его `contract_test.dart` по корпусу.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     test('таблица негативов: поле снято, узел жив', () {
       const cases = <String, String>{
         'contentpaddingaddition': 'abc',
-        'rekeyaftertime': '120-100', // N > M — НЕ свопается (в отличие от h)
+        'rekeyaftertime': '120-100',
         'rekeytimeout': '3-',
         'rejectaftertime': '-5',
         'keepalivetimeout': '1-2-3',
-        'maxhandshakeattempts': '4294967296', // > uint32
+        'maxhandshakeattempts': '4294967296',
         'randomtrailers': 'maybe',
         'disablecookies': 'yes',
       };
@@ -551,7 +551,7 @@ void main() {
         final json = Awg.awg3ParamToJson[param]!;
         expect(spec.awg!.fields.containsKey(json), false,
             reason: '$param=$value должно быть снято');
-        // Маркер AWG3 даже при невалидном поле: узел — AmneziaWG, дефолт 1280.
+
         expect(spec.mtu, 1280);
       });
     });
@@ -561,15 +561,15 @@ void main() {
       expect(spec.awg!.fields['h1'], '200-300');
     });
 
-    // §481 (контракт 1.1.11) — рукописный `awg3NodeError` СНЯТ: узел роняет
-    // реестр (`awg3_header_key_invalid` / `awg3_padding_too_short`, оба
-    // `drop_node`), и роняет С КОДОМ и на входе sing-box тоже, чего рукописная
-    // проверка не умела вовсе.
-    //
-    // §480 W4 — ожидание ПЕРЕВЁРНУТО. Прежняя редакция ждала, что узел ЖИВЁТ:
-    // реестр в этом файле не грузился, и судить значение было некому. Фича 480
-    // отменила такой прогон критерием 7 («движок без реестра не работает
-    // вовсе»), реестр здесь теперь загружен — и правило отрабатывает.
+
+
+
+
+
+
+
+
+
     test('битый ключ защиты роняет узел правилом реестра', () {
       const zero = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
       for (final bad in ['not-base64!', 'AQIDBAUGBwgJCgsMDQ4PEA==', zero]) {
@@ -594,13 +594,13 @@ void main() {
           uri('$s&h1=1000-70000&randomtrailers=on'))!;
       expect(spec.awg!.fields['h1'], '1000-70000');
       expect(spec.awg!.fields['random_trailers'], true);
-      // §480 W4 — info-кода `awg3_random_trailers_wide_headers` здесь БОЛЬШЕ
-      // НЕТ, и это не потеря значения, а переезд СУЖДЕНИЯ. Он рождался в
-      // рукописном маппере (`Awg.randomTrailersWithWideHeaders`), а судит он
-      // ДВА поля разом — `random_trailers` и ширину `h1`–`h4`. Маппер значения
-      // не судит вовсе, а правило поверх пары полей умеет объявлять только
-      // реестр, и сегодня он его не объявляет: запись — запрос к лаунчеру
-      // (`body.fields`, условие по паре). До неё кода нет ни у одной стороны.
+
+
+
+
+
+
+
       final narrow = parseLinkAs<WireguardSpec>(
           uri('$s&h1=1000-2000&randomtrailers=on'))!;
       expect(narrow.warnings, isEmpty);
@@ -610,12 +610,12 @@ void main() {
         'маркер AWG3 (узел AWG даже без AWG2-полей → кламп 1280)', () {
       final junk = parseLinkAs<WireguardSpec>(uri('&keepalive=abc'))!;
       expect(junk.peers.single.persistentKeepalive, isNull);
-      expect(junk.mtu, isNull); // plain WG без mtu — поле не эмитим
+      expect(junk.mtu, isNull);
       final ranged = parseLinkAs<WireguardSpec>(uri('&mtu=1376&keepalive=25-35'))!;
       expect(ranged.awg, isNull);
       expect(ranged.peers.single.persistentKeepalive, '25-35');
       expect(ranged.mtu, 1280);
-      // Явно ниже 1280 — уважаем, как у AWG2.
+
       expect(parseLinkAs<WireguardSpec>(uri('&mtu=1200&keepalive=25-35'))!.mtu, 1200);
     });
 
@@ -632,9 +632,9 @@ void main() {
       expect(again.awg!.fields, spec.awg!.fields);
       expect(again.mtu, 1200);
       expect(again.peers.single.persistentKeepalive, '25-35');
-      // Написание истины эмит берёт у САМОЙ записи — первым ключом её
-      // `value_map` (`on`), а не общим `1`: иначе поменялся бы сохранённый
-      // rawSource ручного узла и то, что уезжает по Copy link.
+
+
+
       expect(spec.toUri(), contains('randomtrailers=on'));
     });
 
@@ -668,14 +668,14 @@ void main() {
       expect(f['content_padding_addition'], '10-100');
       expect(f['rekey_timeout'], 5);
       expect(f['random_trailers'], true);
-      expect(f.containsKey('disable_cookies'), false); // false = ключа нет
-      // §473 — вход `singbox`: 1376 из тела сохраняется, узел получает
-      // info-код `awg_mtu_high`. На ссылке та же величина заменилась бы на
-      // 1280 (тест «AWG2 без AWG3-маркеров клампится как раньше»).
+      expect(f.containsKey('disable_cookies'), false);
+
+
+
       expect(spec.mtu, 1376);
       expect(spec.peers.single.persistentKeepalive, '25-35');
-      // §481 — годность ключа судит реестр (в этом файле он не загружен);
-      // разбор тела её больше не проверяет и узла не теряет.
+
+
       final bad = Map<String, dynamic>.from(entry)
         ..['header_protection_key'] = 'AQIDBAUGBwgJCgsMDQ4PEA==';
       expect(parseSingboxEntry(bad), isNotNull);
@@ -709,13 +709,13 @@ void main() {
       expect(f['random_trailers'], true);
       expect(f.containsKey('disable_cookies'), false);
       expect(spec.peers.single.persistentKeepalive, '25-35');
-      expect(spec.mtu, 1280); // AWG3 без MTU — дефолт AmneziaWG 1280
+      expect(spec.mtu, 1280);
     });
   });
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // §450 — awg://<base64 .conf>: вторая форма share-link
-  // ══════════════════════════════════════════════════════════════════════════
+
+
+
   group('§450 awg://<base64 .conf>', () {
     const hk = 'ddddddddddddddddddddddddddddddddddddddddddY=';
     const conf = '[Interface]\n'
@@ -756,7 +756,7 @@ void main() {
       final peer = spec.peers.single;
       expect(peer.publicKey, _testPub);
       expect(peer.preSharedKey, _testPsk);
-      expect(peer.allowedIps, ['0.0.0.0/0']); // без лишнего ::/0 из дефолта
+      expect(peer.allowedIps, ['0.0.0.0/0']);
       final f = spec.awg!.fields;
       expect(f['jc'], 120);
       expect(f['h4'], 4);
@@ -764,10 +764,10 @@ void main() {
       expect(f['content_padding_addition'], '16-64');
       expect(f['rekey_after_time'], '3000-4000');
       expect(f['random_trailers'], true);
-      expect(spec.mtu, 1280); // §421 — кламп AWG3
-      // Контракт 1.1.23+ — `wgconf_dns_ignored` ЗАРАБОТАЛ и на этой форме:
-      // `DNS` из `.conf` относится к системному резолверу, в тело узла не
-      // едет, и потеря теперь названа кодом. Прежде снималось молча.
+      expect(spec.mtu, 1280);
+
+
+
       expect(
         spec.warnings.whereType<RegistryWarning>().map((w) => w.code),
         ['wgconf_dns_ignored'],

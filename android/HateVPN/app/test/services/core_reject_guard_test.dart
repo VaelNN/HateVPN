@@ -1,14 +1,14 @@
-// Фича 478 — автомат страховки на поддельном клиенте ядра.
-// Сценарии — раздел 5 спеки.
+
+
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/core_reject_verdict.dart';
 import 'package:lxbox/services/core_reject/core_reject_guard.dart';
 
-/// Поддельное ядро: список узлов с тегами, каждый — годный либо негодный.
-/// `realStart`/`check` отвечают отказом на ПЕРВЫЙ негодный из ещё не
-/// выключенных — ровно как ядро, которое проверяет конфиг целиком.
+
+
+
 class FakeCore implements CoreRejectHost {
   FakeCore({
     required this.tags,
@@ -18,14 +18,14 @@ class FakeCore implements CoreRejectHost {
     this.rebuildFails = false,
   });
 
-  /// Все теги конфига в порядке сборки.
+
   final List<String> tags;
 
-  /// Тег → текст отказа. Ловится и стартом, и `check`.
+
   final Map<String, String> bad;
 
-  /// Тег → текст отказа, который ловит ТОЛЬКО реальный старт (`check` его
-  /// пропускает) — редкая ошибка из раздела 3 спеки.
+
+
   final Map<String, String> runOnlyBad;
 
   final CoreRejectPrompt prompt;
@@ -39,7 +39,7 @@ class FakeCore implements CoreRejectHost {
   var prompts = 0;
   final progress = <(CoreRejectPhase, int, int)>[];
 
-  /// Теги, ещё не выключенные.
+
   List<String> get _live =>
       tags.where((t) => !disabledTags.contains(t)).toList();
 
@@ -136,7 +136,7 @@ void main() {
       expect(run.outcome, CoreRejectOutcome.startedWithDisabled);
       expect(core.disabledTags, ['B', 'C', 'E']);
       expect(core.realStarts, 2);
-      // Первый негодный ловит сигнальный старт; остальные — круги check.
+
       expect(core.checks, 3, reason: 'два отказа check + один чистый');
       expect(run.rounds, 3);
       expect(run.disabled.map((d) => d.tag), ['B', 'C', 'E']);
@@ -156,7 +156,7 @@ void main() {
 
     test('тег не сопоставился с конфигом → без автоматики', () async {
       final core = FakeCore(tags: ['A']);
-      // Ядро назвало тег, которого в конфиге нет (служебная запись).
+
       final scripted = _ScriptedCore(
         starts: ['initialize outbound[0] direct[direct-out]: boom'],
         tags: core.tags.toSet(),
@@ -168,9 +168,9 @@ void main() {
     });
 
     test('тот же узел назван повторно → цикл прерван (PARSING_PRINCIPLES §9.5)', () async {
-      // Ядро упрямо называет A, а выключение его не убирает. Повтор судится
-      // по ref узла (H1): хост зовётся второй раз, отдаёт тот же ref — и цикл
-      // обрывается, не начиная третьего круга.
+
+
+
       final core = _StubbornCore();
       final run = await CoreRejectGuard(core).run();
 
@@ -210,9 +210,9 @@ void main() {
 
       expect(run.outcome, CoreRejectOutcome.stoppedByUser);
       expect(core.realStarts, 1, reason: 'финального старта не было');
-      // Предел считает КРУГИ check: вопрос встаёт после десятого. Выключенных
-      // к этому моменту одиннадцать — узел сигнального старта плюс десять
-      // кругов; число в диалоге берётся из счётчика выключенных.
+
+
+
       expect(core.disabledTags.length, 11);
       expect(run.disabled.length, 11);
       expect(run.rounds, 10);
@@ -318,7 +318,7 @@ void main() {
         bad: {for (var i = 0; i < 5; i++) 'N$i': 'bad $i'},
       );
       final guard = CoreRejectGuard(core);
-      // Отмена сразу после первого выключения.
+
       core.progress.clear();
       final fut = guard.run();
       guard.cancel();
@@ -330,7 +330,7 @@ void main() {
   });
 }
 
-/// Ядро, у которого `check` ждёт внешний сигнал — для отмены после check.
+
 class _DeferredCheckCore implements CoreRejectHost {
   _DeferredCheckCore({required this.tags, required this.bad});
 
@@ -379,7 +379,7 @@ class _DeferredCheckCore implements CoreRejectHost {
   }) {}
 }
 
-/// Клиент со сценарием ответов: `null` — мост недоступен.
+
 class _ScriptedCore implements CoreRejectHost {
   _ScriptedCore({this.starts = const [], this.tags = const {'A', 'B'}});
 
@@ -424,7 +424,7 @@ class _ScriptedCore implements CoreRejectHost {
   }) {}
 }
 
-/// Ядро, упрямо называющее один и тот же тег: выключение его не лечит.
+
 class _StubbornCore implements CoreRejectHost {
   final disabledTags = <String>[];
   var checks = 0;

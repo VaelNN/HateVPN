@@ -15,11 +15,11 @@ import '../sections/wifi_section.dart';
 import 'preset_params_tab.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §053 Stage 3 — Params tab для inline/srs ветки.
-///
-/// Подписывается на `CustomRuleEditController` через `CustomRuleEditScope`.
-/// Делегирует UI-actions (picker'ы, dialog'и) caller'у через [actions].
-/// Если `controller.kind == preset` — рендерит [PresetParamsTab].
+
+
+
+
+
 class ParamsTab extends StatelessWidget {
   const ParamsTab({
     super.key,
@@ -63,13 +63,13 @@ class ParamsTab extends StatelessWidget {
             const SizedBox(width: 8),
             Switch(
               value: c.enabled,
-              // srs без кэша — нельзя включить, сначала Download.
+
               onChanged: canEnable ? c.setEnabled : null,
             ),
           ],
         ),
         const SizedBox(height: 12),
-        // §225 — у json-правила действие внутри тела, OutboundPicker скрыт.
+
         if (c.kind != CustomRuleKind.json) ...[
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -83,8 +83,8 @@ class ParamsTab extends StatelessWidget {
                   label: 'Action',
                 ),
               ),
-              // §247 — шестерёнка «Action & Resolve». Видна только когда
-              // правилу есть что резолвить (inline с доменами / srs).
+
+
               if (c.resolveEligible) ...[
                 const SizedBox(width: 4),
                 IconButton(
@@ -100,7 +100,7 @@ class ParamsTab extends StatelessWidget {
               ],
             ],
           ),
-          // §247 — inline-статус текущего режима (виден без открытия окна).
+
           if (c.resolve != null)
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 4),
@@ -164,7 +164,7 @@ class ParamsTab extends StatelessWidget {
           ),
         ),
         const Divider(),
-        // §225 — json-режим: только тело правила, остальные секции скрыты.
+
         if (c.kind == CustomRuleKind.json)
           JsonSection(
             controller: c.jsonCtrl,
@@ -190,13 +190,13 @@ class ParamsTab extends StatelessWidget {
             onDownload: c.downloadSrs,
             onShowCloudMenu: actions.onShowCloudMenu,
             onUrlChanged: c.resetSrsErrorIfAny,
-            // §366 — TTL кэша и время последней проверки.
+
             ttlHours: c.srsTtlHours,
             onTtlChanged: (v) => c.srsTtlHours = v,
             lastUpdatedText: c.srsLastUpdatedText,
           ),
-        // §225 — match-фильтры (port/protocol/wifi/inbound/dns) не применимы
-        // к raw-JSON правилу: всё выражается в самом теле.
+
+
         if (c.kind != CustomRuleKind.json) ...[
           PortSection(
             portCtrl: c.portCtrl,
@@ -220,7 +220,7 @@ class ParamsTab extends StatelessWidget {
               onTapPermissionsHint: actions.onOpenWifiPermissions,
               hint: actions.wifiHint,
             ),
-          // §030/new_fields — INBOUND фильтр (tun-in / mixed-in). inline + srs.
+
           if (c.kind == CustomRuleKind.inline ||
               c.kind == CustomRuleKind.srs)
             InboundSection(
@@ -228,7 +228,7 @@ class ParamsTab extends StatelessWidget {
               choices: c.inboundChoices,
               onToggle: c.toggleInbound,
             ),
-          // §117 задача 3 — DNS follows the rule (только inline/srs).
+
           DnsSection(
             dns: c.dns,
             serverTags: c.dnsServerTags,
@@ -245,7 +245,7 @@ class ParamsTab extends StatelessWidget {
         FilledButton.icon(
           icon: const Icon(Icons.save, size: 18),
           label: Text(getLocalText.s("Save")),
-          // §225/§447 — блокировка по той же проверке, что у Save в AppBar.
+
           onPressed: c.saveBlockReason == null ? actions.onSave : null,
         ),
       ],
@@ -253,9 +253,9 @@ class ParamsTab extends StatelessWidget {
   }
 }
 
-/// Бундл UI-actions для Params/Preset tab'ов. Эти действия требуют
-/// BuildContext (dialog'и, navigation, snackbar'ы) — живут на screen
-/// State и передаются вниз как props.
+
+
+
 class ParamsTabActions {
   const ParamsTabActions({
     required this.onSave,
@@ -279,15 +279,15 @@ class ParamsTabActions {
   final VoidCallback onManualAddWifi;
   final VoidCallback onOpenWifiPermissions;
 
-  /// §567 — текущая причина, по которой SSID не читается (null — всё в
-  /// порядке); экран проверяет один раз при открытии и после возврата.
+
+
   final WifiHint? wifiHint;
   final void Function(Offset globalPos) onShowCloudMenu;
 
-  /// §247 — открыть окно «Action & Resolve» (⚙ у Action-пикера).
+
   final VoidCallback onOpenActionResolve;
 
-  /// Bool-var toggle закончился ошибкой — caller показывает snackbar.
-  /// Параметр — display-имя var'а ("title or name") для текста сообщения.
+
+
   final void Function(String varDisplay) onBoolVarFailed;
 }

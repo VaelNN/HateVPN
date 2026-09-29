@@ -14,29 +14,29 @@ import 'package:lxbox/services/probe/probe_config.dart';
 
 import 'vm_profile.dart';
 
-/// §548 — ЗАМЕР гарда реестра на probe-конфиге (§546) и санитайзера под ним.
-///
-/// Только замер: поведение не проверяется, ассертов на время нет. Порядок
-/// чисел — «лучший из трёх», как в `test/parser/engine_perf_test.dart`:
-/// меряем стоимость работы, а не шум планировщика.
-///
-/// `LX_PERF=1` — таблица в stdout; без переменной тест молчит (на CI машина
-/// общая, время там ничего не говорит). `LX_PERF_PROFILE=1` вдобавок снимает
-/// профиль сэмплирующим профилировщиком VM (сценарий «сборка батчей с
-/// гардом», ~5 с) и печатает top по self- и inclusive-времени. Клиент
-/// VM service — голый JSON-RPC по WebSocket: `dart run` на этом пакете не
-/// работает (`package:lxbox` тянет `dart:ui` через `flutter/foundation`), а
-/// `package:vm_service` в зависимостях приложения нет.
-///
-/// Запуск (из `app/`):
-///   LX_PERF=1 flutter test test/perf/registry_guard_perf_test.dart
-///   LX_PERF=1 LX_PERF_PROFILE=1 flutter test --coverage \
-///     --coverage-path=/tmp/lcov.info test/perf/registry_guard_perf_test.dart
-///
-/// Профилю нужен VM service, а `flutter test` поднимает его только с
-/// `--coverage` (или `--start-paused`); без него профиль печатает
-/// «VM service недоступен». Таблица под `--coverage` совпала с обычной в
-/// пределах шума (§548); файл покрытия — во временный каталог.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void main() {
   final on = Platform.environment['LX_PERF'] == '1';
   final profile = Platform.environment['LX_PERF_PROFILE'] == '1';
@@ -55,7 +55,7 @@ void main() {
         'ядро $_core)',
       );
 
-    // (a) сборка батчей: §546-набор и разнородный корпус.
+
     out.writeln('\n(a) buildProbeBatches / части');
     out.writeln(
       _row([
@@ -106,7 +106,7 @@ void main() {
       );
     }
 
-    // (b) санитайзер сам по себе на готовых телах (копия тела — вне замера).
+
     out.writeln('\n(b) RegistrySanitizer.sanitize на готовых телах');
     out.writeln(
       _row(['корпус', 'ядро задано', 'версия ""', 'гейты ядра выкл']),
@@ -140,7 +140,7 @@ void main() {
       );
     }
 
-    // (c) по схемам: один тип на весь набор.
+
     out.writeln('\n(c) по типам узла');
     out.writeln(_row(['тип', 'батчи+гард', 'гард', 'батчи−гард', 'коды/узел']));
     for (final s in _shapes.entries) {
@@ -168,10 +168,10 @@ void main() {
       );
     }
 
-    // (d) узел с предупреждением: чистый узел после разбора кодов не даёт
-    // (разбор уже прошёл санитайзер), поэтому в тело подкладывается чужой
-    // ключ — `unknown_key`, одна строка отчёта на узел (гипотеза 4: цена
-    // текста кода).
+
+
+
+
     out.writeln('\n(d) гард на телах с чужим ключом (1 код на узел)');
     out.writeln(_row(['корпус', 'гард', 'чистые', 'разница']));
     for (final c in _corpora.entries) {
@@ -195,17 +195,17 @@ void main() {
       out.writeln(_row([c.key, _us(dirty), _us(clean), _us(dirty - clean)]));
     }
 
-    // ignore: avoid_print
+
     print(out);
 
     if (profile) {
-      // `LX_PERF_PROFILE_SHAPE=<тип из _shapes>` — профиль одного типа узла
-      // вместо §546-набора.
+
+
       final shape = Platform.environment['LX_PERF_PROFILE_SHAPE'];
       final nodes = _nodes(
         shape == null ? _corpora['§546 vless']! : [_shapes[shape]!],
       );
-      // ignore: avoid_print
+
       print(
         await vmProfile(
           () => buildProbeBatches(nodes, coreVersion: _core),
@@ -221,20 +221,20 @@ void main() {
 
 const _n = 2000;
 
-/// Прогонов на замер, берётся лучший. По умолчанию три, как в
-/// `engine_perf_test`; `LX_PERF_RUNS` — больше, когда машина шумит (A/B
-/// §548 шли с 7).
+
+
+
 final _runs = int.tryParse(Platform.environment['LX_PERF_RUNS'] ?? '') ?? 3;
 
-/// Версия ядра — текущий пин (`docs/KERNEL.md`): гейты `min_core` реестра
-/// сравниваются с ней, как в боевой сборке.
+
+
 const _core = '1.14.2-lx.4';
 
 const _pbk = 'AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw';
 const _uuid = '8f2e1c44-0000-4000-8000-0000000000';
 
-/// Шаблоны ссылок; `@I@` — номер узла (уникальные хост и имя, как в живой
-/// подписке: одноимённые узлы добавили бы стоимость уникализации тегов).
+
+
 const _shapes = {
   'vless vision':
       'vless://${_uuid}01@h@I@.example.com:443?security=tls'
@@ -263,8 +263,8 @@ const _shapes = {
       '&address=10.0.0.2/32#g@I@',
 };
 
-/// §546-набор (vless vision + ws, uTLS) — чтобы сверить с 213/34 мс §546;
-/// и разнородный корпус из всех форм по кругу.
+
+
 final _corpora = {
   '§546 vless': [_shapes['vless vision']!, _shapes['vless ws']!],
   'смешанный': _shapes.values.toList(),
@@ -287,7 +287,7 @@ List<SingboxEntry> _entriesOf(NodeSpec n) {
 }
 
 Duration _best(void Function() f) {
-  f(); // прогрев: JIT и ленивые кеши реестра
+  f();
   var best = const Duration(days: 1);
   for (var r = 0; r < _runs; r++) {
     final sw = Stopwatch()..start();
@@ -298,9 +298,9 @@ Duration _best(void Function() f) {
   return best;
 }
 
-/// Как [_best], но вход готовится заново на каждый прогон и ВНЕ замера:
-/// гард переписывает тела на месте, второй прогон по тем же телам мерил бы
-/// уже чистые.
+
+
+
 Duration _bestPrepared<T>(T Function() prepare, void Function(T) f) {
   f(prepare());
   var best = const Duration(days: 1);
@@ -319,7 +319,7 @@ String _us(Duration d) => (d.inMicroseconds / _n).toStringAsFixed(1);
 String _row(List<String> cells) =>
     '| ${[for (final c in cells) c.padRight(12)].join(' | ')} |';
 
-/// Точки гипотез §548: что из библиотеки Dart стоит проверить отдельно.
+
 const _probes = [
   'RegExp',
   '_parseCore',

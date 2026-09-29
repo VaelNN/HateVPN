@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/screens/home/special_node_display.dart';
 
-/// §125 — подмена служебных нод (direct/auto) по ТИПУ из конфига, не по маске.
+
 void main() {
   group('specialNodeDisplayForType', () {
     test('direct → «Direct» + public', () {
@@ -35,8 +35,8 @@ void main() {
     });
 
     test('подмена по ТИПУ — auto-двойник с любым tag-именем ловится', () {
-      // vpn-1-auto / vpn-7-auto / ✨auto — все type==urltest → одинаково «Auto»
-      // (имя тега не важно, важен только type из конфига).
+
+
       expect(specialNodeDisplayForType('urltest')!.label, 'Auto');
     });
   });

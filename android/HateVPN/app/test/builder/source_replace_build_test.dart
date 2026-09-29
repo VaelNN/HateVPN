@@ -13,10 +13,10 @@ import 'package:lxbox/services/parser/uri_parsers.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// Фича 565 фаза B (контракт 1.1.78 §74) — свёртка подписки/папки в группу на
-/// сборке: группы по режиму, двойник `<tag>-auto`, узлы уходят из пула
-/// Направлений, ноль узлов — групп нет, правило на выпавшую свёртку не роняет
-/// конфиг.
+
+
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -118,7 +118,7 @@ void main() {
     expect(sel['default'], 'Pick-auto');
     expect(sel['interrupt_exist_connections'], true);
 
-    // Пул Направления: вместо узлов подписки — один кандидат `tag`.
+
     final vpn = byTag(r, 'vpn-1')!;
     expect(vpn['outbounds'], containsAll(['Pick', 'C']));
     expect(vpn['outbounds'], isNot(contains('A')));
@@ -169,7 +169,7 @@ void main() {
         reason: 'выпавшая группа называется, а не молчит');
   });
 
-  // ── §570 (§568 хвосты, контракт 1.1.80) ──────────────────────────────────
+
 
   test('ноль узлов: один replace_group_empty на свёртку, у both тоже', () async {
     final off = DateTime.utc(2026, 9, 26);
@@ -261,8 +261,8 @@ void main() {
 
   test('detour на свёртку, опустевшую после отбраковок: носитель выпадает',
       () async {
-    // Члены свёртки выпадают на втором проходе ссылок (их detour в никуда),
-    // когда имя свёртки уже зарегистрировано корневой целью.
+
+
     final folded = SubscriptionServers(
       id: 's1',
       name: 'Provider',

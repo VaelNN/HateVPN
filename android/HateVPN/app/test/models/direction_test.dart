@@ -44,7 +44,7 @@ void main() {
       final r = Direction.fromJson(c.toJson());
       expect(r.includeBlock, true);
       expect(c.toJson()['include_block'], true);
-      // дефолт false для старых Направлений без ключа
+
       expect(Direction.fromJson({'tag': 'vpn-1'}).includeBlock, false);
     });
 
@@ -72,7 +72,7 @@ void main() {
 
     test('defaults applied on missing keys', () {
       final c = Direction.fromJson({'tag': 'vpn-5'});
-      expect(c.label, 'vpn-5'); // label fallback к tag
+      expect(c.label, 'vpn-5');
       expect(c.enabled, true);
       expect(c.includeDirect, false);
       expect(c.nodeFilter, '');
@@ -98,7 +98,7 @@ void main() {
 
     test('отсутствие ключа на чтении = пустой список', () {
       expect(Direction.fromJson({'tag': 'vpn-1'}).include, isEmpty);
-      // Не-список тоже: мусор не должен доезжать до билдера.
+
       expect(Direction.fromJson({'tag': 'vpn-1', 'include': 'vpn-2'}).include,
           isEmpty);
     });
@@ -122,7 +122,7 @@ void main() {
       expect(r.include, ['vpn-1']);
       expect(r.includeDirect, true);
       expect(r.includeBlock, true);
-      // Служебные теги в include не дублируются.
+
       expect(r.include, isNot(contains('direct-out')));
       expect(r.include, isNot(contains('block')));
     });
@@ -132,7 +132,7 @@ void main() {
       final r = c.copyWith(include: ['vpn-1']);
       expect(r.include, ['vpn-1']);
       expect(r.includeDirect, true);
-      expect(c.include, isEmpty); // исходный не мутирован
+      expect(c.include, isEmpty);
     });
   });
 
@@ -182,14 +182,14 @@ void main() {
 
     test('дубль существующего → duplicate', () {
       expect(directionTagConflict('vpn-1', const ['vpn-1']), 'duplicate');
-      // trim применяется до сравнения.
+
       expect(directionTagConflict(' vpn-1 ', const ['vpn-1']), 'duplicate');
     });
 
     test('коллизия с auto-двойником в обе стороны → auto_twin', () {
       expect(directionTagConflict('vpn-1-auto', const ['vpn-1']), 'auto_twin');
       expect(directionTagConflict('exit', const ['exit-auto']), 'auto_twin');
-      // Без родителя `vpn-9` тег `vpn-9-auto` свободен.
+
       expect(directionTagConflict('vpn-9-auto', const ['vpn-1']), isNull);
     });
   });
@@ -259,7 +259,7 @@ void main() {
     });
 
     test('toJson переклампливает на всякий случай', () {
-      // конструктор не клампит (const), но toJson — да
+
       const a = DirectionAuto(tolerance: 80000);
       expect(a.toJson()['tolerance'], 65535);
     });
@@ -318,7 +318,7 @@ void main() {
     });
 
     test('явный sticky_hash [] → пустой список (липкость выкл)', () {
-      // round-trip пустого набора: [] остаётся [], НЕ дефолтится.
+
       const a = DirectionAuto(
           mode: UrltestMode.roundRobin, stickyHash: <StickyHashKey>[]);
       final r = DirectionAuto.fromJson(a.toJson());
@@ -358,7 +358,7 @@ void main() {
       expect(UrltestMode.leastTest.wire, 'least_test');
       expect(UrltestMode.roundRobin.wire, 'round_robin');
       expect(UrltestMode.fromWire('round_robin'), UrltestMode.roundRobin);
-      expect(UrltestMode.fromWire('garbage'), UrltestMode.leastTest); // дефолт
+      expect(UrltestMode.fromWire('garbage'), UrltestMode.leastTest);
       expect(StickyHashKey.sourceIp.wire, 'source_ip');
       expect(StickyHashKey.fromWire('dest_port'), StickyHashKey.destPort);
       expect(StickyHashKey.fromWire('nope'), isNull);
@@ -409,18 +409,18 @@ void main() {
       final c = Direction.seedFromDefault(dc, tpl, enabled: true);
       expect(c.tag, 'vpn-1');
       expect(c.label, 'Главный');
-      expect(c.includeDirect, true); // include ∋ direct
+      expect(c.includeDirect, true);
       expect(c.interruptExistConnections, true);
       expect(c.nodeFilter, '');
-      expect(c.defaultFilter, ''); // Решение 6
-      expect(c.auto, isNull); // auto передаётся снаружи; здесь не задан
+      expect(c.defaultFilter, '');
+      expect(c.auto, isNull);
     });
 
     test('label fallback к tag когда пусто; include пуст → без direct', () {
       final dc = DefaultDirection(tag: 'vpn-3');
       final c = Direction.seedFromDefault(dc, DirectionTemplate(), enabled: false);
       expect(c.label, 'vpn-3');
-      expect(c.includeDirect, false); // include пуст
+      expect(c.includeDirect, false);
     });
   });
 }

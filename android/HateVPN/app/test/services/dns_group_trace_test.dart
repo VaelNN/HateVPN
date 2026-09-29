@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/traffic_profiler.dart';
 import 'package:lxbox/vpn/cc_channel.dart';
 
-/// §315 — трасса DNS-группы (kernel SPEC 035) в профайлере: маппинг полей
-/// стрима + перенос в `TrafficEvent.extra` для detail-sheet.
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -89,9 +89,9 @@ void main() {
   });
 
   group('§315 профайлер — трасса в extra', () {
-    // `startGlobalRecording` идемпотентен (§048: повторный вызов = no-op,
-    // буфер НЕ чистит) — профайлер синглтон, события копятся между тестами.
-    // Берём последнее DNS-событие, а не единственное.
+
+
+
     TrafficEvent ingestOne(Map<String, dynamic> m) {
       TrafficProfiler.I.startGlobalRecording();
       final before = TrafficProfiler.I.globalRollingBuffer.length;
@@ -157,7 +157,7 @@ void main() {
       expect(e.extra?['dns_fanned'], isNull,
           reason: 'false-флаги не пишем — 99% трафика идёт мимо групп');
       expect(e.extra?['dns_survival'], isNull);
-      // Существующие поля не задеты.
+
       expect(e.extra?['dns_server'], 'dns_shield');
     });
 

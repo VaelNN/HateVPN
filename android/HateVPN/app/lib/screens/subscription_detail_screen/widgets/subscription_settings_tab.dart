@@ -14,10 +14,10 @@ import '../subscription_detail_format.dart';
 import '../../../services/l10n/locale_controller.dart';
 import '../../../widgets/safe_bottom.dart';
 
-/// Settings tab: tag-prefix field, detour-mode radio group (+ sub-options) and
-/// the subscription-info block. Extracted verbatim from `_buildSettingsTab` /
-/// `_buildSubscriptionInfo`. All mutation/persist/dialog logic stays in the
-/// screen and is wired in via the callbacks below.
+
+
+
+
 class SubscriptionSettingsTab extends StatelessWidget {
   const SubscriptionSettingsTab({
     super.key,
@@ -40,7 +40,7 @@ class SubscriptionSettingsTab extends StatelessWidget {
     this.autoReloadOnChange = false,
     required this.onRefreshNow,
     required this.onEditSource,
-    // §289 — per-subscription fetch identity (nullable: папка не рисует секцию).
+
     this.onToggleCustomIdentity,
     this.onEditIdentityUserAgent,
     this.onIdentitySendHwidChanged,
@@ -53,41 +53,41 @@ class SubscriptionSettingsTab extends StatelessWidget {
     this.otherSources = const [],
   });
 
-  /// Фича 565 фаза B — свёртка источника в группу сохранена (`null` — снята).
-  /// Нет колбэка — секция не рисуется.
+
+
   final Future<void> Function(SourceReplace? replace)? onReplaceChanged;
 
-  /// §568 / задача 570 — все источники (для занятых имён группы свёртки).
+
   final List<ServerList> otherSources;
 
   final SubscriptionEntry entry;
 
-  /// §338 — глобальная галка «автоперезапуск при смене настроек» включена: она
-  /// перекрывает per-subscription выбор, строку «On update» не рисуем. Поле
-  /// подписки при этом не тронуто — выключение галки вернёт её значение.
+
+
+
   final bool autoReloadOnChange;
 
-  /// §239 — true для папки (§234): адаптированные detour-тексты («servers'
-  /// own detours» вместо «subscription detour servers»).
+
+
   final bool folderMode;
 
-  /// §248 — Направления для подписи «⚙ <label>» Направления override-цели
-  /// (экран грузит SettingsStorage.getDirections и передаёт сюда).
+
+
   final List<Direction> directions;
 
-  /// §252 — разворот цели в цепочку хопов «как пакет пойдёт» (detourPathHops
-  /// с controller'ом экрана). null → показываем один хоп (как раньше).
+
+
   final List<String> Function(NodeLink stored)? detourPathHopsOf;
   final bool hasDetour;
   final DetourMode detourMode;
 
   final ValueChanged<String> onTagPrefixChanged;
 
-  /// §393 A6 — префикс ДОПЕЧАТАН (поле потеряло фокус либо submit), а не
-  /// «изменился ещё на один символ». Каскад на Направления считается только
-  /// здесь: [onTagPrefixChanged] стреляет на КАЖДОЕ нажатие, и heal по нему
-  /// переписал бы regex-фильтры промежуточными огрызками (`RU:` → `R` → `RU`
-  /// при наборе `RU: v2`), уничтожив их за несколько символов.
+
+
+
+
+
   final ValueChanged<String>? onTagPrefixCommitted;
   final ValueChanged<DetourMode> onSetDetourMode;
   final ValueChanged<bool> onRegisterDetourServersChanged;
@@ -97,14 +97,14 @@ class SubscriptionSettingsTab extends StatelessWidget {
   final VoidCallback onCopyUrl;
   final VoidCallback onShowIntervalPicker;
 
-  /// §323 — пикер реакции на авто-обновление.
+
   final VoidCallback onShowOnUpdateActionPicker;
   final VoidCallback onRefreshNow;
-  final VoidCallback onEditSource; // §129 — сменить источник (online↔file)
+  final VoidCallback onEditSource;
 
-  // §289 — Fetch identity (секция «Custom identity»). Nullable: секция видна
-  // только для SubscriptionServers, папка (folderMode) их не передаёт и не
-  // рисует блок — колбэки не зовутся.
+
+
+
   final ValueChanged<bool>? onToggleCustomIdentity;
   final VoidCallback? onEditIdentityUserAgent;
   final ValueChanged<bool>? onIdentitySendHwidChanged;
@@ -114,9 +114,9 @@ class SubscriptionSettingsTab extends StatelessWidget {
   final VoidCallback? onEditIdentityVerOs;
   final VoidCallback? onEditIdentityDeviceModel;
 
-  /// §248 — подпись override-цели: Направление → «⚙ <label>»; член своей
-  /// папки (пара с `id` папки) — его тег; прочая ссылка — тег (§439,
-  /// [detourLinkDisplay]).
+
+
+
   String _overrideDisplay() {
     final list = entry.list;
     return detourLinkDisplay(
@@ -126,16 +126,16 @@ class SubscriptionSettingsTab extends StatelessWidget {
     );
   }
 
-  /// §252 — цепочка хопов цели по ходу пакета (или один хоп, если экран не
-  /// прокинул разворот).
+
+
   String _overridePath() {
     final hops = detourPathHopsOf?.call(entry.overrideDetour);
     if (hops == null || hops.isEmpty) return _overrideDisplay();
     return hops.join(' → ');
   }
 
-  /// Фича 565 фаза B (§74) — строка свёртки: режим и имя группы, тап —
-  /// редактор.
+
+
   Widget _replaceTile(BuildContext context, ThemeData theme) {
     final r = entry.replace;
     final mode = switch (r?.mode) {
@@ -167,7 +167,7 @@ class SubscriptionSettingsTab extends StatelessWidget {
               context,
               initial: r,
               defaultTag: entry.displayName,
-              // §568 / задача 570 — предупреждение о занятом имени.
+
               takenTags: replaceTagOwnersOf(
                 sources: otherSources,
                 selfId: entry.list.id,
@@ -201,9 +201,9 @@ class SubscriptionSettingsTab extends StatelessWidget {
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          // §393 A6 — Focus поверх поля: уход фокуса = «допечатал», момент,
-          // когда каскад на Направления считать безопасно (см.
-          // [onTagPrefixCommitted]).
+
+
+
           child: Focus(
             onFocusChange: (has) {
               if (!has) onTagPrefixCommitted?.call(entry.tagPrefix);
@@ -216,9 +216,9 @@ class SubscriptionSettingsTab extends StatelessWidget {
                 hintText: getLocalText.s("empty = no prefix"),
                 isDense: true,
               ),
-              // done снимает фокус → коммит приходит одним путём (через
-              // Focus выше). Свой onFieldSubmitted тут дал бы ВТОРОЙ вызов
-              // на то же событие.
+
+
+
               textInputAction: TextInputAction.done,
               onChanged: onTagPrefixChanged,
             ),
@@ -235,14 +235,14 @@ class SubscriptionSettingsTab extends StatelessWidget {
             fontWeight: FontWeight.bold,
           )),
           const Divider(),
-          // Тернарный mode (radio): три mutually-exclusive варианта над парой
-          // полей entry.{useDetourServers, overrideDetour}. Mapping:
-          //   use      → useDetour=true,  override=''
-          //   override → useDetour=true,  override='<tag>'
-          //   none     → useDetour=false, override=''
-          // register'ы (sub-options для mode=use) хранятся независимо, не
-          // обнуляются при переключении mode'а — юзер вернётся в use, флаги
-          // на месте.
+
+
+
+
+
+
+
+
           RadioGroup<DetourMode>(
             groupValue: detourMode,
             onChanged: (m) => onSetDetourMode(m!),
@@ -256,7 +256,7 @@ class SubscriptionSettingsTab extends StatelessWidget {
                     ? getLocalText.s("Members connect through their personal detours")
                     : getLocalText.s("Nodes connect through detour servers")),
               ),
-              // §096 — register-тоглы под Use (нативные детуры используются).
+
               if (detourMode == DetourMode.use) _registerToggles(context),
               RadioListTile<DetourMode>(
                 value: DetourMode.override,
@@ -267,11 +267,11 @@ class SubscriptionSettingsTab extends StatelessWidget {
                         ? getLocalText.s("Replace all → %s", _overrideDisplay())
                         : getLocalText.s("Fill missing → %s", _overrideDisplay())),
               ),
-              // Sub-tiles под «Add detour»: outbound picker + выбор режима.
-              // §073/§245: тот же bool replaceDetourChain, но вместо
-              // невнятного toggle — два явных radio-режима:
-              //   Replace all  → replaceDetourChain=true  (дропнуть цепочки)
-              //   Fill missing → replaceDetourChain=false (default, append)
+
+
+
+
+
               if (detourMode == DetourMode.override) ...[
                 Padding(
                   padding: const EdgeInsets.only(left: 24),
@@ -307,9 +307,9 @@ class SubscriptionSettingsTab extends StatelessWidget {
                     ]),
                   ),
                 ),
-                // §096 — в режиме Fill missing (append) нативные детуры
-                // подписки сохраняются в цепочке → register-тоглы
-                // осмысленны и тут.
+
+
+
                 if (!entry.replaceDetourChain) _registerToggles(context),
               ],
               RadioListTile<DetourMode>(
@@ -320,11 +320,11 @@ class SubscriptionSettingsTab extends StatelessWidget {
             ]),
           ),
         ] else ...[
-          // §111 — у подписки нет родных detour-цепочек: полный radio
-          // (Use/Add/None) вырождается — Use≡None, register-тоглы и Replace
-          // неприменимы. Вместо него один пикер поверх тех же полей
-          // DetourPolicy: выбор тага → useDetourServers=true + override
-          // (builder: APPEND на пустой цепочке = 1-hop), None → override=''.
+
+
+
+
+
           Text(getLocalText.s("Detour"), style: theme.textTheme.titleSmall?.copyWith(
             color: theme.colorScheme.primary,
             fontWeight: FontWeight.bold,
@@ -343,10 +343,10 @@ class SubscriptionSettingsTab extends StatelessWidget {
             title: Text(getLocalText.s("Detour server")),
             subtitle: Text(entry.overrideDetour.isEmpty
                 ? getLocalText.s("None — nodes connect directly")
-                // detour — ВХОДНОЙ (трафик идёт через него ПЕРВЫМ, потом в
-                // ноды подписки, потом наружу). §252 — полная цепочка «как
-                // пакет пойдёт»: цель → её собственный detour → … (та же
-                // детализация, что у одиночного сервера в Node Settings).
+
+
+
+
                 : getLocalText.s("Phone → %s → Nodes → Internet", _overridePath())),
             trailing: const Icon(Icons.chevron_right),
             onTap: onShowOverrideDetourPicker,
@@ -361,7 +361,7 @@ class SubscriptionSettingsTab extends StatelessWidget {
           const Divider(),
           _buildSubscriptionInfo(context, theme),
           const SizedBox(height: 24),
-          // §289 — per-subscription fetch identity (Default/Custom override).
+
           Text(getLocalText.s("Fetch identity"), style: theme.textTheme.titleSmall?.copyWith(
             color: theme.colorScheme.primary,
             fontWeight: FontWeight.bold,
@@ -373,13 +373,13 @@ class SubscriptionSettingsTab extends StatelessWidget {
     );
   }
 
-  /// §289 — секция Fetch identity подписки. Тумблер «Custom identity» (off =
-  /// глобальная идентичность §118), при Custom — полный блок полей (UA, HWID,
-  /// device-meta), читающий значения из `entry.identity`. Форма полей —
-  /// зеркало глобального таба (app_settings_screen → Subscriptions).
+
+
+
+
   List<Widget> _buildFetchIdentity(BuildContext context, ThemeData theme) {
     final cs = theme.colorScheme;
-    final id = entry.identity; // null = Default
+    final id = entry.identity;
     return [
       SwitchListTile(
         secondary: const Icon(Icons.badge_outlined),
@@ -455,8 +455,8 @@ class SubscriptionSettingsTab extends StatelessWidget {
     ];
   }
 
-  /// §289 — строка редактируемого заголовка идентичности (зеркало `_editRow`
-  /// глобального таба). `onEdit`/`extra` — nullable-колбэки родителя.
+
+
   Widget _editRow(
     BuildContext context, {
     required IconData icon,
@@ -493,12 +493,12 @@ class SubscriptionSettingsTab extends StatelessWidget {
     );
   }
 
-  /// §096/§026 — register-тоглы detour-серверов. Показываются когда нативные
-  /// детуры в игре: режим **Use** ИЛИ **Add detour + Fill missing** (append).
-  /// Прячутся при Replace all / None (нативных детуров нет — регистрировать
-  /// нечего).
-  /// Делают detour-сервера видимыми как ноды (selector) / в ✨auto. Флаги
-  /// хранятся независимо от режима — переключение Use↔Add detour их не теряет.
+
+
+
+
+
+
   Widget _registerToggles(BuildContext context) => Padding(
         padding: const EdgeInsets.only(left: 24),
         child: Column(children: [
@@ -526,15 +526,15 @@ class SubscriptionSettingsTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // §129 — источник подписки. Клик по строке → сменить источник
-        // (online URL ↔ файл). Для онлайн — copy-иконка справа (копировать URL);
-        // для файла показываем имя (снапшот в кэше, сырого URL нет).
+
+
+
         Builder(builder: (context) {
           final isFile = isFileSubscription(list.url);
           return ListTile(
             leading: Icon(isFile ? Icons.insert_drive_file_outlined : Icons.link,
                 size: 20),
-            // l10n-exempt: 'URL' is locale-invariant
+
             title: Text(isFile ? getLocalText.s("Source: local file") : 'URL'),
             subtitle: Text(isFile ? entry.displayName : list.url,
                 maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -555,8 +555,8 @@ class SubscriptionSettingsTab extends StatelessWidget {
             onTap: onEditSource,
           );
         }),
-        // §129 — Update interval: -1 = никогда (игнор сервера); 0 = respect
-        // server (сами не по расписанию); >0 = раз в N часов.
+
+
         ListTile(
           leading: const Icon(Icons.sync, size: 20),
           title: Text(getLocalText.s("Update interval")),
@@ -568,9 +568,9 @@ class SubscriptionSettingsTab extends StatelessWidget {
           trailing: const Icon(Icons.edit, size: 18),
           onTap: onShowIntervalPicker,
         ),
-        // §323 — что делать после обновления подписки.
-        // §338 — при включённой глобальной галке «автоперезапуск при смене
-        // настроек» выбор перекрыт (всё применяется сразу) → строку скрываем.
+
+
+
         if (!autoReloadOnChange)
           ListTile(
             leading: const Icon(Icons.play_circle_outline, size: 20),

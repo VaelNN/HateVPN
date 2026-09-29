@@ -8,10 +8,10 @@ import 'package:lxbox/models/node_link.dart';
 import 'package:lxbox/models/node_spec.dart';
 import 'package:lxbox/models/server_list.dart';
 
-// §439 N2 — кодек члена папки `kind: auto` (`codec/auto_group_record.dart`):
-// круг записи, поля стороны LxBox внутри `group` (контракт 1.0.1) и терпимое
-// чтение (S1 член `{tag}`, `default` строкой, `selector`, форма dev-сборок
-// с полями на уровне узла).
+
+
+
+
 
 AutoSelectSpec _spec(AutoSelectMembership membership,
         {AutoSelectParams params = const AutoSelectParams(),
@@ -139,7 +139,7 @@ void main() {
     });
 
     test('§565 selector с default строкой — род selector, default — член', () {
-      // Род исполняется: ни ноты о приведении, ни потери поля.
+
       final back = _read({
         'kind': 'auto',
         'tag': 'Pick',
@@ -159,8 +159,8 @@ void main() {
     });
 
     test('круг бэкапа: `default` уезжает и возвращается тем же именем', () {
-      // Сохранение сквозным стоит ничего и возвращает полю обратимость — это и
-      // есть предмет нормы `genus.round_trip.preserve_unexecuted`.
+
+
       final back = _read({
         'kind': 'auto',
         'tag': 'Pick',
@@ -179,8 +179,8 @@ void main() {
         'f1',
       );
       final group = rec['group'] as Map<String, dynamic>;
-      // §565 — писатель пишет род как есть и `default` объектом NodeLink,
-      // параметров замера у ручного рода нет.
+
+
       expect(group['group_type'], 'selector');
       expect(group['default'], {'folder_id': 'f1', 'tag': 'de-2'});
       expect(group.containsKey('strategy'), isFalse);

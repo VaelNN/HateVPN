@@ -6,16 +6,16 @@ import '../../vpn/box_vpn_client.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../widgets/app_bottom_sheet.dart';
 
-/// Bottom-sheet с детализацией памяти процесса приложения.
-///
-/// Ядро sing-box работает в этом же процессе (VpnService без `android:process`),
-/// поэтому «память» на карточке Stats — это RSS всего процесса, а не только
-/// ядра. Sheet разбивает её на категории: суммарный RSS/PSS из
-/// CommandClient-статуса + native `getMemoryInfo` (§507, AMS PSS-разбивка:
-/// native heap с Go-буферами ядра, Dalvik/ART, graphics, code, stack, system)
-/// + runtime-показатели ядра (goroutines, connections). Cifры inuse Go-хипа
-/// (как в Clash `/memory`) через CommandClient нет — она не экспортирована
-/// из libbox.
+
+
+
+
+
+
+
+
+
+
 Future<void> showMemoryDetailSheet(
   BuildContext context, {
   required int rss,
@@ -131,7 +131,7 @@ class _MemoryDetailSheetState extends State<_MemoryDetailSheet> {
     final out = <Widget>[];
     final info = _info;
 
-    // Process — суммарные цифры процесса.
+
     out.addAll(_group(context, 'Process', [
       _row(context, 'RSS', formatBytes(widget.rss, spaced: true)),
       if (info != null && info.totalPss > 0)
@@ -140,8 +140,8 @@ class _MemoryDetailSheetState extends State<_MemoryDetailSheet> {
         _row(context, 'Swap', formatBytes(info.totalSwap, spaced: true)),
     ]));
 
-    // Breakdown — категории PSS из Debug.MemoryInfo. Native heap несёт
-    // Go-память ядра (буферы WireGuard, хипы sing-box).
+
+
     if (info != null) {
       out.addAll(_group(context, 'Breakdown', [
         _row(context, 'Native heap', formatBytes(info.nativeHeap, spaced: true)),
@@ -153,7 +153,7 @@ class _MemoryDetailSheetState extends State<_MemoryDetailSheet> {
         _row(context, 'Other', formatBytes(info.privateOther, spaced: true)),
       ]));
 
-      // Native heap — прямые malloc-счётчики (не PSS).
+
       out.addAll(_group(context, 'Native heap', [
         _row(context, 'Allocated',
             formatBytes(info.nativeHeapAllocated, spaced: true)),
@@ -162,7 +162,7 @@ class _MemoryDetailSheetState extends State<_MemoryDetailSheet> {
       ]));
     }
 
-    // Core runtime — из CommandClient-статуса.
+
     out.addAll(_group(context, 'Core runtime', [
       _row(context, 'Goroutines', '${widget.goroutines}'),
       _row(context, 'Connections in', '${widget.connectionsIn}'),

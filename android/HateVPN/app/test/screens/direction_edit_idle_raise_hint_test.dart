@@ -3,14 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/models/direction.dart';
 import 'package:lxbox/screens/direction_edit_screen.dart';
 
-// §442 — редактор Направления: interval больше idle_timeout сохранить можно,
-// сборка поднимет idle_timeout до interval. Форма показывает подсказку ровно
-// тогда, когда санитайзер вмешается. Проверяется показ, не текст (AGENTS.md).
+
+
+
 
 const _hint = ValueKey('direction-auto-idle-raise-hint');
 
 Future<void> _pump(WidgetTester tester, DirectionAuto auto) async {
-  // Секция автовыбора — внизу ListView; высокий экран строит её целиком.
+
   tester.view.physicalSize = const Size(900, 5000);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);

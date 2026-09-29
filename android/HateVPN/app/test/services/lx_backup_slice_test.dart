@@ -18,14 +18,14 @@ import 'package:lxbox/services/lx_backup_slice.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §439 §1.3 — LX Backup 1.0 = срез записи хранения одной таблицей полей
-/// (`lx_backup_slice.dart`): поле контракта едет, настройка LxBox без дома в
-/// 1.0 срезается одним `backup_local_only_dropped` на сущность, рантайм и
-/// маркеры — молча. Флаг Л2 `declared` снимает срез с поля: оно едет, импорт
-/// его знает и применяет. Контракт 1.0.1 объявил поля стороны LxBox
-/// (`BACKUP.md` §2): в таблице они `declared`, срезается и называется только
-/// DNS-правило `kind: srs`. Механизм среза необъявленной настройки проверяется
-/// подменой таблицы ([_settingsUndeclared]).
+
+
+
+
+
+
+
+
 
 const _url = 'https://example-1.com/sub';
 const _uri = 'vless://11111111-1111-1111-1111-111111111111@example-2.com:443'
@@ -61,7 +61,7 @@ SubscriptionServers _subscription({
       onUpdateAction: onUpdateAction,
     );
 
-/// Состояние со всеми настройками LxBox из §1.3, отличными от умолчания.
+
 ({
   List<ServerList> lists,
   List<SourceChain> chains,
@@ -151,7 +151,7 @@ Map<String, dynamic> _source(String json, String kind) =>
 List<String> _lines(List<LxBackupWarning> warnings) =>
     [for (final w in warnings) '${w.code} ${w.detail}'];
 
-/// Импорт тем же планом, что приложение (`LxBackupImportService`).
+
 ({LxBackupFile file, List<ServerList> lists, List<SourceChain> chains})
     _import(List<ServerList> lists, String raw) {
   final plan = planLxBackupImport(
@@ -161,16 +161,16 @@ List<String> _lines(List<LxBackupWarning> warnings) =>
   return (file: plan.file, lists: plan.lists, chains: plan.chains);
 }
 
-/// Таблица, в которой настройки LxBox контрактом НЕ объявлены (форма до 1.0.1):
-/// механизм среза с названием.
+
+
 List<BackupField> _settingsUndeclared() => [
       for (final f in kBackupFields)
         f.declared ? BackupField(f.record, f.key, f.fate) : f,
     ];
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   tearDown(() => overrideBackupFieldsForTesting(null));
@@ -198,7 +198,7 @@ void main() {
       ]) {
         expect(sub.containsKey(key), isFalse, reason: key);
       }
-      // Ссылка detour — поле контракта: едет.
+
       expect(sub['detour'], {'tag': 'vpn-1'});
       expect(_source(out.json, 'server').containsKey('tag_policy'), isFalse);
       final folder = _source(out.json, 'folder');
@@ -238,7 +238,7 @@ void main() {
         expect(record.containsKey(key), isFalse, reason: key);
       }
       final rule = ((jsonDecode(out.json) as Map)['rules'] as List).single as Map;
-      // Контракт 1.0.1 объявил verbatim: тело на приёмнике не перетипизируется.
+
       expect(rule['verbatim'], isTrue);
       expect(rule['body'], {'action': 'sniff'});
     });
@@ -409,7 +409,7 @@ void main() {
         ],
         reason: 'members_rule и pool_badge едут внутри group (поле контракта)',
       );
-      // НЕ объявлено: DNS-правило kind: srs (BACKUP.md §2) — срез с названием.
+
       expect(
         [
           for (final f in kBackupFields)
@@ -520,8 +520,8 @@ void main() {
       importRulesEnabled: false,
       onUpdateAction: SubscriptionOnUpdateAction.none,
     );
-    // Файл стороны, которая полей LxBox не носит (лаунчер): подписка тем же
-    // URL, без detour_policy/import_rules/on_update_action.
+
+
     final launcherFile = jsonEncode({
       'lx_backup': 2,
       'exported_by': {'app': 'launcher', 'version': '1.6.0'},

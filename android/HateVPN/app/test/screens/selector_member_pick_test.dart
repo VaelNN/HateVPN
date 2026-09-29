@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 @Timeout(Duration(seconds: 60))
 library;
 
@@ -23,8 +23,8 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §565 / задача 570 — выбор члена группы ручного рода: переключатель на
-/// экране узла и хранение выбора у группы подписки (`group_defaults`).
+
+
 class _FakePathProvider extends PathProviderPlatform
     with MockPlatformInterfaceMixin {
   final String tempRoot;
@@ -58,7 +58,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -87,7 +87,7 @@ void main() {
         nodeCount: 3,
       ),
     ]);
-    // Финальные теги сборки: префикса нет, совпадают с сырыми.
+
     sub.debugSetLastEmittedTagMap({'G': g, 'a': a, 'b': b});
     return (sub, a, b, g);
   }
@@ -100,7 +100,7 @@ void main() {
     final applied = list.withGroupDefaultsApplied();
     final group = applied.nodes.whereType<AutoSelectSpec>().single;
     expect(group.manualDefault, 'b');
-    // Оригинал узла не тронут: разбор тела его перезапишет, выбор — нет.
+
     expect(list.nodes.whereType<AutoSelectSpec>().single.manualDefault, 'a');
   });
 

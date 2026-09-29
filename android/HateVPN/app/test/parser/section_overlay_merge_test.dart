@@ -7,21 +7,21 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 
 import '../contract_paths.dart';
 
-/// Ревью после v2.25.1 (движок), m3 — `_mergeOverlay` отличает запись от
-/// группы по `source` у ЛЮБОЙ стороны.
-///
-/// Раньше решало только отсутствие `source` у оверлея: запись оверлея без
-/// `source` при одноимённой записи реестра сливалась с ней как группа, и у
-/// записи молча оставались `source`/`implies` реестра — вопреки «запись
-/// оверлея замещает целиком».
-///
-/// Второй тест — снимок: все оверлеи `assets/contract_draft/**` сливаются
-/// новым правилом ровно в то же, что и старым. Правка обязана была не менять
-/// результат ни одного существующего оверлея.
+
+
+
+
+
+
+
+
+
+
+
 Map<String, dynamic> _merge(Map<String, dynamic> b, Map<String, dynamic> o) =>
     MapperSections.mergeOverlayForTest(b, o);
 
-/// Правило ДО правки — дословно, для сверки снимка.
+
 Map<String, dynamic> _mergeOld(
   Map<String, dynamic> base,
   Map<String, dynamic> overlay,
@@ -91,13 +91,13 @@ void main() {
         if (doc['_overlay'] != true) continue;
         final name = f.uri.pathSegments.last.replaceAll('.json', '');
 
-        // Секция протокола: оверлей `mappers.<вид>` поверх реестра.
+
         final ov = _map(_map(doc['mappers'])?[kind]);
         final base =
             _map(_map(ContractRegistry.I.rawProtocol(name)?['mappers'])?[kind]);
         if (ov != null && base != null) pairs.add(('$kind/$name', base, ov));
 
-        // Общий блок: `blocks.<диалект>` поверх реестра.
+
         final blocks = _map(doc['blocks']);
         final regBlocks =
             _map(ContractRegistry.I.rawShared('$name.json')?['blocks']);
@@ -113,12 +113,12 @@ void main() {
       }
     }
 
-    // Порог, а не точное число: он ловит МОЛЧА СРЕЗАННЫЙ набор (оверлей
-    // перестал находиться — и сверка выродилась в пустую), а не количество
-    // отступлений само по себе. Синк 1.1.53 снял 22 файла из 30 (§49
-    // «оверлей — это заявка на дельту, а не способ жить иначе»), и прежние
-    // 10 пар стали недостижимы: пар ровно столько, сколько осталось живых
-    // отступлений. Порог опущен до 5 — ниже этого набор точно срезан.
+
+
+
+
+
+
     expect(pairs.length, greaterThanOrEqualTo(5),
         reason: 'сверка не должна быть пустой: '
             '${pairs.map((p) => p.$1).toList()}');

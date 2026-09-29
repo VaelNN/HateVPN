@@ -16,13 +16,13 @@ import 'package:lxbox/services/parser/body_decoder.dart';
 import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/parse_all.dart';
 
-/// §460 W2a — предупреждения реестра на узле при РАЗБОРЕ.
-///
-/// Воронка одна на все входы — `parseAll` (`services/parser/parse_all.dart`),
-/// поэтому тесты идут через неё, а не через внутренний хелпер: проверяется
-/// ровно то, что увидит список подписки.
 
-/// Узлы из тела любого формата — тот же путь, которым идёт приложение.
+
+
+
+
+
+
 List<NodeSpec> _parse(String raw) => parseAll(decode(raw));
 
 NodeSpec _one(String raw, {bool own = false}) {
@@ -47,7 +47,7 @@ void main() {
 
   group('§460 W2a — воронка parseAll', () {
     test('URI: мусорный key_share даёт код с путём tls.reality.key_share', () {
-      // REALITY-узел с валидным pbk: key_share читается только при нём.
+
       final n = _one(
         'vless://11111111-1111-1111-1111-111111111111@example.com:443'
         '?security=reality&encryption=none&sni=a.example'
@@ -60,8 +60,8 @@ void main() {
     });
 
     test('JSON: битое значение модельного поля даёт код с путём', () {
-      // `uuid` у tuic — поле модели и строка: до эмиссии оно доживает, и
-      // санитайзер судит его сам.
+
+
       final n = _one('''
 {"type":"tuic","tag":"n","server":"example.com","server_port":443,
  "uuid":"not-a-uuid","password":"p","congestion_control":"bbr"}
@@ -70,19 +70,19 @@ void main() {
       expect(w.path, 'uuid');
     });
 
-    // ГРАНИЦА ВОЛНЫ W2a — СНЯТА для JSON шагом 1 фичи 472.
-    //
-    // Раньше разбор смотрел только на `emit()` уже построенного `NodeSpec`, а
-    // модель — сама по себе фильтр: JSON-парсер кладёт в спеку то, что у неё
-    // есть полем, приводя типы. Мусор вне модели (`totally_bogus`,
-    // `tls.min_version: 5` числом) до санитайзера не доезжал, и коды этих
-    // полей знал только гард СБОРКИ — человек читал их в отчёте сборки, а не
-    // в строке узла.
-    //
-    // Теперь у JSON-входа санитайзер идёт по ДОСЛОВНОЙ карте (`rawSource`,
-    // §455), и такой мусор получает код на узле. Тело при этом по-прежнему не
-    // меняется: `emit()` мусора не несёт — его снял парсер, а очищенную карту
-    // санитайзера разбор выбрасывает.
+
+
+
+
+
+
+
+
+
+
+
+
+
     test('JSON: мусор вне модели даёт код на узле, тело не меняя', () {
       final n = _one('''
 {"type":"vless","tag":"n","server":"example.com","server_port":443,
@@ -95,20 +95,20 @@ void main() {
       expect((emitted['tls'] as Map).containsKey('min_version'), isFalse,
           reason: 'значение не прошло приведение типа в парсере');
 
-      // Ключ вне схемы: код приходит из дословной карты, с путём и значением.
+
       final unknown = _byCode(n, 'unknown_key');
       expect(unknown.path, 'totally_bogus');
       expect(unknown.value, '1');
 
-      // Значение не того типа — тоже видно на дословной карте, где оно ещё
-      // лежит числом.
+
+
       final bad = _byCode(n, 'type_invalid');
       expect(bad.path, 'tls.min_version');
     });
 
     test('разбор тело узла не меняет', () {
-      // Узел без мусора: аннотация обязана пройти по нему и не тронуть
-      // ничего — чистит по-прежнему гард сборки.
+
+
       const raw = 'vless://11111111-1111-1111-1111-111111111111@example.com:443'
           '?security=tls&encryption=none&sni=a.example&type=ws&path=/p#node';
       final before = _one(raw).emit(TemplateVars.empty).map;
@@ -117,9 +117,9 @@ void main() {
     });
 
     test('гейты ядра при разборе выключены: min_core кода не даёт', () {
-      // `tls.reality.key_share` несёт min_core 1.14.1-lx.4. Валидное значение
-      // при разборе обязано пройти молча — версии ядра здесь ещё нет
-      // (24.1.6), и снимать поле разбору нечем.
+
+
+
       final n = _one(
         'vless://11111111-1111-1111-1111-111111111111@example.com:443'
         '?security=reality&encryption=none&sni=a.example'
@@ -145,23 +145,23 @@ void main() {
   });
 
   group('§460 W2a — дедуп с рукописными кодами', () {
-    // История переездов: vless (был здесь до шага 3) → tuic (шаги 3–4) →
-    // anytls (шаг 5) → masque (шаг 6). Каждый раз пример искали на схеме,
-    // которая ЕЩЁ НЕ переехала: дедуп нужен ровно там, где рукописное правило
-    // и правило реестра говорят об одном поле, а у переехавшей схемы источник
-    // кода по определению один.
-    //
-    // §472 шаг 9 держал пример на ЖИВОМ рукописном производителе
-    // (`hysteria2_obfs.dart`); §547 A2 снял и его — обфускацию судит только
-    // реестр. Механизм дедупа остаётся (таблица `handwrittenWarningPath`
-    // живёт, пока живут рукописные классы), и проверяется подсадкой:
-    //
-    // - рукописный `UnknownObfsWarning` объявляет путь `obfs.type`;
-    // - реестр судит то же поле по ДОСЛОВНОЙ карте тела (`annotateFromRawBody`):
-    //   `protocols/hysteria2.json` → `body.fields.obfs.type`, enum +
-    //   `on_invalid: drop`, код `obfs_unknown`.
-    //
-    // Два производителя, одна пара `(code, path)`, одна запись на выходе.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     test('рукописный + реестровый с одной парой (code, path) → одна запись',
         () {
       const raw = '{"type":"hysteria2","tag":"h","server":"e.example",'
@@ -180,10 +180,10 @@ void main() {
 
       const code = 'obfs_unknown';
       const path = 'obfs.type';
-      // Путь рукописного класса нормативен: дедуп считается по ПАРЕ.
+
       expect(handwrittenWarningPath(const UnknownObfsWarning('nonsense')), path);
 
-      // Разбор рукописного кода больше не ставит (§547 A2).
+
       final plain = build();
       expect(plain.warnings.whereType<UnknownObfsWarning>(), isEmpty,
           reason: 'рукописного производителя obfs-кодов нет');
@@ -194,7 +194,7 @@ void main() {
       expect(fromRegistry.single.path, path);
       expect(fromRegistry.single.value, 'nonsense');
 
-      // Подсадка рукописного класса: запись остаётся ОДНА.
+
       final seeded = build()..warnings.add(const UnknownObfsWarning('nonsense'));
       annotateFromRawBody(seeded);
       expect(seeded.warnings.whereType<UnknownObfsWarning>(), hasLength(1),
@@ -203,7 +203,7 @@ void main() {
           reason: 'реестр тот же код вторым сообщением не дублирует');
     });
 
-    // §472 шаг 3 — а у переехавшей схемы источник кода РОВНО один: реестр.
+
     test('у узла конвейера flow_deprecated приходит из реестра, с путём', () {
       final n = _one(
         'vless://11111111-1111-1111-1111-111111111111@example.com:443'
@@ -228,9 +228,9 @@ void main() {
 
   group('§472 шаг 1 — санитайзер по дословной карте JSON-узла', () {
     test('коды дословного тела встают на узел с путём и значением', () {
-      // Тот же узел, что в корпусе (`vless_junk_pair.body`): три класса мусора,
-      // и ни один из них не доживает до `emit()` — их снял типизированный
-      // парсер. До шага 1 узел оставался без кодов вовсе.
+
+
+
       final n = _one(
         '{"type":"vless","tag":"junk","server":"a.example","server_port":443,'
         '"uuid":"11111111-1111-1111-1111-111111111111",'
@@ -247,9 +247,9 @@ void main() {
     });
 
     test('дословная карта: тело узла не меняется', () {
-      // Санитайзер работает наблюдателем — очищенную карту разбор
-      // выбрасывает. `rawSource` обязан остаться тем, что прислал провайдер
-      // (§455: JSON-источник уходит в ядро дословно).
+
+
+
       const raw = '{"type":"naive","tag":"m","server":"m.example",'
           '"server_port":443,"username":"u","password":"p",'
           '"totally_unknown_key":"whatever",'
@@ -264,8 +264,8 @@ void main() {
     });
 
     test('гейты ядра выключены и на дословной карте', () {
-      // `tls.reality.key_share` несёт min_core 1.14.1-lx.4. Валидное значение
-      // в ДОСЛОВНОМ теле обязано пройти молча: версии ядра при разборе нет.
+
+
       final n = _one(
         '{"type":"vless","tag":"ks","server":"a.example","server_port":443,'
         '"uuid":"11111111-1111-1111-1111-111111111111",'
@@ -281,10 +281,10 @@ void main() {
     });
 
     test('дедуп: рукописный класс с путём закрывает только свой путь', () {
-      // У naive реестр шлёт `tls_field_unsupported_naive` на КАЖДОЕ
-      // запрещённое поле. Рукописный `InsecureTlsWarning` пути не несёт, и до
-      // шага 1 дедуп по одному коду съел бы весь набор. Здесь проверяется, что
-      // на каждое поле остаётся ровно одна запись и адреса не потеряны.
+
+
+
+
       final n = _one(
         '{"type":"naive","tag":"j","server":"s.example","server_port":443,'
         '"username":"u","password":"p",'
@@ -304,8 +304,8 @@ void main() {
           'tls.fragment',
         ]),
       );
-      // Ни одна пара (code, path) не повторяется — ни внутри набора, ни с
-      // рукописными классами.
+
+
       final pairs = <String>[
         for (final w in n.warnings)
           '${warningCodeOf(w) ?? ''} ${w is RegistryWarning ? w.path ?? '' : handwrittenWarningPath(w) ?? ''}',
@@ -315,8 +315,8 @@ void main() {
     });
 
     test('URI-узел дословной карты не имеет — прежнее поведение', () {
-      // `rawSource` ссылки — это ссылка, а не JSON: второй проход её
-      // пропускает, и коды приходят только от `emit()`-прохода, как в W2a.
+
+
       final n = _one(
         'vless://11111111-1111-1111-1111-111111111111@example.com:443'
         '?security=reality&encryption=none&sni=a.example'
@@ -330,11 +330,11 @@ void main() {
 
     test('Xray-JSON остаётся на шаг 8: дословной sing-box-карты у него нет',
         () {
-      // У Xray-узла `rawSource` — объект XRAY (`streamSettings`,
-      // `settings.vnext[]`), а санитайзер судит карту sing-box. Общего у них
-      // нет даже имени поля типа: `protocol` против `type`. Мусор здесь на
-      // узел не встаёт — и это НЕ дефект шага 1, а его граница: маппер
-      // «Xray-карта → sing-box-карта» заводится шагом 8 спеки 472.
+
+
+
+
+
       final n = _one(
         '[{"remarks":"xr","outbounds":[{"tag":"x","protocol":"vless",'
         '"settings":{"vnext":[{"address":"x.example","port":443,'
@@ -350,10 +350,10 @@ void main() {
     });
 
     test('предупреждения переживают хранение: узел разбирается заново', () {
-      // Узел хранится ТЕКСТОМ (`raw_body` записи 1.0), и при чтении записи
-      // разбирается тем же `parseAll`. Значит коды не сериализуются, а
-      // считаются заново на каждой загрузке — проверяется полным
-      // круговоротом через кодек записи.
+
+
+
+
       const raw = '{"type":"naive","tag":"stored","server":"m.example",'
           '"server_port":443,"username":"u","password":"p",'
           '"totally_unknown_key":"whatever",'
@@ -385,11 +385,11 @@ void main() {
     });
   });
 
-  // §473 (контракт 1.1.5) — условный потолок MTU у AmneziaWG и исключение по
-  // входу. Правило одно, а исход у него два, и решает вход узла.
+
+
   group('§473 — потолок MTU AmneziaWG', () {
-    // AWG-endpoint ТЕЛОМ sing-box своего сервера: вход `singbox` (§576 п.5 —
-    // только у своей записи и члена папки).
+
+
     String awgBody(int? mtu) => '{"type":"wireguard","tag":"awg-ep",'
         '${mtu == null ? '' : '"mtu":$mtu,'}'
         '"address":["10.0.0.2/32"],'
@@ -405,15 +405,15 @@ void main() {
       final w = _byCode(n, 'awg_mtu_high');
       expect(w.path, 'mtu');
       expect(w.value, '1420');
-      // Ровно ОДИН код про MTU: проходов санитайзера у JSON-входа два, и
-      // разойдись они входом, узел получил бы и info, и warning об одном поле.
+
+
       expect(
           _registry(n).where((w) => w.code.startsWith('awg_mtu_')), hasLength(1));
     });
 
-    // §576 п.5 — вход `singbox` только у своей записи и члена папки. Тот же
-    // JSON узлом подписки — вход `other`: исключение по входу на него не
-    // действует, значение заменено (корпус `body/singbox/endpoints_awg_mtu_high`).
+
+
+
     test('bodySourceOf: узел подписки с sing-box JSON — вход other', () {
       final sub = _one(awgBody(1420));
       expect(bodySourceOf(sub), BodySource.other);
@@ -421,7 +421,7 @@ void main() {
       expect(_byCode(sub, 'awg_mtu_clamped').value, '1420');
       expect(_registry(sub).map((w) => w.code), isNot(contains('awg_mtu_high')));
 
-      // Тот же текст своим сервером — вход `singbox`, значение цело.
+
       final own = _one(awgBody(1420), own: true);
       expect(own.emit(TemplateVars.empty).map['mtu'], 1420);
     });
@@ -434,8 +434,8 @@ void main() {
     });
 
     test('та же нода ССЫЛКОЙ: значение заменено, код warning', () {
-      // Парность входов нарушена НАМЕРЕННО (решение владельца 18.09.2026):
-      // значение из ссылки сочинял генератор провайдера, а не автор узла.
+
+
       final n = _one(
           'wireguard://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA=@example-3.com:51820'
           '?publickey=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbA%3D'
@@ -468,19 +468,19 @@ void main() {
     });
 
     test('jc: 0 в теле — законный AWG-узел, потолок действует', () {
-      // Условие `any_set` судит НАЛИЧИЕ ключа. Прочитай оно `jc: 0` как «поля
-      // нет» (предикат `conflicts`/`requires`, §467), с такого узла потолок
-      // снялся бы, и туннель молча перестал бы нести данные.
+
+
+
       final n =
           _one(awgBody(1420).replaceFirst('"jc":10', '"jc":0'), own: true);
       expect(_byCode(n, 'awg_mtu_high').value, '1420');
     });
 
     test('исключение по входу ПЕРЕЖИВАЕТ перезапуск', () {
-      // Вход определяется по `rawSource` — тому самому тексту, что лежит в
-      // хранении, и разбор идёт заново при каждой загрузке. Считай мы вход из
-      // чего-то сессионного, узел получил бы кламп задним числом при
-      // следующем старте: настройка человека исчезла бы молча.
+
+
+
+
       final raw = awgBody(1420);
       final before = UserServer(
         id: 'src-awg',
@@ -508,28 +508,28 @@ void main() {
   });
 
   group('§460 W2a — цена разбора', () {
-    // Аннотация считается на КАЖДОМ узле подписки, поэтому её цена измерена,
-    // а не предположена. Замер на рабочей машине (2000 узлов vless+ws+tls,
-    // release-прогон `flutter test`):
-    //
-    //   разбор без реестра        ~42 мс
-    //   аннотация сверху          ~95 мс  (≈47 мкс на узел)
-    //   схема из кэша, x2000      ~0.7 мс (≈0.3 мкс на вызов)
-    //
-    // 95 мс однократно на подписку в 2000 узлов — цена обхода 384 полей
-    // схемы, и она приемлема: разбор идёт один раз на обновление подписки,
-    // не на каждый кадр.
-    //
-    // Порог ниже сознательно НЕ про проценты: абсолютные миллисекунды
-    // на CI-раннере и на ноутбуке несопоставимы, и тест на ±20 % был бы
-    // флаки-генератором. Он ловит потерю КЭША схем — единственную регрессию,
-    // которая здесь реальна: без `_schemaCache` каждый узел заново
-    // раскрывает `ref`-ы (tls + dialer + multiplex), и цена растёт на
-    // порядок, а не на проценты.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     test('2000 узлов: схема берётся из кэша, а не раскрывается заново', () {
       const n = 2000;
 
-      // Прогрев кэша и JIT.
+
       for (var i = 0; i < 50; i++) {
         ContractRegistry.I.schemaFor('vless');
       }
@@ -540,10 +540,10 @@ void main() {
       }
       sw.stop();
 
-      // Раскрытие схемы vless — это разбор JSON-секций tls/transports/
-      // dialer/multiplex, десятки микросекунд на вызов. Из кэша — доли
-      // микросекунды. Порог 20 мс на 2000 вызовов (10 мкс на вызов) лежит
-      // между этими режимами с запасом в обе стороны.
+
+
+
+
       expect(
         sw.elapsedMicroseconds,
         lessThan(20000),
@@ -556,7 +556,7 @@ void main() {
       const n = 2000;
       final body = StringBuffer();
       for (var i = 0; i < n; i++) {
-        // Узел с полным телом (tls + ws + fp) — худший случай обхода схемы.
+
         body.writeln(
           'vless://11111111-1111-1111-1111-111111111111@example.com:443'
           '?security=tls&encryption=none&sni=a.example&type=ws&path=/p$i'
@@ -565,16 +565,16 @@ void main() {
       }
       final decoded = decode(body.toString());
 
-      expect(parseAll(decoded), hasLength(n)); // прогрев
+      expect(parseAll(decoded), hasLength(n));
 
       final sw = Stopwatch()..start();
       final nodes = parseAll(decoded);
       sw.stop();
       expect(nodes, hasLength(n));
 
-      // Измерено ~130 мс (разбор + аннотация). Потолок 3 с — про «ушло в
-      // квадратичность», а не про проценты: на самом медленном CI-раннере
-      // запас десятикратный.
+
+
+
       expect(
         sw.elapsedMilliseconds,
         lessThan(3000),
@@ -582,19 +582,19 @@ void main() {
       );
     });
 
-    // §472 шаг 1 — у JSON-входа проходов санитайзера ДВА: по дословной карте и
-    // по `emit()`. Цена второго прохода измеряется здесь, тем же порогом и по
-    // тому же образцу: он про «ушло в квадратичность», а не про проценты.
-    // Дословный проход вдобавок разбирает `rawSource` из текста, поэтому кейс
-    // взят худший — тело с мусором, на котором санитайзер не выходит рано.
-    //
-    // Замер на рабочей машине (та же машина, тот же прогон, что у URI-кейса
-    // выше): URI 2000 узлов ~138 мс, JSON 2000 узлов с мусором ~595 мс.
-    // Разница — не второй санитайзер сам по себе, а `jsonDecode` дословного
-    // тела на каждом узле плюс полный обход схемы там, где у чистого узла
-    // санитайзер выходит рано. Инвариант 5 спеки 472 (не хуже ×1,5 к W2a)
-    // считается по СВОЕМУ входу: JSON-разбора под W2a не существовало, узел
-    // оставался без кодов вовсе.
+
+
+
+
+
+
+
+
+
+
+
+
+
     test('2000 JSON-узлов с мусором разбираются за разумное время', () {
       const n = 2000;
       final entries = <String>[
@@ -612,14 +612,14 @@ void main() {
       ];
       final decoded = decode('[${entries.join(',')}]');
 
-      expect(parseAll(decoded), hasLength(n)); // прогрев
+      expect(parseAll(decoded), hasLength(n));
 
       final sw = Stopwatch()..start();
       final nodes = parseAll(decoded);
       sw.stop();
       expect(nodes, hasLength(n));
 
-      // Коды на месте: замер обязан мерить работу, а не пустой проход.
+
       expect(_registry(nodes.first).map((w) => w.code),
           contains('flow_deprecated'));
 
@@ -642,25 +642,25 @@ void main() {
       expect(w.path, 'uuid');
       expect(w.value, '***', reason: 'значение secret-поля маскируется');
 
-      // Ни одно предупреждение узла не несёт исходного значения.
+
       for (final warning in n.warnings) {
         expect(warning.renderEn(), isNot(contains(secretValue)));
         expect(warning.message(), isNot(contains(secretValue)));
         expect(warning.toString(), isNot(contains(secretValue)));
       }
 
-      // И лог — тоже: `entries` отдаёт весь буфер сессии (newest first),
-      // так что проверка накрывает и всё, что написал разбор.
+
+
       for (final e in AppLog.I.entries) {
         expect(e.message, isNot(contains(secretValue)));
       }
     });
   });
 
-  // §469 (контракт 1.1.4) — uTLS/REALITY на QUIC снимаются правилом реестра,
-  // и узел обязан получить код на ОБОИХ входах. Блок снимает санитайзер по
-  // сырой карте входа (`forbidden_for` у `tls.utls`/`tls.reality`); эмиттер
-  // QUIC-срезов не делает (§546).
+
+
+
+
   group('§469 — uTLS/REALITY на QUIC', () {
     test('hysteria2 из ссылки: fp снят с кодом, тело без utls', () {
       final n = _one(
@@ -756,14 +756,14 @@ void main() {
       final w = _byCode(n, 'tls_not_applicable_quic');
       expect(w.path, 'tls.utls');
       expect(w.value, 'map[enabled:true fingerprint:safari]');
-      // `MasqueSpec` таких полей не знает — тело и без правила было бы чистым;
-      // правило добавляет ровно слово о потере.
+
+
       expect((n.emit(TemplateVars.empty).map['tls'] as Map?)
           ?.containsKey('utls'), isNot(isTrue));
     });
 
     test('§469 п. 6 — obfs-коды hysteria2 доходят до узла и из тела', () {
-      // §547 A2 — источник кодов один: реестр (проход по дословной карте).
+
       final unknown = _one('''
 {"type":"hysteria2","tag":"n","server":"example-1.com","server_port":443,
  "password":"p","obfs":{"type":"wat","password":"x"},

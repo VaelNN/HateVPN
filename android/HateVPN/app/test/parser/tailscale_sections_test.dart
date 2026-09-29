@@ -12,7 +12,7 @@ import 'package:lxbox/services/parser/body_decoder.dart';
 import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/parse_all.dart';
 
-/// §435 — узел Tailscale; §575 — из целого конфига берутся только узлы.
+
 void main() {
   final tsBody = <String, dynamic>{
     'type': 'tailscale',
@@ -47,7 +47,7 @@ void main() {
         'accept_routes': true,
         'hostname': 'phone',
       });
-      // Идентичность пула — нет (адреса нет), как у группы.
+
       expect(nodeIdentityKey(ts), isNull);
     });
 
@@ -103,8 +103,8 @@ void main() {
     });
   });
 
-  // §575 — секции узла упразднены: `dns`, `route`, `sections` документа
-  // отбрасываются, связка Tailscale не извлекается.
+
+
   group('§575 целый конфиг: берутся только узлы', () {
     final whole = <String, dynamic>{
       'dns': {

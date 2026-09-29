@@ -5,17 +5,17 @@ import '../node_filter_view_model.dart';
 import '../node_list_presenter.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §048 / §095 / §096 — Filter panel (expanded), tabbed.
-///
-/// Layout (Filter mode — стат-полоса и Nodes-хедер скрыты родителем):
-/// - **табы** Regex / Protocol / Sources / Settings сверху + ✕ закрытия
-///   (→ [togglePanel]) — с точкой на табе, где есть активный фильтр;
-///   §235 — Sources = подписки + папки (§234), бывш. «Subscribes»;
-/// - **сводка активных фильтров** чипами (`InputChip`: tap → нужный таб,
-///   ✕ → снять фильтр; «!» в лейбле = инверсия, §096);
-/// - контент активного таба (авто-высота — рендерим только его, не TabBarView):
-///   у regex/protocol/subscriptions ведущий `!`-negate ([NegateToggle]),
-///   detour — tri-state на Settings.
+
+
+
+
+
+
+
+
+
+
+
 class FilterPanel extends StatefulWidget {
   const FilterPanel({
     super.key,
@@ -31,13 +31,13 @@ class FilterPanel extends StatefulWidget {
   final List<String> emojis;
   final List<String> availableProtocols;
 
-  /// §103 — transport/security теги (вторая строка чипов на Protocol-табе).
+
   final List<String> availableVariants;
 
-  /// §235 — (id, имя) источников: подписки + папки (§234).
+
   final List<(String, String)> sourceOptions;
 
-  /// §195/§197 — сохранить regex (+инверсию) в активное Направление. `null` → 💾 скрыта.
+
   final void Function(String pattern, bool invert)? onSaveRegex;
 
   @override
@@ -46,7 +46,7 @@ class FilterPanel extends StatefulWidget {
 
 class _FilterPanelState extends State<FilterPanel>
     with SingleTickerProviderStateMixin {
-  // Regex=0 · Protocol=1 · Sources=2 · Settings=3.
+
   late final TabController _tab = TabController(length: 4, vsync: this);
 
   NodeFilterViewModel get f => widget.filter;
@@ -64,15 +64,15 @@ class _FilterPanelState extends State<FilterPanel>
     return id;
   }
 
-  /// Макс. ширина чипа: обрезаем лейбл до 15 символов + «…» (имена источников
-  /// бывают длинные).
+
+
   static String _truncate(String s, [int max = 15]) =>
       s.length > max ? '${s.substring(0, max)}…' : s;
 
-  /// Сводка активных фильтров: tap по чипу → его таб, ✕ → снять.
+
   List<Widget> _summaryChips() {
     final chips = <Widget>[];
-    // §096 — префикс инверсии в лейбле чипа («!VLESS», «!/pat/»).
+
     String neg(bool invert) => invert ? '!' : '';
     if (f.regexActive) {
       chips.add(InputChip(
@@ -89,10 +89,10 @@ class _FilterPanelState extends State<FilterPanel>
         onDeleted: () => f.toggleProtocol(proto),
       ));
     }
-    // §103 — transport/security чипы (тот же таб, что протоколы).
+
     for (final v in f.enabledVariants) {
       chips.add(InputChip(
-        label: Text('${neg(f.variantsInvert)}${autoModeLabel(v)}'), // §359
+        label: Text('${neg(f.variantsInvert)}${autoModeLabel(v)}'),
         onPressed: () => _tab.animateTo(1),
         onDeleted: () => f.toggleVariant(v),
       ));
@@ -113,9 +113,9 @@ class _FilterPanelState extends State<FilterPanel>
         onDeleted: f.clearPing,
       ));
     }
-    // §096 — чип когда detour-фильтр включён (дефолт «показать всё» чипа не
-    // даёт): ⊘ = скрыт detour, ⚙ = только detour. tap → Settings, ✕ → выкл
-    // фильтр (вернуть «показать всё»).
+
+
+
     if (f.detourActive) {
       chips.add(InputChip(
         tooltip: f.detourHide
@@ -139,8 +139,8 @@ class _FilterPanelState extends State<FilterPanel>
     return chips;
   }
 
-  /// Перечёркнутая шестерёнка = «detour скрыт» (⚙ без перечёркивания = только
-  /// detour). Используется в чипе-сводке detour-фильтра.
+
+
   Widget _gearOffIcon() {
     final c = Theme.of(context).colorScheme.onSurfaceVariant;
     return SizedBox(
@@ -151,7 +151,7 @@ class _FilterPanelState extends State<FilterPanel>
         children: [
           Icon(Icons.settings, size: 17, color: c),
           Transform.rotate(
-            angle: -0.785, // -45°
+            angle: -0.785,
             child: Container(width: 22, height: 2, color: c),
           ),
         ],
@@ -194,7 +194,7 @@ class _FilterPanelState extends State<FilterPanel>
 
   Widget _tabContent(int index) {
     switch (index) {
-      case 0: // Regex → поле regex (ТОЛЬКО тут) + эмодзи-чипы под ним
+      case 0:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -217,7 +217,7 @@ class _FilterPanelState extends State<FilterPanel>
             ],
           ],
         );
-      case 1: // Protocol + §103 transport/security строкой ниже
+      case 1:
         return widget.availableProtocols.isEmpty
             ? _hint('No protocols')
             : Column(
@@ -238,7 +238,7 @@ class _FilterPanelState extends State<FilterPanel>
                     MultiSelectChipsRow(
                       options: [
                         for (final v in widget.availableVariants)
-                          (v, autoModeLabel(v)), // §359
+                          (v, autoModeLabel(v)),
                       ],
                       enabled: f.enabledVariants,
                       onToggle: f.toggleVariant,
@@ -248,7 +248,7 @@ class _FilterPanelState extends State<FilterPanel>
                   ],
                 ],
               );
-      case 2: // Sources (§235 — подписки + папки)
+      case 2:
         return widget.sourceOptions.isEmpty
             ? _hint('No sources')
             : MultiSelectChipsRow(
@@ -258,7 +258,7 @@ class _FilterPanelState extends State<FilterPanel>
                 invert: f.subscriptionsInvert,
                 onInvertToggle: f.toggleSubscriptionsInvert,
               );
-      default: // Settings — ping + detour tri-state + non-matching
+      default:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -269,9 +269,9 @@ class _FilterPanelState extends State<FilterPanel>
               onEnabledChanged: f.setPingEnabled,
               onClear: f.clearPing,
             ),
-            // §096 — detour: чекбокс-enable + [!] (hide↔only). Чекбокс ВЫКЛ
-            // (старт) = показать всё (фильтр off, [!] серый/неактивен); ВКЛ →
-            // [!] ON = скрыть detour, OFF = только detour. Лейбл = итог-режим.
+
+
+
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Row(
@@ -288,9 +288,9 @@ class _FilterPanelState extends State<FilterPanel>
                   ),
                   const SizedBox(width: 2),
                   NegateToggle(
-                    // §096 — [!] независим от чекбокса: отражает _detourHide
-                    // (красный = hide, дефолт ON) и всегда переключаем, даже
-                    // при выкл-фильтре (две ортогональные оси, как в спеке).
+
+
+
                     active: f.detourHide,
                     onToggle: f.toggleDetourHide,
                     tooltip: getLocalText.s("Hide detour (on) / detour only (off)"),
@@ -298,9 +298,9 @@ class _FilterPanelState extends State<FilterPanel>
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      // §096 — лейбл отражает направление (`!`), НЕ чекбокс:
-                      // снятие галки надпись не меняет (вкл/выкл видно по
-                      // чекбоксу + чипу/точке).
+
+
+
                       f.detourHide
                           ? getLocalText.s("Hide detour servers")
                           : getLocalText.s("Show only detour servers"),
@@ -333,7 +333,7 @@ class _FilterPanelState extends State<FilterPanel>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // §095 — табы СВЕРХУ + ✕ закрытия справа.
+
           Row(
             children: [
               Expanded(
@@ -358,7 +358,7 @@ class _FilterPanelState extends State<FilterPanel>
               ),
             ],
           ),
-          // Сводка активных фильтров (tap=таб, ✕=снять) — горизонтальный скролл.
+
           if (summary.isNotEmpty) ...[
             const SizedBox(height: 6),
             SingleChildScrollView(
@@ -374,7 +374,7 @@ class _FilterPanelState extends State<FilterPanel>
             ),
           ],
           const SizedBox(height: 6),
-          // Рендерим только активный таб → авто-высота (не TabBarView).
+
           AnimatedBuilder(
             animation: _tab,
             builder: (_, _) => _tabContent(_tab.index),

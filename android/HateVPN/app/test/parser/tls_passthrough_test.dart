@@ -8,8 +8,8 @@ import 'package:lxbox/services/parser/singbox_config.dart';
 
 import 'engine_test_setup.dart';
 
-/// §454 / issue #140 — TLS-поля тела узла проходят разбор → эмит по
-/// allowlist'у `OutboundTLSOptions` ядра (норма контракта TASKS_LXBOX §22).
+
+
 void main() {
   const pem =
       '-----BEGIN CERTIFICATE-----\nMII…c=\n-----END CERTIFICATE-----\n';
@@ -165,8 +165,8 @@ void main() {
         'kernel_rx',
         'utls',
       ]);
-      expect(tls['curve_preferences'], 'X25519'); // строка осталась строкой
-      expect(tls['client_certificate'], [pem]); // массив — массивом
+      expect(tls['curve_preferences'], 'X25519');
+      expect(tls['client_certificate'], [pem]);
       expect(tls['certificate_public_key_sha256'], ['pin1']);
       expect(tls['min_version'], '1.2');
     });
@@ -272,9 +272,9 @@ void main() {
       );
     });
 
-    // §546 — utls на QUIC снимает реестр (`tls.json` `forbidden_for`) при
-    // разборе, эмиттер его не судит. Поэтому узел идёт полным путём
-    // JSON-входа, через санитайзер.
+
+
+
     test('hysteria2 (QUIC): certificate проходит, utls срезан', () async {
       await loadEngineSections();
       addTearDown(unloadEngineSections);

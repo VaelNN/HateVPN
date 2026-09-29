@@ -7,10 +7,10 @@ import 'package:lxbox/models/source_chain.dart';
 
 import '../contract_paths.dart';
 
-// §393 C1 — модель источника-цепочки (SPEC 110), канон
-// `contract/schema/source_chain.schema.json`.
 
-/// Цепочка через запись `sources[]` и JSON-текст файла — путь хранения (§439).
+
+
+
 SourceChain _roundTrip(SourceChain c) => chainFromRecord(
         (jsonDecode(jsonEncode(chainToRecord(c))) as Map).cast<String, dynamic>())
     .value!;
@@ -19,7 +19,7 @@ Map<String, dynamic> _body(SourceChain c) =>
     chainToRecord(c)['body'] as Map<String, dynamic>;
 
 void main() {
-  // Каталог strip — данные реестра (chain.json).
+
   setUpAll(loadTestRegistry);
 
   group('SourceChain: запись sources[] round-trip', () {
@@ -30,9 +30,9 @@ void main() {
         NodeLink(folderId: 'sub-1', tag: 'de-exit'),
       ]);
       final back = _roundTrip(c);
-      // Порядок — смысл записи: перевернув его, получим работающий, но
-      // другой маршрут (SPEC 110 T3). Пара едет парой, корневая — без
-      // folder_id (D-112).
+
+
+
       expect(back.hops, const [
         NodeLink(tag: 'home-vps'),
         NodeLink(folderId: 'sub-1', tag: 'de-exit'),
@@ -69,9 +69,9 @@ void main() {
     });
 
     test('rewrite с null-значением (RFC 7396 «удалить ключ») не теряется', () {
-      // null внутри merge-patch значит «удалить ключ у звена». Прибрать его
-      // как «пустое значение» означало бы молча сменить патч на обратный
-      // по смыслу — звено сохранило бы поле, которое пользователь снимал.
+
+
+
       const c = SourceChain(
         tag: 'c',
         hops: [NodeLink(tag: 'a'), NodeLink(tag: 'b')],
@@ -85,9 +85,9 @@ void main() {
     });
 
     test('strip_evasion трёхзначен: нет ключа ≠ false', () {
-      // Отсутствие ключа = умолчание ядра (true), false = явное выключение.
-      // Схлопнув их в bool, мы потеряли бы выбор пользователя при смене
-      // дефолта ядра.
+
+
+
       const unset = SourceChain(tag: 'c', hops: [NodeLink(tag: 'a'), NodeLink(tag: 'b')]);
       expect(_body(unset).containsKey('strip_evasion'), isFalse);
       expect(unset.stripEvasion, isNull);
@@ -125,12 +125,12 @@ void main() {
         },
       }, notes: notes);
       final back = read.value!;
-      // Строка — корневая ссылка формы до 1.0; не ссылка — отброс с отметкой.
+
       expect(back.hops, const [NodeLink(tag: 'a'), NodeLink(tag: 'b')]);
       expect(notes, hasLength(2));
       expect(read.unknownKeys,
           ['body.strip.nonsense', 'body.strip.tls.fragment']);
-      // Неизвестный ключ отсеян на чтении — ядро на нём не стартует.
+
       expect(back.strip, {'tls.utls': true});
     });
 
@@ -182,8 +182,8 @@ void main() {
 
   group('chainOutboundObject', () {
     test('ключ ядра — outbounds, порядок хопов сохраняется', () {
-      // Финальные теги позиций даёт сборка (node_link_resolve.dart): модель
-      // их не знает, объект берёт их списком в порядке hops.
+
+
       final ob = chainOutboundObject(
           const SourceChain(tag: 'via-de', hops: [
             NodeLink(tag: 'home'),
@@ -193,8 +193,8 @@ void main() {
       expect(ob['type'], 'chain');
       expect(ob['tag'], 'via-de');
       expect(ob['outbounds'], ['home', 'S de']);
-      // Умолчания в конфиг не пишутся — иначе явный выбор пользователя стал
-      // бы неотличим от дефолта уже в файле.
+
+
       expect(ob.containsKey('strip_evasion'), isFalse);
       expect(ob.containsKey('idle_timeout'), isFalse);
     });
@@ -203,7 +203,7 @@ void main() {
       final ob = chainOutboundObject(const SourceChain(
         tag: 'c',
         hops: [NodeLink(tag: 'a'), NodeLink(tag: 'b')],
-        // Намеренно обратный каталогу порядок.
+
         strip: {'tls.utls': true, 'tls.fragment': false},
       ), const ['a', 'b']);
       expect((ob['strip'] as Map).keys.toList(), ['tls.fragment', 'tls.utls']);

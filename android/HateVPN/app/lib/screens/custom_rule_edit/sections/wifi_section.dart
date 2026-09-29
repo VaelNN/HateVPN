@@ -4,13 +4,13 @@ import '../../../widgets/wifi_entry.dart';
 import '../widgets/section_header.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §567 — почему SSID сейчас не читается; подсказка в секции рисуется
-/// только для этих причин (всё в порядке / нет Wi-Fi / `unknown_ssid` —
-/// подсказки нет).
+
+
+
 enum WifiHint { preciseLocation, backgroundLocation, nearbyWifi, locationOff }
 
-/// §567 — код ошибки `getCurrentWifiInfo` → подсказка. [missing] — полные
-/// имена разрешений в порядке приоритета (первое определяет подсказку).
+
+
 WifiHint? wifiHintFromError(String reason, List<String> missing) {
   switch (reason) {
     case 'location_disabled':
@@ -29,12 +29,12 @@ WifiHint? wifiHintFromError(String reason, List<String> missing) {
   }
 }
 
-/// §053 Stage 2 — WI-FI NETWORK section. Chip-list + 3 action buttons
-/// (Add current / Pick saved / Manual) + permissions hint (§567: только
-/// при реальной проблеме с чтением SSID).
-///
-/// Callbacks обрабатываются parent State'ом (он знает про
-/// `WifiPermissionDialog`, `getCurrentWifiInfo`, `wifi_history`, etc.).
+
+
+
+
+
+
 class WifiSection extends StatelessWidget {
   const WifiSection({
     super.key,
@@ -54,7 +54,7 @@ class WifiSection extends StatelessWidget {
   final VoidCallback onManual;
   final VoidCallback onTapPermissionsHint;
 
-  /// §567 — null → подсказку не рисовать.
+
   final WifiHint? hint;
 
   @override

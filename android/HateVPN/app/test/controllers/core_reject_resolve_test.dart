@@ -1,4 +1,4 @@
-// §503 — поиск узла листа страховки по идентичности вердикта.
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/controllers/subscription_controller/core_reject_ops.dart';
 import 'package:lxbox/models/core_reject_verdict.dart';
@@ -205,7 +205,7 @@ void main() {
       expect(hit?.source.tag, 'Main');
     });
 
-    // Ревью после v2.25.1, M3: узел ищется по идентичности, не по тексту.
+
     test('M3: одна причина у двух узлов подписки, строка без ref → свой узел',
         () {
       final a = node(tag: 'Alpha');
@@ -279,7 +279,7 @@ void main() {
       final f2 = applyVerdict(folder('f2', n2), n2, 'bad').list;
       final entries = [(0, 'f1', f1), (1, 'f2', f2)];
 
-      // Строка с ref второй папки.
+
       final hit = resolveCoreRejectNode(
         entries,
         DisabledNode(tag: 'Dup', reason: 'bad', ref: nodeRefFor(f2, n2)),

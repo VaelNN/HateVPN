@@ -1,10 +1,10 @@
-// ignore_for_file: depend_on_referenced_packages
 
-// Фича 478 / PARSING_PRINCIPLES §9.4 п. 1 — ручная правка ТЕЛА узла снимает вердикт ядра
-// и включает узел обратно. Здесь проверяются фактические точки сохранения
-// редактора: `updateMemberAt` (член папки) и `updateConnectionAt` (ручной
-// сервер). Смену тела на refetch подписки закрывает
-// `core_reject_storage_test.dart`.
+
+
+
+
+
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -29,20 +29,20 @@ class _FakePathProvider extends PathProviderPlatform
 }
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
 
-  // Тело меняется только полем sni: имя и адрес те же, чтобы правка была
-  // именно правкой ТЕЛА, а не заменой узла.
+
+
   const uriA = 'vless://u@h.example:443?type=ws&security=tls&sni=x#Alpha';
   const uriABody = 'vless://u@h.example:443?type=ws&security=tls&sni=y#Alpha';
-  // Пересохранение без правки: тот же текст. `canonicalNodeBody` — это
-  // `emit()`, а он включает `tag`, поэтому переименование узла для этой
-  // функции ТОЖЕ смена тела (так же считает refetch подписки — одна функция
-  // на один вопрос). Держит вердикт только по-настоящему нетронутое тело.
+
+
+
+
   const uriASame = 'vless://u@h.example:443?security=tls&type=ws&sni=x#Alpha';
 
   setUp(() async {
@@ -58,7 +58,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -68,7 +68,7 @@ void main() {
     return c;
   }
 
-  /// Папка с одним членом, на который страховка уже поставила вердикт.
+
   Future<SubscriptionController> folderWithVerdict() async {
     final c = await makeController();
     await c.addFolder('F');
@@ -83,11 +83,11 @@ void main() {
     return c;
   }
 
-  /// Ручной сервер из [uriA]. Запись ставится `replaceList`, а не остаётся
-  /// той, что вернул `addUserServer`: тот прогоняет узел через авто-эмодзи
-  /// (§090) и переименовывает его, после чего тело записи перестало бы
-  /// совпадать с телом разбора той же ссылки — и проверялась бы §090, а не
-  /// вердикт.
+
+
+
+
+
   Future<SubscriptionController> serverEntry({
     bool enabled = true,
     List<StoredWarning> warnings = const [],
@@ -108,7 +108,7 @@ void main() {
     return c;
   }
 
-  /// Ручной сервер с вердиктом.
+
   Future<SubscriptionController> serverWithVerdict() => serverEntry(
         enabled: false,
         warnings: [StoredWarning.coreRejected('parse encryption: bad')],

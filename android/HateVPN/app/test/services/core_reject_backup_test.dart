@@ -1,6 +1,6 @@
-// §489 / контракт 1.1.67 — `core_rejected` при переносе бэкапом: экспорт
-// сервера пишет как есть, подписка — картой disabled{} без причины; импорт
-// запись снимает, выключение берёт из файла (узел не включается).
+
+
+
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -494,8 +494,8 @@ void main() {
       expect(CoreRejectState.I.bannerVisible, isTrue);
       expect(CoreRejectState.I.bannerNodes, isNotEmpty);
 
-      // Перезапуск приложения = новый процесс: синглтон создаётся заново.
-      // В тесте это [CoreRejectState.resetForTest] — персиста у плашки нет.
+
+
       CoreRejectState.I.resetForTest();
       expect(CoreRejectState.I.bannerVisible, isFalse);
       expect(CoreRejectState.I.bannerNodes, isEmpty);

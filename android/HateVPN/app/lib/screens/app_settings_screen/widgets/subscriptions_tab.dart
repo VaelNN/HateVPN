@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../services/l10n/locale_controller.dart';
 
-/// §118 — App Settings → Subscriptions tab. Глобальные настройки HTTP-фетча
-/// подписок: авто-обновление, кастомный User-Agent, HWID + device-meta
-/// (Remnawave `x-hwid`/`x-device-os`/`x-ver-os`/`x-device-model`).
-///
-/// Stateless — значения и колбэки приходят от `_AppSettingsScreenState`
-/// (паттерн как у [GeneralTab]). Отображает **effective** значения meta
-/// (override > device-дефолт); сам override правится в edit-диалоге родителя.
+
+
+
+
+
+
+
 class SubscriptionsTab extends StatelessWidget {
   const SubscriptionsTab({
     super.key,
@@ -40,11 +40,11 @@ class SubscriptionsTab extends StatelessWidget {
   final bool autoUpdateSubs;
   final ValueChanged<bool> onAutoUpdateSubsChanged;
 
-  /// §337 — обновлять и выключенные подписки. Зависимая от [autoUpdateSubs].
+
   final bool autoUpdateDisabledSubs;
   final ValueChanged<bool> onAutoUpdateDisabledSubsChanged;
 
-  /// Пусто = дефолтный брендированный UA (показан как плейсхолдер).
+
   final String userAgent;
   final String defaultUserAgent;
   final VoidCallback onEditUserAgent;
@@ -52,7 +52,7 @@ class SubscriptionsTab extends StatelessWidget {
   final bool sendHwid;
   final ValueChanged<bool> onSendHwidChanged;
 
-  /// Effective-значения заголовков (override > device-дефолт).
+
   final String hwid;
   final String deviceOs;
   final String verOs;

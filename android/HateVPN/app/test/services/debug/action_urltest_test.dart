@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -25,9 +25,9 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationSupportPath() async => tempRoot;
 }
 
-/// §290 — `/action/urltest` scope-роутер + делегация group-scope в shared
-/// `actionUrltestGroup` (общая база с Automation API, без дубля precondition'ов).
-/// Debug `/action/*` раньше не был покрыт тестами — заодно закрываем дыру.
+
+
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -106,11 +106,11 @@ void main() {
     expect(body(r)['scope'], 'cancel');
   });
 
-  // ─── delegated group scope (общая база с Automation) ───
+
 
   test('group scope, tunnel down → Conflict (делегация в shared handler)',
       () async {
-    // tunnelUp == false — тот же Conflict, что actionUrltestGroup.
+
     controller.debugSeedNodeState(
         group: 'vpn-1', activeNode: 'n', tunnelUp: false);
     await expectLater(

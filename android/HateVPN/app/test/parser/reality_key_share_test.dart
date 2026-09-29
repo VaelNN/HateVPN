@@ -8,7 +8,7 @@ import 'package:lxbox/services/parser/singbox_config.dart';
 import 'engine_test_setup.dart';
 import 'parse_link_as.dart';
 
-// §169 — валидный X25519 public key (43-симв base64url = 32 байта).
+
 const _validPbk = 'AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw';
 
 Map<String, dynamic> _vlessEntry(Map<String, dynamic> reality) => {
@@ -20,8 +20,8 @@ Map<String, dynamic> _vlessEntry(Map<String, dynamic> reality) => {
       'tls': {
         'enabled': true,
         'server_name': 'x.com',
-        // REALITY без uTLS реестр снимает (`tls.reality.requires`) — блок
-        // нужен, чтобы полный путь JSON-входа (§545) оставил reality.
+
+
         'utls': {'enabled': true, 'fingerprint': 'chrome'},
         'reality': {'enabled': true, 'public_key': _validPbk, ...reality},
       },
@@ -32,21 +32,21 @@ Map<String, dynamic> _emittedReality(NodeSpec n) =>
         as Map)
         .cast<String, dynamic>();
 
-/// Узел, пришедший sing-box JSON полным путём входа: `parseSingboxConfigs`
-/// строит модель по карте санитайзера реестра (§545). Блоки utls/reality на
-/// QUIC снимает он, а не эмиттер (§546).
+
+
+
 NodeSpec _viaSingboxJson(Map<String, dynamic> entry) => parseSingboxConfigs([
       {
         'outbounds': [entry],
       },
     ]).single;
 
-/// §457 — `tls.reality.key_share` (ядро ≥ v1.14.1-lx.4): hybrid | classical.
-/// Неизвестное значение ядро не понимает и отвергает outbound целиком, а с
-/// ним и весь конфиг — поэтому вне enum поле молча отбрасывается, узел жив.
+
+
+
 void main() {
-  // §480 W2 — vless переехала на ДВИЖОК СЕКЦИЙ: без реестра и секций-мапперов
-  // ссылка не разбирается вовсе, рукописного запасного пути не осталось.
+
+
   setUpAll(loadEngineSections);
 
   group('§457 sing-box JSON', () {
@@ -71,9 +71,9 @@ void main() {
           ['enabled', 'public_key', 'short_id', 'key_share']);
     });
 
-    // §547 A1 — нормализацию и enum судит реестр (`normalize: trim_lower`,
-    // `on_invalid: drop`), поэтому эти случаи идут полным путём JSON-входа:
-    // модель строится по карте санитайзера (§545).
+
+
+
     test('§459 регистр нормализуется — Hybrid/HYBRID/пробелы дают hybrid', () {
       for (final good in <String>['Hybrid', 'HYBRID', ' hybrid ', ' Classical']) {
         final spec = _viaSingboxJson(_vlessEntry({'key_share': good}))
@@ -96,9 +96,9 @@ void main() {
     });
 
     test('без поля — эмит без key_share; пустой short_id не пишется', () {
-      // §463 / контракт §24.6 — пустой short_id ядру эквивалентен
-      // отсутствующему ключу, и корпус нормирует именно опущенный. Фикстура
-      // `short_id` не задаёт, поэтому ключа в эмите быть не должно.
+
+
+
       final spec = parseSingboxEntry(_vlessEntry(const {}))! as VlessSpec;
       expect(spec.tls.reality!.keyShare, isNull);
       expect(_emittedReality(spec).keys.toList(), ['enabled', 'public_key']);
@@ -121,9 +121,9 @@ void main() {
           },
         },
       });
-      // §546 — блок снимает реестр на разборе (`forbidden_for` у
-      // `tls.reality`), эмиттер QUIC-срезов не делает: key_share уезжает
-      // вместе с блоком ещё до модели и в конфиг не попадает.
+
+
+
       expect((spec as Hysteria2Spec).tls.reality, isNull);
       expect(
           (spec.emitRaw(const TemplateVars()).map['tls'] as Map)

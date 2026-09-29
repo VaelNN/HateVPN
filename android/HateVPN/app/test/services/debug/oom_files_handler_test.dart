@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -23,8 +23,8 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => root;
 }
 
-/// §318 — OOM-снимки ядра через Debug API. Симметрия с `/files/crash/*`
-/// (§316): список + пофайловая выдача каталога с гейтом от traversal.
+
+
 void main() {
   late Directory tempDir;
 
@@ -83,7 +83,7 @@ void main() {
       expect(first['heap_inuse'], '123 MB');
       expect(first['num_goroutine'], 424);
       expect(first['core_version'], '1.14.0-lx.3');
-      // size — весь каталог: heap.pb + go.log + metadata.json.
+
       expect(first['size'], greaterThan(4));
     });
 

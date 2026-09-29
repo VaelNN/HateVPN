@@ -6,15 +6,15 @@ import 'package:lxbox/models/server_list.dart';
 import 'package:lxbox/screens/subscription_detail_screen/detour_mode.dart';
 import 'package:lxbox/screens/subscription_detail_screen/widgets/subscription_settings_tab.dart';
 
-/// §393 A6 — ЛОВУШКА, из-за которой каскад нельзя вешать на `onChanged`.
-///
-/// Поле «Prefix» стреляет `onChanged` на КАЖДОЕ нажатие клавиши. Если бы
-/// каскад считался там, набор `DE:` поверх `RU:` прогнал бы серию правок
-/// `RU:`→`R`, `R`→`RU`… и перемолол бы regex-фильтры Направлений в фарш за
-/// несколько символов (каждая правка чинила бы фильтр под очередной огрызок).
-///
-/// Поэтому каскад висит на `onTagPrefixCommitted` — уход фокуса / submit.
-/// Тест закрепляет именно это разделение.
+
+
+
+
+
+
+
+
+
 void main() {
   SubscriptionEntry makeEntry(String prefix) => SubscriptionEntry(
         list: SubscriptionServers(
@@ -88,7 +88,7 @@ void main() {
     final field = find.byType(TextFormField);
     await tester.enterText(field, 'D');
     await tester.enterText(field, 'DE:');
-    // Фокус уходит с поля — «допечатал».
+
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
 
@@ -96,9 +96,9 @@ void main() {
   });
 
   testWidgets('submit клавиатуры коммитит РОВНО один раз', (tester) async {
-    // Регрессия: свой onFieldSubmitted рядом с Focus давал два вызова на одно
-    // событие (submit снимает фокус сам). Каскад идемпотентен, но лишний
-    // прогон по всем Направлениям на каждый submit — не бесплатен.
+
+
+
     final entry = makeEntry('RU:');
     final committed = <String>[];
     await tester.pumpWidget(host(entry,

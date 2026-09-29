@@ -43,15 +43,15 @@ class _SpeedTestResult {
   final String server;
 }
 
-/// Session-scoped history — survives screen close, cleared on app restart.
+
 final _sessionHistory = <_SpeedTestResult>[];
 
 class _SpeedTestScreenState extends State<SpeedTestScreen>
     with TemplateAwareState<SpeedTestScreen> {
   bool _running = false;
 
-  /// §279 — пусто = idle-подсказка (speedStatusIdle); локализованные статусы
-  /// пишутся в момент присвоения (эфемерные, не переживают смену локали).
+
+
   String _status = '';
   double _downloadMbps = 0;
   double _uploadMbps = 0;
@@ -60,16 +60,16 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
   List<_SpeedTestResult> get _history => _sessionHistory;
   int _streams = 4;
 
-  /// §279 — server selection is keyed by the stable template `id`, not by
-  /// list index (order/names may change between template versions).
+
+
   String? _selectedServerId;
 
-  // Loaded from wizard_template (§279 — typed SpeedTestOptionsModel).
+
   var _servers = <SpeedTestServer>[];
   var _streamOptions = <int>[1, 4, 10];
 
-  /// Index of the selected server; unknown/absent id falls back to the
-  /// default (first) server.
+
+
   int get _selectedServer {
     final i = _servers.indexWhere((s) => s.id == _selectedServerId);
     return i >= 0 ? i : 0;
@@ -77,8 +77,8 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
 
   String _serverId(int i) => _servers[i].id.isNotEmpty ? _servers[i].id : '$i';
 
-  /// §279 — fetch через TemplateAwareState: первый вызов — полная загрузка,
-  /// смена локали — refetch имён серверов (выбор/`_streams` юзера не трогаем).
+
+
   @override
   void onLocaleTemplateFetch({required bool first}) {
     unawaited(_loadConfig(seedDefaults: first));
@@ -101,7 +101,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
 
   String get _currentProxy {
     final state = widget.homeController.state;
-    if (!state.tunnelUp) return 'Direct'; // l10n-exempt: outbound tag-like label
+    if (!state.tunnelUp) return 'Direct';
     return state.activeInGroup ?? state.selectedGroup ?? 'VPN';
   }
 
@@ -119,7 +119,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
     });
 
     try {
-      // Ping — 5 attempts, trimmed mean
+
       final pingResult = await _testPing();
       if (!mounted) return;
       setState(() {
@@ -128,7 +128,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
         _status = getLocalText.s("Testing download...");
       });
 
-      // Download — 4 parallel streams
+
       final dlSpeed = await _testDownload();
       if (!mounted) return;
       setState(() {
@@ -137,7 +137,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
         _status = getLocalText.s("Testing upload...");
       });
 
-      // Upload
+
       final ulSpeed = await _testUpload();
       if (!mounted) return;
       setState(() {
@@ -146,7 +146,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
         _status = getLocalText.s("Complete");
       });
 
-      // Save to session history
+
       _history.insert(
         0,
         _SpeedTestResult(
@@ -191,7 +191,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
 
     if (times.isEmpty) return -1;
     times.sort();
-    // Trimmed mean: drop min and max if we have 3+
+
     if (times.length >= 3) {
       final trimmed = times.sublist(1, times.length - 1);
       return trimmed.reduce((a, b) => a + b) / trimmed.length;
@@ -205,7 +205,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
   String? _serverUploadUrl(int i) => _servers[i].uploadUrl;
   String _serverUploadMethod(int i) => _servers[i].uploadMethod;
 
-  /// Download test: parallel streams with real-time speed updates.
+
   Future<double> _testDownload() async {
     final url = _serverDownloadUrl(_selectedServer);
     if (url.isNotEmpty) {
@@ -216,7 +216,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
         AppLog.I.debug('[speedtest] download (primary) failed: $e');
       }
     }
-    // Fallback to other servers
+
     for (var i = 0; i < _servers.length; i++) {
       if (i == _selectedServer) continue;
       final fallbackUrl = _serverDownloadUrl(i);
@@ -238,7 +238,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
     _dlBytesTotal = 0;
     final sw = Stopwatch()..start();
 
-    // Real-time UI update timer
+
     final uiTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (!mounted || !_running) return;
       final seconds = sw.elapsedMilliseconds / 1000.0;
@@ -285,7 +285,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
   }
 
   Future<double> _testUpload() async {
-    // 2 parallel upload streams, 2MB each
+
     final client = http.Client();
     try {
       final data = Uint8List(5 * 1024 * 1024);
@@ -339,7 +339,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
       body: ListView(
         padding: const EdgeInsets.all(24).withSafeBottom(context),
         children: [
-          // Proxy indicator
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
@@ -367,7 +367,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
           ),
           const SizedBox(height: 24),
 
-          // Ping
+
           _buildGauge(
             getLocalText.s("Ping"),
             _ping < 0
@@ -378,7 +378,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
           ),
           const SizedBox(height: 24),
 
-          // Download
+
           _buildGauge(
             getLocalText.s("Download"),
             '${_downloadMbps.toStringAsFixed(1)} Mbps',
@@ -387,7 +387,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
           ),
           const SizedBox(height: 24),
 
-          // Upload
+
           _buildGauge(
             getLocalText.s("Upload"),
             '${_uploadMbps.toStringAsFixed(1)} Mbps',
@@ -402,7 +402,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
               style: theme.textTheme.bodyMedium, textAlign: TextAlign.center),
           const SizedBox(height: 24),
 
-          // Settings
+
           if (!_running) ...[
             Row(
               children: [
@@ -448,7 +448,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
             const SizedBox(height: 16),
           ],
 
-          // Start button
+
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -460,7 +460,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
             ),
           ),
 
-          // History
+
           if (_history.isNotEmpty) ...[
             const SizedBox(height: 32),
             Text(getLocalText.s("Session History"), style: theme.textTheme.titleSmall),
@@ -525,7 +525,7 @@ class _SpeedTestScreenState extends State<SpeedTestScreen>
             ),
           ),
           Text(
-            // l10n-exempt: latency value + unit suffix
+
             '${r.ping.toStringAsFixed(0)}ms',
             style: theme.textTheme.bodySmall?.copyWith(color: cs.primary),
           ),

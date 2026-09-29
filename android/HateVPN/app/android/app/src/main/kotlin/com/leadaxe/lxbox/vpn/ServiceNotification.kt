@@ -13,16 +13,16 @@ import com.leadaxe.lxbox.R
 
 class ServiceNotification(private val service: Service) {
     companion object {
-        // Wire: id канала стабилен между релизами и локалями — НЕ в ресурсы.
+
         private const val CHANNEL_ID = "boxvpn_vpn_channel"
         private const val NOTIFICATION_ID = 1
-        /// §428 — отдельное (не foreground) уведомление: сервис уже остановлен,
-        /// а сказать юзеру надо — UI-процесса при sticky-рестарте нет.
+
+
         private const val ALERT_NOTIFICATION_ID = 2
 
-        /// §279 — идемпотентный (пере)сабмит канала. createNotificationChannel
-        /// с тем же id обновляет имя/описание (документированный rename-путь) —
-        /// зовётся из init и из L10n.refreshSurfaces при смене языка.
+
+
+
         fun createChannel(ctx: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val channel = NotificationChannel(
@@ -38,29 +38,29 @@ class ServiceNotification(private val service: Service) {
             }
         }
 
-        /// §430 — в шторке висит уведомление id=1, хотя сервис в Stopped:
-        /// утечка от УМЕРШЕГО процесса.
-        ///
-        /// Гонка в AMS (см. §428/§430): если tun-интерфейс исчезает раньше
-        /// binder-death, `serviceProcessGoneLocked` стирает запись сервиса без
-        /// `cancelForegroundNotificationLocked`, и уведомление с
-        /// FLAG_FOREGROUND_SERVICE остаётся в шторке навсегда — «работает в
-        /// фоне», а приложение честно показывает Start (4PDA, Redmi 12s).
-        ///
-        /// Снять его из приложения нельзя: NMS отбрасывает cancel() на
-        /// уведомление с этим флагом, а при подмене под тем же id переносит
-        /// флаг на новое (проверено на AVD: flags 0x62 → 0x48, бит 0x40
-        /// остаётся). Единственный путь — bounce сервиса
-        /// (`BoxVpnService.clearStaleNotification`): AMS снимает уведомление
-        /// сам при штатной остановке foreground-сервиса.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         fun isStalePresent(): Boolean = runCatching {
             BoxApplication.notificationManager.activeNotifications.any { it.id == NOTIFICATION_ID }
         }.getOrDefault(false)
 
-        /// §428 — обычное уведомление на том же канале, живёт после stopSelf()
-        /// и без сервиса (зовётся и из VpnWatchdogReceiver). Без
-        /// POST_NOTIFICATIONS (API 33+) система молча его не покажет — это
-        /// допустимо: сервис в любом случае остановлен, шторм прерван.
+
+
+
+
         fun showAlert(ctx: Context, title: String, text: String) {
             createChannel(ctx)
             val openIntent = ctx.packageManager.getLaunchIntentForPackage(ctx.packageName)
@@ -89,13 +89,13 @@ class ServiceNotification(private val service: Service) {
         createChannel(service)
     }
 
-    /// §182/§279 — builder реконструируется ЦЕЛИКОМ на каждый show():
-    /// `addAction` НЕ идемпотентен (на переиспользуемом builder'е кнопки
-    /// Stop/Reconnect стекались бы на каждый апдейт), а лейблы обязаны
-    /// перечитываться из ресурсов на активной локали в момент рендера
-    /// (§279: relabel при смене языка = обычный show()-путь через
-    /// ACTION_UPDATE_NOTIFICATION). show() зовётся редко (connect / смена
-    /// лейбла) — цена реконструкции незначима.
+
+
+
+
+
+
+
     private fun buildNotification(title: String, text: String)
         : android.app.Notification {
         val openIntent = service.packageManager
@@ -117,9 +117,9 @@ class ServiceNotification(private val service: Service) {
 
         if (pendingIntent != null) builder.setContentIntent(pendingIntent)
 
-        // §182 — кнопки Stop / Reconnect прямо в шторке (фидбэк #180/#261).
-        // icon=0: на Android 7+ action-иконки в развёрнутом уведомлении
-        // compat-стиль скрывает, текст-лейбла достаточно.
+
+
+
         builder
             .addAction(
                 0,
@@ -134,9 +134,9 @@ class ServiceNotification(private val service: Service) {
         return builder.build()
     }
 
-    /// §182 — PendingIntent на explicit-broadcast (только своему пакету →
-    /// receiver RECEIVER_NOT_EXPORTED извне не дёрнуть). FLAG_IMMUTABLE —
-    /// требование API 31+.
+
+
+
     private fun broadcastPI(action: String, requestCode: Int): PendingIntent {
         val intent = Intent(action).setPackage(service.packageName)
         return PendingIntent.getBroadcast(
@@ -147,10 +147,10 @@ class ServiceNotification(private val service: Service) {
 
     fun show(title: String, text: String) {
         val notification = buildNotification(title, text)
-        // На Android 14+ (API 34) Google требует typed startForeground —
-        // иначе MissingForegroundServiceTypeException на строгих OEM
-        // (One UI 6, MIUI 14). На младших API typed-перегрузка отсутствует
-        // в SDK или ничего не даёт — используем legacy 2-arg API.
+
+
+
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             service.startForeground(
                 NOTIFICATION_ID,

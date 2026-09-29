@@ -11,23 +11,23 @@ import 'golden_harness.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §439 — фикстура хранения формы 2.23.2 мигрирует при первом чтении
-// (`_load`), и документ формы 1.0 проходит все типизированные геттеры и
-// сейверы (кодек записей → модели → кодек) без потерь.
-//
-// Эталон `golden/<name>.storage_roundtrip.json`:
-//   • `migration` — отчёт `migrateStorageDoc` над фикстурой (что сделано и
-//     что прочитано не дословно);
-//   • `migrated_file_is_report_doc` — файл, записанный `_load`, равен
-//     документу отчёта (кроме `id` второй и следующих записей разделённого
-//     json-массива: они новые при каждой миграции);
-//   • `content_diff` / `bytes_identical` — файл после круга через модели
-//     против файла сразу после миграции. Пустая разница и совпадение байтов —
-//     форма 1.0 проходит модели дословно.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   for (final name in kStorageFixtures) {
@@ -43,8 +43,8 @@ void main() {
 
       final fixture = jsonDecode(await fixtureFile(name).readAsString())
           as Map<String, dynamic>;
-      // Как `_load`: пресеты DNS по шаблону и тела подписок из `sub_cache`
-      // (перевод ссылок на узлы подписок, §439 п. 8).
+
+
       final bodies = <String, String>{};
       for (final l in fixture['server_lists'] as List) {
         if (l is! Map || l['type'] != 'subscription') continue;
@@ -60,12 +60,12 @@ void main() {
         recordVars: await loadRecordVarDecls(),
       );
 
-      // Первое чтение мигрирует файл и пишет его.
+
       final raw = await SettingsStorage.exportRaw();
       final migratedText = await box.settingsFile.readAsString();
       t('migrated');
 
-      // Типизированные сущности — через модели.
+
       await SettingsStorage.saveServerLists(
           await SettingsStorage.getServerLists());
       t('lists');
@@ -148,8 +148,8 @@ void main() {
   }
 }
 
-/// Документ без `id` записей `rules[]`, заведённых делением json-массива
-/// (`<имя> #N`): миграция выдаёт им новый `id` при каждом прогоне.
+
+
 Object? _withoutSplitIds(Object? doc) {
   if (doc is! Map) return doc;
   final rules = doc['rules'];

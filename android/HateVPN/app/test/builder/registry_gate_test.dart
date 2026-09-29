@@ -1,11 +1,11 @@
-// §460 W1 — гард реестра на сборке конфига.
-//
-// Два вопроса, на которые отвечает файл:
-//   1. Мусор в теле JSON-источника (§455 переносит его дословно) гард
-//      действительно снимает, и предупреждение несёт текст реестра.
-//   2. Валидный конфиг гард не трогает: эталоны rich_v0/avd_v0 обязаны
-//      остаться байт в байт ТЕМИ ЖЕ при ЗАГРУЖЕННОМ реестре. Обычные
-//      golden-тесты реестр не грузят, поэтому проверка живёт здесь.
+
+
+
+
+
+
+
+
 
 import 'package:flutter_test/flutter_test.dart';
 import '../contract_paths.dart';
@@ -16,7 +16,7 @@ import 'package:lxbox/services/builder/registry_gate.dart';
 import '../storage_migration/golden_harness.dart';
 
 
-/// Версия ядра эталонов — та же, что в golden_harness.
+
 const _core = kGoldenCoreVersion;
 
 void main() {
@@ -27,7 +27,7 @@ void main() {
   group('гард реестра на сборке', () {
     test('naive из JSON-источника: foo и tls.insecure сняты, certificate цел',
         () {
-      // Тело в точности как его переносит §455 — дословно, вместе с мусором.
+
       final entry = Outbound(<String, dynamic>{
         'type': 'naive',
         'tag': 'naive-json',
@@ -55,21 +55,21 @@ void main() {
           reason: 'certificate naive читает — поле обязано уцелеть');
       expect(tls['server_name'], 's.example.com');
 
-      // Ровно два предупреждения, и оба с текстом реестра, а не с кодом.
+
       expect(report.warnings.length, 2, reason: report.warnings.join('\n'));
       final joined = report.warnings.join('\n');
       expect(joined, contains('naive-json: '));
-      // Путь есть у обоих. §469 — у запрета (`forbidden_for`) появилось и
-      // ЗНАЧЕНИЕ: ожидания корпуса его называют
-      // (`singbox/outbound_array_tls_fields` → `tls.insecure` = `true`), а
-      // гейт до этого ставил код без него.
-      // §470 — значение появилось и у `unknown_key`: результат разбора корпуса называет
-      // его (`body/singbox/manual_object_junk`), и лаунчер печатает снятое
-      // `src[name]`. «Ключ снят» без значения не говорило человеку, ЧТО он
-      // потерял, а раннер тел расходился с контрактом на одном этом поле.
+
+
+
+
+
+
+
+
       expect(joined, contains('[foo=1]'));
       expect(joined, contains('[tls.insecure=true]'));
-      // Текст из warnings.json, а не голый код.
+
       expect(joined, isNot(contains('unknown_key')));
       expect(joined, isNot(contains('tls_field_unsupported_naive')));
       expect(joined, contains('unknown key'));
@@ -88,15 +88,15 @@ void main() {
       expect(report.warnings.single, contains('no-uuid: '));
     });
 
-    // §477 — второй эшелон для узла `origin.kind: json` (§455).
-    //
-    // Такой узел идёт в ядро ДОСЛОВНО, минуя модель, поэтому правило формы
-    // `encryption` обязано сработать и здесь: иначе одна негодная строка в
-    // одном узле подписки уронила бы старт ВСЕГО конфига (#147). Разбор
-    // отбраковывает такой узел раньше (`parseAll`), но гард — последний, кто
-    // видит тело перед ядром, и полагаться на один эшелон нельзя.
-    // §577: с контракта 1.1.91 у `vless.encryption` есть `core_rejects`, и
-    // узел снимается и у авторского тела (тест в группе авторских тел ниже).
+
+
+
+
+
+
+
+
+
     test('§477 — узел с негодным encryption не едет в ядро', () {
       final entry = Outbound(<String, dynamic>{
         'type': 'vless',
@@ -104,13 +104,13 @@ void main() {
         'server': 'example.com',
         'server_port': 443,
         'uuid': '11111111-1111-1111-1111-111111111111',
-        // Три части вместо четырёх — ровно случай #147.
+
         'encryption': 'mlkem768x25519plus.native.0rtt',
       });
       final report = applyRegistryGate([entry], coreVersion: _core);
       expect(report.dropped, [entry],
           reason: 'запись обязана быть снята целиком, а не лишена поля');
-      // Текст реестра, с путём и СЫРЫМ значением.
+
       final line = report.warnings.single;
       expect(line, contains('verbatim-enc-broken: '));
       expect(line, contains('[encryption=mlkem768x25519plus.native.0rtt]'));
@@ -154,10 +154,10 @@ void main() {
       expect(entry.map, body);
     });
 
-    // §473 — условный потолок MTU у AmneziaWG (`max_when`, контракт 1.1.5) и
-    // его исключение по входу. Гард — единственный, кто тело переписывает, и
-    // именно здесь исключение обязано соблюдаться: §455 обещает, что узел
-    // `origin.kind: json` идёт в ядро ДОСЛОВНО.
+
+
+
+
     Endpoint awgEndpoint(int? mtu, {String tag = 'awg-ep'}) =>
         Endpoint(<String, dynamic>{
           'type': 'wireguard',
@@ -181,21 +181,21 @@ void main() {
       entry.authored = true;
       final report = applyRegistryGate([entry], coreVersion: _core);
 
-      // Главное: тело в ядро уходит как написано. Подмени гард значение —
-      // настройка человека исчезла бы на сборке, а §455 обещает обратное.
+
+
       expect(entry.map['mtu'], 1420);
       expect(report.dropped, isEmpty);
-      // Info-код при этом есть: молчать о завышенном MTU тоже нельзя —
-      // туннель поднимется, а данные не пойдут.
+
+
       expect(report.warnings.single, contains('awg-ep: '));
       expect(report.warnings.single, contains('[mtu=1420]'));
       expect(report.warnings.single, contains('MTU above 1280'));
     });
 
     test('то же тело БЕЗ метки дословности: MTU заменён потолком', () {
-      // Узел из ссылки/INI: тело собрал наш разбор, и потолок работает
-      // заменой. Пара к тесту выше — различие входов НАМЕРЕННОЕ, и держать
-      // его надо на виду.
+
+
+
       final entry = awgEndpoint(1420);
       final report = applyRegistryGate([entry], coreVersion: _core);
 
@@ -206,8 +206,8 @@ void main() {
     });
 
     test('обычный WireGuard: потолка нет ни на каком входе', () {
-      // `max_when.when.any_set` судит РОД узла. Сработай он по полю, а не по
-      // набору awg-ключей, каждый plain-WG-узел потерял бы свой MTU.
+
+
       final entry = Endpoint(<String, dynamic>{
         'type': 'wireguard',
         'tag': 'plain-wg',
@@ -229,10 +229,10 @@ void main() {
     });
 
     test('jc: 0 — законный AWG-узел, потолок с него не снимается', () {
-      // Предикат условия судит НАЛИЧИЕ ключа, а не непустоту значения
-      // (в отличие от `conflicts`/`requires`, §467). `jc: 0` значит «мусорные
-      // пакеты выключены» у настоящего AmneziaWG — прочитай условие это как
-      // «поля нет», туннель молча перестал бы нести данные.
+
+
+
+
       final entry = awgEndpoint(1420, tag: 'awg-jc0');
       entry.map['jc'] = 0;
       final report = applyRegistryGate([entry], coreVersion: _core);
@@ -240,10 +240,10 @@ void main() {
       expect(report.warnings.single, contains('awg-jc0: '));
     });
 
-    // §577 — ожидание изменено: прежде дефолт 1280 дописывался и дословному
-    // телу. Тихий `default_when` без `core_rejects` — мягкое правило, и
-    // авторское тело уходит в ядро как написано (критерий 1 спеки 577).
-    // Обычному телу дефолт дописывается по-прежнему.
+
+
+
+
     test('MTU не задан — дефолт 1280 у обычного тела, авторское как есть', () {
       final plain = awgEndpoint(null);
       expect(applyRegistryGate([plain], coreVersion: _core).warnings, isEmpty);
@@ -327,9 +327,9 @@ void main() {
         expect(report.dropped, [entry]);
       });
 
-      // Контракт 1.1.91: у `vless.encryption` появился `core_rejects`
-      // (ядро: protocol/vless/outbound.go NewOutbound → parseClientEncryption),
-      // правило жёсткое и на авторском теле.
+
+
+
       test('негодный encryption снимает и авторский узел (core_rejects)', () {
         final entry = Outbound(<String, dynamic>{
           'type': 'vless',
@@ -354,9 +354,9 @@ void main() {
     });
 
     test('реестр не загружен — гард no-op', () {
-      // Отдельного способа «выгрузить» реестр нет и заводить его незачем:
-      // ветку проверяем на типе, схемы которого в реестре нет, — путь тот же
-      // (schemaFor == null → тело как есть).
+
+
+
       final entry = Outbound(<String, dynamic>{
         'type': 'shadowtls',
         'tag': 'foreign',
@@ -369,11 +369,11 @@ void main() {
     });
   });
 
-  // Д-1 (эмулятор 19.09.2026) — страховка типа. БЕЗ `skip`: она обязана
-  // работать и тогда, когда реестр не синхронизирован, — на том и стоит.
+
+
   group('страховка: запись без type в конфиг не уходит', () {
     test('тело чужого диалекта снимается с предупреждением на узле', () {
-      // Ровно то, что уезжало в `outbounds[]` до починки: Xray-тело.
+
       final bad = Outbound(<String, dynamic>{
         'tag': 'xray-body',
         'protocol': 'vless',
@@ -413,8 +413,8 @@ void main() {
         await box.seed(name);
 
         final built = await buildGoldenConfig(box);
-        // Тот же эталон, что сверяет storage_migration/golden_config_test —
-        // гард обязан быть прозрачен для валидного конфига.
+
+
         expectGolden('$name.config.json', built.configJson);
         expectGolden('$name.config_warnings.json', prettyJson(built.warnings));
       });

@@ -12,20 +12,20 @@ import '../../services/subscription/auto_updater.dart';
 import '../../services/l10n/locale_controller.dart';
 import '../../services/file_import.dart';
 
-/// Empty-state quick-restore flow.
-///
-/// Open SAF file picker → parse backup file → `applyImport(merge: false,
-/// include: all)` → snackbar + restart hint. Без preview dialog'а (юзер в
-/// empty state, явно хочет restore целиком — никаких категорий снимать не
-/// надо). Polished restore через `Settings → Backup` остаётся для merge-flow
-/// и selective import'а.
+
+
+
+
+
+
+
 Future<void> restoreFromBackup(
   BuildContext context,
   SubscriptionController subController,
   AutoUpdater autoUpdater,
 ) async {
   try {
-    // §372 — Android TV без DocumentsUI: подсказка вместо тихого выхода.
+
     final outcome = await pickFileSafely(
       type: FileType.custom,
       allowedExtensions: ['json'],
@@ -84,14 +84,14 @@ Future<void> restoreFromBackup(
     );
     if (!context.mounted) return;
 
-    // Re-read storage в in-memory state controller'ов: `applyImport` записал
-    // в storage, но `subController` всё ещё хранит entries времени init'а
-    // (когда server_lists был пуст). Без `init()` повтор юзер увидит «нет
-    // серверов» пока не перезапустит app.
+
+
+
+
     await subController.init();
-    // Backup хранит только URL/name/meta подписок — nodes re-fetch'аются.
-    // Triggers fetch немедленно (manual + force обходит auto_update_subs
-    // toggle и min-retry cooldown).
+
+
+
     unawaited(
         autoUpdater.maybeUpdateAll(UpdateTrigger.manual, force: true));
 
@@ -110,7 +110,7 @@ Future<void> restoreFromBackup(
     final summary = StringBuffer(parts.isEmpty
         ? 'Imported nothing'
         : 'Imported: ${parts.join(', ')} · fetching subscriptions…');
-    // §159 — allowlist отбросил неизвестные/чужеродные ключи.
+
     if (apply.droppedKeys.isNotEmpty) {
       summary.write(' · ${apply.droppedKeys.length} unknown keys skipped');
     }

@@ -6,16 +6,16 @@ import 'aggregate_axis.dart';
 import 'empty_view.dart';
 import '../../../services/l10n/locale_controller.dart';
 
-/// §160 — Aggregated-режим: слияние бывших Domains + IPs tab'ов в один
-/// список с осью [AggAxis]. Строка — сводка по домену/IP; тап →
-/// [onOpenAggregate] (родитель открывает `AggregateDetailSheet`).
-///
-/// Развязан от `Session`: принимает посчитанные [byDomain]/[byIp] +
-/// [events] (для active/total) — TraceExplorer передаёт их и для per-app
-/// trace, и для Stats→Live.
-///
-/// «Тупой» рендер: фильтрация по [search] здесь же (domain/ip/cname для
-/// оси Domain, ip/port для оси IP). Раскрытие переехало в sheet.
+
+
+
+
+
+
+
+
+
+
 class AggregatedView extends StatelessWidget {
   const AggregatedView({
     super.key,
@@ -49,8 +49,8 @@ class AggregatedView extends StatelessWidget {
         search.isEmpty ? all : all.where(_matchesDomain).toList();
     if (all.isEmpty) return const EmptyView(text: 'No domains yet.');
     if (filtered.isEmpty) return const EmptyView(text: 'No matches.');
-    // §160 — активные соединения = open − close по ключу (считаем один раз
-    // на билд, не в каждой строке).
+
+
     final active = activeByKey(events, AggAxis.domain);
     return ListView.builder(
       itemCount: filtered.length,
@@ -78,9 +78,9 @@ class AggregatedView extends StatelessWidget {
     );
   }
 
-  /// §160 — число **активных** соединений по ключу (домен/IP): открытых
-  /// (`tcpOpen`/`udpOpen`), но ещё не закрытых (`tcpClose`). Считается как
-  /// `max(0, open − close)` per ключ. Чистая функция — покрыта тестом.
+
+
+
   static Map<String, int> activeByKey(
       List<TrafficEvent> events, AggAxis axis) {
     final open = <String, int>{};
@@ -131,7 +131,7 @@ class AggregatedView extends StatelessWidget {
           overflow: TextOverflow.ellipsis),
       subtitle: Row(
         children: [
-          // §160 — активные / всего соединений.
+
           Text(getLocalText.s("%1\$d/%2\$d conns", active, d.connections),
               style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
           const SizedBox(width: 8),
@@ -157,7 +157,7 @@ class AggregatedView extends StatelessWidget {
               fontSize: 13, fontFamily: 'monospace', fontWeight: FontWeight.w500),
           overflow: TextOverflow.ellipsis),
       subtitle: Text(
-        // §160 — активные / всего соединений.
+
         getLocalText.s("ports %1\$s · %2\$d/%3\$d conns · ↑%4\$s ↓%5\$s%6\$s", (ip.ports.toList()..sort()).join(', '), active, ip.connections, formatBytes(ip.upBytes), formatBytes(ip.downBytes), ip.outbounds.isEmpty ? '' : ' · ${ip.outbounds.join(" / ")}'),
         style: const TextStyle(fontSize: 11),
       ),

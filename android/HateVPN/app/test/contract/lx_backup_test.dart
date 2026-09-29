@@ -17,14 +17,14 @@ import 'package:lxbox/services/warp/warp_backup.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// LX Backup v1, сторона LxBox (SPEC 103, фаза 4).
-//
-// Парные тесты к core/backup/*_test.go в лаунчере: перенос настроек между
-// приложениями имеет смысл ровно настолько, насколько обе стороны одинаково
-// понимают битую ссылку, непереносимую переменную и чужой блок extensions.
 
 
-/// Записи `sources[]` файла 1.0 заданного вида, в порядке файла.
+
+
+
+
+
+
 List<Map<String, dynamic>> _sourcesOf(String raw, String kind) => [
       for (final e in ((jsonDecode(raw) as Map<String, dynamic>)['sources']
               as List? ??
@@ -33,8 +33,8 @@ List<Map<String, dynamic>> _sourcesOf(String raw, String kind) => [
     ];
 
 void main() {
-  // §480 — секции обмена разбирают ссылки узлов, а разбор исполняет секции
-  // реестра: без них узлов не получается вовсе (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('LX Backup: словарь переносимых переменных', () {
@@ -46,9 +46,9 @@ void main() {
         for (final e in vars.entries)
           if ((e.value as Map)['portable'] == true) e.key,
       };
-      // Пять имён маршрута DNS D-117 с контракта 1.0.2 (D-118) —
-      // `portable: false`, терпимая форма чтения: значение едет записью
-      // `dns.servers[kind=template].vars`. Пропусков в сверке нет.
+
+
+
       expect(kLxPortableVars, registryPortable,
           reason: 'список переносимых переменных разошёлся с реестром: '
               'бэкап либо теряет настройку, либо тащит на чужую машину '
@@ -57,8 +57,8 @@ void main() {
   });
 
   group('LX Backup: импорт', () {
-    // Ссылка в никуда не повод терять правило — оно приезжает выключенным.
-    // Включённое правило с несуществующей целью роняет конфиг ядра целиком.
+
+
     test('несуществующий outbound выключает правило', () {
       final raw = jsonEncode({
         'lx_backup': 1,
@@ -160,9 +160,9 @@ void main() {
     });
   });
 
-  // §393 B1/B2 — Направления едут вместе с правилами (BACKUP.md §3, схема
-  // v1.1). Переносится КАНОН (`schema/direction.schema.json`), а не внутренняя
-  // структура: у сторон они разные.
+
+
+
   group('LX Backup: Направления', () {
     test('приехавшая цель делает правило РАБОЧИМ, а не выключенным', () {
       const raw = '''
@@ -171,8 +171,8 @@ void main() {
   "directions": [{"tag": "ru-exit", "label": "Россия", "filter": "RU"}],
   "rules": [{"kind": "inline", "name": "R", "outbound": "ru-exit", "num": 1}]
 }''';
-      // knownOutbounds намеренно НЕ содержит ru-exit: цель приезжает в этом
-      // же файле, и только порядок «Направления раньше правил» спасает.
+
+
       final file = parseLxBackup(raw, knownOutbounds: {'vpn-1'});
       expect(file.directions.single.tag, 'ru-exit');
       expect(file.directions.single.label, 'Россия');
@@ -192,12 +192,12 @@ void main() {
       expect(file.directions, isEmpty,
           reason: 'перезапись стёрла бы настройки пользователя');
       expect(file.warnings.map((w) => w.code), [kWarnDirectionExists]);
-      // Тег всё равно известен — правило цель находит, она просто своя.
+
       expect(file.rules.single.enabled, isTrue);
     });
 
-    // §406 (D-095) — регистр тега значим: у ядра `VPN-DE` и `vpn-de` — два
-    // разных outbound'а, и объявлять один «уже существующим» нельзя.
+
+
     test('тег в другом регистре — НОВОЕ Направление, не тёзка', () {
       const raw = '''
 {
@@ -275,7 +275,7 @@ void main() {
       expect(d.auto!.mode, UrltestMode.roundRobin);
       expect(d.auto!.interval, '9m');
       expect(d.auto!.pool, 5);
-      // Незаданное берётся своим умолчанием, а не чужим нулём.
+
       expect(d.auto!.tolerance, const DirectionAuto().tolerance);
     });
 
@@ -324,23 +324,23 @@ void main() {
 }''';
       final file = parseLxBackup(raw);
       expect(file.directions.single.tag, 'de');
-      // §401 — путь называет ЗАПИСЬ, а не только секцию
-      // (registry/backup_warnings.json: «detail называет полный путь — и
-      // ключ, и сущность, в которой он встретился»). Анонимный
-      // `directions[].sorcery` на файле с двумя десятками Направлений не
-      // говорил пользователю, в каком из них искать лишнее поле.
+
+
+
+
+
       expect(file.warnings.map((w) => w.detail), ['directions[de].sorcery']);
     });
   });
 
-  // ════════════════════════════════════════════════════════════════════════
-  // §409 — бюджет теста узла у Направления (`ping_options.groups`, §040)
-  // ════════════════════════════════════════════════════════════════════════
-  //
-  // Поля `directions[].ping_url` / `ping_timeout_ms` объявлены в схеме
-  // (контракт 0.12.6, D-096), применяет их только LxBox. Смысл переноса — та
-  // же кнопка «Ping» на новой машине: Направление, у которого бюджет был
-  // задан вручную, обязано приехать с ним, а не на глобальном умолчании.
+
+
+
+
+
+
+
+
   group('LX Backup: бюджет теста узла у Направления (§409)', () {
     const de = Direction(tag: 'de', label: '', nodeFilter: 'DE');
     const at = Direction(tag: 'at', label: '');
@@ -370,9 +370,9 @@ void main() {
       final out = (doc['directions'] as List).cast<Map<String, dynamic>>();
       expect(out[0]['ping_url'], 'https://de.example/204');
       expect(out[0]['ping_timeout_ms'], 2500);
-      // Незаданная половина ключа не получает: отсутствие ключа и означает
-      // «override нет», а выписать сюда разрешённое глобальное значение
-      // значило бы превратить умолчание в настройку на той стороне.
+
+
+
       expect(out[1].containsKey('ping_url'), isFalse,
           reason: 'URL не задавали — ключа быть не должно');
       expect(out[1]['ping_timeout_ms'], 4000);
@@ -386,9 +386,9 @@ void main() {
     });
 
     test('пустой URL и неположительный таймаут в файл не едут', () async {
-      // Требование схемы (`ping_url.minLength: 1`,
-      // `ping_timeout_ms.minimum: 1`): пустое значение файл не пройдёт
-      // валидацию, а по смыслу это и не бюджет, а мёртвая кнопка «Ping».
+
+
+
       final doc = await exportDirections(
         const [de],
         {'de': LxDirectionPing(url: '   ', timeoutMs: 0)},
@@ -400,15 +400,15 @@ void main() {
 
     test('форма storage → переносимая: читается только groups', () {
       final ping = lxDirectionPingFromStorage(const {
-        // Глобальные url/timeout_ms — настройка приложения, а не
-        // Направления: в записи `directions[]` им места нет.
+
+
         'url': 'https://global.example/204',
         'timeout_ms': 9000,
         'groups': {
           'de': {'url': 'https://de.example/204', 'timeout_ms': 2500},
           'at': {'timeout_ms': 4000},
-          // Мусор из storage наружу не едет: пустая половина здесь значит
-          // ровно «override нет».
+
+
           'nl': {'url': '', 'timeout_ms': 0},
           'se': <String, dynamic>{},
         },
@@ -435,8 +435,8 @@ void main() {
       final ping = back.directionPing['de']!;
       expect(ping.url, 'https://de.example/204');
       expect(ping.timeoutMs, 2500);
-      // Форма storage — те же ключи, что пишет диалог §040: применение
-      // кладёт это в `ping_options.groups[tag]` как есть.
+
+
       expect(ping.toStorage(), {
         'url': 'https://de.example/204',
         'timeout_ms': 2500,
@@ -444,10 +444,10 @@ void main() {
     });
 
     test('занятый тег: бюджет не приезжает вместе с пропущенной записью', () {
-      // §9 BACKUP.md — Направление с занятым тегом пропускается ЦЕЛИКОМ
-      // (`backup_direction_exists`), значит и бюджет вместе с ним: под этим
-      // именем у пользователя своё Направление со своим бюджетом, и менять
-      // ему настройку файл права не имеет.
+
+
+
+
       const raw = '''
 {
   "lx_backup": 1,
@@ -466,8 +466,8 @@ void main() {
     });
 
     test('невалидное значение отбрасывается, Направление применяется', () {
-      // Тип ТОТ, значение вне диапазона: это ровно то, что на этой стороне
-      // означает «override сброшен», и предупреждения не заслуживает.
+
+
       const raw = '''
 {
   "lx_backup": 1,
@@ -485,9 +485,9 @@ void main() {
     });
 
     test('чужой ТИП поля назван backup_field_type_mismatch', () {
-      // Ключ знакомый, разошёлся тип — тот же код, что у
-      // `subscriptions[].skip` (§401): пользователю важно различать «такого
-      // поля тут нет» и «поле есть, но значение записано по-другому».
+
+
+
       const raw = '''
 {
   "lx_backup": 1,
@@ -509,9 +509,9 @@ void main() {
 
     test('поля НЕ дают ложный backup_unknown_field на своём же экспорте',
         () async {
-      // `_directionKeys` — default-deny на всю глубину файла (§401): ключ,
-      // не объявленный известным, ловится общим обходом, и LxBox ругался бы
-      // на собственный экспорт.
+
+
+
       final raw = (await buildLxBackup(
         lists: const [],
         rules: const [],
@@ -538,13 +538,13 @@ void main() {
     });
   });
 
-  // §393 B7-B11 — секции, которые до хвоста фазы B либо разбирались и
-  // выбрасывались, либо не существовали вовсе. Каждый тест сформулирован как
-  // круг: то, что уехало, обязано вернуться — это и есть инвариант §1
-  // BACKUP.md, а не «поле сериализуется».
-  // §393 C9 — цепочки хопов (SPEC 110, схема v1.2). Парные тесты к
-  // core/backup/backup_test.go: TestRoundTripChainSources и
-  // TestImportChainTagBusy.
+
+
+
+
+
+
+
   group('LX Backup: цепочки хопов', () {
     test('приехавшая цепочка делает правило РАБОЧИМ, а не выключенным', () {
       const raw = '''
@@ -553,8 +553,8 @@ void main() {
   "chains": [{"tag": "relay", "chain": {"hops": ["vpn-de", "exit"]}}],
   "rules": [{"kind": "inline", "name": "R", "outbound": "relay", "num": 1}]
 }''';
-      // knownOutbounds намеренно НЕ содержит relay: цель приезжает в этом же
-      // файле, и только порядок «цепочки раньше правил» спасает.
+
+
       final file = parseLxBackup(raw, knownOutbounds: {'vpn-1'});
       expect(file.chains.single.tag, 'relay');
       expect(file.rules.single.enabled, isTrue,
@@ -562,8 +562,8 @@ void main() {
       expect(file.warnings, isEmpty);
     });
 
-    // Парный к Go TestImportChainTagBusy: своя цепочка сильнее приехавшей,
-    // и пропуск предъявляется ВСЕГДА — молчание склеило бы случайных тёзок.
+
+
     test('занятый тег: своя цепочка остаётся, приехавшая пропущена', () {
       const raw = '''
 {
@@ -571,8 +571,8 @@ void main() {
   "chains": [{"tag": "relay", "chain": {"hops": ["theirs-1", "theirs-2"]}}],
   "rules": [{"kind": "inline", "name": "R", "outbound": "relay", "num": 1}]
 }''';
-      // Своя цепочка `relay` уже заведена: этот набор — ровно то, что экран
-      // берёт из `SettingsStorage.getChains()`.
+
+
       final file = parseLxBackup(
         raw,
         knownOutbounds: {'relay'},
@@ -581,12 +581,12 @@ void main() {
       expect(file.chains, isEmpty,
           reason: 'перезапись стёрла бы маршрут пользователя');
       expect(file.warnings.map((w) => w.code), [kWarnChainExists]);
-      // Тег всё равно известен — правило цель находит, она просто своя.
+
       expect(file.rules.single.enabled, isTrue);
     });
 
-    // Дубль ВНУТРИ файла — тот же код-путь, что и тёзка локальной цепочки:
-    // набор занятых тегов общий, поэтому first-wins по порядку файла.
+
+
     test('дубль внутри файла: побеждает первая запись', () {
       const raw = '''
 {
@@ -640,7 +640,7 @@ void main() {
       expect(c.label, 'Мой маршрут');
       expect(c.hops, const [NodeLink(tag: 'a'), NodeLink(tag: 'b')]);
       expect(c.idleTimeout, '0s');
-      // Трёхзначность: явный false НЕ должен слипаться с «ключа не было».
+
       expect(c.stripEvasion, isFalse);
       expect(c.strip, {'xhttp.padding': true, 'tls.utls': false});
       expect(c.rewrite, {
@@ -694,7 +694,7 @@ void main() {
       final file = parseLxBackup(raw);
       expect(file.chains.single.tag, 'relay');
       expect(file.warnings.map((w) => w.code), [kWarnUnknownField]);
-      // §401 — путь адресует конкретную цепочку по её тегу (см. выше).
+
       expect(file.warnings.single.detail, 'chains[relay].sorcery');
     });
 
@@ -707,7 +707,7 @@ void main() {
       expect(parseLxBackup(raw).warnings, isEmpty);
     });
 
-    // Парный к Go TestRoundTripChainSources.
+
     test('round-trip: канон переживает экспорт→импорт дословно', () async {
       const source = SourceChain(
         tag: 'chain-1',
@@ -716,7 +716,7 @@ void main() {
         idleTimeout: '0s',
         stripEvasion: false,
         strip: {'tls.utls': false},
-        // RFC 7396: null удаляет ключ и обязан пережить перенос как есть.
+
         rewrite: {
           'vless': {'flow': null},
         },
@@ -731,7 +731,7 @@ void main() {
       final entry = _sourcesOf(out, 'chain').single;
       expect(entry['tag'], 'chain-1');
       expect(entry['enabled'], isTrue, reason: '1.0 пишет enabled всегда');
-      // §438 — настройки маршрута в `body`, позиции — ссылками `hops[]`.
+
       final body = entry['body'] as Map<String, dynamic>;
       expect(body['type'], 'chain');
       expect(body.containsKey('tag'), isFalse);
@@ -797,7 +797,7 @@ void main() {
           SourceChain(tag: 'chain-3', label: 'Мой маршрут', hops: [NodeLink(tag: 'a'), NodeLink(tag: 'b')]),
         ],
       );
-      // Запись хранения как есть: пустое имя не пишется.
+
       expect([for (final e in _sourcesOf(built.json, 'chain')) e['label']],
           ['chain-1', null, 'Мой маршрут']);
       expect(built.warnings.where((w) => w.code == kWarnLocalOnlyDropped),
@@ -820,7 +820,7 @@ void main() {
 
       final back = parseLxBackup(out, knownOutbounds: {'a', 'b'});
       expect(back.directions.single.label, 'Германия');
-      // Контракт 1.0.1 — `label` цепочки объявлен полем стороны LxBox.
+
       expect(back.chains.single.label, 'Мой маршрут');
       expect(back.warnings, isEmpty,
           reason: 'поле наше — ни unknown_field, ни label_dropped');
@@ -862,8 +862,8 @@ void main() {
 
     test('порядок записей не сортируется ни на импорте, ни на экспорте',
         () async {
-      // Ссылка на цепочку выше по списку = антицикл: перестановка сломала бы
-      // ровно тот инвариант, ради которого порядок объявлен нормативным.
+
+
       const chains = [
         SourceChain(tag: 'z-first', hops: [NodeLink(tag: 'a'), NodeLink(tag: 'b')]),
         SourceChain(tag: 'a-second', hops: [NodeLink(tag: 'z-first'), NodeLink(tag: 'c')]),
@@ -883,10 +883,10 @@ void main() {
   });
 
   group('LX Backup: секции обмена', () {
-    // §393 B7 — самый дорогой из инвариантов: блоб чужого приложения обязан
-    // пережить круг launcher→LxBox→launcher БАЙТ В БАЙТ. Обеднение здесь
-    // молчаливое — мобила о содержимом ничего не знает и предъявить
-    // пользователю не может.
+
+
+
+
     test('подписка: disabled-хеши, tag и период обновления едут', () async {
       final list = SubscriptionServers(
         id: 'sub-1',
@@ -908,10 +908,10 @@ void main() {
       final sub = _sourcesOf(raw, 'subscription').single;
       expect(sub['url'], 'https://example-1.com/sub');
       expect(sub['name'], 'Main');
-      // §438 — у контракта разделитель — часть префикса, у LxBox — пробел.
+
       expect((sub['tag_policy'] as Map)['prefix'], 'MN ');
       expect((sub['update'] as Map)['interval_hours'], 6);
-      // §4 BACKUP.md — значения в unix seconds, а не в ISO-8601 мобилы.
+
       expect((sub['disabled'] as Map)['a' * 64],
           DateTime.utc(2025, 6, 15, 12).millisecondsSinceEpoch ~/ 1000);
 
@@ -923,8 +923,8 @@ void main() {
       expect(back.disabled.keys, ['a' * 64]);
     });
 
-    // §393 B11 — поля чужой схемы (`skip`/`max_nodes` лаунчера) мобила
-    // применить не может, но обязана вернуть на верхний уровень записи.
+
+
     test('vars пресета и ref srs-правила доезжают', () {
       final raw = jsonEncode({
         'lx_backup': 1,
@@ -957,7 +957,7 @@ void main() {
           reason: 'URL rule-set потерян — правило приедет пустым');
     });
 
-    // ## 12 контракта (D-100) — несколько наборов одного srs-правила.
+
     group('## 12 rules[].refs', () {
       test('импорт: refs главнее ref; без refs — ref один', () {
         final raw = jsonEncode({
@@ -1010,20 +1010,20 @@ void main() {
         final rules = (jsonDecode(raw) as Map<String, dynamic>)['rules'] as List;
         final multi = rules[0] as Map<String, dynamic>;
         final single = rules[1] as Map<String, dynamic>;
-        // §438 — в 1.0 `refs` всегда список, одиночного `ref` у srs нет.
+
         expect(multi.containsKey('ref'), isFalse);
         expect(multi['refs'], ['https://x/a.srs', 'https://x/b.srs']);
         expect(single['refs'], ['https://x/d.srs']);
 
-        // Круг: import(export(x)) = x по составу наборов.
+
         final back = parseLxBackup(raw, knownOutbounds: {'direct'});
         expect(back.rules[0].srsUrls, ['https://x/a.srs', 'https://x/b.srs']);
         expect(back.rules[1].srsUrls, ['https://x/d.srs']);
       });
     });
 
-    // §393 B8 — регистрации WARP. Имена полей канонические (лаунчерные), а не
-    // мобильные: совпадение случайное на трёх полях из десяти.
+
+
     test('warp: круг сохраняет регистрацию и мобильные добавки', () {
       const acc = WarpAccount(
         privKey: 'cHJpdg==',
@@ -1056,8 +1056,8 @@ void main() {
       expect(back.endpoint, acc.endpoint);
     });
 
-    // §401, контракт 0.12.2 — sni/idle_timeout лежат ПЛОСКО в записи: карман
-    // extensions.lxbox упразднён, а схема объявляет оба поля поимённо.
+
+
     test('masque: круг сохраняет регистрацию, sni/idle_timeout плоские', () {
       const acc = MasqueAccount(
         privKeyDer: 'ZGVy',
@@ -1089,9 +1089,9 @@ void main() {
       expect(back.idleTimeout, '5m');
     });
 
-    // Необязательность: незаданные поля в файл не едут вовсе, а не пустыми
-    // строками — пустой sni у принимающей стороны это не «SNI отсутствует»,
-    // а объявленное значение, которым она перекрыла бы свой дефолт.
+
+
+
     test('masque: незаданные sni/idle_timeout в записи отсутствуют', () {
       const acc = MasqueAccount(
         privKeyDer: 'ZGVy',
@@ -1110,9 +1110,9 @@ void main() {
       expect(wire.containsKey('extensions'), isFalse);
     });
 
-    // Круг через ФАЙЛ, а не только через пару функций: плоские поля обязаны
-    // пережить общий обход §401 — иначе они бы уезжали, но приезжали с
-    // backup_unknown_field и в состояние не попадали.
+
+
+
     test('masque: sni/idle_timeout переживают экспорт→импорт файла', () {
       const acc = MasqueAccount(
         privKeyDer: 'ZGVy',
@@ -1147,9 +1147,9 @@ void main() {
       expect(back.port, 443);
     });
 
-    // Старый файл 0.10.x: карман читается общим правилом §401 — ОДИН
-    // backup_extensions_dropped на файл, — а не отдельным разбором warp[].
-    // Аккаунт при этом импортируется: карман потерян, регистрация цела.
+
+
+
     test('masque: старый файл с extensions даёт один warning, аккаунт цел', () {
       final raw = jsonEncode({
         'lx_backup': 1,
@@ -1202,8 +1202,8 @@ void main() {
       expect(file.warnings.map((w) => w.code), contains(kWarnWarpSkipped));
     });
 
-    // §393 B9 — DNS. Канон знает `template|preset|user`, мобила — `inline`
-    // вместо `user` и вдобавок `srs` у правил.
+
+
     test('dns: круг сохраняет состав, final и strategy', () async {
       final section = dnsToBackup(
         servers: const [
@@ -1237,9 +1237,9 @@ void main() {
       expect(dnsDoc['final'], 'my-doh');
       expect(dnsDoc['strategy'], 'prefer_ipv4');
       final servers = (dnsDoc['servers'] as List).cast<Map<String, dynamic>>();
-      // `inline` мобилы записан каноническим `user`.
+
       expect(servers.map((e) => e['kind']), ['template', 'user']);
-      // §438 — тело записи 1.0 в `body`, и только у пользовательской записи.
+
       expect(servers.first.containsKey('body'), isFalse);
       expect((servers.last['body'] as Map)['server'], '1.1.1.1');
       expect(servers.last['tag'], 'my-doh');
@@ -1266,11 +1266,11 @@ void main() {
           },
         ),
       ]);
-      // §401 (П3) — `srs`-правило В ФАЙЛ НЕ ЕДЕТ и обратно не приезжает.
-      // Раньше оно возилось карманом `extensions` и «возвращалось целиком»;
-      // карман упразднён, потому что провоз непонятого делал экспорт
-      // нечистой функцией состояния (П1). Круг обязан быть ЧЕСТНЫМ: то, чего
-      // в файле нет, из файла не появляется.
+
+
+
+
+
       expect(applied.rules.whereType<DnsRuleSrs>(), isEmpty,
           reason: 'srs приехал обратно — значит карман провоза жив');
     });
@@ -1288,8 +1288,8 @@ void main() {
       expect(section?['rules'], isNull,
           reason: 'происхождения srs у канона нет — записи в файле быть не '
               'должно');
-      // П6 — молчаливых потерь нет: пользователь обязан узнать, что правило
-      // осталось на этой машине.
+
+
       expect(warnings.map((w) => w.code), contains(kWarnLocalOnlyDropped));
       expect(warnings.map((w) => w.detail).join(' '), contains('srs'));
     });
@@ -1317,7 +1317,7 @@ void main() {
       expect((applied.servers.single as DnsServerInline).body['server'],
           '1.1.1.1',
           reason: 'своё тело перетёрто приехавшим');
-      // final приезжает непустым и применяется: это не состав, а указатель.
+
       expect(applied.dnsFinal, 'my-doh');
     });
 
@@ -1334,13 +1334,13 @@ void main() {
       });
       final file = parseLxBackup(raw);
       expect(file.dns!.servers, isEmpty);
-      // §401 — запись ОТБРАСЫВАЕТСЯ, а не хранится сырой до re-export: карман
-      // провоза упразднён (П3). Молчать о ней при этом нельзя (П6).
+
+
       expect(file.warnings.map((w) => w.code), contains(kWarnDnsEntrySkipped));
     });
 
-    // §393 B10 — одиночный сервер: до B10 экспорт писал пустую оболочку
-    // (label + extensions), а `uri`/`config_json` схемы оставались пустыми.
+
+
     test('одиночный сервер: uri уезжает в origin записи', () async {
       final server = UserServer(
         id: 'srv-1',
@@ -1358,8 +1358,8 @@ void main() {
         vars: const {},
       )).json;
       final entry = _sourcesOf(raw, 'server').single;
-      // §438 — исходник узла едет `origin`, имя узла — `tag`. §439 п. 1 —
-      // `tag` записи из разобранного узла, а не из `name` модели.
+
+
       expect(entry['origin'], {
         'kind': 'uri',
         'raw':
@@ -1391,15 +1391,15 @@ void main() {
         vars: const {},
       )).json;
       final entry = _sourcesOf(raw, 'server').single;
-      // §438 — JSON-исходник: `origin.kind: json` и тело sing-box в `body`.
+
       expect((entry['origin'] as Map)['kind'], 'json');
       expect((entry['body'] as Map)['server'], 'example-1.com');
     });
   });
 
-  // ════════════════════════════════════════════════════════════════════════
-  // §401 — бэкап как СЕРИАЛИЗАЦИЯ СОСТОЯНИЯ (BACKUP_PRINCIPLES П1/П3/П6)
-  // ════════════════════════════════════════════════════════════════════════
+
+
+
   group('§401 состояние, а не карман', () {
     SubscriptionServers subWith({
       SubscriptionIdentityOverride? identity,
@@ -1440,8 +1440,8 @@ void main() {
             as Map<String, dynamic>)['identity'] as Map<String, dynamic>;
         expect(id['user_agent'], 'v2rayNG/1.8');
         expect(id['send_hwid'], isTrue);
-        // «Не задано» и «задано пустым» значат разное: пустышка в каждом
-        // файле отличала бы два ОДИНАКОВЫХ состояния (П1).
+
+
         expect(id.containsKey('hwid'), isFalse);
         expect(id.containsKey('device_model'), isFalse);
       });
@@ -1455,7 +1455,7 @@ void main() {
       });
 
       test('неизвестный ключ → backup_source_identity_dropped с перечнем', () {
-        // `hash_device_model` схема объявляет, а у нас такой настройки нет.
+
         final raw = jsonEncode({
           'lx_backup': 1,
           'subscriptions': [
@@ -1473,7 +1473,7 @@ void main() {
             reason: 'ОДИН warning на подписку с перечнем ключей, а не по '
                 'строке на ключ');
         expect(w.single.detail, 'Sub: hash_device_model');
-        // Применимая часть при этом применена: отбрасывается ключ, не объект.
+
         expect(file.subscriptions.single.identity!.userAgent, 'UA');
       });
 
@@ -1515,9 +1515,9 @@ void main() {
 
     group('label одиночной записи (D-082)', () {
       test('label записи servers[] на импорте → node_tag или warning', () {
-        // Схема 0.12 поля не знает вовсе — это LEGACY-ВХОД для файлов 0.11 и
-        // раньше. Без `node_tag` подпись ещё может стать тегом (потери нет);
-        // вместе с ним — расхождение, и label не применяется.
+
+
+
         final both = jsonEncode({
           'lx_backup': 1,
           'servers': [
@@ -1542,7 +1542,7 @@ void main() {
       });
 
       test('label Направления ПРИМЕНЯЕТСЯ и warning не поднимает', () {
-        // §405 — поле объявлено в схеме, применяет его LxBox: терять нечего.
+
         final raw = jsonEncode({
           'lx_backup': 1,
           'directions': [
@@ -1557,8 +1557,8 @@ void main() {
       });
 
       test('label цепочки ПРИМЕНЯЕТСЯ и warning не поднимает', () {
-        // §405 отменил §401-поведение «разошёлся с тегом → label_dropped»:
-        // у цепочки LxBox имя есть, и приехавшее применяется.
+
+
         final raw = jsonEncode({
           'lx_backup': 1,
           'chains': [
@@ -1579,8 +1579,8 @@ void main() {
 
     group('отбрасывание непонятого (П3/П6)', () {
       test('extensions любой глубины → РОВНО ОДИН warning на файл', () {
-        // Карман был с произвольным содержимым: перечислять его внутренности
-        // по одной значило бы утопить пользователя в списке.
+
+
         final raw = jsonEncode({
           'lx_backup': 1,
           'extensions': {
@@ -1606,7 +1606,7 @@ void main() {
         final file = parseLxBackup(raw);
         expect(file.warnings.where((w) => w.code == kWarnExtensionsDropped),
             hasLength(1));
-        // И карман НЕ провозится: состояние-призрак запрещён (П1).
+
         expect(jsonEncode(file.directions.single.toJson()),
             isNot(contains('extensions')));
       });
@@ -1646,8 +1646,8 @@ void main() {
       });
 
       test('exclude_from_global → backup_source_flag_dropped', () {
-        // Ключи ОБЪЯВЛЕНЫ в типах контракта, поэтому общий обход неизвестных
-        // их не ловит — без отдельного кода они пропадали бы совсем молча.
+
+
         final raw = jsonEncode({
           'lx_backup': 1,
           'subscriptions': [
@@ -1668,9 +1668,9 @@ void main() {
     });
 
     test('П1 — экспорт ДЕТЕРМИНИРОВАН: два прогона байт-идентичны', () async {
-      // «Экспорт — чистая функция состояния: два неотличимых состояния дают
-      // неотличимые файлы». Нарушение здесь ломает и diff бэкапов, и саму
-      // возможность сказать «состояние не менялось».
+
+
+
       final state = [
         subWith(
           identity: const SubscriptionIdentityOverride(
@@ -1686,8 +1686,8 @@ void main() {
       ];
       String stripVolatile(String raw) {
         final doc = jsonDecode(raw) as Map<String, dynamic>;
-        // Метка времени и версия приложения — не состояние: они меняются
-        // сами по себе и к чистоте функции отношения не имеют.
+
+
         doc.remove('exported_at');
         doc.remove('exported_by');
         return jsonEncode(doc);
@@ -1703,15 +1703,15 @@ void main() {
     });
   });
 
-  // ════════════════════════════════════════════════════════════════════════
-  // §401 (П1) — слияние подписок на импорте
-  // ════════════════════════════════════════════════════════════════════════
-  //
-  // «Импорт восстанавливает состояние, неотличимое от настроенного руками».
-  // До §401 совпавшая по URL запись получала ТОЛЬКО доливку disabled-отметок,
-  // так что восстановление своего же файла на том же устройстве не возвращало
-  // ни identity, ни префикс тегов: пользователь видел «импорт прошёл» и
-  // настроек на месте не находил.
+
+
+
+
+
+
+
+
+
   group('§401 mergeBackupSubscriptions', () {
     const url = 'https://example-1.com/sub';
 
@@ -1766,8 +1766,8 @@ void main() {
     });
 
     test('identity отсутствует в файле → СБРОС в дефолт, а не «как было»', () {
-      // Объекта в файле нет — значит состояние экспортировали без override'а.
-      // Оставить своё значило бы не перенести состояние вовсе.
+
+
       final out = mergeBackupSubscriptions(
         [
           local(
@@ -1788,8 +1788,8 @@ void main() {
     });
 
     test('disabled-отметки ОБЪЕДИНЯЮТСЯ: своя не перетёрта, чужая долита', () {
-      // Исключение из «файл сильнее»: отметка, которой в файле нет, могла
-      // быть поставлена уже ПОСЛЕ экспорта — молча включать узел нельзя.
+
+
       final mine = DateTime.utc(2026, 8, 1);
       final out = mergeBackupSubscriptions(
         [local(disabled: {'DE-1': mine, 'Only-mine': mine})],
@@ -1844,9 +1844,9 @@ void main() {
       expect(out.applied, 0);
     });
 
-    // ══════════════════════════════════════════════════════════════════════
-    // §405 — слияние одиночных узлов и папок
-    // ══════════════════════════════════════════════════════════════════════
+
+
+
 
     test('повторный импорт не удваивает одиночные серверы', () {
       const uri = 'vless://u@h:443';
@@ -1854,7 +1854,7 @@ void main() {
       expect(first.lists, hasLength(1));
       expect(first.applied, 1);
 
-      // Тот же файл во второй раз: тело совпало — применять нечего.
+
       final second =
           mergeBackupServers(first.lists, const [LxServer(uri: uri)]);
       expect(second.lists, hasLength(1),
@@ -1884,10 +1884,10 @@ void main() {
       expect(second.applied, 0);
     });
 
-    // §578/§83 — `skip_presets: true` держит своё значение, даже когда
-    // импорт находит узел с совпадающим телом, а во входящей записи флаг
-    // ложный/отсутствует: поле записывается только `true` (source_record),
-    // и merge не должен молча сбрасывать его на `false`.
+
+
+
+
     test('одиночный узел: skip_presets=true своей записи не сбрасывается '
         'при импорте совпавшего по телу узла без флага', () {
       const uri = 'vless://skip@h:443';
@@ -1895,7 +1895,7 @@ void main() {
           const [], const [LxServer(uri: uri, skipPresets: true)]);
       expect((withFlag.lists.single as UserServer).skipPresets, isTrue);
 
-      // Тот же импорт без skip_presets в файле — своя запись сильнее.
+
       final second =
           mergeBackupServers(withFlag.lists, const [LxServer(uri: uri)]);
       expect((second.lists.single as UserServer).skipPresets, isTrue,
@@ -1935,8 +1935,8 @@ void main() {
     });
 
     test('одиночный и член папки с одним телом — РАЗНЫЕ записи', () {
-      // Дедуп одиночных считает только корень списка: тот же узел, лежащий
-      // в папке, — другая запись с другими настройками папки.
+
+
       const uri = 'vless://u@h:443';
       final out = mergeBackupServers(const [], const [
         LxServer(uri: uri),
@@ -1954,13 +1954,13 @@ void main() {
       expect(second.applied, 0);
     });
 
-    // ══════════════════════════════════════════════════════════════════════
-    // §406 (D-095) — дедуп по КАНОНУ тела, а не по сырой строке
-    // ══════════════════════════════════════════════════════════════════════
+
+
+
 
     test('config_json с переставленными ключами — тот же сервер', () {
-      // Один и тот же узел, пересобранный другим сериализатором. До §406
-      // сравнивались сырые строки, и порядок ключей заводил двойника.
+
+
       const a = LxServer(configJson: {
         'type': 'vless',
         'server': 'h',
@@ -1979,8 +1979,8 @@ void main() {
     });
 
     test('config_json с другим tag — тот же сервер', () {
-      // `tag` — имя узла, а не его тело: канон снимает его с верхнего уровня
-      // вместе с `detour` (форма identity-хеша контракта).
+
+
       const a = LxServer(
           configJson: {'type': 'vless', 'server': 'h', 'tag': 'Berlin'});
       const b = LxServer(
@@ -1992,8 +1992,8 @@ void main() {
     });
 
     test('uri с другим фрагментом — тот же сервер', () {
-      // Фрагмент `#…` — подпись узла. Тот же сервер под другим именем не
-      // повод заводить вторую запись.
+
+
       final first = mergeBackupServers(
           const [], const [LxServer(uri: 'vless://u@h:443#Berlin')]);
       final second = mergeBackupServers(
@@ -2046,7 +2046,7 @@ void main() {
         vars: const {},
       )).json;
 
-      // Приёмник — «то же устройство», но настройки успели уехать в дефолт.
+
       final wiped = local(
         name: 'Сброшено',
         tagPrefix: '',

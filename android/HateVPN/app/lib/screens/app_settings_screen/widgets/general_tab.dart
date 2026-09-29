@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../services/l10n/locale_controller.dart';
 import 'update_status_row.dart';
 
-/// General tab для App Settings.
-///
-/// Stateless — все значения и callback'и приходят от
-/// `_AppSettingsScreenState`, который остаётся source-of-truth и делает
-/// setState + side-effect внутри каждого callback'а. Поведение идентично
-/// инлайн-версии (parent rebuild'ит этот widget на каждый setState).
+
+
+
+
+
+
 class GeneralTab extends StatelessWidget {
   const GeneralTab({
     super.key,
@@ -37,7 +37,7 @@ class GeneralTab extends StatelessWidget {
   final bool autoPing;
   final bool haptic;
 
-  /// §338 — автоперезапуск VPN при любом изменении конфига (жизнь без плашек).
+
   final bool autoReloadOnChange;
   final EdgeInsets padding;
 
@@ -49,10 +49,10 @@ class GeneralTab extends StatelessWidget {
   final VoidCallback onAddQuickSettingsTile;
   final VoidCallback onOpenBackup;
 
-  /// §425 — регион использования: `auto` | `none` | код страны.
+
   final String region;
 
-  /// §425 — автоопределённая страна (`''` — не определилась).
+
   final String detectedRegion;
   final VoidCallback onEditRegion;
 
@@ -61,8 +61,8 @@ class GeneralTab extends StatelessWidget {
     return ListView(
       padding: padding,
       children: [
-        // §425 — регион использования: общая настройка, потребители — пулы
-        // WARP (loc.<cc>), дальше региональные дефолты правил.
+
+
         Text(getLocalText.s("Region"),
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
@@ -93,9 +93,9 @@ class GeneralTab extends StatelessWidget {
           value: autoStart,
           onChanged: loaded ? onAutoStartChanged : null,
         ),
-        // §338 — автоприменение изменений конфига к живому туннелю. Настройка
-        // не про подписки: источник изменения любой (узел, detour, DNS,
-        // routing, per-app), поэтому живёт в Behavior, а не в Subscriptions.
+
+
+
         SwitchListTile(
           title: Text(getLocalText.s("Auto-restart VPN on settings change")),
           subtitle: Text(getLocalText.s("Apply every config change to the running tunnel by itself, so no banner is left to tap. Each apply drops the tunnel for about 3 seconds and kills open connections.")),
@@ -177,7 +177,7 @@ class GeneralTab extends StatelessWidget {
     );
   }
 
-  /// §425 — подпись значения региона для плитки и диалога.
+
   static String regionLabel(String region, String detected) {
     if (region == 'none') return getLocalText.s("Not set");
     if (region == 'auto') {

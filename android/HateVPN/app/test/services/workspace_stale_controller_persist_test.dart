@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:async';
 import 'dart:io';
@@ -16,21 +16,21 @@ import 'package:lxbox/services/workspaces/workspace_controller.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §515 — регресс форумного дефекта: после переключения пространства во всех
-/// пространствах видна одна подписка — последняя обновлённая.
-///
-/// Корень: `_persist()` заменяет ВЕСЬ набор не-цепочек в `lxbox_settings.json`
-/// составом вызывающего контроллера, без привязки к слоту. Контроллер прежнего
-/// слота переживает переключение (пересоздание только ключом `HomeScreen`, а
-/// асинхронные хвосты продолжают жить) и пишет свои подписки в сцену, которая
-/// к этому моменту принадлежит НОВОМУ слоту. Ближайший `load`/`saveAs`
-/// копирует испорченную сцену в папку слота — потеря закрепляется на диске.
-///
-/// Барьер: контроллер запоминает `WorkspaceController.generation` при
-/// рождении, `_persist()` сверяет его первой строкой. Плюс `AutoUpdater.halt()`
-/// прерывает идущий проход на штатном пути переключения.
+
+
+
+
+
+
+
+
+
+
+
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе.
+
   setUpAll(loadEngineSections);
 
   late Directory docs;
@@ -81,20 +81,20 @@ void main() {
       try {
         if (d.existsSync()) await d.delete(recursive: true);
       } on FileSystemException {
-        // AppLog пишет persistent-лог в docs async — race с delete.
+
       }
     }
   });
 
-  /// URL'ы подписок, реально лежащие в сцене (`lxbox_settings.json`).
+
   Future<List<String>> sceneUrls() async {
     SettingsStorage.resetCacheForTesting();
     final lists = await SettingsStorage.getServerLists();
     return [for (final l in lists) if (l is SubscriptionServers) l.url];
   }
 
-  /// Два слота: `Cell` с подпиской cell, `WiFi` с подпиской wifi. Сцена = WiFi.
-  /// Возвращает контроллер слота WiFi (тот, что переживёт переключение).
+
+
   Future<SubscriptionController> setUpTwoSlots() async {
     await SettingsStorage.saveServerLists([sub(urlCell)]);
     await ws.saveAs('Cell');
@@ -111,7 +111,7 @@ void main() {
       () async {
     final cWifi = await setUpTwoSlots();
 
-    // Фетч встаёт на gate — как живой HTTP в момент переключения.
+
     final gate = Completer<void>();
     cWifi.httpClientForTesting = MockClient((req) async {
       await gate.future;
@@ -119,7 +119,7 @@ void main() {
     });
     final flying = cWifi.refreshEntry(cWifi.entries.single);
 
-    // Переключение на Cell: сцена уже принадлежит слоту Cell.
+
     await ws.load('Cell', stopVpn: () async => false);
     final cCell = SubscriptionController();
     await cCell.init();
@@ -127,7 +127,7 @@ void main() {
     expect(cCell.entries.single.list.id, 'cell',
         reason: 'новый контроллер читает подписку загруженного слота');
 
-    // Отвечает HTTP прежнего слота.
+
     gate.complete();
     final changed = await flying;
 
@@ -141,7 +141,7 @@ void main() {
       () async {
     final cWifi = await setUpTwoSlots();
 
-    // Путь `0 нод` (HTML-заглушка) — свой `_persist(keepDirtyFlag: true)`.
+
     final gate = Completer<void>();
     cWifi.httpClientForTesting = MockClient((req) async {
       await gate.future;
@@ -199,8 +199,8 @@ void main() {
   group('§515 AutoUpdater.halt', () {
     test('РЕГРЕСС (в): halt прерывает идущий проход между подписками',
         () async {
-      // Две подписки: между ними `perSubscriptionDelay`. halt приходит во
-      // время первого фетча — вторая в сеть не уходит.
+
+
       await SettingsStorage.saveServerLists([sub(urlWifi), sub(urlCell)]);
       final c = SubscriptionController();
       await c.init();

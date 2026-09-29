@@ -1,25 +1,25 @@
-// §532 — ПРЕДИКАТЫ `detect.json` СВЕДЕНЫ С ЭТАЛОНОМ (Go-исполнение в
-// лаунчере, PRIMITIVES FROZEN).
-//
-// Один реестр обязан исполняться одинаково обеими сторонами: файлы доезжают
-// байт в байт, и расхождение живёт не в них, а в движке. Таблица случаев здесь
-// ЗЕРКАЛИТ Go — `core/config/linkmap/detect.go` (`matchJSON`, `lookupPath`,
-// `jsonTypeOf`) и его тест `linkmap_test.go` «detect различает четыре вида
-// источника».
-//
-// Три дефекта, закрытые этим файлом (ревизия зеркала 24.09.2026, §3 п.1–2):
-//
-// 1. `json.key_absent` не исполнялся вовсе — неизвестный ключ читался как
-//    истина, и ветка «поля версии нет» проходила при ЛЮБОМ содержимом;
-// 2. `json.type_of` проходил при ОТСУТСТВУЮЩЕМ пути (Go — нет), из-за чего
-//    предикат перестал отличать форму значения от его отсутствия;
-// 3. `$root` как путь не разбирался, и предикат о форме документа целиком
-//    молча не сходился ни с чем.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/parser/engine/interpreter.dart';
 
-/// `detect` из JSON-литерала — ровно так его несёт реестр.
+
 bool matches(Map<String, dynamic> detect, dynamic value) =>
     detectMatchesJson(detect, value);
 
@@ -57,7 +57,7 @@ void main() {
         }
       };
       expect(matches(d, {'protocol': 'x'}), isTrue);
-      // Достаточно ОДНОГО присутствующего пути, чтобы предикат не сошёлся.
+
       expect(
         matches(d, {
           'settings': {'version': 1}
@@ -75,9 +75,9 @@ void main() {
     });
 
     test('ЧУЖАЯ версия ветку «поля версии нет» не проходит', () {
-      // Живой дефект ревизии: элемент с version: 3 уезжал в секцию старшей
-      // версии, потому что `key_absent` молчал. Форма предиката — та же, что у
-      // реестровой секции (`any` из трёх ветвей), только имена обезличены.
+
+
+
       const branchNoVersion = {
         'json': {
           'key_absent': ['streamSettings.hysteriaSettings.version', 'settings.version']
@@ -89,7 +89,7 @@ void main() {
       };
       expect(matches(branchNoVersion, v3), isFalse);
 
-      // …а ветка «версия РАВНА 1» его тоже не берёт: типы не приводятся.
+
       const branchV1 = {
         'json': {
           'value_of': {'settings.version': 1}
@@ -109,8 +109,8 @@ void main() {
     });
 
     test('вид источника: одиночный outbound vs конфиг (кейс Go)', () {
-      // Зеркало `linkmap_test.go`: селектор несёт И `type`, И `outbounds`, и
-      // это outbound, а не конфиг — отсекает именно `key_absent`.
+
+
       const sbConfig = {
         'json': {
           'any_keys': ['outbounds', 'endpoints'],
@@ -190,9 +190,9 @@ void main() {
     });
 
     test('«объект ИЛИ ключа нет» реестр выражает any + key_absent', () {
-      // Так объявлены формы xray-секций, у которых контейнер потока законно
-      // отсутствует (plain-TCP). Подмена `type_of` на снисходительный делала
-      // вторую ветку МЁРТВОЙ — различие выражать было нечем.
+
+
+
       const form = {
         'all': [
           {
@@ -214,14 +214,14 @@ void main() {
           },
         ]
       };
-      // plain-TCP: streamSettings нет вовсе — форма опознаётся.
+
       expect(
         matches(form, {
           'settings': {'vnext': <dynamic>[]}
         }),
         isTrue,
       );
-      // транспорт объявлен объектом — опознаётся.
+
       expect(
         matches(form, {
           'settings': {'vnext': <dynamic>[]},
@@ -229,7 +229,7 @@ void main() {
         }),
         isTrue,
       );
-      // МУСОРНЫЙ ТИП транспорта — форма НЕ опознаётся (битая запись).
+
       expect(
         matches(form, {
           'settings': {'vnext': <dynamic>[]},
@@ -237,7 +237,7 @@ void main() {
         }),
         isFalse,
       );
-      // контейнер обязан быть объектом всегда: без него нет ни адреса, ни users.
+
       expect(matches(form, {'settings': <dynamic>[]}), isFalse);
     });
 
@@ -257,7 +257,7 @@ void main() {
       expect(isType('number', 1.5), isTrue);
       expect(isType('bool', true), isTrue);
       expect(isType('bool', false), isTrue);
-      // Тип не приводится: булев — не число и не строка.
+
       expect(isType('number', true), isFalse);
       expect(isType('string', 1), isFalse);
     });
@@ -280,7 +280,7 @@ void main() {
       };
       expect(matches(objectDoc, <String, dynamic>{}), isTrue);
       expect(matches(objectDoc, <dynamic>[]), isFalse);
-      // Строка (cleartext) — не объект: именно это различие \$root и несёт.
+
       expect(matches(objectDoc, 'ss://…'), isFalse);
     });
 
@@ -291,7 +291,7 @@ void main() {
   });
 
   group('§532 · вид источника целиком (таблица Go)', () {
-    // Зеркало `linkmap_test.go`: те же предикаты, те же тела, тот же вывод.
+
     const xray = {
       'json': {
         'type_of': {'outbounds': 'array'},

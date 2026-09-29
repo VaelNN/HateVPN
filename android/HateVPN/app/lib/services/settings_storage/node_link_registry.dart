@@ -1,21 +1,21 @@
-/// Реестр ссылок на узлы (§439 §2.5, слой 4; D-113, D-114; NODE_LINK §6).
-///
-/// Один на все носители: `DetourPolicy.overrideDetour` источника (подписка,
-/// сервер, папка), `FolderMember.detour`, `SourceChain.hops` и состав
-/// autogroup папки (`ExplicitMembers.members` члена `kind: auto`). Операции
-/// контроллеров, меняющие адрес узла, идут сюда:
-///
-/// - **переименование** (правка тела) и **перенос** между контейнерами —
-///   [rewriteNodeLinks]: ссылки на прежний адрес указывают на новый;
-/// - **удаление** узла или источника целиком — [clearNodeLinks]: detour
-///   снимается, позиция уходит из цепочки, задетые называются;
-/// - смена `tag_policy` и имени контейнера адрес не меняет — сюда не
-///   приходит.
-///
-/// Ссылка никогда не переуказывается на ДРУГОЙ узел (NODE_LINK §6 п. 3):
-/// какие адреса сменились, решает [diffNodeAddresses] по самим узлам, а не по
-/// похожим тегам. Функции чистые: хранение и зеркало контроллера применяет
-/// вызывающий.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../../models/auto_select.dart';
@@ -25,7 +25,7 @@ import '../../models/server_list.dart';
 import '../../models/source_chain.dart';
 import '../node_link_address.dart';
 
-/// Итог операции реестра.
+
 final class NodeLinkChange {
   const NodeLinkChange({
     required this.lists,
@@ -37,28 +37,28 @@ final class NodeLinkChange {
     this.positions = 0,
   });
 
-  /// Источники после операции (те же объекты, где ничего не менялось).
+
   final List<ServerList> lists;
 
-  /// Цепочки после операции.
+
   final List<SourceChain> chains;
 
-  /// Носители detour-ссылки, переписанной или погашенной: detour источника и
-  /// члена папки. Имя для показа — подписка и папка — имя, сервер и член
-  /// папки — тег узла; пустое имя (член без разобранного узла) считается, но
-  /// не показывается. Член autogroup — не detour: он в [touchedGroups].
+
+
+
+
   final List<String> detourCarriers;
 
-  /// Теги групп autogroup, у которых задет состав.
+
   final List<String> touchedGroups;
 
-  /// Сколько членов групп переписано или снято.
+
   final int groupMembers;
 
-  /// Подписи цепочек, у которых задета позиция.
+
   final List<String> touchedChains;
 
-  /// Сколько позиций цепочек переписано или снято.
+
   final int positions;
 
   bool get isEmpty =>
@@ -67,13 +67,13 @@ final class NodeLinkChange {
   bool get chainsChanged => positions > 0;
 }
 
-/// Сменившиеся адреса узлов между состояниями [before] и [after].
-///
-/// Узел сопоставляется сам с собой по ссылке объекта (перенос члена,
-/// вынос в одиночный сервер, роспуск папки узел не пересоздают) или через
-/// [renamed] — «прежний узел → узел, который его заменил» (правка тела,
-/// перенос сервера в папку, где член разбирается заново). Узел без пары в
-/// [after] — удалён ([gone]); с другим адресом — перенесён ([moves]).
+
+
+
+
+
+
+
 ({Map<NodeLink, NodeLink> moves, Set<NodeLink> gone}) diffNodeAddresses(
   List<ServerList> before,
   List<ServerList> after, {
@@ -95,13 +95,13 @@ final class NodeLinkChange {
       kept.add(address);
     }
   });
-  // Корневой адрес делят тёзки (два сервера с одним тегом): уцелевший тёзка
-  // держит его дальше, и гасить ссылки на этот адрес нельзя.
+
+
   gone.removeAll(kept);
   return (moves: moves, gone: gone);
 }
 
-/// Итог [relinkNodeLinks]: новые носители и отчёты обеих частей.
+
 typedef NodeLinkRelink = ({
   List<ServerList> lists,
   List<SourceChain> chains,
@@ -109,11 +109,11 @@ typedef NodeLinkRelink = ({
   NodeLinkChange rewritten,
 });
 
-/// Операция контроллера целиком: сначала гаснут ссылки на удалённые адреса
-/// ([gone] и все пары на контейнеры [goneContainers]), затем переписываются
-/// перенесённые ([moves]). Порядок важен: адрес удалённого узла мог занять
-/// перенесённый тёзка (`X-2` → `X`), и ссылки удалённого не должны уехать на
-/// него.
+
+
+
+
+
 NodeLinkRelink relinkNodeLinks(
   List<ServerList> lists,
   List<SourceChain> chains, {
@@ -151,9 +151,9 @@ Map<NodeSpec, NodeLink> _addresses(List<ServerList> lists) {
   return out;
 }
 
-/// D-113 — ссылки на адреса-ключи [moves] переписываются на значения во всех
-/// носителях [lists] и [chains]. Перепись одновременная: обмен адресов
-/// (перестановка тёзок) не сливает ссылки.
+
+
+
 NodeLinkChange rewriteNodeLinks(
   List<ServerList> lists,
   List<SourceChain> chains,
@@ -163,8 +163,8 @@ NodeLinkChange rewriteNodeLinks(
   return _mapLinks(lists, chains, (l) => moves[l], dropHop: false);
 }
 
-/// D-114 — ссылки, для которых [isGone] истинно, гаснут: detour снимается,
-/// позиция уходит из цепочки (цепочка остаётся, §393 D2).
+
+
 NodeLinkChange clearNodeLinks(
   List<ServerList> lists,
   List<SourceChain> chains,
@@ -173,8 +173,8 @@ NodeLinkChange clearNodeLinks(
     _mapLinks(lists, chains, (l) => isGone(l) ? NodeLink.none : null,
         dropHop: true);
 
-/// Общий обход носителей. [replace] даёт новую ссылку или `null` (не
-/// трогать); [dropHop] — пустая замена позиции удаляет позицию.
+
+
 NodeLinkChange _mapLinks(
   List<ServerList> lists,
   List<SourceChain> chains,
@@ -263,10 +263,10 @@ NodeLinkChange _mapLinks(
   );
 }
 
-/// Состав autogroup члена [m] папки [folderId] через [swap]: член без
-/// `folder_id` — член этой же папки (NODE_LINK §5.1 № 8), переписанный пишется
-/// парой. [drop] — погашенный член уходит из состава. `null` — состав не
-/// задет; иначе новый член-группа и сколько членов состава задето.
+
+
+
+
 ({FolderMember member, int hits})? _mapGroupMembers(
   FolderMember m,
   String folderId,

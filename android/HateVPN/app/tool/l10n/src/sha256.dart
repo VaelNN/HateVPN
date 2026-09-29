@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-// §279 — SHA-256 (FIPS 180-4) на чистом Dart. Намеренно без package:crypto:
-// tool/ не должен тянуть транзитивные зависимости (depend_on_referenced_packages).
-// Корректность страхуется sha256SelfTest() при старте каждого checker'а.
+
+
+
 
 const List<int> _k = [
-  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, //
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
   0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
   0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
   0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
@@ -28,7 +28,7 @@ const int _mask32 = 0xffffffff;
 
 int _rotr(int x, int n) => ((x >> n) | (x << (32 - n))) & _mask32;
 
-/// Hex-дайджест SHA-256 от UTF-8 представления [input].
+
 String sha256Hex(String input) => sha256HexOfBytes(utf8.encode(input));
 
 String sha256HexOfBytes(List<int> data) {
@@ -43,7 +43,7 @@ String sha256HexOfBytes(List<int> data) {
   final msg = builder.toBytes();
 
   final h = <int>[
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, //
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
     0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
   ];
   final w = List<int>.filled(64, 0);
@@ -88,9 +88,9 @@ String sha256HexOfBytes(List<int> data) {
   return h.map((x) => x.toRadixString(16).padLeft(8, '0')).join();
 }
 
-/// Известный тест-вектор из FIPS 180-4; зовётся при старте каждого checker'а —
-/// цена микросекунды, зато hash-контракт (src-hash, baseline) не может тихо
-/// разъехаться из-за опечатки в константах.
+
+
+
 void sha256SelfTest() {
   const expected =
       'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';

@@ -4,8 +4,8 @@ import 'package:lxbox/services/contract/registry.dart';
 
 import '../contract_paths.dart';
 
-// §565 — род группы читается из `group.json` → `genus`; зеркало на случай
-// незагруженного реестра обязано совпадать с реестром.
+
+
 void main() {
   setUpAll(loadTestRegistry);
 

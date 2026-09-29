@@ -1,31 +1,31 @@
-// ===========================================================================
-// §294 — модель DNS-записей (виды §043/§033).
-//
-// §439 A1 — единственный рабочий формат DNS выше хранения. Резолверы, сборка,
-// экраны и контроллер DNS работают только с этими типами. Хранение (`dns{}`
-// в `settings_storage/network.dart`), бэкап, файл правил, секции узла и
-// Debug `PUT /settings/dns_options/*` пишут и читают запись 1.0 кодеком
-// `codec/dns_record.dart`; форму 2.23.2 читают только замороженные читатели
-// `storage_migration/legacy_form_v0.dart`. Своей сериализации у моделей нет.
-//
-// Семантика `enabled` при отсутствии ключа в записи (кодек):
-// - сервер, inline- и srs-правило — включено (`enabled != false`);
-// - template-правило — выключено (`enabled == true`, как читала сборка).
-//
-// Значения неизменяемы по договорённости: кодек копирует JSON-поддеревья,
-// модель не делит карты с документом хранения.
-//
-// Дискриминатор — строковый `kind`; модель не тянет `ServerKind` из `screens/`
-// (обратная зависимость слоёв запрещена).
-// ===========================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import 'package:collection/collection.dart';
 
 const _eq = DeepCollectionEquality();
 
-// ─── Servers ────────────────────────────────────────────────────────────────
 
-/// Один DNS-сервер хранения (`dns.servers[]`; запись — `codec/dns_record.dart`).
+
+
 sealed class DnsServerRef {
   const DnsServerRef({
     required this.enabled,
@@ -34,16 +34,16 @@ sealed class DnsServerRef {
 
   final bool enabled;
 
-  /// Тег сервера в `config.dns.servers[]` — им на сервер ссылаются правила,
-  /// группы, `dns.final` и экраны.
+
+
   String get tag;
 
   final String? description;
 
-  /// `inline` | `preset` | `template`.
+
   String get kind;
 
-  /// Та же запись с другим `enabled`.
+
   DnsServerRef withEnabled(bool enabled);
 }
 
@@ -58,7 +58,7 @@ class DnsServerInline extends DnsServerRef {
   @override
   final String tag;
 
-  /// Тело sing-box-сервера без `tag`/`enabled`/`description` (§044).
+
   final Map<String, dynamic> body;
 
   @override
@@ -93,17 +93,17 @@ class DnsServerInline extends DnsServerRef {
       Object.hash('inline', enabled, tag, description, _eq.hash(body));
 }
 
-/// Сервер пресета шаблона (`selectable_rules[].dns_servers[]`).
-///
-/// §439 — одна форма тега: [tag] — тег конфига. Сборка кладёт серверы пресета
-/// в пространство его id (`namespacePresetTags`, §103 C7): сервер `dns_ru`
-/// пресета `ru-direct` в конфиге, в правилах и в `dns.final` называется
-/// `ru-direct:dns_ru`. Запись 1.0 адресует его `ref` =
-/// `<preset_id>:<тег внутри пресета>` (BACKUP.md §2) — это та же строка
-/// (кодек, `dnsServerPresetRef`).
-///
-/// Тег без пространства при известном [presetId] (тег внутри пресета, так
-/// его отдаёт читатель файла 0.x) модель переводит в тег конфига.
+
+
+
+
+
+
+
+
+
+
+
 class DnsServerPreset extends DnsServerRef {
   const DnsServerPreset({
     required super.enabled,
@@ -121,9 +121,9 @@ class DnsServerPreset extends DnsServerRef {
       ? _tag
       : '$_presetId:$_tag';
 
-  /// §439 — пресет, которому принадлежит сервер. Не задан — пространство
-  /// тега (до первого `:`, [presetIdOfDnsServerTag]); пусто — тег без
-  /// пространства, пресет не известен (`ref` = тег).
+
+
+
   String get presetId =>
       _presetId.isNotEmpty ? _presetId : presetIdOfDnsServerTag(_tag);
 
@@ -159,9 +159,9 @@ class DnsServerPreset extends DnsServerRef {
       Object.hash('preset', enabled, tag, presetId, description);
 }
 
-/// Пространство тега preset-сервера DNS: часть до ПЕРВОГО `:` (id пресета
-/// двоеточия не содержит, тег внутри пресета — может); пусто, если `:` нет
-/// или он первый.
+
+
+
 String presetIdOfDnsServerTag(String tag) {
   final at = tag.indexOf(':');
   return at <= 0 ? '' : tag.substring(0, at);
@@ -212,9 +212,9 @@ class DnsServerTemplate extends DnsServerRef {
       Object.hash('template', enabled, tag, description, _eq.hash(varValues));
 }
 
-/// §441 (SPEC 129 §6, D-114) — `body.detour` пользовательского сервера —
-/// одиночная цель по имени: значение, названное ключом [retarget], заменено
-/// его значением. Не совпало — тот же экземпляр.
+
+
+
 DnsServerInline retargetDnsServerDetour(
   DnsServerInline server,
   Map<String, String> retarget,
@@ -225,22 +225,22 @@ DnsServerInline retargetDnsServerDetour(
   return server.copyWith(body: {...server.body, 'detour': to});
 }
 
-// ─── Rules ──────────────────────────────────────────────────────────────────
 
-/// Одно DNS-правило хранения (`dns.rules[]`). Четыре вида с РАЗНЫМИ
-/// identity-ключами: inline — имя и тело · srs — имя и `id` · preset —
-/// `presetId` · template — имя; у всех — `enabled`.
-/// Preset — позиционный якорь mirror-группы: его `enabled` сборка с
-/// mirror-группой не читает, но значение сохраняется как есть.
+
+
+
+
+
+
 sealed class DnsRuleRef {
   const DnsRuleRef();
 
   String get kind;
 
-  /// Включено ли правило (отсутствие ключа — см. шапку файла).
+
   bool get enabled;
 
-  /// Та же запись с другим `enabled`.
+
   DnsRuleRef withEnabled(bool enabled);
 }
 
@@ -253,8 +253,8 @@ class DnsRuleInline extends DnsRuleRef {
   final String name;
   final Map<String, dynamic> rule;
 
-  /// §435 — тумблер записи (ONE_NAMESPACE §1: `enabled` у DNS-правил); запись
-  /// без ключа читается как «включено».
+
+
   @override
   final bool enabled;
 
@@ -286,10 +286,10 @@ class DnsRuleInline extends DnsRuleRef {
   int get hashCode => Object.hash('inline', name, enabled, _eq.hash(rule));
 }
 
-/// DNS-правило по скачанному rule-set. UI его не создаёт. Тело — `body`
-/// (`server` + доп. условия; форма §294: Debug API, файл правил). `server` /
-/// `rule` / `srsUrl` — поля §033, их несут только старые записи: сборка берёт
-/// их раньше `body`, тайл показывает `srsUrl`/`server`.
+
+
+
+
 class DnsRuleSrs extends DnsRuleRef {
   const DnsRuleSrs({
     required this.name,
@@ -355,8 +355,8 @@ class DnsRulePreset extends DnsRuleRef {
   const DnsRulePreset({required this.presetId, this.enabled = true});
   final String presetId;
 
-  /// §033 — «мёртвое» для активного preset'а, но позиционный anchor
-  /// mirror-группы в build_config; сохраняется как есть, не чистится.
+
+
   @override
   final bool enabled;
 

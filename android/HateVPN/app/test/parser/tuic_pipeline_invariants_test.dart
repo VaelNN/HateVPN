@@ -14,22 +14,22 @@ import 'package:lxbox/services/node_hash.dart';
 import 'package:lxbox/services/parser/singbox_config.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 
-/// §472 шаг 5, раздел 3 спеки — инварианты переезда tuic на конвейер.
-///
-/// Инварианты 1 и 2 (корпус и golden) держат свои тесты: корпус URI —
-/// `test/contract/`, эталоны конфигов — `test/builder/` и
-/// `test/storage_migration/`. Здесь то, что специфично для переезда
-/// протокола: identity, round-trip, цена и коды из реестра.
-/// §480 W4 — РЕЕСТР берётся из ЗЕРКАЛА (`assets/contract`), а не из
-/// вендоренной копии: копии на CI нет вовсе (она в `.gitignore`), и под её
-/// гейтом весь файл молча пропускался бы именно там, где нужен. Зеркало лежит
-/// в git и едет в APK.
-///
-/// КОРПУС остаётся за вендоренной копией — в зеркале его нет, оно несёт
-/// только `registry/`. Поэтому гейта два: тесты по фикстурам идут всегда,
-/// тесты по корпусу — только локально после синка.
 
-/// Снимок identity, снятый СТАРЫМ путём ДО правки (18.09.2026).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const _identityFixture = 'test/fixtures/tuic/pipeline_identity_before.json';
 
 Map<String, Map<String, dynamic>> _identityBefore() {
@@ -39,7 +39,7 @@ Map<String, Map<String, dynamic>> _identityBefore() {
   );
 }
 
-/// Все tuic-ссылки корпуса, в порядке файлов.
+
 List<String> _corpusUris() {
   final out = <String>[];
   final files = Directory('$kVendorRoot/corpus/uri/tuic')
@@ -61,9 +61,9 @@ List<String> _corpusUris() {
 List<RegistryWarning> _registry(NodeSpec n) =>
     n.warnings.whereType<RegistryWarning>().toList();
 
-/// Узел, пришедший sing-box JSON полным путём входа: `parseSingboxConfigs`
-/// строит модель по карте санитайзера реестра (§545). Блоки utls/reality на
-/// QUIC снимает он, а не эмиттер (§546).
+
+
+
 NodeSpec _viaSingboxJson(Map<String, dynamic> entry) => parseSingboxConfigs([
       {
         'outbounds': [entry],
@@ -71,7 +71,7 @@ NodeSpec _viaSingboxJson(Map<String, dynamic> entry) => parseSingboxConfigs([
     ]).single;
 
 void main() {
-  // Корпус живёт только в вендоренной копии — на CI его нет.
+
   final corpusSkip = corpusTestSkip('test/parser/tuic_pipeline_invariants_test.dart');
 
   setUpAll(() async {
@@ -104,19 +104,19 @@ void main() {
     });
 
     test('узел с `uuid` не в форме UUID теперь отбраковывается', () {
-      // ЕДИНСТВЕННОЕ изменение поведения этого переезда, и оно намеренное.
-      // Реестр объявляет у поля `format: uuid` + `on_invalid: drop`, а само
-      // поле `required`: ядро отвечает на мусорный uuid «invalid uuid» —
-      // фаталом на ВЕСЬ конфиг, то есть такой узел уносил с собой и все
-      // остальные. Прежде он строился и уезжал в ядро как есть.
-      //
-      // Корпус эту границу провёл сам (SPEC 131 W2c): заглушки `u` в его
-      // кейсах заменены настоящими UUID с пометкой «кейс нормировал тело,
-      // которое не запускается». Ни одного корпусного кейса с мусорным uuid
-      // сегодня нет, и identity выше это подтверждает.
+
+
+
+
+
+
+
+
+
+
       expect(parseUri('tuic://u:p@h.example:443?alpn=h3#n'), isNull);
       expect(parseUri('tuic://aaaa-bbbb:secret@srv:443#n'), isNull);
-      // Настоящий UUID проходит.
+
       expect(
           parseUri('tuic://11111111-1111-1111-1111-111111111111:p@h:443#n'),
           isNotNull);
@@ -140,7 +140,7 @@ void main() {
             reason: 'круг изменил identity: $u');
         checked++;
       }
-      // У tuic круг проходят ВСЕ разбираемые кейсы, без исключений.
+
       expect(checked, greaterThan(11));
     }, skip: corpusSkip);
   });
@@ -150,14 +150,14 @@ void main() {
       const n = 2000;
       final uris = [
         for (var i = 0; i < n; i++)
-          // Настоящий UUID: реестр проверяет форму (`format: uuid`), и
-          // заглушка отбраковала бы все 2000 узлов вместо замера.
+
+
           'tuic://11111111-1111-1111-1111-${'$i'.padLeft(12, '0')}'
               ':pass$i@example-$i.com:443?congestion_control=bbr&alpn=h3'
               '&udp_relay_mode=native&sni=example-$i.com#node$i',
       ];
 
-      // Прогрев кэша схем и JIT.
+
       for (var i = 0; i < 200; i++) {
         parseUri(uris[i]);
       }
@@ -187,9 +187,9 @@ void main() {
     const uuid = '11111111-1111-1111-1111-111111111111';
 
     test('запрещённый на QUIC блок utls судит САНИТАЙЗЕР', () {
-      // Прежде блок срезал ЭМИТТЕР (`toSingboxForQuic`, снят §546), то есть раньше
-      // судьи, и код ставил рукописный проход `forbiddenTlsBlockWarnings`
-      // (§469) — причём `fp` у tuic до 1.1.4 не читался вовсе.
+
+
+
       final spec = parseUri('tuic://$uuid:pass123@tuic.example-1.com:443/'
           '?congestion_control=bbr&fp=firefox&sni=tuic.example-1.com#n')!;
       final w = _registry(spec)
@@ -238,7 +238,7 @@ void main() {
       expect(cc.emit(TemplateVars.empty).map.containsKey('congestion_control'),
           isFalse, reason: 'ядро подставит свой дефолт');
 
-      // §463 — мусор в udp_relay_mode СНИМАЕТСЯ, а не подменяется на native.
+
       final urm = parseUri('tuic://$uuid:p@h:443?udp_relay_mode=quiс#n')!;
       final u = _registry(urm)
           .firstWhere((w) => w.code == 'tuic_udp_relay_mode_invalid');
@@ -249,15 +249,15 @@ void main() {
     });
 
     test('три написания 0-RTT читаются одинаково', () {
-      // `uri.query.reduce_rtt.aliases` — целевой набор контракта это
-      // объединение обоих проектов; `zero_rtt_handshake` у Dart прежде не
-      // читался вовсе.
+
+
+
       for (final key in ['reduce_rtt', 'zero_rtt', 'zero_rtt_handshake']) {
         final spec = parseUri('tuic://$uuid:p@h:443?$key=1#n')!;
         expect(spec.emit(TemplateVars.empty).map['zero_rtt_handshake'], isTrue,
             reason: 'написание $key');
       }
-      // Без параметра поля в теле нет вовсе (дефолт ставит ядро).
+
       final off = parseUri('tuic://$uuid:p@h:443#n')!;
       expect(off.emit(TemplateVars.empty).map.containsKey('zero_rtt_handshake'),
           isFalse);
@@ -268,7 +268,7 @@ void main() {
           '&disable_sni=1#n')!;
       final tls = on.emit(TemplateVars.empty).map['tls'] as Map;
       expect(tls.containsKey('server_name'), isFalse);
-      // `disable_sni=0` — не просили: имя на месте (кейс корпуса v5_zero_rtt).
+
       final off = parseUri('tuic://$uuid:p@h.example:443?sni=a.b'
           '&disable_sni=0#n')!;
       expect((off.emit(TemplateVars.empty).map['tls'] as Map)['server_name'],
@@ -276,28 +276,28 @@ void main() {
     });
 
     test('пароль с двоеточием внутри не теряется', () {
-      // userinfo у tuic это `uuid:password`, но пароль — всё ПОСЛЕ первого
-      // двоеточия: у hysteria2 двоеточие часть пароля целиком, здесь —
-      // разделитель ровно один раз.
+
+
+
       final spec = parseUri('tuic://$uuid:p%3A1%3A2@h:443#n')!;
       expect(spec.emit(TemplateVars.empty).map['password'], 'p:1:2');
     });
   });
 
-  // РЕШЕНИЕ ВЛАДЕЛЬЦА 19.09.2026 — пустой пароль это УЗЕЛ С ПРЕДУПРЕЖДЕНИЕМ,
-  // а не отбраковка. Снимает расхождение строгости, которое лаунчер держал
-  // открытым вопросом (TASKS_LXBOX §32.3, Q133-67). Соединение возможно по
-  // устройству протокола: токен TUIC v5 — TLS-экспортёр, пароль идёт
-  // КОНТЕКСТОМ, и пустой контекст экспортёр не отвергает.
+
+
+
+
+
   group('пустой пароль — узел с кодом, не отбраковка', () {
     const uuid = '11111111-1111-1111-1111-111111111111';
     const empty = 'tuic://$uuid:@example-1.com:443#n';
     const absent = 'tuic://$uuid@example-1.com:443#n';
 
     test('оба написания дают УЗЕЛ и код password_empty', () {
-      // Написаний отсутствия два — пустой хвост и хвоста нет вовсе, — а
-      // событие одно: значения нет. Для тела они неразличимы, поэтому и
-      // судятся одинаково.
+
+
+
       for (final u in [empty, absent]) {
         final spec = parseUri(u);
         expect(spec, isNotNull, reason: 'узел отбракован: $u');
@@ -311,9 +311,9 @@ void main() {
       final a = parseUri(empty)!.emit(TemplateVars.empty).map;
       final b = parseUri(absent)!.emit(TemplateVars.empty).map;
       expect(b, a, reason: 'написание входа в тело не просачивается');
-      // Корпус 1.1.43+ (Q133-67): пустой пароль — предупреждение, ключ в теле
-      // не материализуется (omitempty у ядра; оба написания отсутствия
-      // неразличимы для тела).
+
+
+
       expect(a.containsKey('password'), isFalse);
       expect(b.containsKey('password'), isFalse);
     });
@@ -327,8 +327,8 @@ void main() {
             reason: 'круг изменил тело: $u');
         expect(legacyNodeIdentityHash(b), legacyNodeIdentityHash(a),
             reason: 'круг изменил identity: $u');
-        // Код обязан пережить круг: исходящая ссылка пароля не несёт, и
-        // второй разбор видит ровно то же отсутствие.
+
+
         expect(
           _registry(b).where((w) => w.code == 'password_empty'),
           hasLength(1),
@@ -344,11 +344,11 @@ void main() {
     });
 
     test('синк 1.1.37 — у кода есть ТЕКСТЫ, карточка не пустая', () {
-      // До синка 1.1.37 код ставился нашим оверлеем, а в `warnings.json` его
-      // не было вовсе: severity бралась умолчанием, заголовком вставал сам
-      // идентификатор, карточка оставалась пустой. Реестр привёз код ОБЩИМ
-      // (не под схему) вместе с текстами — проверяем именно это, иначе
-      // регрессия реестра прошла бы молча: поведение-то осталось бы верным.
+
+
+
+
+
       final t = ContractRegistry.I.textFor('password_empty');
       expect(t, isNotNull, reason: 'кода нет в registry/warnings.json');
       expect(t!.severity, 'warning');
@@ -358,8 +358,8 @@ void main() {
         expect(s, isNot('password_empty'),
             reason: 'заголовком встал идентификатор — текста нет');
       }
-      // Подстановка `{path}` обязана быть названа значением, а не остаться
-      // в тексте дословно: путь кода у этой записи — `password`.
+
+
       expect(t.textEn, contains('{path}'));
       expect(t.fixEn, isNotEmpty);
       expect(t.fixRu, isNotEmpty);

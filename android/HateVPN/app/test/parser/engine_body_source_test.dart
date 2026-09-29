@@ -5,14 +5,14 @@ import 'package:lxbox/services/parser/engine/section_loader.dart';
 
 import 'engine_test_setup.dart';
 
-/// §480 — ВХОД доезжает до санитайзера: `body_source` секции, а не заглушка.
-///
-/// Единственное место контракта, где вход влияет на РЕЗУЛЬТАТ, а не только на
-/// разбор, — `max_when.except_sources` (§473). До этой правки конвейер
-/// передавал туда `other` на всех входах, кроме sing-box-JSON: правило
-/// работало вслепую, и стоило реестру перечислить в исключениях `uri` или
-/// `wgconf`, как тела у нас и у лаунчера разошлись бы МОЛЧА — без красного
-/// теста и без кода.
+
+
+
+
+
+
+
+
 void main() {
   setUpAll(loadEngineSections);
 
@@ -43,8 +43,8 @@ void main() {
       });
     });
 
-    // Реестр вправе уехать вперёд кода (24.1): новый вид источника обязан
-    // вести себя как «вход себя не назвал», а не ронять разбор.
+
+
     test('незнакомое имя — other, без падения', () {
       expect(BodySource.byRegistryName('clash'), BodySource.other);
       expect(BodySource.byRegistryName(''), BodySource.other);
@@ -53,8 +53,8 @@ void main() {
   });
 
   test('расширение набора не трогает правило except_sources', () {
-    // Сравнение идёт по имени из реестра, поэтому новые значения под список
-    // `["singbox"]` не подпадают — ровно как не подпадал `other`.
+
+
     const except = ['singbox'];
     expect(except.contains(BodySource.uri.registryName), isFalse);
     expect(except.contains(BodySource.wgconf.registryName), isFalse);

@@ -10,20 +10,20 @@ import android.util.Log
 import com.leadaxe.lxbox.MainActivity
 import com.leadaxe.lxbox.R
 
-/// Long-press menu shortcuts on the launcher icon.
-///
-/// Не статические в `res/xml/shortcuts.xml`, а динамические через
-/// `ShortcutManager.dynamicShortcuts` — обновляются каждый раз когда
-/// `BoxVpnService.setStatus` отдаёт новое состояние:
-///
-///   Stopped       → 1 пункт «Connect»
-///   Started       → 1 пункт «Disconnect»
-///   Starting/Stopping → оба пункта (даём юзеру и cancel-старт, и форс-стоп)
-///
-/// Init-точка — `BoxApplication.initialize` (любой запуск процесса) +
-/// каждый `setStatus`. Quick Connect — фича primary-tier (Android 11+,
-/// API 30+); на best-effort устройствах 8-10 это no-op чтобы не рисковать
-/// API/OEM-несовместимостями.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 object QuickShortcuts {
     private const val TAG = "QuickShortcuts"
 
@@ -35,7 +35,7 @@ object QuickShortcuts {
         try {
             doRefresh(ctx)
         } catch (t: Throwable) {
-            // Throwable — ловим и Error (NoClassDefFoundError, VerifyError).
+
             Log.w(TAG, "refresh failed: ${t.message}")
         }
     }
@@ -55,8 +55,8 @@ object QuickShortcuts {
         try {
             sm.dynamicShortcuts = list
         } catch (e: IllegalStateException) {
-            // Rate-limited (system reset on launcher start). На следующий
-            // setStatus всё равно повторим — некритично.
+
+
             Log.w(TAG, "dynamicShortcuts rate-limited: ${e.message}")
         }
     }
@@ -73,14 +73,14 @@ object QuickShortcuts {
         MainActivity.ACTION_DISCONNECT,
     )
 
-    /// §279 (спека §6.3, шаг 3) — relabel при смене языка. НЕ doRefresh:
-    /// status-зависимый набор публикует только часть ярлыков (Stopped — один
-    /// Connect), а pinned-копия второго осталась бы на старом языке навсегда.
-    /// `updateShortcuts` — документированный API label-refresh'а: обновляет
-    /// существующие dynamic И pinned по id, несуществующие id игнорирует
-    /// (состав не меняется). Rate-limit (locale-change исполняется в
-    /// background) → флаг pending, гарантированный retry из
-    /// MainActivity.onResume (foreground — rate-limit не применяется).
+
+
+
+
+
+
+
+
     fun relabel(ctx: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
         try {
@@ -99,7 +99,7 @@ object QuickShortcuts {
         }
     }
 
-    /// §279 — retry отложенного relabel'а (см. [relabel]) из foreground.
+
     fun retryPendingRelabel(ctx: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
         try {
@@ -111,11 +111,11 @@ object QuickShortcuts {
     }
 
     private fun build(ctx: Context, id: String, label: String, action: String): ShortcutInfo {
-        // §032 polish: разные цветные adaptive-иконки на Connect / Disconnect
-        // (зелёный ▶ / красный ■). Launcher не тонирует bitmap-фронт adaptive-
-        // icon'а в свою тему — цвета остаются. Fallback drawable
-        // ic_lxbox_tile (monochrome shield) — на случай неизвестного action,
-        // не должно реально срабатывать.
+
+
+
+
+
         val iconRes = when (action) {
             MainActivity.ACTION_CONNECT -> R.mipmap.ic_qc_connect
             MainActivity.ACTION_DISCONNECT -> R.mipmap.ic_qc_disconnect
@@ -124,8 +124,8 @@ object QuickShortcuts {
         val intent = Intent(ctx, MainActivity::class.java).apply {
             this.action = Intent.ACTION_MAIN
             putExtra(MainActivity.EXTRA_ACTION, action)
-            // Каждый shortcut — самостоятельный launch. SINGLE_TOP +
-            // CLEAR_TOP избегают наложения старого taskState'а.
+
+
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
         return ShortcutInfo.Builder(ctx, id)

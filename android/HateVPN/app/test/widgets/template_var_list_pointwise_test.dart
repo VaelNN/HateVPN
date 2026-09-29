@@ -7,24 +7,24 @@ import 'package:lxbox/services/l10n/locale_controller.dart';
 import 'package:lxbox/widgets/template_var_list.dart';
 import 'package:lxbox/widgets/var_values_model.dart';
 
-/// SPEC 393 фаза D (D1/D2) — ТОЧЕЧНОСТЬ перерисовки списка настроек шаблона.
-///
-/// Эталон — лаунчер (`ui/configurator/tabs/settings_reactive.go`): изменение
-/// переменной обновляет ТОЛЬКО подписанные на неё строки, остальные виджеты не
-/// трогаются. У лаунчера для этого понадобился статический индекс
-/// `переменная → строки` поверх `CondDeps`, потому что там строка зависит от
-/// гейта (условия), а не только от собственного значения.
-///
-/// У LxBox условных гейтов на строках НЕТ (`WizardVar` не несёт ни `if`, ни
-/// `#enable`), поэтому зависимость строки ровно одна — её собственный ключ, и
-/// индексом служит сам per-key `ValueNotifier` модели (§232). Этот файл держит
-/// свойство под наблюдением: если гейты появятся или подписка поедет на общий
-/// `setState`, тесты покраснеют.
-///
-/// Проверяется МЕХАНИЗМ (что перестроилось), а не вёрстка и не тексты.
 
-/// Счётчик перестроений: увеличивается на каждый build своего поддерева.
-/// Пробная обёртка — вне продакшн-кода, живёт только в тесте.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class _BuildCounter extends StatelessWidget {
   const _BuildCounter({required this.tick, required this.child});
 
@@ -38,11 +38,11 @@ class _BuildCounter extends StatelessWidget {
   }
 }
 
-/// Считает, сколько раз перестроился контрол каждой переменной.
-///
-/// Опора на механику Flutter: `ValueListenableBuilder` при уведомлении строит
-/// НОВЫЙ экземпляр child-виджета. Если экземпляр тот же самый — поддерево не
-/// перестраивалось. Сравниваем по `identical`, а не по значению полей.
+
+
+
+
+
 Map<String, Object> _controlIdentities(WidgetTester tester, List<String> names) {
   final out = <String, Object>{};
   for (final n in names) {
@@ -88,7 +88,7 @@ void main() {
     testWidgets('соседние контролы не пересобираются', (tester) async {
       final model = await pump(tester, vars);
 
-      // Каждый bool-контрол — SwitchListTile; ищем по позиции в списке.
+
       List<SwitchListTile> switches() => tester
           .widgetList<SwitchListTile>(find.byType(SwitchListTile))
           .toList();
@@ -102,10 +102,10 @@ void main() {
       final after = switches();
       expect(after, hasLength(3));
 
-      // Строка изменённой переменной — НОВЫЙ экземпляр (перестроилась).
+
       expect(identical(before[1], after[1]), isFalse,
           reason: 'строка изменённой переменной обязана перестроиться');
-      // Соседи — те же экземпляры: их поддеревья Flutter не трогал.
+
       expect(identical(before[0], after[0]), isTrue,
           reason: 'строка соседней переменной перестроилась — подписка не '
               'точечная (общий setState вместо per-key)');
@@ -120,8 +120,8 @@ void main() {
       final before =
           tester.widgetList<SwitchListTile>(find.byType(SwitchListTile)).toList();
 
-      // VarValuesModel.set возвращает false и не уведомляет, если значение
-      // не изменилось (fixpoint-guard, на нём же обрывается каскад on_change).
+
+
       expect(model.set('beta', 'false'), isFalse);
       await tester.pump();
 
@@ -135,9 +135,9 @@ void main() {
 
     testWidgets('каскад on_change по двум целям трогает ровно две строки',
         (tester) async {
-      // Механика §232: parent пишет производные значения через model.set —
-      // ровно то, что делает settings_screen._applyOnChange. Ни одна строка
-      // вне множества целей перестраиваться не должна.
+
+
+
       final model = await pump(tester, vars);
       final before =
           tester.widgetList<SwitchListTile>(find.byType(SwitchListTile)).toList();
@@ -158,8 +158,8 @@ void main() {
   group('D1/D2 — счётчик ребилдов', () {
     testWidgets('N изменений одной переменной = N перестроений её строки',
         (tester) async {
-      // Прямой счётчик поверх той же модели: считаем не виджеты списка, а
-      // сам механизм подписки — сколько раз слушатель ключа был уведомлён.
+
+
       final model = VarValuesModel({'alpha': 'false', 'beta': 'false'});
       final counts = <String, int>{'alpha': 0, 'beta': 0};
 
@@ -196,8 +196,8 @@ void main() {
       expect(counts['beta']! - baseBeta, 0,
           reason: 'соседний ключ не должен получать уведомлений вовсе');
 
-      // И обратное: проба находится там, где мы её ищем (страховка от
-      // вырожденно-зелёного теста на несуществующем виджете).
+
+
       expect(_controlIdentities(tester, ['alpha', 'beta']).length, 2);
     });
   });

@@ -3,17 +3,17 @@ import 'dart:convert';
 import '../../models/node_spec.dart';
 import 'body_decoder.dart';
 
-/// §437 — текст вставленного JSON без `tailscale`-записей.
-///
-/// Многоузловой конфиг с endpoint'ом Tailscale контроллер разбирает надвое:
-/// узлы Tailscale уезжают в свои `UserServer` (связка живёт только у
-/// свободных узлов), а остаток идёт прежним путём. Остаток обязан быть
-/// ТЕКСТОМ без tailscale, а не отфильтрованным списком узлов: файловая
-/// подписка хранит тело в кэше и перечитывает его на старте
-/// (`_rehydrateFromCache`) — иначе узел вернулся бы дублем.
-///
-/// `null` — форма, в которой вырезать нечего (Xray/Clash/URI-строки) или
-/// вырезать нечего по факту (tailscale-записей не было).
+
+
+
+
+
+
+
+
+
+
+
 String? textWithoutTailscale(JsonConfig decoded) {
   final copy = deepCopyJson(decoded.value);
   var removed = false;
@@ -28,8 +28,8 @@ String? textWithoutTailscale(JsonConfig decoded) {
       final kept = [for (final e in list) if (!isTailscale(e)) e];
       if (kept.length == list.length) continue;
       removed = true;
-      // Пустой `endpoints` убираем целиком: ключ-пустышка ничего не значит и
-      // только мешает опознанию формы.
+
+
       if (kept.isEmpty && key == 'endpoints') {
         cfg.remove(key);
       } else {
@@ -39,9 +39,9 @@ String? textWithoutTailscale(JsonConfig decoded) {
   }
 
   Object? out;
-  // §483 — вид источника называет ветка, которой документ опознан
-  // (`JsonConfig.source`), а не отдельное перечисление форм. Вырезание
-  // зависит от ФОРМЫ документа: где у неё лежат записи, там и режем.
+
+
+
   switch (decoded.source.kind) {
     case SourceKind.singboxConfig:
       if (copy is! Map<String, dynamic>) return null;
@@ -58,8 +58,8 @@ String? textWithoutTailscale(JsonConfig decoded) {
       final kept = [for (final e in copy) if (!isTailscale(e)) e];
       removed = kept.length != copy.length;
       out = kept;
-    // Одиночный outbound, массив Xray, Clash, нераспознанное: вырезать
-    // нечего — узел в документе один либо форма связки не несёт.
+
+
     default:
       return null;
   }

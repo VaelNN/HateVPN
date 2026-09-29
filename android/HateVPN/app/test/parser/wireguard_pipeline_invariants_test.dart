@@ -15,16 +15,16 @@ import 'package:lxbox/services/parser/json_parsers.dart';
 import 'package:lxbox/services/parser/uri_parsers.dart';
 import 'package:lxbox/services/warp/warp_account.dart';
 
-/// §472 шаг 7, раздел 3 спеки — инварианты переезда wireguard/AWG на конвейер.
-///
-/// Снимок охватывает ТРИ входа одной схемы: ссылку (включая `awg://<base64
-/// .conf>`), текст INI и узлы, которые строит фабрика WARP
-/// (`WarpAccount.toWireguardUri` / `toWireguardConf`) — у пользователей они
-/// самые массовые.
-/// §480 W4 — РЕЕСТР из ЗЕРКАЛА: вендоренной копии на CI нет, и под её гейтом
-/// файл пропускался бы целиком. КОРПУС остаётся за копией — в зеркале его нет.
 
-/// Снимок, снятый СТАРЫМ путём ДО правки (18.09.2026).
+
+
+
+
+
+
+
+
+
 const _identityFixture = 'test/fixtures/wireguard/pipeline_identity_before.json';
 
 const _priv = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA=';
@@ -73,7 +73,7 @@ WarpAccount _warpAccount({Awg? awg, bool plus = false}) => WarpAccount(
       awg: awg,
     );
 
-/// Тот же набор AWG-полей, которым снимался эталон.
+
 final _warpAwg = Awg(const {
   'jc': 4,
   'jmin': 40,
@@ -126,8 +126,8 @@ void main() {
     });
 
     test('INI-входы дают прежние хеш, тег и тело', () {
-      // §456 — INI остаётся ИСТОЧНИКОМ: `rawSource` это текст файла байт в
-      // байт, а тег берётся из комментария под `[Peer]`, затем из nameHint.
+
+
       final before = _identityBefore();
       final iniCases = {
         for (final e in before.entries)
@@ -151,8 +151,8 @@ void main() {
     });
 
     test('узлы фабрик WARP не сдвинулись ни в одной комбинации', () {
-      // WG-узлы WARP у пользователей самые массовые. Фабрик две: короткий
-      // URI для plain WARP и `.conf` для обфусцированного (§126).
+
+
       final before = _identityBefore();
       var checked = 0;
       for (final plus in const [false, true]) {
@@ -174,7 +174,7 @@ void main() {
             expect(legacyNodeIdentityHash(byConf), wantConf['identity'],
                 reason: 'identity WARP-.conf plus=$plus res=$res ka=$ka');
             expect(byConf.tag, wantConf['tag']);
-            // Обфусцированный WARP это AmneziaWG: потолок MTU обязан стоять.
+
             expect(byConf.mtu, 1280);
             checked += 2;
           }
@@ -190,10 +190,10 @@ void main() {
       for (final u in _corpusUris()) {
         final a = parseUri(u);
         if (a == null) continue;
-        // `awg://<base64 .conf>` (§450) — форма БЕЗ обратного эмиттера:
-        // `toUriWireguard` всегда пишет каноническую `key@host:port?…`.
-        // Круг при этом сохраняет и тело, и identity — расходится только
-        // текст ссылки, и проверяется это ниже как свойство эмиссии.
+
+
+
+
         final b = parseUri(a.toUri());
         expect(b, isNotNull, reason: 'круг потерял узел: $u');
         expect(b!.emit(TemplateVars.empty).map, a.emit(TemplateVars.empty).map,
@@ -202,7 +202,7 @@ void main() {
             reason: 'круг изменил identity: $u');
         checked++;
       }
-      // Круг проходят ВСЕ разбираемые кейсы, без исключений.
+
       expect(checked, greaterThan(35));
     }, skip: corpusSkip);
 
@@ -215,7 +215,7 @@ void main() {
       final b = parseUri(a.toUri())!;
       expect(b.emit(TemplateVars.empty).map, a.emit(TemplateVars.empty).map);
       expect(legacyNodeIdentityHash(b), legacyNodeIdentityHash(a));
-      // Источник у INI-узла остаётся INI (§456), у пересобранного — ссылка.
+
       expect(a.rawSource, ini);
     });
   });
@@ -280,57 +280,57 @@ void main() {
     });
 
     test('обычный WG с mtu=1420 — без замены и без кодов', () {
-      // Условие `when.any_set` не выполнено: потолок диктует РОД узла.
+
       final spec = parseUri(wg('&mtu=1420'))!;
       expect(spec.emit(TemplateVars.empty).map['mtu'], 1420);
       expect(_registry(spec), isEmpty);
     });
 
     test('обычный WG без mtu — поля в теле нет вовсе', () {
-      // Ядро берёт свой 1408; наш дефолт спорил бы с ним и ломал identity
-      // (PARSING_PRINCIPLES §2.4).
+
+
       final spec = parseUri(wg(''))!;
       expect(spec.emit(TemplateVars.empty).map.containsKey('mtu'), isFalse);
     });
 
     test('jc=0 — законный AWG: потолок действует (предикат `any_set`)', () {
-      // §473 — `any_set` судит НАЛИЧИЕ КЛЮЧА, а не заданность значения:
-      // `jc: 0` это «мусорные пакеты выключены» у настоящего AWG-узла.
+
+
       final spec = parseUri(wg('&jc=0&mtu=1420'))!;
       expect(spec.emit(TemplateVars.empty).map['mtu'], 1280);
       expect(_registry(spec).map((w) => w.code), contains('awg_mtu_clamped'));
     });
 
     test('§463 — узел, у которого AWG-поля сняты ВСЕ, остаётся AmneziaWG', () {
-      // `jc=abc` снимается молча (эталон Go), одинокий `jmin` — правилом
-      // `requires`. В теле AWG-ключей не остаётся, и условие `any_set`
-      // реестра по телу не выполнилось бы — а ссылка ПРОСИЛА AmneziaWG, и
-      // потолок это свойство запрошенного протокола. Кейсы корпуса
-      // `awg_bad_numeric_skipped`, `awg_jc_invalid_dropped`.
+
+
+
+
+
       final spec = parseUri(wg('&jc=abc&jmin=50'))!;
       final body = spec.emit(TemplateVars.empty).map;
       expect(body['mtu'], 1280);
       expect(body.keys.where((k) => k.startsWith('j')), isEmpty,
           reason: 'ни одного AWG-поля в теле не осталось');
-      // Контракт 1.1.23+ — кодов ДВА, по одному на каждое снятое поле.
-      // Раньше `jc=abc` снимался молча (эталон Go до этой версии), и код
-      // оставался только у `jmin`. Теперь корпус ждёт обоих
-      // (`awg_jc_invalid_dropped.expected.json`: `jc` со значением «abc» и
-      // `jmin` без значения), и молчание про `jc` было бы потерей поля без
-      // следа.
+
+
+
+
+
+
       expect(_registry(spec).map((w) => '${w.code}@${w.path}'),
           ['awg_header_invalid@jc', 'awg_header_invalid@jmin']);
     });
 
     test('§463 — awg_header_invalid ставится ПОФАКТОРНО', () {
-      // Четыре битых заголовка — четыре сообщения человеку; результат разбора корпуса
-      // при этом несёт одну запись без пути (`awg_ranged_h_broken_dropped`).
+
+
       final spec = parseUri(wg('&h1=10-&h2=a-b&h3=-5&h4=1-2-3&jc=4'))!;
-      // Код ставит РЕЕСТР, и приезжает он общим типом `RegistryWarning` с
-      // путём — рукописного `AwgHeaderInvalidWarning` на этом входе больше
-      // не возникает. Пофакторность от этого не изменилась: четыре битых
-      // заголовка — четыре записи с путями `h1`…`h4`, ровно как ждёт корпус
-      // (`awg_ranged_h_broken_dropped.expected.json`).
+
+
+
+
+
       expect(
         _registry(spec)
             .where((w) => w.code == 'awg_header_invalid')
@@ -347,9 +347,9 @@ void main() {
 
   group('§472 — wireguard: перевод, который остаётся за маппером', () {
     test('ключи приводятся к КАНОНУ base64 (нормализация, не суждение)', () {
-      // SPEC 103 D-030 — `…ccC=` и `…ccA=` это одни и те же 32 байта; без
-      // нормализации одна нода давала бы два identity-хеша. Корпус нормирует
-      // канон (`uri_psk_keepalive`).
+
+
+
       final spec = parseUri(
           'wireguard://ccccccccccccccccccccccccccccccccccccccccccC=@h.example'
           ':51820?publickey=ddddddddddddddddddddddddddddddddddddddddddD='
@@ -361,10 +361,10 @@ void main() {
     });
 
     test('битый psk ОТБРАКОВЫВАЕТ узел (требование корпуса, не реестра)', () {
-      // Реестр объявляет у `peers[].pre_shared_key` `on_invalid: drop` —
-      // снял бы поле и оставил узел. Корпус нормирует обратное
-      // (`junk_presharedkey_rejected` → `dropped: parse_error`): туннель к
-      // серверу с psk без psk не поднимется. Запрос к лаунчеру — в спеке 472.
+
+
+
+
       expect(
           parseUri('wireguard://$_priv@h.example:51820?publickey=$_pub'
               '&presharedkey=*****&address=10.0.0.2/32#n'),
@@ -399,8 +399,8 @@ void main() {
     });
 
     test('порт по умолчанию 51820; тег-фолбэк берёт адрес ПИРА', () {
-      // У endpoint-схемы корневых `server`/`server_port` нет вовсе, и без
-      // `UriMapping.tagAddress` безымянный узел получил бы `wireguard--0`.
+
+
       final spec = parseUri(
           'wireguard://$_priv@h.example?publickey=$_pub&address=10.0.0.2/32')!;
       expect(spec.tag, 'wireguard-h.example-51820');
@@ -424,7 +424,7 @@ void main() {
       final payload = base64.encode(utf8.encode(conf));
       final spec = parseUri('awg://$payload#AmneziaWG')!;
       expect(spec.tag, 'AmneziaWG');
-      // §454 — источник узла это ССЫЛКА, а не INI из неё: узел пришёл ссылкой.
+
       expect(spec.rawSource, 'awg://$payload#AmneziaWG');
       expect(spec.emit(TemplateVars.empty).map['mtu'], 1280);
     });
@@ -439,8 +439,8 @@ void main() {
         'AllowedIPs = 0.0.0.0/0\nEndpoint = 1.2.3.4:51820\n';
 
     test('источник узла — сам INI, байт в байт', () {
-      // §456 — синтетического `wg://` наружу не выходит, и его больше нет
-      // внутри вовсе: маппер читает INI напрямую.
+
+
       final spec = parseWireguardIni(proton, nameHint: 'file')!;
       expect(spec.rawSource, proton);
       expect(spec.rawSource, isNot(contains('wireguard://')));
@@ -452,13 +452,13 @@ void main() {
       final noComment = proton.replaceAll('# CH-FREE#11\n', '');
       expect(parseWireguardIni(noComment, nameHint: 'file')!.tag, 'file');
       expect(parseWireguardIni(noComment)!.tag, 'WireGuard');
-      // `# Bouncing = 0` в `[Interface]` именем не считается — там `=`.
+
       expect(parseWireguardIni(noComment, nameHint: '   ')!.tag, 'WireGuard');
     });
 
     test('узел INI разобран КОНВЕЙЕРОМ: коды реестра на нём уже стоят', () {
-      // AWG-INI с завышенным MTU: потолок исполняет санитайзер, код приходит
-      // из реестра — ровно как у ссылки.
+
+
       final ini = proton.replaceAll('MTU = 1420', 'MTU = 1420\nJc = 4');
       final spec = parseWireguardIni(ini)!;
       expect(spec.emit(TemplateVars.empty).map['mtu'], 1280);
@@ -466,7 +466,7 @@ void main() {
           orElse: () => fail('нет кода: ${spec.warnings}'));
       expect(w.path, 'mtu');
       expect(w.value, '1420');
-      // Второй проход по `emit()` такой узел не трогает (отметка конвейера).
+
       final before = spec.warnings.length;
       annotateAllWithRegistry([spec]);
       expect(spec.warnings, hasLength(before));
@@ -475,11 +475,11 @@ void main() {
     test('обычный WG из INI: MTU автора цел, DNS отмечен кодом', () {
       final spec = parseWireguardIni(proton)!;
       expect(spec.emit(TemplateVars.empty).map['mtu'], 1420);
-      // Контракт 1.1.23+ — `wgconf_dns_ignored` ЗАРАБОТАЛ: `DNS` из `.conf`
-      // относится к системному резолверу, а не к узлу, и в тело не едет. До
-      // этой версии он снимался МОЛЧА; теперь корпус кода ждёт
-      // (`wgconf/ini_basic.expected.json` несёт его единственным warning), и
-      // молчание здесь было бы расхождением с лаунчером на живых узлах.
+
+
+
+
+
       expect(
         _registry(spec).map((w) => w.code),
         ['wgconf_dns_ignored'],
@@ -497,7 +497,7 @@ void main() {
       expect(v6.server, '2001:db8::1');
       expect(v6.port, 1234);
 
-      // §219 — несколько `:` без скобок: порт от адреса неотличим.
+
       final bare = parseWireguardIni(withEndpoint('2001:db8::1'))!;
       expect(bare.server, '2001:db8::1');
       expect(bare.port, 51820);
@@ -537,9 +537,9 @@ void main() {
 
     test('§110 — Amnezia vpn:// остаётся КОНТЕЙНЕРОМ поверх того же маппера',
         () {
-      // `vpn://` это не третий вход, а распаковщик: он достаёт из профиля
-      // готовые INI-тексты и отдаёт их сюда же. Отдельного переезда ему не
-      // нужно — он поехал конвейером вместе с INI.
+
+
+
       const ini = '[Interface]\nPrivateKey = $_priv\n'
           'Address = 10.2.0.2/32\nJc = 4\nMTU = 1420\n\n'
           '[Peer]\nPublicKey = $_pub\nAllowedIPs = 0.0.0.0/0\n'
@@ -576,8 +576,8 @@ void main() {
     });
   });
 
-  // БЕЗ ГЕЙТА: тест идёт через `parseSingboxEntry` напрямую, реестр ему не
-  // нужен, а симметрию эмиттера и парсера тела он стережёт на любом прогоне.
+
+
   group('§472 — состав ветки json_parsers сверен с body.fields', () {
     test('всё, что пишет emitWireguard, парсер тела читает обратно', () {
       final body = <String, dynamic>{

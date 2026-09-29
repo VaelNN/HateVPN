@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 @Timeout(Duration(seconds: 60))
 library;
 
@@ -19,8 +19,8 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../parser/engine_test_setup.dart';
 
-// §580 — экран DNS: три настройки кэша видны, изменение помечает конфиг,
-// размер вне границ не сохраняется.
+
+
 
 class _FakePathProvider extends PathProviderPlatform
     with MockPlatformInterfaceMixin {
@@ -69,7 +69,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -89,7 +89,7 @@ void main() {
       supportedLocales: LocaleController.supportedLocales,
       home: DnsSettingsScreen(subController: sub, homeController: home),
     ));
-    // Загрузка экрана читает шаблон и хранилище — настоящая зона.
+
     for (var i = 0;
         i < 50 && find.byKey(const ValueKey('dns_optimistic')).evaluate().isEmpty;
         i++) {
@@ -99,7 +99,7 @@ void main() {
     }
   }
 
-  /// Экран закрывается, таймеры экрана прокручиваются до конца теста.
+
   Future<void> close(WidgetTester tester) async {
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpWidget(const SizedBox());

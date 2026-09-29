@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:io';
 
@@ -26,16 +26,16 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => '$tempRoot/docs';
 }
 
-/// §129 — файловая подписка (Вариант Б: снапшот в кэш) + транзакционная смена
-/// источника (online↔file).
+
+
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   late Directory tempDir;
 
-  // Два+ ноды → файловая; одна нода → обычная.
+
   const twoNodes = 'vless://uuid-1@h1.example:443?type=ws&security=tls#A1\n'
       'vless://uuid-2@h2.example:443?type=ws&security=tls#A2\n';
   const oneNode = 'vless://uuid-1@h1.example:443?type=ws&security=tls#Solo\n';
@@ -58,7 +58,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // ignore
+
     }
   });
 
@@ -71,17 +71,17 @@ void main() {
 
       final list = c.entries.single.list as SubscriptionServers;
       expect(isFileSubscription(list.url), isTrue);
-      expect(list.name, 'my-servers'); // имя файла без .txt
+      expect(list.name, 'my-servers');
       expect(list.nodes, hasLength(2));
-      expect(list.updateIntervalHours, -1); // §129 — никогда авто
-      // Снапшот тела лёг в HttpCache по ключу url.
+      expect(list.updateIntervalHours, -1);
+
       expect(await HttpCache.loadBody(list.url), twoNodes);
     });
 
     test('§129 interval=-1 online → игнорирует серверный profile-update-interval',
         () async {
       final c = SubscriptionController();
-      // Сервер отдаёт заголовок profile-update-interval: 12 (часов).
+
       c.httpClientForTesting = MockClient((req) async => http.Response(
             threeNodes,
             200,
@@ -95,7 +95,7 @@ void main() {
           tagPrefix: '',
           detourPolicy: DetourPolicy.defaults,
           url: 'https://orig.example/sub',
-          updateIntervalHours: -1, // юзер: «Don't auto-update»
+          updateIntervalHours: -1,
           lastNodeCount: 2,
         ),
       ]);
@@ -103,11 +103,11 @@ void main() {
       await c.init();
       await c.rehydrationDone;
 
-      await c.updateAt(0); // ручной fetch
+      await c.updateAt(0);
       final list = c.entries.single.list as SubscriptionServers;
-      // -1 сохраняется, серверные 12h игнорируются (жёсткий режим).
+
       expect(list.updateIntervalHours, -1);
-      expect(list.nodes, hasLength(3)); // ноды обновились
+      expect(list.nodes, hasLength(3));
     });
 
     test('≤ 1 ноды → НЕ файловая (false, caller упадёт на addFromInput)',
@@ -116,7 +116,7 @@ void main() {
       await c.init();
       final ok = await c.addFileSubscription(oneNode, 'solo.txt');
       expect(ok, isFalse);
-      expect(c.entries, isEmpty); // ничего не создано
+      expect(c.entries, isEmpty);
     });
   });
 
@@ -151,7 +151,7 @@ void main() {
       await c.addFileSubscription(twoNodes, 'f.txt');
       final before = c.entries.single.list.nodes.length;
 
-      await c.updateAt(0); // file: → skip fetch, keep-previous
+      await c.updateAt(0);
       expect(c.entries.single.list.nodes, hasLength(before));
     });
   });
@@ -172,13 +172,13 @@ void main() {
       final list = c.entries.single.list as SubscriptionServers;
       expect(list.url, 'https://new.example/sub');
       expect(list.nodes, hasLength(3));
-      // старый file-кэш вычищен.
+
       expect(await HttpCache.loadBody(oldUrl), isNull);
     });
 
     test('online → online (fetch fail): полный откат, старое живёт', () async {
       final c = SubscriptionController();
-      // Первый источник — успешный кэш; смена — на падающий URL.
+
       c.httpClientForTesting =
           MockClient((req) async => http.Response('boom', 500));
       await SettingsStorage.saveServerLists([
@@ -198,10 +198,10 @@ void main() {
 
       final err =
           await c.updateSourceAt(0, httpUrl: 'https://broken.example/sub');
-      expect(err, isNotNull); // ошибка
+      expect(err, isNotNull);
 
       final list = c.entries.single.list as SubscriptionServers;
-      // url НЕ сменился, ноды/кэш старого источника целы.
+
       expect(list.url, 'https://orig.example/sub');
       expect(list.nodes, hasLength(2));
       expect(await HttpCache.loadBody('https://orig.example/sub'), twoNodes);
@@ -231,7 +231,7 @@ void main() {
       expect(isFileSubscription(list.url), isTrue);
       expect(list.nodes, hasLength(3));
       expect(await HttpCache.loadBody(list.url), threeNodes);
-      // старый http-кэш вычищен.
+
       expect(await HttpCache.loadBody('https://orig.example/sub'), isNull);
     });
   });

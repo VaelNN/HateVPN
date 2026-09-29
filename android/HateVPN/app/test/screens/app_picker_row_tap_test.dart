@@ -6,17 +6,17 @@ import 'package:lxbox/screens/app_picker_screen.dart';
 import 'package:lxbox/services/app_info_cache.dart';
 import 'package:lxbox/services/l10n/locale_controller.dart';
 
-/// §412 — в пикере приложений галочку переключает только тап по самому
-/// чекбоксу. Тап по строке (название/пакет/иконка) выбор не трогает: при
-/// прокрутке длинного списка палец задевал строку и снимал выбор незаметно
-/// (4PDA #1702).
+
+
+
+
 void main() {
   const channel = MethodChannel('com.leadaxe.lxbox/methods');
 
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     AppInfoCache.resetForTest();
-    // Иконки грузятся по строкам с ретраями на таймерах — в тесте не нужны.
+
     AppInfoCache.retryDelays = const [];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
@@ -47,7 +47,7 @@ void main() {
         home: const AppPickerScreen(selected: {'com.a'}),
       );
 
-  /// Не pumpAndSettle: подгрузка иконок держит таймеры, settle не наступает.
+
   Future<void> settle(WidgetTester tester) async {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));

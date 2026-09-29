@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Создаёт app/android/upload-keystore.jks и app/android/key.properties (в .gitignore).
-# Нужны: keytool (JDK 17+), openssl (для случайного пароля при необходимости).
+
+
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -58,7 +58,7 @@ if [[ -z "$STORE_PW" || -z "$KEY_PW" ]]; then
     echo "ERROR: set ANDROID_SIGNING_PASSWORD or install openssl to generate a password."
     exit 1
   fi
-  # hex — без спецсимволов, удобно для gh / Gradle
+
   GEN=$(openssl rand -hex 16)
   STORE_PW=$GEN
   KEY_PW=$GEN
@@ -66,9 +66,9 @@ if [[ -z "$STORE_PW" || -z "$KEY_PW" ]]; then
   echo "  $GEN" >&2
 fi
 
-# Скрипт генерирует НОВУЮ ключевую пару. Восстановить существующий релизный
-# ключ он не может — совпадающий -dname даёт другой сертификат и другой
-# отпечаток, потому что ключевая пара каждый раз случайная.
+
+
+
 cat >&2 <<'WARN'
 
 =============================== ВНИМАНИЕ ===============================

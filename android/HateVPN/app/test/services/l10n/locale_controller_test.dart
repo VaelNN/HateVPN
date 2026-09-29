@@ -8,12 +8,12 @@ import 'package:lxbox/services/l10n/locale_controller.dart';
 import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/template_loader.dart';
 
-/// §279 — LocaleController: set() персистит + нотифицирует; невалидное
-/// хранимое значение → 'system'; reloadFromStorage идемпотентен.
-///
-/// Pattern стораджа: mocked path_provider + resetCacheForTesting (как в
-/// settings_storage_test.dart). Native-зеркало setAppLanguage падает в
-/// MissingPluginException и глотается (best-effort by design).
+
+
+
+
+
+
 void main() {
   late Directory tmp;
   const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -42,7 +42,7 @@ void main() {
     try {
       if (tmp.existsSync()) await tmp.delete(recursive: true);
     } on FileSystemException {
-      /* ignore — async AppLog write может race'ить с delete */
+
     }
   });
 
@@ -59,31 +59,31 @@ void main() {
     expect(LocaleController.I.effectiveTag, 'ru');
     expect(await SettingsStorage.getAppLanguage(), 'ru');
     expect(notified, 1);
-    // Прогрев ДО notify: кэш нового тега тёплый в момент rebuild.
+
     expect(TemplateLoader.cachedOrNull('ru'), isNotNull);
-    // §285 — глобальный getLocalText переключился на ru-словарь: известный
-    // ключ рендерится по-русски (fallback на английский ключ означал бы, что
-    // словарь не загрузился).
+
+
+
     expect(getLocalText.s('Cancel'), 'Отмена');
-    // Пиненный английский рендерер machine-поверхностей неизменен.
+
     expect(GetLocalText.en.s('Cancel'), 'Cancel');
   });
 
   test('bootstrap() warms getLocalText dict — cold start is localized', () async {
-    // Регресс на баг «переключение языка не сохраняется»: при холодном старте
-    // с сохранённым 'ru' bootstrap() ставил setting, но НЕ грузил словарь —
-    // getLocalText оставался fallback'ом (печатал английский ключ), пока юзер
-    // не переключит язык вручную. Теперь bootstrap грузит ui.json в _text.
+
+
+
+
     await LocaleController.I.bootstrap('ru');
     expect(LocaleController.I.setting, 'ru');
     expect(LocaleController.I.effectiveTag, 'ru');
-    // Ключевая проверка: словарь загружен (иначе вернулся бы английский ключ).
+
     expect(getLocalText.s('Cancel'), 'Отмена');
   });
 
   test('bootstrap(en) leaves getLocalText on english-key fallback', () async {
-    // Для 'en' словаря нет by design (английский текст = ключ). bootstrap не
-    // должен падать и печатает английский ключ.
+
+
     await LocaleController.I.bootstrap('en');
     expect(LocaleController.I.setting, 'en');
     expect(getLocalText.s('Cancel'), 'Cancel');
@@ -104,8 +104,8 @@ void main() {
 
   test('reloadFromStorage applies restored value and is idempotent', () async {
     await LocaleController.I.set('en');
-    // Имитация restore: значение меняется в сторадже мимо контроллера
-    // (replaceRaw-путь); reload обязан подхватить.
+
+
     await SettingsStorage.setVar('app_language', 'ru');
     var notified = 0;
     void listener() => notified++;
@@ -116,7 +116,7 @@ void main() {
     expect(LocaleController.I.setting, 'ru');
     expect(notified, 1);
 
-    // Повторный вызов без изменений — no-op (без лишнего notify).
+
     await LocaleController.I.reloadFromStorage();
     expect(notified, 1);
   });
@@ -125,7 +125,7 @@ void main() {
     await LocaleController.I.set('ru');
     final exported = await SettingsStorage.exportRaw();
 
-    // Свежий сторадж (новое устройство) + restore.
+
     SettingsStorage.resetCacheForTesting();
     LocaleController.I.setting = 'system';
     await SettingsStorage.replaceRaw(exported);

@@ -10,8 +10,8 @@ void main() {
       );
     });
 
-    // §279 — равенство по runtimeType + полям данных (не по отрендеренной
-    // строке): dedup-гранулярность та же, но переживает смену локали.
+
+
     test('same subclass + different fields != equal', () {
       expect(
         const UnknownObfsWarning('salamander') ==
@@ -29,9 +29,9 @@ void main() {
       );
     });
 
-    // SPEC 083 / §444 — предупреждение REALITY + не-chrome отпечаток: равенство
-    // по значению, машинный рендер — английский ключ с подставленным именем;
-    // текст советует chrome, а не утверждает подмену.
+
+
+
     test('RealityFingerprintWarning equality + renderEn', () {
       expect(const RealityFingerprintWarning('firefox'),
           const RealityFingerprintWarning('firefox'));
@@ -44,16 +44,16 @@ void main() {
           'REALITY with uTLS fingerprint "firefox": Xray servers since '
           'v26.9.8 reject this ClientHello. If the connection fails, try '
           '"chrome".');
-      // §468 — severity читается из реестра (`info` в контракте 1.1.2+).
-      // Здесь реестр не загружен, и проверяется именно запасной путь:
-      // незнакомый код не глушится, а остаётся `warning`.
+
+
+
       expect(const RealityFingerprintWarning('firefox').severity,
           WarningSeverity.warning,
           reason: 'реестр не загружен — фолбэк registrySeverity');
     });
 
-    // §279 — XhttpResetReason: message() обязан воспроизводить дословно
-    // те же English-фразы, что были free-text до enum'а.
+
+
     test('XhttpParamResetWarning renders verbatim from enum reason', () {
       expect(
         const XhttpParamResetWarning(
@@ -83,7 +83,7 @@ void main() {
     test('severity maps per type', () {
       expect(const DialerProxyUnusableWarning('n', 't').severity,
           WarningSeverity.error);
-      // §485 — коды реестра: severity из warnings.json, не константа класса.
+
       expect(
           const RegistryWarning(code: 'tls_insecure', path: 'tls.insecure')
               .severity,
@@ -103,43 +103,43 @@ void main() {
         UnsupportedProtocolWarning() => 'protocol',
         NaiveBuildTagWarning() => 'naive_build',
         XhttpParamResetWarning() => 'xhttp_reset',
-        // §416 — header-placement без режима: дописан mode: packet-up
+
         XhttpModeForcedPacketUpWarning() => 'xhttp_mode_forced_packet_up',
         UnknownFingerprintWarning() => 'fingerprint',
-        // SPEC 083 — REALITY принимает только chrome-семейство
+
         RealityFingerprintWarning() => 'reality_fingerprint',
         UnknownObfsWarning() => 'obfs_unknown',
         MissingObfsPasswordWarning() => 'obfs_no_password',
-        // §368 — импорт sing-box JSON
+
         DetourCycleBrokenWarning() => 'detour_cycle',
         DetourTargetMissingWarning() => 'detour_missing',
         DetourToGroupWarning() => 'detour_group',
         DetourChainTooDeepWarning() => 'detour_deep',
-        // §404 — импорт Xray JSON: недостижимый dialerProxy
+
         DialerProxyUnusableWarning() => 'dialer_proxy_unusable',
         GroupMemberMissingWarning() => 'group_member_missing',
-        // §538 — повтор узла в одной подписке, код per-app.
+
         DuplicateNodeWarning() => 'duplicate',
-        // §585 — узел незнакомого приложению типа, код per-app.
+
         UnknownNodeTypeWarning() => 'unknown_node_type',
         Awg3HeaderKeyInvalidWarning() => 'awg3_header_key_invalid',
         Awg3PaddingTooShortWarning() => 'awg3_padding_too_short',
         Awg3RandomTrailersWideHeadersWarning() =>
           'awg3_random_trailers_wide_headers',
         PacketEncodingUnknownWarning() => 'packet_encoding_unknown',
-        // §460 — санитайзер реестра: класс один на все свои коды, различает
-        // их поле `code` (текст берётся из registry/warnings.json).
+
+
         RegistryWarning() => 'registry',
       };
       expect(label, 'obfs_unknown');
     });
   });
 
-  // Коды, у которых рукописный класс снят: `byCode` обязан не только вернуть
-  // `RegistryWarning`, но и переложить путь/значение под ИМЯ, которое код
-  // объявил в `params` реестра. Без этого текст доехал бы до человека с
-  // буквальным `{query_name}` — реестр тут не поможет, подстановку ставит
-  // приложение.
+
+
+
+
+
   group('byCode — именованные параметры снятых классов', () {
     test('ech_ignored: query_name = имя параметра ссылки', () {
       final w = NodeWarning.byCode('ech_ignored',
@@ -169,9 +169,9 @@ void main() {
       expect(w.params, isEmpty);
     });
 
-    // Контракт 1.1.33 переписал тексты обоих кодов AWG с `{path}`/`{value}`
-    // и последствием для рукопожатия; классы сняты. Своего имени им не нужно
-    // — оба плейсхолдера подставляются всегда (`text_params_implicit`).
+
+
+
     test('awg_header_invalid: RegistryWarning с путём и значением', () {
       final w = NodeWarning.byCode('awg_header_invalid',
           path: 'h1', value: '5-1') as RegistryWarning;
@@ -190,8 +190,8 @@ void main() {
       expect(w.params, isEmpty);
     });
 
-    // §279 — равенство по данным: два одинаковых кода на одном поле это одно
-    // предупреждение, и дедуп разбора обязан их схлопнуть.
+
+
     test('одинаковые код+путь+значение равны', () {
       expect(
         NodeWarning.byCode('ech_ignored', path: 'ech', value: 'ip.gs'),

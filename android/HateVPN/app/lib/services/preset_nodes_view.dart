@@ -1,15 +1,15 @@
-/// §578 — узлы для пресетов с `for_each` на экранах (маршруты, DNS, редактор
-/// пресета, экран узла). Сборка берёт список из готового конфига
-/// (`_collectPresetNodes` в `build_config.dart`); экрану конфиг не нужен —
-/// список строится из источников контроллера тем же отбором: узел включён
-/// (источник, член папки, отметка `disabled_hashes` подписки), `skip_presets`
-/// из записи своего сервера или члена папки, у узла подписки — `false`.
-///
-/// Тег — финальный тег последней сборки ([lastEmittedTagMap]), если узел в
-/// ней был; иначе отображаемый (`TagResolver.displayTag`): суффикс
-/// уникализации аллокатора до сборки не известен, гейты реестра и ядра
-/// экрану не видны (как у строк правил узлов §435). Чистые функции, без
-/// виджетов.
+
+
+
+
+
+
+
+
+
+
+
+
 library;
 
 import '../models/custom_rule.dart';
@@ -22,23 +22,23 @@ import 'l10n/locale_controller.dart';
 import 'node_hash.dart';
 import 'tag_resolver.dart';
 
-/// Типы узлов (`node_type`), которые обслуживают пресеты с `for_each`.
+
 Set<String> forEachNodeTypes(Iterable<SelectableRule> presets) => {
       for (final p in presets)
         if (p.forEach case final PresetForEach fe) fe.nodeType,
     };
 
-/// Узлы источников в порядке списков для раскрытия `for_each` на экране.
-/// Тело эмитится только у узлов, чей тип есть в [nodeTypes] (пресет читает
-/// тело; прочие узлы пресету не нужны и в список не входят).
+
+
+
 List<PresetNode> presetNodesForView(
   List<ServerList> lists, {
   required Set<String> nodeTypes,
   Map<String, NodeSpec> lastEmittedTagMap = const {},
 }) {
   if (nodeTypes.isEmpty) return const [];
-  // Обратная карта по ссылке: `NodeSpec.==` сравнивает id+tag, тёзки
-  // схлопнулись бы (как `sourceNodeIdentities`).
+
+
   final finalTagOf = Map<NodeSpec, String>.identity();
   for (final e in lastEmittedTagMap.entries) {
     finalTagOf.putIfAbsent(e.value, () => e.key);
@@ -50,7 +50,7 @@ List<PresetNode> presetNodesForView(
     try {
       body = node.emit(TemplateVars.empty).map;
     } catch (_) {
-      return; // узел, который не эмитится, в конфиг не попадёт
+      return;
     }
     if (!nodeTypes.contains(body['type'])) return;
     out.add(PresetNode(
@@ -86,8 +86,8 @@ List<PresetNode> presetNodesForView(
   return out;
 }
 
-/// Теги узлов, которые обслуживает пресет [rule] (порядок узлов). Пресет без
-/// `for_each` — null: строке пресета подпись не нужна.
+
+
 List<String>? presetServedTags(
   CustomRulePreset rule,
   SelectableRule preset,
@@ -102,16 +102,16 @@ List<String>? presetServedTags(
   ];
 }
 
-/// Подпись строки пресета с `for_each`: теги через запятую; узлов нет —
-/// короткая подпись.
+
+
 String presetServedNodesLabel(List<String> tags) => tags.isEmpty
     ? getLocalText.s("No matching nodes")
     : tags.join(', ');
 
-/// Переключатель `Skip presets` на экране узла: свой сервер или член папки
-/// ([isMember] у папки), и в шаблоне есть пресет с `for_each`, чей
-/// `node_type` равен типу узла [nodeType]. У узла подписки записи нет —
-/// переключателя нет.
+
+
+
+
 bool skipPresetsToggleVisible({
   required ServerList list,
   required bool isMember,

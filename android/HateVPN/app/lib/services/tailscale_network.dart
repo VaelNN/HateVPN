@@ -1,6 +1,6 @@
-/// Задача 581 — логика вкладки Network узла Tailscale без Flutter: exit node
-/// (записанное против действующего), запись `exit_node` в тело узла, порядок
-/// устройств, сводка для Debug API.
+
+
+
 library;
 
 import 'dart:convert';
@@ -8,23 +8,23 @@ import 'dart:convert';
 import '../vpn/cc_channel.dart';
 import 'l10n/locale_controller.dart';
 
-/// Расхождение записанного `exit_node` тела узла и действующего exit node ядра
-/// (таблица раздела 5 спеки 581).
+
+
 enum ExitNodeMismatch {
-  /// Совпадают (оба пусты или указывают на одно устройство).
+
   none,
 
-  /// В узле выхода нет, на ходу выбран.
+
   chosenNotSaved,
 
-  /// В узле выход записан, на ходу снят.
+
   clearedNotSaved,
 
-  /// В узле записан один, на ходу выбран другой.
+
   otherNotSaved,
 }
 
-/// Записанное значение `exit_node` тела узла; пусто и не строка — `null`.
+
 String? recordedExitNode(Map<String, dynamic> body) {
   final v = body['exit_node'];
   if (v is! String) return null;
@@ -32,9 +32,9 @@ String? recordedExitNode(Map<String, dynamic> body) {
   return t.isEmpty ? null : t;
 }
 
-/// Указывает ли записанное [recorded] на устройство [peer]. Ядро принимает в
-/// `exit_node` адрес Tailscale или имя устройства (базовое имя, MagicDNS-имя с
-/// точкой в конце и без неё; регистр не важен) — `ipn.exitNodeIPOfArg`.
+
+
+
 bool exitNodeRefersTo(
   String recorded,
   CcTailscalePeer peer, {
@@ -55,7 +55,7 @@ bool exitNodeRefersTo(
   return peer.hostName.isNotEmpty && r == peer.hostName.toLowerCase();
 }
 
-/// Строка таблицы раздела 5 для пары «записанное / действующее».
+
 ExitNodeMismatch exitNodeMismatch({
   required String? recorded,
   required CcTailscalePeer? active,
@@ -69,7 +69,7 @@ ExitNodeMismatch exitNodeMismatch({
       : ExitNodeMismatch.otherNotSaved;
 }
 
-/// Текст у знака предупреждения; для [ExitNodeMismatch.none] — пусто.
+
 String exitNodeWarningText(ExitNodeMismatch m) => switch (m) {
   ExitNodeMismatch.none => '',
   ExitNodeMismatch.chosenNotSaved => getLocalText.s(
@@ -83,10 +83,10 @@ String exitNodeWarningText(ExitNodeMismatch m) => switch (m) {
   ),
 };
 
-/// Значение `exit_node` для записи в тело: адрес Tailscale устройства (IPv4
-/// первым). Адрес ядро разрешает и при старте, когда список устройств ещё
-/// пуст; имя в этот момент не разрешается (`exitNodeIPOfArg`). Адресов нет —
-/// MagicDNS-имя, затем имя устройства.
+
+
+
+
 String exitNodeConfigValue(CcTailscalePeer peer) {
   final v4 = peer.ips.where((ip) => !ip.contains(':'));
   if (v4.isNotEmpty) return v4.first;
@@ -95,10 +95,10 @@ String exitNodeConfigValue(CcTailscalePeer peer) {
   return peer.hostName;
 }
 
-/// Текст источника узла с полем `exit_node` = [value] (`null` — поле
-/// убирается). Источник — JSON-объект тела узла; порядок прочих ключей
-/// сохраняется, запись — JSON с отступом в два пробела. Не объект —
-/// [FormatException].
+
+
+
+
 String withExitNode(String source, String? value) {
   final decoded = jsonDecode(source);
   if (decoded is! Map) {
@@ -115,8 +115,8 @@ String withExitNode(String source, String? value) {
   return const JsonEncoder.withIndent('  ').convert(body);
 }
 
-/// Устройства в порядке блока Devices: сначала в сети, затем остальные;
-/// внутри — по имени без учёта регистра.
+
+
 List<CcTailscalePeer> sortDevices(Iterable<CcTailscalePeer> peers) {
   final list = peers.toList();
   list.sort((a, b) {
@@ -126,17 +126,17 @@ List<CcTailscalePeer> sortDevices(Iterable<CcTailscalePeer> peers) {
   return list;
 }
 
-/// Устройства, предлагающие себя как exit node (список блока Exit node).
+
 List<CcTailscalePeer> exitNodeOptions(CcTailscaleStatus s) =>
     sortDevices(s.peers.where((p) => p.exitNodeOption));
 
-/// Группировка по владельцам показывается, когда владельцев больше одного.
+
 bool showOwnerGroups(CcTailscaleStatus s) =>
     s.userGroups.where((g) => g.peers.isNotEmpty).length > 1;
 
-/// Раздел 8 — есть ли у узла Tailscale действующий выход. VPN включён и
-/// состояние от ядра есть — по `ExitNode` ядра; иначе — по записанному
-/// `exit_node` тела (с ним собирается и проба при выключенном VPN).
+
+
+
 bool tailscaleHasExit({
   required bool vpnUp,
   required CcTailscaleStatus? status,
@@ -146,8 +146,8 @@ bool tailscaleHasExit({
   return recordedExitNode(body) != null;
 }
 
-/// Раздел 9 — сводка узла для Debug API: только состояние и число устройств,
-/// без имён, адресов, имени сети и ссылки входа.
+
+
 Map<String, Object> tailscaleDebugSummary(CcTailscaleStatus s) => {
   'backend_state': s.backendState,
   'devices': s.peers.length,

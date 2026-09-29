@@ -3,23 +3,23 @@ import 'package:lxbox/models/node_warning.dart';
 import 'package:lxbox/services/parser/engine/interpreter.dart';
 import 'package:lxbox/services/parser/engine/section.dart';
 
-/// §480 W1 — каждый примитив грамматики на своей секции.
-///
-/// Секции здесь СИНТЕТИЧЕСКИЕ: настоящие лежат в реестре и проверяются
-/// фикстурами, а тут проверяется сам движок — что `sets` с `null` снимает
-/// путь, что `priority` решает конфликт, что `when` умеет спрашивать
-/// источник. Живая секция покрывает примитивы вперемешку, и красный кейс на
-/// ней не говорит, КАКОЙ примитив сломан.
-///
-/// Тип тела у синтетических секций — `probe`: имени схемы здесь быть не
-/// должно ровно так же, как в самом движке.
+
+
+
+
+
+
+
+
+
+
 MapperSection _section(Map<String, dynamic> json) =>
     MapperSection.fromJson('uri', 'probe', json);
 
 Map<String, dynamic>? _run(Map<String, dynamic> json, String uri) =>
     runSection(_section(json), uri)?.body;
 
-/// JSON-форма: число приходит `num`, а не строкой query.
+
 Map<String, dynamic>? _runJson(
   Map<String, dynamic> params,
   Map<String, dynamic> doc,
@@ -34,7 +34,7 @@ Map<String, dynamic>? _runJson(
       doc,
     )?.body;
 
-/// Минимальная секция: адрес плюс переданные записи.
+
 Map<String, dynamic> _withParams(Map<String, dynamic> params,
         {Map<String, dynamic>? extra}) =>
     {
@@ -56,7 +56,7 @@ void main() {
         'x://h.com:443?a=1&b=2',
       )!;
       expect(body['a'], '1');
-      // `b` не объявлен — движку его даже не достать.
+
       expect(body.containsKey('b'), isFalse);
     });
 
@@ -114,8 +114,8 @@ void main() {
         }},
       });
       expect(_run(fp, 'x://h.com:443?fp=HelloChrome_120')!['f'], 'chrome');
-      // Длинный префикс проверяется раньше короткого, иначе `hellorandom`
-      // перехватил бы `hellorandomized`.
+
+
       expect(_run(fp, 'x://h.com:443?fp=HelloRandomized')!['f'], 'randomized');
       expect(_run(fp, 'x://h.com:443?fp=bogus')!['f'], 'bogus');
     });
@@ -139,8 +139,8 @@ void main() {
           {'type': 'grpc'});
     });
 
-    // G1 (FROZEN): условие по ИСТОЧНИКУ, а не по телу. Нужно там, где в теле
-    // не остаётся следа — род узла объявляет ВХОД.
+
+
     test('G1 — when по источнику', () {
       final g1 = _withParams({
         'ht': {'source': 'query.headerType', 'maps_to': 'transport.type',
@@ -178,15 +178,15 @@ void main() {
       expect(_run(s, 'x://h.com:443?security=tls')!['tls'], {'enabled': true});
       expect((_run(s, 'x://h.com:443?security=reality')!['tls']
           as Map)['reality'], {'enabled': true});
-      // Пустой набор — ключ НЕ появляется вовсе (не `enabled: false`).
+
       expect(_run(s, 'x://h.com:443?security=none')!.containsKey('tls'),
           isFalse);
-      // Параметра нет — работает ключ `""`.
+
       expect(_run(s, 'x://h.com:443')!['tls'], {'enabled': true});
     });
 
-    // G2 (FROZEN): `null` в присваивании СНИМАЕТ путь. Отличается от «не
-    // писать»: флаг обязан убрать уже поставленное значение.
+
+
     test('G2 — sets с null снимает путь', () {
       final s = _withParams({
         'sni': {'source': 'query.sni', 'maps_to': 'tls.server_name'},
@@ -225,9 +225,9 @@ void main() {
   });
 
   group('G3 priority + merge — конфликт записей в один путь', () {
-    // Поправка лаунчера: побеждает не «sets сильнее», а объявленный порядок.
-    // Значение, переведённое в null, записи НЕ делает — и именно поэтому
-    // уцелевает то, что поставил sets.
+
+
+
     final s = _withParams({
       'flow': {'source': 'query.flow', 'maps_to': 'flow', 'priority': 10,
           'value_map': {'v-udp443': 'v'},
@@ -322,8 +322,8 @@ void main() {
     });
 
     test('Go-написание группы (?P<name>) понимается', () {
-      // Реестр пишется у лаунчера, то есть в Go-диалекте; перевод делает
-      // движок, а не правка данных.
+
+
       final tr = _run(s, 'x://h.com:443?type=ws&path=%2Fa%2Bb')!['transport']
           as Map;
       expect(tr['path'], '/a+b');
@@ -375,9 +375,9 @@ void main() {
   });
 
   group('P10 default_from / default_when / materialize_default', () {
-    // Фолбэк срабатывает и когда параметра НЕТ вовсе: корпус на этом стоит
-    // (ссылка без `sni=` ждёт `server_name` = адрес сервера). Это выбор
-    // ИСТОЧНИКА поля, а не суждение о значении.
+
+
+
     test('default_from — источник значения по умолчанию', () {
       final s = _withParams({
         'sni': {'source': 'query.sni', 'maps_to': 'tls.server_name',
@@ -409,9 +409,9 @@ void main() {
       expect(_run(s, 'x://h.com:443?e=none')!['enc'], 'none');
     });
 
-    // Норма §10.1 — `defaults` применяются ПОСЛЕ обоих проходов и только в
-    // незанятый путь. Ни `priority`, ни `merge` к ним не применяются: они не
-    // участвуют в конкуренции, а заполняют оставшееся.
+
+
+
     test('§10.1 defaults секции — только в пустое, после проходов', () {
       final s = _withParams({}, extra: {'defaults': {'server_port': 443}});
       expect(_run(s, 'x://h.com:8443')!['server_port'], 8443,
@@ -420,9 +420,9 @@ void main() {
     });
 
     test('§10.1 defaults не перебивает даже запись с merge: overwrite', () {
-      // Проверка того, ради чего норма выбрала «после проходов, в пустое», а
-      // не «очень большой priority»: с числом запись с overwrite победила бы
-      // дефолт формально, но порядок записи всё равно решал бы исход.
+
+
+
       final s = _withParams({
         'p': {'source': 'query.p', 'maps_to': 'field', 'merge': 'overwrite'},
       }, extra: {'defaults': {'field': 'from-defaults'}});
@@ -454,7 +454,7 @@ void main() {
       for (final v in ['1', 'true', 'TRUE', 'yes', 'Yes']) {
         expect(_run(s, 'x://h.com:443?i=$v')!['ins'], isTrue, reason: v);
       }
-      // Ложь = «не просили»: ключ не появляется вовсе.
+
       for (final v in ['0', 'false', 'no', 'junk']) {
         expect(_run(s, 'x://h.com:443?i=$v')!.containsKey('ins'), isFalse,
             reason: v);
@@ -472,15 +472,15 @@ void main() {
       expect(_run(s, 'x://h.com:443?skip-cert-verify=true')!['ins'], isTrue);
     });
 
-    // G4 (FROZEN): порядок ключей объекта входит в тело, и оставлять его
-    // свойством реализации нельзя.
+
+
     test('G4 — sort_keys даёт детерминированный порядок', () {
       final s = _section(_withParams({
         'h': {'source': 'query.h', 'maps_to': 'hdr', 'type': 'object',
             'sort_keys': true},
       }));
-      // Источник объекта у формы url строкой не бывает, поэтому проверяем
-      // сам примитив на форме без сортировки — порядок ключей объекта.
+
+
       expect(s.params['h']!.sortKeys, isTrue);
     });
   });
@@ -512,9 +512,9 @@ void main() {
     });
 
     test('«+» в userinfo литерален, percent снят', () {
-      // `single_into` объявлен ЯВНО: умолчание «одинокий userinfo → первое
-      // имя `into`» снято вместе с контрактом 1.1.25, где лаунчер проставил
-      // атрибут всем секциям и завёл линтер на его написание.
+
+
+
       final s = _withParams({}, extra: {
         'userinfo': {'into': ['password'], 'single_into': 'password'},
       });
@@ -558,8 +558,8 @@ void main() {
     });
 
     test('value_map — длинный ключ раньше короткого', () {
-      // Короткий ключ объявлен первым: без сортировки по длине `ab`
-      // стало бы `SHORTb`.
+
+
       expect(
           labelOf({
             'source': ['fragment'],
@@ -597,24 +597,24 @@ void main() {
       expect(runSection(_section(s), 'x://h.com:443?eye=1')!.warnings, isEmpty);
     });
 
-    // Норма §10.3 — имя записи и имя параметра в ссылке могут отличаться;
-    // объявленным считается имя ИЗ `source`, а не только имя записи.
+
+
     test('§10.3 имя из source объявлено наравне с именем записи', () {
       final s = _withParams({
-        // Запись зовётся иначе, чем параметр ссылки.
+
         'ключ': {'source': 'query.realName', 'maps_to': 'f'},
       }, extra: {'unknown_key': {'action': 'keep', 'code': 'uri_param_unknown'}});
       expect(runSection(_section(s), 'x://h.com:443?realName=1')!.warnings,
           isEmpty);
     });
 
-    // Норма §10.2 — спрашивать о параметре и потреблять его разные вещи.
-    // Иначе параметр, который только проверяется условием и никуда не
-    // пишется, замолкал бы там, где код — единственный признак непонятого
-    // входа.
+
+
+
+
     test('§10.2 when ЧИТАЕТ источник, но прочитанным его не делает', () {
       final s = _withParams({
-        // `probe` нигде не объявлен источником — только спрошен условием.
+
         'f': {'source': 'query.f', 'maps_to': 'f',
             'when': {'query.probe': 'yes'}},
       }, extra: {'unknown_key': {'action': 'keep', 'code': 'uri_param_unknown'}});

@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -37,7 +37,7 @@ const _uriTokyo = 'vless://11111111-1111-1111-1111-111111111111@198.51.100.1:443
 const _uriOsaka = 'vless://22222222-2222-2222-2222-222222222222@198.51.100.2:443'
     '?type=ws&security=tls#Osaka';
 
-/// Небольшой документ формы 2.23.2: по записи каждого вида и соседние ключи.
+
 Map<String, dynamic> _legacyDoc() => {
       'vars': {'log_level': 'warn', 'auto_rebuild': 'false'},
       'server_lists': [
@@ -162,8 +162,8 @@ List<Map<String, dynamic>> _records(Object? list) =>
     (list as List).cast<Map<String, dynamic>>();
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   group('migrateStorageDoc — форма 2.23.2 → записи 1.0 (§3.1 шаг 3)', () {
@@ -324,9 +324,9 @@ void main() {
       expect(r.info, contains('rules: 3 rules → 3 records'));
       expect(r.info, contains('dns: 3 servers, 4 rules'));
       expect(r.summary, r.info.join('; '));
-      // Документ без Направлений: ссылки на vpn-2 и позиции «a», «b» ни во
-      // что не разрешаются — миграция ссылок оставляет их корнем и называет
-      // (сборка разберёт fail-closed). vpn-1 — цель route_final шаблона.
+
+
+
       expect(r.warnings, [
         'server "Tokyo": detour "vpn-2" matches no node, kept as a root link',
         'chain "no-order": position 1 "a" matches no node, kept as a root link',
@@ -539,7 +539,7 @@ void main() {
       final current = migrateStorageDoc(_legacyDoc()).doc;
       final doc = {
         ...current,
-        // 2.23.2 поверх данных 2.23.3 без удаления (§3.5).
+
         'server_lists': [
           {'type': 'user', 'id': 'stale', 'name': '', 'raw_body': _uriOsaka},
         ],
@@ -595,7 +595,7 @@ void main() {
     });
   });
 
-  // ─── чтение файла: §3.1 шаги 4–6, §3.2 ──────────────────────────────────
+
 
   group('_load: копия .v0.bak, запись, повтор', () {
     late Directory tmp;
@@ -622,7 +622,7 @@ void main() {
       try {
         if (tmp.existsSync()) await tmp.delete(recursive: true);
       } on FileSystemException {
-        // AppLog пишет persistent-лог в docs async — race с delete.
+
       }
     });
 
@@ -673,7 +673,7 @@ void main() {
       await main().writeAsString(first);
       await SettingsStorage.getServerLists();
 
-      // Снова файл формы 2.23.2 (откат на 2.23.2 поверх данных и возврат).
+
       SettingsStorage.resetCacheForTesting();
       await main().writeAsString(jsonEncode({
         'custom_rules': [
@@ -691,7 +691,7 @@ void main() {
         'копия не перезаписывается', () async {
       final legacy = jsonEncode(_legacyDoc());
       await main().writeAsString(legacy);
-      // Копию сняли, до записи нового файла процесс убили.
+
       const earlierCopy = '{"server_lists": []}';
       await v0().writeAsString(earlierCopy);
 

@@ -10,13 +10,13 @@ import 'package:lxbox/services/parser/parse_all.dart';
 
 import 'engine_test_setup.dart';
 
-/// §321 — Xray-массив парсится по всем протоколам, а не только по VLESS.
-///
-/// До §321 фильтр `protocol == 'vless'` отбрасывал элемент целиком и молча:
-/// на подписке Liberty так потерялись три платных hysteria2-узла (GAMING).
+
+
+
+
 void main() {
-  // §480 — разбор Xray-элемента исполняет секции реестра; без них конвейера
-  // нет вовсе (критерий 7 спеки 480), и узлы не собираются.
+
+
   setUpAll(loadEngineSections);
 
   Map<String, dynamic> element(String remarks, List<Map<String, dynamic>> obs) =>
@@ -196,7 +196,7 @@ void main() {
     expect(nodes.map((n) => n.protocol), containsAll(['vless', 'hysteria2']));
     expect(nodes, hasLength(2));
   });
-  // §561 — отбраковка живёт только в `dropped[]` подписки: сосед чист.
+
   group('§321 P5 — неподдержанный протокол не пропадает молча', () {
     Map<String, dynamic> ob(String proto, String tag) => {
           'tag': tag,
@@ -223,18 +223,18 @@ void main() {
             ])),
             dropped: dropped);
 
-    /// Теги отбракованных записей с кодом `protocol_unsupported`.
+
     List<String> unsupportedRefs(List<NodeWarning> dropped) => [
           for (final w in dropped.whereType<RegistryWarning>())
             if (w.code == 'protocol_unsupported') w.ownerTag,
         ];
 
-    // §514 / контракт 1.1.50 — `wireguard` БОЛЬШЕ НЕ «неподдержанный»: волна
-    // привезла `mappers.xray` этой схемы, и элемент `protocol: "wireguard"`
-    // собирается в узел. Держать его в кейсе про неизвестный протокол значило
-    // бы проверять ОБРАТНОЕ заявленному, поэтому здесь, как и у лаунчера
-    // (фикстуры `unsupported_protocol` корпуса и Go-теста), он заменён на
-    // `trojan-go` — имя, которого не ведёт ни одна секция реестра.
+
+
+
+
+
+
     test('причина в dropped, сосед по элементу чист', () {
       final dropped = <NodeWarning>[];
       final r = parse([ob('vless', 'v'), ob('trojan-go', 'w')], dropped);
@@ -266,8 +266,8 @@ void main() {
     });
 
     test('`protocol: wireguard` СОБИРАЕТСЯ в узел, а не в warning', () {
-      // Пара к замене выше: прежде элемент не опознавался НИ ОДНОЙ секцией и
-      // узел пропадал целиком — притом что все целевые поля у ядра есть.
+
+
       final r = parseAll(decode(jsonEncode([
         {
           'remarks': 'wg',
@@ -297,8 +297,8 @@ void main() {
     });
 
     test('поддержанные протоколы warnings не порождают', () {
-      // Оба vless: у trojan своя схема (`settings.servers`), и хелпер `ob`
-      // с `vnext` дал бы ложный warning — проверяем не это.
+
+
       final r = parse([ob('vless', 'v1'), ob('vless', 'v2')]);
       for (final n in r) {
         expect(n.warnings.whereType<UnsupportedProtocolWarning>(), isEmpty);

@@ -2,11 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lxbox/services/builder/post_steps.dart';
 import 'package:lxbox/services/builder/validator.dart';
 
-/// §393 A4 — финальный граф-санитайзер (порт `outbound_graph_sanitize.go`).
-///
-/// Поглотил §172 `healDanglingDetours` (его сценарии — первая группа ниже) и
-/// добавил правила про состав групп, `default` вне состава, кольца
-/// зависимостей и каскад до фикспойнта.
+
+
+
+
+
 void main() {
   List<Map<String, dynamic>> outs(Map<String, dynamic> config) =>
       (config['outbounds'] as List).cast<Map<String, dynamic>>();
@@ -69,7 +69,7 @@ void main() {
         'outbounds': [
           {'tag': 'a', 'type': 'vless', 'detour': 'ghost1'},
           {'tag': 'b', 'type': 'vless', 'detour': 'ghost2'},
-          {'tag': 'c', 'type': 'vless', 'detour': 'a'}, // валидный
+          {'tag': 'c', 'type': 'vless', 'detour': 'a'},
           {'tag': 'direct-out', 'type': 'direct'},
         ],
       };
@@ -142,9 +142,9 @@ void main() {
 
     test('include-тег на несуществующее Направление исключён (A3-остаток)',
         () {
-      // A3 фильтрует include ещё в `_buildDirectionGroups`; санитайзер — сеть
-      // для путей мимо него (raw-JSON шаблон, §302-патч, restore чужого
-      // бэкапа).
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'n1', 'type': 'vless'},
@@ -248,9 +248,9 @@ void main() {
     });
 
     test('default=block от emptyFallback НЕ перетирается', () {
-      // §201/§274 — эталон `empty_direction_blocks.expected.json`:
-      // [block, direct-out] с default=block. block в составе → правило 3
-      // молчит, порядок опций сохранён.
+
+
+
       final config = {
         'outbounds': [
           {
@@ -289,8 +289,8 @@ void main() {
 
   group('правило 4 — узел с detour на группу со своим участием', () {
     test('вон из состава, detour СОХРАНЁН (fail-open)', () {
-      // Эталон `detour_group_cycle.go`: detour задан пользователем осознанно,
-      // тихо отправить трафик напрямую — нарушить ровно то, о чём он просил.
+
+
       final config = {
         'outbounds': [
           {'tag': 'Proton', 'type': 'vless', 'detour': 'vpn-2'},
@@ -316,11 +316,11 @@ void main() {
     });
 
     test('detour на СЕЛЕКТОР при живом auto-двойнике → вон из обоих', () {
-      // Достижимость правила 4 идёт по составу групп, потому detour на
-      // селектор Направления виден и из его auto-двойника (vpn-2 ∋ vpn-2-auto
-      // ∋ узел). Без этого шага кольцо vpn-2 → vpn-2-auto → узел → vpn-2
-      // достался бы правилу 5, а оно развязало бы его СНЯТИЕМ detour'а — ровно
-      // тем, чего эталон `detour_group_cycle.go` требует избежать.
+
+
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'Relay', 'type': 'vless', 'detour': 'vpn-2'},
@@ -351,14 +351,14 @@ void main() {
     test(
         'композиция fail-open → fail-closed: detour цел, но КОМПОЗИТНЫЙ '
         'warning называет узел и последствие', () {
-      // Сценарий адверсариального ревью: правило 4 выкидывает единственного
-      // участника Направления (его detour сохраняется — fail-open), после
-      // чего правило 2 уводит опустевшее Направление в block-fallback. Итог:
-      // detour узла теперь ведёт в block, весь его трафик заблокирован —
-      // молча перевёрнутая политика при валидном конфиге.
-      //
-      // Решение: detour СОХРАНЯЕМ (снять = выпустить трафик мимо VPN, что
-      // ломает принцип `empty_direction_blocks`), но обязаны сказать вслух.
+
+
+
+
+
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'block', 'type': 'block'},
@@ -373,9 +373,9 @@ void main() {
       };
       final warnings = sanitizeOutboundGraph(config, directionTags: {'vpn-1'});
 
-      // detour цел — fail-open не отменён.
+
       expect(byTag(config, 'a')!['detour'], 'vpn-1');
-      // Направление уцелело block-fallback'ом.
+
       expect(byTag(config, 'vpn-1')!['outbounds'], ['block', 'direct-out']);
       expect(byTag(config, 'vpn-1')!['default'], 'block');
 
@@ -395,9 +395,9 @@ void main() {
     test(
         'Направление в block-fallback БЕЗ живых detour-ов → композитного '
         'warning нет', () {
-      // Обратная сторона: композитный warning гейтится наличием узла,
-      // который в это Направление детурит. Иначе он превратился бы в шум на
-      // каждом пустом по фильтру Направлении.
+
+
+
       final config = {
         'outbounds': [
           {
@@ -436,9 +436,9 @@ void main() {
   group('§377-агрегация правила 4 — по УЗЛУ, а не по группе', () {
     test('узел в селекторе И в auto-двойнике → ОДИН warning со списком групп',
         () {
-      // Виноватый узел состоит и в селекторе Направления, и в его
-      // auto-двойнике; агрегация по ГРУППЕ давала бы два warning'а об одной
-      // и той же ноде.
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'Relay', 'type': 'vless', 'detour': 'vpn-1'},
@@ -470,8 +470,8 @@ void main() {
     });
 
     test('два разных виноватых узла в одной группе → два warning\'а', () {
-      // Агрегация по узлу не должна СКЛЕИВАТЬ разные узлы: каждый теряет
-      // членство сам по себе, и юзеру нужны оба имени.
+
+
       final config = {
         'outbounds': [
           {'tag': 'A', 'type': 'vless', 'detour': 'vpn-1'},
@@ -497,11 +497,11 @@ void main() {
   group('ФИКС 2 — честный текст про цель, снятую самим санитайзером', () {
     test('НЕ-Направленческая группа дропнута → detour снят, «missing» нет',
         () {
-      // Каскад: `g` — обычная группа (не Направление) с единственным членом
-      // `a`; правило 4 выкидывает `a` из состава, группа пустеет и ДРОПАЕТСЯ
-      // санитайзером, после чего правило 1 снимает повисший detour `a → g`.
-      // Текст «referenced missing "g"» отправил бы юзера искать битую
-      // подписку — а тег `g` в конфиге БЫЛ, его удалил сам санитайзер.
+
+
+
+
+
       final config = {
         'outbounds': [
           {
@@ -512,7 +512,7 @@ void main() {
           {'tag': 'a', 'type': 'vless', 'detour': 'g'},
         ],
       };
-      final warnings = sanitizeOutboundGraph(config); // g НЕ Направление
+      final warnings = sanitizeOutboundGraph(config);
 
       expect(byTag(config, 'g'), isNull, reason: 'группа дропнута');
       expect(byTag(config, 'a'), isNotNull, reason: 'узел жив');
@@ -529,8 +529,8 @@ void main() {
     });
 
     test('цель, которой не было изначально → прежний текст «missing»', () {
-      // Обратная сторона развилки: битая подписка по-прежнему называется
-      // битой. Оба текста в ОДНОМ прогоне — тексты не должны схлопнуться.
+
+
       final config = {
         'outbounds': [
           {
@@ -559,10 +559,10 @@ void main() {
 
   group('ФИКС 3 — живость только по ФАКТУ записи (контракт с валидатором)', () {
     test('block БЕЗ записи в конфиге — призрак, как и для validateConfig', () {
-      // До фикса `alive()` объявляла `kReservedDirectionTags` живыми без
-      // записи, а `validator.dart` строит `allTags` строго по фактическим
-      // outbounds/endpoints. Санитайзер оставлял ссылку — валидатор падал
-      // фатально уже ПОСЛЕ него. Теперь обе стороны решают одинаково.
+
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'n1', 'type': 'vless', 'detour': 'block'},
@@ -581,9 +581,9 @@ void main() {
     });
 
     test('block С записью (боевой wizard_template) — живой', () {
-      // Боевой шаблон эмитит `magic_nodes.direct`/`magic_nodes.block`, и по
-      // ФАКТУ записи оба живы: block-fallback пустого Направления
-      // (`empty_direction_blocks`) остаётся цел.
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'n1', 'type': 'vless', 'detour': 'block'},
@@ -603,9 +603,9 @@ void main() {
 
     test('ACTION-псевдоцели правил (direct/reject/drop) — не outbound-теги',
         () {
-      // `direct`/`reject`/`drop` лежат в `kReservedDirectionTags`, но это
-      // ACTION'ы route-правил, а не outbound'ы: в `detour` они такие же
-      // призраки, как любой отсутствующий тег, и ядро отвергло бы конфиг.
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'n1', 'type': 'vless', 'detour': 'reject'},
@@ -623,9 +623,9 @@ void main() {
 
   group('правило 5 — кольца по любым рёбрам', () {
     test('detour→группа→член: кольцо разорвано, конфиг валиден', () {
-      // Транзитивно (не прямое участие): Node детурит в vpn-1, а vpn-1 держит
-      // Relay, который детурит в Node. Правило 4 такое кольцо не видит —
-      // ловит фикспойнт-DFS.
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'Node', 'type': 'vless', 'detour': 'vpn-1'},
@@ -663,15 +663,15 @@ void main() {
           sanitizeOutboundGraph(config, directionTags: {'vpn-1', 'vpn-2'});
       expect(warnings.any((w) => w.contains('excluded from group')), isTrue);
       expect(validateConfig(config).isOk, isTrue);
-      // n1 уцелел в обеих группах — рвём ровно одно ребро.
+
       expect((byTag(config, 'vpn-1')!['outbounds'] as List), contains('n1'));
       expect((byTag(config, 'vpn-2')!['outbounds'] as List), contains('n1'));
     });
 
     test('include-кольцо после reorder (A3): состав спасён, кольца нет', () {
-      // A3 держит антицикл ПОРЯДКОМ списка; кольцо в конфиге может появиться
-      // только мимо формы (raw JSON / restore). Санитайзер рвёт member-ребро,
-      // а не роняет сборку.
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'n1', 'type': 'vless'},
@@ -690,7 +690,7 @@ void main() {
       };
       sanitizeOutboundGraph(config, directionTags: {'vpn-1', 'vpn-2'});
       expect(validateConfig(config).isOk, isTrue);
-      // Обе группы живы и непусты — деградация точечная.
+
       expect((byTag(config, 'vpn-1')!['outbounds'] as List), isNotEmpty);
       expect((byTag(config, 'vpn-2')!['outbounds'] as List), isNotEmpty);
     });
@@ -698,12 +698,12 @@ void main() {
     test(
         '§254-минимальность: кольцо рвётся у виноватого, невиновный флот в '
         'составе цел', () {
-      // Миниатюра device-кейса §254 на голом графе: флот BL ∈ vpn-2 детурит в
-      // vpn-3, одна AWG-нода ∈ vpn-3 детурит обратно в vpn-2. Правило 4 сюда
-      // НЕ лезет (его достижимость — только по составу групп, без detour'ов
-      // чужих узлов): иначе оно выбросило бы из vpn-2 весь невиновный флот и
-      // увело бы Направление в block. Работает правило 5 — снимает ровно один
-      // detour у ноды с минимальным «весом» кольца.
+
+
+
+
+
+
       final config = {
         'outbounds': [
           for (final n in ['BL Sofia', 'BL Zagreb', 'BL Varna'])
@@ -729,7 +729,7 @@ void main() {
       expect(warnings.single, contains('"IN Awg"'));
       expect(warnings.single, contains('detour removed'));
       expect(byTag(config, 'IN Awg')!.containsKey('detour'), isFalse);
-      // Флот не тронут: ни detour'ы, ни состав vpn-2.
+
       for (final n in ['BL Sofia', 'BL Zagreb', 'BL Varna']) {
         expect(byTag(config, n)!['detour'], 'vpn-3', reason: '$n невиновен');
       }
@@ -768,13 +768,13 @@ void main() {
 
   group('КАСКАД до фикспойнта', () {
     test('дроп группы → член-призрак → пустеющая группа → висячая ссылка', () {
-      // Сценарий шапки Go-файла: удаление одного узла делает висячими новые
-      // ссылки, и один проход не сходится.
-      //   inner (urltest) остался без участников → дроп
-      //   → mid (selector) содержал только inner → пустеет
-      //   → outer (selector) содержал только mid → пустеет
-      //   → vpn-1 (Направление) содержал только outer → block-fallback
-      //   → узел, детуривший на outer, теряет detour
+
+
+
+
+
+
+
       final config = {
         'outbounds': [
           {
@@ -837,12 +837,12 @@ void main() {
     });
   });
 
-  // ── §393 C4 — цепочки (правила 6 и 7) ────────────────────────────────────
-  //
-  // КЛЮЧЕВАЯ ЛОВУШКА: у `type: chain` хопы лежат в том же ключе `outbounds[]`,
-  // что и состав группы, но значат другое — ПОЗИЦИИ маршрута. Групповая
-  // семантика («исключить призрака из состава») здесь молча увела бы трафик
-  // другим путём, поэтому цепочка дропается ЦЕЛИКОМ.
+
+
+
+
+
+
 
   group('правило 6 — висячий хоп дропает ЦЕПОЧКУ целиком', () {
     test('позиция на несуществующий тег → цепочки нет, состав НЕ правится', () {
@@ -881,8 +881,8 @@ void main() {
     });
 
     test('каскад: группа опустела → снята → цепочка через неё дропнута', () {
-      // Ровно то, ради чего санитайзер стоит последней точкой: между
-      // `resolveChains` и ним отработали heal'ы, дропнувшие узлы.
+
+
       final config = {
         'outbounds': [
           {'tag': 'NL', 'type': 'vless'},
@@ -905,8 +905,8 @@ void main() {
     });
 
     test('вложенная цепочка позицией ≥1 дропает внешнюю цепочку', () {
-      // Инвариант ядра: звено — «узел через предыдущую позицию», а цепочка
-      // не узел (`protocol/chain/chain.go:279`). `check` этого не ловит.
+
+
       final config = {
         'outbounds': [
           {'tag': 'DE', 'type': 'vless'},
@@ -951,8 +951,8 @@ void main() {
     });
 
     test('цепочка НЕ считается группой: её хопы не «члены состава»', () {
-      // Проверка самой ловушки: будь `chain` в `_isGroup`, призрачный хоп
-      // исключился бы из «состава», а цепочка осталась бы жить урезанной.
+
+
       final config = {
         'outbounds': [
           {'tag': 'DE', 'type': 'vless'},
@@ -971,9 +971,9 @@ void main() {
 
   group('правило 7 — цепочки в листьях группы, стоящей позицией ≥1', () {
     test('группа-позиция ≥1 теряет цепочку из состава (сама группа жива)', () {
-      // Ядро обходит ЛИСТЬЯ группы на старте: выбрав внутри неё цепочку,
-      // пользователь получил бы вложенную цепочку не на позиции 0 — падает
-      // `run`, а не `check` (§393 L4).
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'DE', 'type': 'vless'},
@@ -1035,7 +1035,7 @@ void main() {
     });
 
     test('группа ПОЗИЦИЕЙ 0 цепочки состав не теряет', () {
-      // Позиция 0 — не звено: там вложенная цепочка законна.
+
       final config = {
         'outbounds': [
           {'tag': 'DE', 'type': 'vless'},
@@ -1085,9 +1085,9 @@ void main() {
 
   group('правило 5 — кольцо через позицию цепочки', () {
     test('цепочка через группу, содержащую саму цепочку → разрыв', () {
-      // Ядро на кольце по ЛЮБЫМ рёбрам отвергает конфиг целиком. Позицию у
-      // цепочки не снимают (остаток был бы другим маршрутом) — рвётся
-      // ребро состава либо дропается цепочка.
+
+
+
       final config = {
         'outbounds': [
           {'tag': 'DE', 'type': 'vless'},
@@ -1105,7 +1105,7 @@ void main() {
       };
       final warnings = sanitizeOutboundGraph(config);
       expect(warnings, isNotEmpty);
-      // Что бы ни было разорвано, кольца не осталось и конфиг валиден.
+
       expect(validateConfig(config).isOk, isTrue);
       final grp = byTag(config, 'grp');
       final ch = byTag(config, 'ch');

@@ -1,8 +1,8 @@
-/// §538 — повтор узла внутри одной подписки схлопывается по подписи §480.
-///
-/// Живой вход — подписка D: один AWG-узел строкой `amneziawg://` и тем же
-/// узлом в сжатом контейнере `vpn://`. Значения ниже замаскированы: ключи —
-/// синтетические, адреса — из документационных диапазонов.
+
+
+
+
+
 library;
 
 import 'dart:convert';
@@ -33,7 +33,7 @@ String _awgLink(String name, {String priv = _priv}) =>
     '&presharedkey=${_q(_psk)}&publickey=${_q(_pub)}'
     '&s1=89&s2=86&s3=29&s4=12#${Uri.encodeComponent(name)}';
 
-/// Контейнер Amnezia в форме qCompress: 4 байта длины + zlib, base64url.
+
 String _vpnLink(String name) {
   final ini = '[Interface]\n'
       'PrivateKey = $_priv\n'

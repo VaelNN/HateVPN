@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../models/custom_rule.dart';
 import '../../../models/parser_config.dart';
 
-/// ☁-кнопка статуса SRS для `CustomRuleSrs`-правила. Показывает спиннер при
-/// загрузке, ✅ если файл закэширован, ☁ если нет.
-///
-/// §366 — отдельной кнопки ⟳ здесь намеренно нет: тап по ☁ и так перекачивает
-/// файл, вторая иконка в тесном ряду тайла только дублировала бы её. Явная
-/// кнопка обновления живёт в редакторе правила.
+
+
+
+
+
+
 class SrsStatusButton extends StatelessWidget {
   const SrsStatusButton({
     super.key,
@@ -39,8 +39,8 @@ class SrsStatusButton extends StatelessWidget {
         ),
       );
     }
-    // NB: без tooltip — иначе long-press на иконке показывает тултип и
-    // перехватывает контекст-меню родительского GestureDetector.
+
+
     return IconButton(
       iconSize: 18,
       padding: EdgeInsets.zero,
@@ -54,9 +54,9 @@ class SrsStatusButton extends StatelessWidget {
   }
 }
 
-/// ☁-кнопка для preset-правил с remote rule_set'ами. "cached" = все
-/// remote rule_set'ы пресета имеют локальный `.srs` (spec §011 compliance,
-/// task 011).
+
+
+
 class PresetSrsStatusButton extends StatelessWidget {
   const PresetSrsStatusButton({
     super.key,
@@ -91,9 +91,9 @@ class PresetSrsStatusButton extends StatelessWidget {
         ),
       );
     }
-    // Намеренно InkWell, а не IconButton внутри GestureDetector — GestureDetector
-    // с HitTestBehavior.opaque перехватывал tap ДО IconButton.onPressed. InkWell
-    // получает и tap, и long-press одним нодом.
+
+
+
     return SizedBox(
       width: 32,
       height: 32,

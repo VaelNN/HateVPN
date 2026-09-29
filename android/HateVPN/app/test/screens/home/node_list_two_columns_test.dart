@@ -10,7 +10,7 @@ import 'package:lxbox/services/settings_storage.dart';
 import 'package:lxbox/services/subscription/auto_updater.dart';
 import 'package:lxbox/widgets/node_row.dart';
 
-/// §537 — две колонки списка узлов при ширине ≥ 600 dp (issue #134).
+
 void main() {
   group('nodeListColumnCount — порог 599/600 dp', () {
     test('599 dp — одна колонка', () {
@@ -102,7 +102,7 @@ void main() {
       );
     }
 
-    /// Узлы, отсортированные по позиции на экране: сверху вниз, слева направо.
+
     List<String> visualOrder(WidgetTester tester) {
       final rows = tester.widgetList<NodeRow>(find.byType(NodeRow)).toList();
       final placed = <(double, double, String)>[];
@@ -144,10 +144,10 @@ void main() {
         ..sort();
       expect(xs.length, 2, reason: 'две колонки — ровно два X');
 
-      // Колонки равной ширины: вторая начинается ровно на половине.
+
       expect(xs[1] - xs[0], closeTo(300, 1));
 
-      // Порядок построчный: визуальный порядок == порядок displayList.
+
       expect(visualOrder(tester), tags);
     });
 
@@ -228,7 +228,7 @@ void main() {
       await tester.drag(list.first, const Offset(0, -900));
       await tester.pumpAndSettle();
       final viewport = tester.getRect(list.first);
-      // Первый (верхний) узел во вьюпорте.
+
       String topVisibleTag() {
         final rows = tester
             .widgetList<NodeRow>(find.byType(NodeRow))

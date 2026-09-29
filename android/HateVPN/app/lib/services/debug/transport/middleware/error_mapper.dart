@@ -4,14 +4,14 @@ import '../pipeline.dart';
 import '../request.dart';
 import '../response.dart';
 
-/// Ловит все [DebugError] из handler'ов/middleware'ов и рендерит
-/// в [ErrorResponse]. Незнакомые исключения — в [InternalError] (500)
-/// с логированием stack trace; клиент получает generic "internal server
-/// error" без leak'а деталей.
-///
-/// Должен стоять **первым** в pipeline'е — иначе исключения внешних
-/// middleware (например, accessLog падает на форматировании) вылетят
-/// наружу неперехваченными.
+
+
+
+
+
+
+
+
 Future<DebugResponse> errorMapper(
   DebugRequest req,
   DebugContext ctx,

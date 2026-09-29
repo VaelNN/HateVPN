@@ -14,15 +14,15 @@ import 'package:lxbox/services/probe/probe_runner.dart';
 
 import '../parser/engine_test_setup.dart';
 
-/// §236 — headless probe: конфиг, раннер (probe-сессия; при живом VPN —
-/// маркер-гейт, боевое ядро НЕ зовётся), пороги шкалы.
-/// §439 N2 — член-группа папки (запись `kind: auto`), текста у неё нет.
+
+
+
 FolderMember _group(String tag) => FolderMember.auto(
     AutoSelectSpec(id: tag, tag: tag, label: tag, membership: const RuleMembers()));
 
 void main() {
-  // §480 — разбор исполняет секции реестра; без них конвейера нет вовсе
-  // (критерий 7 спеки 480).
+
+
   setUpAll(loadEngineSections);
 
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -44,8 +44,8 @@ void main() {
             ],
       );
 
-  // §296 — probe теперь над List<NodeSpec?>; папка приводит члены к нодам
-  // (nullable, unfiltered) — тот же bridge, что folder_detail/folders.dart.
+
+
   List<NodeSpec?> nodesOf(FolderServers f) =>
       [for (final m in f.members) m.node];
   ProbeConfig cfgOf(FolderServers f) => buildProbeConfig(nodesOf(f));
@@ -58,9 +58,9 @@ void main() {
       final tags = (config['outbounds'] as List)
           .map((o) => (o as Map)['tag'] as String)
           .toList();
-      expect(tags, containsAll(['Alpha', 'Beta'])); // без префикса папки
+      expect(tags, containsAll(['Alpha', 'Beta']));
       expect(cfg.tagByIndex, {0: 'Alpha', 1: 'Beta'});
-      // Без inbound'ов (openTun не должен вызываться) + local-резолвер.
+
       expect(config.containsKey('inbounds'), isFalse);
       expect((config['route'] as Map)['default_domain_resolver'], kProbeDnsTag);
       final dnsServers = ((config['dns'] as Map)['servers'] as List);
@@ -85,9 +85,9 @@ void main() {
       expect(cfg.brokenByIndex.length, 2);
     });
 
-    // §336 — автоузел (§322) в probe не тестируется: его emitRaw — заготовка
-    // urltest с пустым outbounds, ядро валило на ней ВЕСЬ probe-конфиг
-    // «missing tags» (4PDA #1406/#1407). Группа получает вердикт 'group'.
+
+
+
     test('§336: узел-группа не эмитится, вердикт group, соседи целы', () {
       final cfg = cfgOf(folder(members: [
         FolderMember(raw: uriA),
@@ -111,12 +111,12 @@ void main() {
       expect(cfg.brokenByIndex, {0: 'group', 1: 'group'});
     });
 
-    // ═══ §518 — naive и OOM пробы ══════════════════════════════════════════
-    //
-    // Каждый naive-outbound поднимает Chromium-движок (cronet
-    // `engineCount`), десяток в одном probe-конфиге = OOM процесса при
-    // `oomMemoryLimit` (§173/§271). Гейт: не больше
-    // kProbeMaxNaivePerConfig naive на конфиг.
+
+
+
+
+
+
     group('§518 naive-гейт probe-конфига', () {
       String naive(String tag) => 'naive+https://u:p@$tag.example:443#$tag';
 
@@ -141,14 +141,14 @@ void main() {
         expect(nodes.every((n) => n != null), isTrue, reason: 'фикстуры парсятся');
 
         final batches = buildProbeBatches(nodes);
-        // 5 naive по kProbeMaxNaivePerConfig(=1) → 5 батчей.
+
         expect(batches.length, (5 / kProbeMaxNaivePerConfig).ceil());
         for (final b in batches) {
           expect(naiveCountOf(b), lessThanOrEqualTo(kProbeMaxNaivePerConfig));
         }
 
-        // Полнота и порядок: каждый из 8 индексов проверяется РОВНО один раз,
-        // ни один не потерян и ни один не задублирован.
+
+
         final seen = <int>[];
         for (final b in batches) {
           seen.addAll(b.tagByIndex.keys);
@@ -156,7 +156,7 @@ void main() {
         expect(seen..sort(), [0, 1, 2, 3, 4, 5, 6, 7]);
         expect(batches.first.brokenByIndex, isEmpty);
 
-        // Не-naive лежат в первом батче — как до §518 (один конфиг на всё).
+
         final firstTags = batches.first.tagByIndex;
         expect(firstTags.keys, containsAll([1, 4, 6]));
       });
@@ -173,8 +173,8 @@ void main() {
 
       test('insecure_concurrency снят у naive в ПРОБЕ, боевой emit цел', () {
         final node = FolderMember(raw: naive('n1')).node!;
-        // §302 — import-rules кладут в узел патч тела; probe обязан снять
-        // именно из своей копии, не из патча.
+
+
         final patch = node.emit(TemplateVars.empty);
         (patch as Outbound).map['insecure_concurrency'] = 8;
         node.patchedJson = patch.map;
@@ -185,15 +185,15 @@ void main() {
         expect(probeOut.containsKey('insecure_concurrency'), isFalse,
             reason: 'в пробе движки не множим');
 
-        // Боевой emit узла НЕ изменился: патч на месте, поле цело.
+
         final live = node.emit(TemplateVars.empty) as Outbound;
         expect(live.map['insecure_concurrency'], 8);
         expect(node.patchedJson!['insecure_concurrency'], 8);
       });
 
       test('naive c детуром: гейт считает записи, а не узлы', () {
-        // Узел naive + chained naive = ДВЕ naive-записи, оба движка в одном
-        // конфиге — гейт должен видеть обе (детур эмитится тем же конфигом).
+
+
         final chained = FolderMember(raw: naive('inner')).node!;
         final outer = FolderMember(raw: naive('outer')).node!;
         final withDetour = NaiveSpec(
@@ -206,21 +206,21 @@ void main() {
           chained: chained,
         );
         final batches = buildProbeBatches([withDetour]);
-        // 2 naive-записи > лимит(1), но узел неделим: он один и уходит в
-        // единственный батч — гейт не может разорвать цепочку.
+
+
         expect(batches.length, 1);
         expect(naiveCountOf(batches.single), 2);
         expect(batches.single.tagByIndex.keys, [0]);
       });
 
       test('внутри батча — исходный порядок узлов (уникализация тегов)', () {
-        // Одноимённые naive-узлы разъезжаются по батчам, и каждый получает
-        // базовый тег: `usedTags` у батчей независим. А не-naive, подсаженный
-        // к первому батчу, не должен перевешивать порядок обхода.
+
+
+
         final cfg = buildProbeBatches(nodesOf(folder(members: [
-          FolderMember(raw: uriA), // 'Alpha', не naive
+          FolderMember(raw: uriA),
           FolderMember(raw: naive('n1')),
-          FolderMember(raw: uriA), // тоже 'Alpha' → 'Alpha-2' в своём батче
+          FolderMember(raw: uriA),
         ])));
         expect(cfg.length, 1, reason: '1 naive при лимите 1 → один батч');
         expect(cfg.single.tagByIndex, {0: 'Alpha', 1: 'n1', 2: 'Alpha-2'});
@@ -240,22 +240,22 @@ void main() {
       });
     });
 
-    // ═══ §523 — WG/AWG-endpoint'ы и OOM пробы ══════════════════════════════
-    //
-    // Проба — это дайл, и ядро будит ВСЕ endpoint'ы конфига: каждый WG/AWG
-    // предвыделяет пулы буферов (`PopulatePools`, 128×64 КБ × v4+v6) —
-    // ≈17.5 МБ heap на endpoint по замеру на эмуляторе (192 МБ на 11).
-    // Гейт: не больше kProbeMaxWireguardPerConfig endpoint'ов на конфиг.
+
+
+
+
+
+
     group('§523 WireGuard/AWG-гейт probe-конфига', () {
       const wgPriv = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA=';
       const wgPub = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbA=';
 
-      /// Обычный WG-узел (endpoint `type: wireguard`, без awg-полей).
+
       String wg(String tag) => 'wireguard://$wgPriv@$tag.example:51820'
           '?publickey=$wgPub&address=10.0.0.2/32&mtu=1420#$tag';
 
-      /// §421/§097 — AmneziaWG: ТОТ ЖЕ endpoint `type: wireguard` плюс
-      /// awg-поля в корне. Отдельного типа нет — гейт обязан считать и его.
+
+
       String awg(String tag) => 'wireguard://$wgPriv@$tag.example:51820'
           '?publickey=$wgPub&address=10.0.0.2/32&mtu=1408'
           '&jc=10&jmin=50&jmax=100&s1=20&s2=20&s3=60&s4=60'
@@ -298,8 +298,8 @@ void main() {
         ]));
         expect(nodes.every((n) => n != null), isTrue,
             reason: 'фикстуры парсятся');
-        // AWG действительно опознан как WG-endpoint с awg-полями, а не как
-        // отдельный тип (иначе гейт мерил бы не то).
+
+
         final awgNode = nodes[2]!;
         expect(awgNode.protocol, 'wireguard');
         expect((awgNode as WireguardSpec).awg, isNotNull);
@@ -312,7 +312,7 @@ void main() {
               reason: 'naive по-прежнему по одному (§518)');
         }
 
-        // Полнота: каждый из 14 индексов проверяется РОВНО один раз.
+
         final seen = <int>[];
         for (final b in batches) {
           seen.addAll(b.tagByIndex.keys);
@@ -320,7 +320,7 @@ void main() {
         expect(seen..sort(), [for (var i = 0; i < 14; i++) i]);
         expect(batches.first.brokenByIndex, isEmpty);
 
-        // Не-WG/не-naive (vless) — в первом батче, как до §518.
+
         expect(batches.first.tagByIndex.keys, containsAll([1, 6, 9]));
       });
 
@@ -360,8 +360,8 @@ void main() {
 
       test('WG-детур у vless учитывается в лимите: endpoint уезжает в тот же '
           'батч, что и узел', () {
-        // 4 WG-узла уже набивают лимит; пятый «узел» — vless с WG-детуром,
-        // и его endpoint не смеет подсесть к ним.
+
+
         final chained = FolderMember(raw: wg('inner')).node! as WireguardSpec;
         final plain = FolderMember(raw: uriA).node! as VlessSpec;
         final withWgDetour = VlessSpec(
@@ -382,7 +382,7 @@ void main() {
         ]);
         expect(batches.length, 2, reason: 'детур-endpoint не влез в первый');
         expect(wgCountOf(batches.first), kProbeMaxWireguardPerConfig);
-        // Узел и его WG-детур — в одном (втором) батче.
+
         expect(batches[1].tagByIndex.keys, [4]);
         expect(wgCountOf(batches[1]), 1);
         final types = ((jsonDecode(batches[1].configJson!) as Map)['outbounds']
@@ -393,8 +393,8 @@ void main() {
       });
 
       test('узел с 5 WG-записями в своей цепочке неделим — один батч', () {
-        // Цепочка WG→WG→…: записей больше лимита, но разорвать её гейт не
-        // может (как naive-с-naive-детуром в §518).
+
+
         var node = FolderMember(raw: wg('c1')).node! as WireguardSpec;
         for (var i = 2; i <= 5; i++) {
           final outer = FolderMember(raw: wg('c$i')).node! as WireguardSpec;
@@ -429,9 +429,9 @@ void main() {
     });
   });
 
-  // §546 — эмиттер значений не судит, поэтому probe-конфиг, как и боевая
-  // сборка, проходит гард реестра: тело правится на месте, снятая запись
-  // выводит узел из батча с вердиктом `invalid: …`.
+
+
+
   group('§546 гард реестра в probe-конфиге', () {
     const uuid = '11111111-2222-3333-4444-555555555555';
     const tls = TlsSpec(enabled: true, serverName: 'h.example');
@@ -463,7 +463,7 @@ void main() {
     test('модель с vision + ws → в probe-конфиге flow снят гардом', () {
       final node = vless('V',
           flow: 'xtls-rprx-vision', transport: const WsTransport(path: '/x'));
-      // Эмиттер пишет модель как есть — судит реестр.
+
       expect(node.emit(TemplateVars.empty).map['flow'], 'xtls-rprx-vision');
       final cfg = buildProbeConfig([node]);
       final out = outboundOf(cfg, cfg.tagByIndex[0]!);
@@ -484,8 +484,8 @@ void main() {
       expect(tags, isNot(contains('Bad')));
     });
 
-    // §574 (контракт 1.1.84) — probe назначает detour в обход buildConfig:
-    // tls.fragment уступает ему тем же вопросом к реестру, без кода.
+
+
     test('fragment под detour цепочки снят, у хопа остаётся', () {
       const fragTls = TlsSpec(
         enabled: true,
@@ -538,7 +538,7 @@ void main() {
             return probeStartAnswer;
           case 'probeUrlTest':
             final tag = (call.arguments as Map)['tag'] as String;
-            // Alpha живой (120мс), остальные — err.
+
             return tag == 'Alpha'
                 ? {'delay': 120, 'error': ''}
                 : {'delay': 0, 'error': 'timeout'};
@@ -567,14 +567,14 @@ void main() {
       expect(err, isEmpty);
       expect(results[0]!.status, ProbeStatus.ok);
       expect(results[0]!.delayMs, 120);
-      // Выключенный член тоже протестирован (probe-сессия).
+
       expect(results[1]!.status, ProbeStatus.failed);
       expect(calls.map((c) => c.method), contains('probeStop'));
     });
 
-    // §518 — батчи naive прогоняются ПОСЛЕДОВАТЕЛЬНО, каждый своей сессией:
-    // probeStop после каждого батча освобождает Chromium-движки до старта
-    // следующего, иначе гейт не даёт ничего.
+
+
+
     test('§518: naive-батчи — probeStart/probeStop на каждый, все узлы меряны',
         () async {
       final results = <int, ProbeResult>{};
@@ -590,19 +590,19 @@ void main() {
         onResult: (i, r) => results[i] = r,
       );
       expect(err, '');
-      // Все четыре узла получили вердикт — ни один не потерян батчированием.
+
       expect(results.keys.toList()..sort(), [0, 1, 2, 3]);
       final starts = calls.where((c) => c.method == 'probeStart').length;
       final stops = calls.where((c) => c.method == 'probeStop').length;
       expect(starts, 3, reason: '3 naive при лимите 1 → 3 батча');
       expect(stops, starts, reason: 'сессия гасится после каждого батча');
-      // urlTest — ровно по одному на узел.
+
       expect(calls.where((c) => c.method == 'probeUrlTest').length, 4);
     });
 
-    // §523 — то же для WG/AWG: батчи по kProbeMaxWireguardPerConfig, сессия
-    // гасится после каждого, чтобы пулы буферов предыдущего батча
-    // (≈17.5 МБ на endpoint) освободились до старта следующего.
+
+
+
     test('§523: WG-батчи — probeStart/probeStop на каждый, все узлы меряны',
         () async {
       const priv = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaA=';
@@ -668,12 +668,12 @@ void main() {
         timeoutMs: 0,
         onResult: (i, r) => results[i] = r,
       );
-      // §236 UI-rework — тест через боевое ядро выпилен: возвращаем маркер,
-      // UI показывает гейт-попап (Stop VPN). Ни одной ноды не тестируем.
+
+
       expect(err, kProbeVpnRunning);
       expect(results, isEmpty);
       expect(calls.map((c) => c.method), isNot(contains('ccUrlTestOutbound')));
-      // Сессия не поднялась → probeStop не нужен.
+
       expect(calls.map((c) => c.method), isNot(contains('probeStop')));
     });
 

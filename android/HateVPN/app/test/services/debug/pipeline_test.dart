@@ -73,7 +73,7 @@ void main() {
     });
 
     test('отбрасывает port из header', () async {
-      // `Host: 127.0.0.1:9269` — корректный.
+
       final resp = await runPipeline(
         _req(host: '127.0.0.1:9269'),
         _ctx(),
@@ -140,7 +140,7 @@ void main() {
     });
 
     test('схема должна быть именно `Bearer `, не `bearer`', () async {
-      // HTTP-заголовки case-insensitive по имени, но не по значению.
+
       await expectLater(
         runPipeline(
           _req(auth: 'bearer secret-token'),
@@ -193,9 +193,9 @@ void main() {
     });
 
     test('долгий handler → RequestTimeout', () async {
-      // Handler «зависает» на Completer, который никогда не завершается:
-      // срабатывание таймаута зависит только от таймера middleware'а,
-      // а не от гонки двух реальных задержек (10ms vs 100ms — flaky на CI).
+
+
+
       final hang = Completer<DebugResponse>();
       Future<DebugResponse> slow(DebugRequest r, DebugContext c) => hang.future;
 

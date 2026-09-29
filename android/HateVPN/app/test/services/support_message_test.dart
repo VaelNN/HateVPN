@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages
+
 
 import 'dart:convert';
 import 'dart:io';
@@ -21,9 +21,9 @@ class _FakePathProvider extends PathProviderPlatform
   Future<String?> getApplicationDocumentsPath() async => tempRoot;
 }
 
-/// §356 — support-лента: pick-логика (очередь/since_version/baseline),
-/// fromJson (i18n), fetch/кэш, markRead/snooze, ActiveTimeTracker (native
-/// uptime + legacy).
+
+
+
 void main() {
   late Directory tempDir;
 
@@ -49,7 +49,7 @@ void main() {
   SupportFeed feed(List<SupportMessage> messages, {int snoozeHours = 10}) =>
       SupportFeed(snoozeActiveHours: snoozeHours, messages: messages);
 
-  // Текущая сессия заведомо выше порога — для кейсов про другие оси.
+
   const liveSession = 99999;
 
   SupportMessage? pick(
@@ -79,8 +79,8 @@ void main() {
     ActiveTimeTracker.I.resetForTesting();
     SupportMessageService.I.appVersionForTesting = '2.20.0';
     SupportMessageService.I.httpClientForTesting = null;
-    // §422 — сеть за лентой открыта только с согласия на проверку обновлений;
-    // сетевые кейсы ниже считают, что оно дано.
+
+
     SettingsStorage.resetCacheForTesting();
     await SettingsStorage.setAutoCheckUpdates(true);
   });
@@ -92,7 +92,7 @@ void main() {
     try {
       if (tempDir.existsSync()) await tempDir.delete(recursive: true);
     } on FileSystemException {
-      // AppLog async write race — см. settings_storage_test.
+
     }
   });
 
@@ -108,17 +108,17 @@ void main() {
 
     test('очередь строгая: гейт первого непрочитанного блокирует всю ленту',
         () {
-      // a требует 100ч от baseline, b — 1ч. Наработано 50ч → a не готово,
-      // b НЕ показывается (вперёд не перескакиваем).
+
+
       final f = feed([msg(id: 'a', minHours: 100), msg(id: 'b', minHours: 1)]);
       expect(pick(f, total: 50 * 3600), isNull);
     });
 
     test('baseline: порог считается от точки отсчёта, не от нуля', () {
       final f = feed([msg(id: 'a', minHours: 3)]);
-      // total огромный, но baseline рядом → не готово.
+
       expect(pick(f, total: 500 * 3600, baseline: 498 * 3600), isNull);
-      // Ровно 3ч от baseline → показ.
+
       expect(pick(f, total: 501 * 3600, baseline: 498 * 3600)!.id, 'a');
     });
 
@@ -130,13 +130,13 @@ void main() {
     });
 
     test('бамп since_version выше прочитанной версии → повторный показ', () {
-      // Прочитано на 2.20.0; автор поднял since до 2.21.0.
+
       final f = feed([msg(id: 'a', since: '2.21.0')]);
-      // Юзер ещё на 2.20.0 → сообщение невидимо.
+
       expect(pick(f, appVersion: '2.20.0', read: {'a': '2.20.0'}), isNull);
-      // Обновился до 2.21.0 → непрочитанное заново.
+
       expect(pick(f, appVersion: '2.21.0', read: {'a': '2.20.0'})!.id, 'a');
-      // Прочитал на 2.21.0 → снова тишина (и после следующих обновлений).
+
       expect(pick(f, appVersion: '2.21.0', read: {'a': '2.21.0'}), isNull);
       expect(pick(f, appVersion: '2.22.0', read: {'a': '2.21.0'}), isNull);
     });
@@ -309,7 +309,7 @@ void main() {
       expect(f1!.messages.single.id, 'net-1');
       expect(f1.snoozeActiveHours, 7);
 
-      // Сеть умерла → из кэша.
+
       svc.httpClientForTesting =
           MockClient((req) async => throw const SocketException('down'));
       final f2 = await svc.fetchOrCached();
@@ -329,7 +329,7 @@ void main() {
     test('§422: без согласия на обновления — ни одного запроса, читаем кэш',
         () async {
       final svc = SupportMessageService.I;
-      // Сначала с согласием — кладём кэш.
+
       svc.httpClientForTesting =
           MockClient((req) async => http.Response(body, 200));
       expect((await svc.fetchOrCached())!.messages.single.id, 'net-1');
@@ -357,7 +357,7 @@ void main() {
       final f = await svc.fetchOrCached();
       expect(calls, 0);
       expect(f!.messages.first.id, '001-welcome-guide');
-      // asset не пишется в кэш — при появлении согласия придёт свежая лента.
+
       expect(await SupportState.I.getString('cache_json'), isEmpty);
     });
   });
@@ -367,16 +367,16 @@ void main() {
         () async {
       final svc = SupportMessageService.I;
       final f = feed([msg(id: 'a', minHours: 3)]);
-      // Наработано 500ч на версии 2.20.0, baseline с первого вызова.
+
       await SupportState.I.set('active_seconds', 500 * 3600);
       expect(await svc.nextToShow(f, currentSessionSeconds: liveSession),
           isNull, reason: 'первый вызов ставит baseline=500ч — не готово');
-      // Доработал 3ч на той же версии → показ.
+
       await SupportState.I.set('active_seconds', 503 * 3600);
       expect(
           (await svc.nextToShow(f, currentSessionSeconds: liveSession))!.id,
           'a');
-      // «Обновился» → baseline сдвинулся → снова ждать 3ч.
+
       svc.appVersionForTesting = '2.21.0';
       expect(await svc.nextToShow(f, currentSessionSeconds: liveSession),
           isNull);
@@ -396,7 +396,7 @@ void main() {
       expect(first!.id, 'a');
       await svc.markRead(first);
       expect(await SupportState.I.getStringMap('read'), {'a': '2.20.0'});
-      // b ждёт 3ч от момента прочтения a.
+
       expect(await svc.nextToShow(f, currentSessionSeconds: liveSession),
           isNull);
       await SupportState.I.set('active_seconds', 103 * 3600);
@@ -415,7 +415,7 @@ void main() {
       await svc.snooze(f);
       expect(await svc.nextToShow(f, currentSessionSeconds: liveSession),
           isNull);
-      // Доработал 10ч активного времени → снова показ (baseline не двигался).
+
       await SupportState.I.set('active_seconds', 13 * 3600);
       expect((await svc.nextToShow(f, currentSessionSeconds: liveSession))!.id,
           'a');
@@ -426,14 +426,14 @@ void main() {
     test('доливка delta по нативному аптайму (переживает мёртвый UI)',
         () async {
       final t = ActiveTimeTracker.I;
-      var uptimeMs = 30 * 60 * 1000; // 30 мин
+      var uptimeMs = 30 * 60 * 1000;
       t.uptimeMsProvider = () async => uptimeMs;
 
       expect(await t.totalSeconds(), 30 * 60);
-      // «Смахнул, VPN отработал ещё 5ч, открыл приложение».
+
       uptimeMs += 5 * 3600 * 1000;
       expect(await t.totalSeconds(), 30 * 60 + 5 * 3600);
-      // Повторный вызов без роста аптайма не задваивает.
+
       expect(await t.totalSeconds(), 30 * 60 + 5 * 3600);
     });
 
@@ -443,7 +443,7 @@ void main() {
       t.uptimeMsProvider = () async => uptimeMs;
       expect(await t.totalSeconds(), 2 * 3600);
 
-      // Туннель перезапустился, новая сессия 10 мин.
+
       uptimeMs = 10 * 60 * 1000;
       expect(await t.totalSeconds(), 2 * 3600 + 10 * 60);
     });
@@ -456,7 +456,7 @@ void main() {
 
       await t.onTunnelChanged(false);
       expect(await SupportState.I.getInt('session_credited'), 0);
-      // Новая сессия зачисляется с нуля.
+
       uptimeMs = 5 * 60 * 1000;
       await t.onTunnelChanged(true);
       expect(await SupportState.I.getInt('active_seconds'), 3600 + 5 * 60);
@@ -484,14 +484,14 @@ void main() {
       expect(await t.totalSeconds(), 100);
 
       await t.onTunnelChanged(true);
-      // live-хвост ≥ 0 — total не уменьшается.
+
       expect(await t.totalSeconds(), greaterThanOrEqualTo(100));
 
       await t.onTunnelChanged(false);
-      // После disconnect persisted ≥ 100 (delta могла быть 0 секунд).
+
       expect(await SupportState.I.getInt('active_seconds'),
           greaterThanOrEqualTo(100));
-      // Сессия закрыта — повторный disconnect no-op.
+
       await t.onTunnelChanged(false);
     });
   });

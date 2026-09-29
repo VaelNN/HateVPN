@@ -11,47 +11,47 @@ import 'parser/uri_utils.dart' show newUuidV4;
 import 'storage_migration/legacy_form_v0.dart'
     show readLegacyCustomRule, readLegacyDnsRule, readLegacyDnsServer;
 
-/// §396 — обмен правилами роутинга файлом (export/import выбранных правил).
-///
-/// Wire-format — конверт, симметричный бэкапу (`backup_service.dart`):
-///
-/// ```json
-/// {
-///   "app": "lxbox",
-///   "kind": "rules",
-///   "format": 2,
-///   "created_at": "<ISO8601 UTC>",
-///   "source_app_version": "2.23.3+22303",
-///   "rules": [ { "kind": …, "id": …, "name": …, "enabled": …, "body": … } ],
-///   "dns_servers": [ { "kind": "user", "tag": …, "body": … } ],
-///   "dns_rules": [ { "kind": "user", "name": …, "body": … } ]
-/// }
-/// ```
-///
-/// §439 — `format: 2`: элементы — записи хранения 1.0, их пишет и читает кодек
-/// записей (`models/record_codec.dart`). Файл правил — обмен между
-/// установками LxBox, поэтому поля LxBox (`verbatim`, `update_interval_hours`,
-/// `description`, `vars` сервера) едут все. `format: 1` (форма хранения
-/// 2.23.2) читают замороженные читатели `legacy_form_v0.dart`.
-///
-/// Экспорт пишет правила as is (включая `id`/`enabled`/`num`) — вся санация
-/// на стороне импорта: id перегенерируется, чужая ось `num` не переносится,
-/// висячие ссылки лечатся (§5 спеки).
 
-/// Версия схемы конверта, которую пишет экспорт. Читатель отвергает
-/// `format` выше неё — файл из более новой версии приложения может нести
-/// несовместимую семантику полей.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const int kRulesExportFormatVersion = 2;
 
-/// `format` файлов до §439: элементы в форме хранения 2.23.2.
+
 const int kRulesFormatLegacy = 1;
 
-/// Дефолт лечения висячего outbound-тега — тот же, что у удаления Направления
-/// (`SettingsStorage.deleteDirection`, §202): основное Направление, существует всегда.
+
+
 const String kImportOutboundFallback = 'vpn-1';
 
-/// Build JSON-строки экспорта для выбранных правил (+ опциональные
-/// DNS-секции второго экрана) — записями хранения.
+
+
 String buildRulesExport(
   List<CustomRule> rules, {
   String? appVersion,
@@ -74,8 +74,8 @@ String buildRulesExport(
   return const JsonEncoder.withIndent('  ').convert(out);
 }
 
-/// Suggested filename экспорта: `lxbox-rules-{YYYYMMDD-HHMM}.json`
-/// (образец — `BackupService.suggestedFilename`).
+
+
 String suggestedRulesFilename() {
   final now = DateTime.now();
   String two(int v) => v.toString().padLeft(2, '0');
@@ -84,9 +84,9 @@ String suggestedRulesFilename() {
   return 'lxbox-rules-$date.json';
 }
 
-/// Распарсенный конверт импорта. Элементы [rawRules] намеренно dynamic —
-/// per-element валидация (вплоть до «мусор, пропустить») живёт в
-/// [sanitizeImportedRule], чтобы один битый элемент не ронял весь файл.
+
+
+
 class RulesImportContents {
   const RulesImportContents({
     this.format = kRulesExportFormatVersion,
@@ -97,21 +97,21 @@ class RulesImportContents {
     this.rawDnsRules = const [],
   });
 
-  /// `format` конверта: форма элементов ([kRulesFormatLegacy] — 2.23.2).
+
   final int format;
 
   final DateTime? createdAt;
   final String? sourceAppVersion;
   final List<dynamic> rawRules;
 
-  /// Опциональные DNS-секции конверта (`dns_servers[]` / `dns_rules[]`).
+
   final List<dynamic> rawDnsServers;
   final List<dynamic> rawDnsRules;
 }
 
-/// Parse + validate конверта. Throws [FormatException] на нечитаемый файл.
-/// Тексты — как у `BackupService.parseImport`: английские, UI показывает
-/// `e.message` в снекбаре as is.
+
+
+
 RulesImportContents parseRulesImport(String raw) {
   final dynamic decoded;
   try {
@@ -128,7 +128,7 @@ RulesImportContents parseRulesImport(String raw) {
   final app = decoded['app']?.toString();
   final kind = decoded['kind']?.toString();
   if (app != 'lxbox' || kind != 'rules') {
-    // kind: backup — самая вероятная путаница: подсказываем, куда его нести.
+
     if (app == 'lxbox' && kind == 'backup') {
       throw const FormatException(
           'This is a LxBox backup file — restore it via Settings → Backup.');
@@ -170,8 +170,8 @@ RulesImportContents parseRulesImport(String raw) {
   );
 }
 
-/// Теги DNS-серверов, на которые ссылаются правила (`dns.serverTag` +
-/// `resolve.serverTag`). Экспорт предотмечает ими секцию DNS servers.
+
+
 Set<String> referencedDnsServerTags(Iterable<CustomRule> rules) {
   final tags = <String>{};
   for (final r in rules) {
@@ -183,20 +183,20 @@ Set<String> referencedDnsServerTags(Iterable<CustomRule> rules) {
   return tags;
 }
 
-/// Типизированное предупреждение санации — текст рендерит UI через
-/// `getLocalText` (§285: сервис строк не показывает).
+
+
 enum ImportRuleWarningKind {
-  /// `outbound` (или preset-override) ссылался на несуществующее Направление —
-  /// заменён на [kImportOutboundFallback], правило выключено.
+
+
   outboundMissing,
 
-  /// `dns.serverTag` ссылался на несуществующий DNS-сервер — DNS-опция
-  /// выключена, тег очищен (`forceIpv4` сохранён — глушилке §256 сервер
-  /// не нужен).
+
+
+
   dnsServerMissing,
 
-  /// `resolve.serverTag` ссылался на несуществующий DNS-сервер — сброшен
-  /// в '' (= auto, §247).
+
+
   resolveServerMissing,
 }
 
@@ -205,30 +205,30 @@ class ImportRuleWarning {
 
   final ImportRuleWarningKind kind;
 
-  /// Тег, которого не оказалось у получателя (для подстановки в текст).
+
   final String missingTag;
 }
 
-/// Причина, по которой элемент файла неимпортируем (disabled в превью).
+
 enum ImportRuleRejectReason {
-  /// Элемент — не объект или `kind` не из известного enum'а (файл от более
-  /// новой версии с новым видом правил; остальные элементы живы).
+
+
   unsupportedEntry,
 
-  /// §398 — пресеты вне обмена: пресет есть у каждого получателя (он из
-  /// шаблона приложения), переносить нечего. Файлы v2.20.11 могли нести
-  /// пресет в `rules[]` — отвергаем на импорте.
+
+
+
   presetNotTransferable,
 
-  /// §398 — правило с таким видимым именем у получателя уже есть. Дублей не
-  /// создаём: неотличимые по имени правила невозможно осмысленно удалять.
+
+
   nameExists,
 
-  /// preset: `presetId` отсутствует в шаблоне получателя.
+
   unknownPreset,
 }
 
-/// Итог санации одного элемента `rules[]`.
+
 class SanitizedImportRule {
   const SanitizedImportRule({
     this.rule,
@@ -238,39 +238,39 @@ class SanitizedImportRule {
     this.needsSrsDownload = false,
   });
 
-  /// Готовое к вставке правило (id уже перегенерирован). null → см.
-  /// [rejectReason].
+
+
   final CustomRule? rule;
 
-  /// Имя для строки превью: name из файла; для preset — live-label шаблона
-  /// получателя (fallback: name/presetId из файла).
+
+
   final String displayLabel;
 
   final List<ImportRuleWarning> warnings;
   final ImportRuleRejectReason? rejectReason;
 
-  /// Правилу нужен `.srs`-файл (CustomRuleSrs или preset с remote
-  /// rule_set'ами) — приезжает выключенным, юзеру нужен ☁ (паттерн
-  /// `_copyPreset`).
+
+
+
   final bool needsSrsDownload;
 
   bool get importable => rule != null;
 }
 
-/// Санация одного элемента `rules[]` (§5 спеки §396).
-///
-/// [directionTags] — теги ВСЕХ Направлений получателя (включая выключенные: ссылку
-/// на выключенное Направление лечит существующая механика варнингов §274/§277).
-/// [dnsServerTags] — union storage-refs ∪ template (источник дропдауна §117).
-/// [existingNames] — §398: видимые имена правил получателя
-/// (`visibleRuleNames`, §279). Совпадение → элемент неимпортируем: дублей по
-/// имени не создаём, иначе их невозможно осмысленно различать и удалять.
-/// Вызывающий добавляет в набор имена уже вставленных элементов файла, чтобы
-/// два одноимённых правила в одном файле не прошли оба.
-///
-/// [format] — `format` конверта ([RulesImportContents.format]).
-///
-/// `num` здесь НЕ трогается — это забота [insertImportedRule].
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 SanitizedImportRule sanitizeImportedRule(
   dynamic rawEntry, {
   required Set<String> directionTags,
@@ -295,10 +295,10 @@ SanitizedImportRule sanitizeImportedRule(
     );
   }
 
-  // §398 — пресеты вне обмена: пресет есть у каждого получателя (он из
-  // шаблона приложения). Файлы v2.20.11 могли нести его в `rules[]`, а
-  // вторая копия пресета в списке ещё и неудаляема (seed §264 держит
-  // инвариант по presetId) — отвергаем на входе.
+
+
+
+
   if (parsed.kind == CustomRuleKind.preset) {
     return SanitizedImportRule(
       displayLabel: label.isNotEmpty ? label : parsed.presetId,
@@ -306,7 +306,7 @@ SanitizedImportRule sanitizeImportedRule(
     );
   }
 
-  // §398 — дубль по видимому имени не создаём.
+
   if (existingNames.contains(parsed.name)) {
     return SanitizedImportRule(
       displayLabel: parsed.name,
@@ -318,7 +318,7 @@ SanitizedImportRule sanitizeImportedRule(
   var rule = parsed;
   var forceDisable = false;
 
-  // ── outbound: тег Направления получателя, спец-теги или пусто («как в шаблоне»).
+
   final validOutbounds = <String>{
     '',
     kOutboundReject,
@@ -331,13 +331,13 @@ SanitizedImportRule sanitizeImportedRule(
     warnings.add(
         ImportRuleWarning(ImportRuleWarningKind.outboundMissing, outbound));
     rule = rule.withOutbound(kImportOutboundFallback);
-    // Включённое правило сразу погнало бы трафик не туда, куда задумал
-    // автор, — выключаем; причина названа в превью (§261: не мутируем молча).
+
+
     forceDisable = true;
   }
 
-  // ── dns.serverTag / resolve.serverTag: только inline/srs (у preset DNS
-  // живёт в шаблоне). Лечение мутирует копию через type-specific copyWith.
+
+
   final dns = rule.dns;
   if (dns != null &&
       dns.serverTag.isNotEmpty &&
@@ -356,9 +356,9 @@ SanitizedImportRule sanitizeImportedRule(
     rule = _withResolve(rule, resolve.copyWith(serverTag: ''));
   }
 
-  // ── srs: кэша `.srs` у получателя нет — правило приезжает выключенным
-  // («tap ☁ to download, then enable», предикат `_copyPreset`). §398 —
-  // preset-ветки здесь больше нет: пресеты до этой точки не доходят.
+
+
+
   final needsSrs = rule is CustomRuleSrs;
   if (needsSrs || forceDisable) {
     rule = rule.withEnabled(false);
@@ -372,14 +372,14 @@ SanitizedImportRule sanitizeImportedRule(
   );
 }
 
-/// Элемент `rules[]` → правило с новым `id`; `null` — элемент неимпортируем.
-///
-/// `id` файла не читается: `CustomRule` сам выдаёт новый UUID, и повторный
-/// импорт не коллизирует. Элемент без известного `kind` — мусор или вид из
-/// более новой версии: его не угадываем как inline. `format: 1` читает
-/// замороженный читатель 2.23.2 (поле неверного типа бросает — элемент
-/// отвергается), `format: 2` — кодек записей путём хранения: inline-тело,
-/// которое модель не выражает, остаётся сырым правилом.
+
+
+
+
+
+
+
+
 CustomRule? _ruleOfEntry(Map<String, dynamic> entry, int format) {
   final withoutId = {...entry}..remove('id');
   if (format == kRulesFormatLegacy) {
@@ -394,14 +394,14 @@ CustomRule? _ruleOfEntry(Map<String, dynamic> entry, int format) {
   return ruleFromRecord(withoutId, unknownAsVerbatim: true).value;
 }
 
-/// Вставка санированного правила в список (мутирует [target]): назначение
-/// `num` (§370) + append. Сортировку по оси и персист делает вызывающий —
-/// один раз на весь импорт.
-///
-/// §398 — имя НЕ мутируется: конфликтные по имени элементы отбраковываются
-/// санацией и сюда не доходят (дублей не создаём). Пресетов здесь тоже нет.
-/// `num` — [nextUserRuleNum]: каждое следующее правило видит уже вставленные
-/// предыдущие, поэтому мульти-импорт нумеруется последовательно.
+
+
+
+
+
+
+
+
 CustomRule insertImportedRule(
   List<CustomRule> target,
   CustomRule rule, {
@@ -412,28 +412,28 @@ CustomRule insertImportedRule(
   return rule;
 }
 
-// ─── §396 DNS-секции: санация dns_servers[] / dns_rules[] ────────────────
 
-/// Почему элемент DNS-секции не будет импортирован (disabled в превью).
+
+
 enum ImportDnsSkipReason {
-  /// Не читается (кодек записей или читатель `format: 1` его не принял) или
-  /// сам элемент — не объект.
+
+
   unsupportedEntry,
 
-  /// Сервер/правило с этим tag/именем/дублем уже есть у получателя —
-  /// его настройки НЕ перезаписываются чужим файлом.
+
+
   alreadyExists,
 
-  /// template-сущность, которой нет в шаблоне этой версии приложения.
+
   notAvailable,
 
-  /// `kind: preset` — такие refs резолвер §294 порождает и чистит сам
-  /// при включении routing-пресета; поштучно не переносятся.
+
+
   managedByPresets,
 }
 
-/// Итог санации одного элемента DNS-секции. [item] — готовая к вставке
-/// модель (у srs-правила `id` уже перегенерирован).
+
+
 class SanitizedImportDnsItem<T extends Object> {
   const SanitizedImportDnsItem({
     this.item,
@@ -448,10 +448,10 @@ class SanitizedImportDnsItem<T extends Object> {
   bool get importable => item != null;
 }
 
-/// Санация элемента `dns_servers[]`.
-///
-/// [existingTags] — теги DNS-серверов получателя;
-/// [templateServerTags] — теги шаблонных серверов его версии приложения.
+
+
+
+
 SanitizedImportDnsItem<DnsServerRef> sanitizeImportedDnsServer(
   dynamic raw, {
   required Set<String> existingTags,
@@ -490,10 +490,10 @@ SanitizedImportDnsItem<DnsServerRef> sanitizeImportedDnsServer(
   return SanitizedImportDnsItem(item: ref, label: label);
 }
 
-/// Санация элемента `dns_rules[]`.
-///
-/// [existingRules] — DNS-правила получателя;
-/// [template] — для проверки preset/template-правил.
+
+
+
+
 SanitizedImportDnsItem<DnsRuleRef> sanitizeImportedDnsRule(
   dynamic raw, {
   required List<DnsRuleRef> existingRules,
@@ -550,7 +550,7 @@ SanitizedImportDnsItem<DnsRuleRef> sanitizeImportedDnsRule(
       return SanitizedImportDnsItem(item: ref, label: ref.name);
 
     case DnsRuleInline():
-      // Точный дубль (имя, тело, тумблер) → skip; иначе импортируем как есть.
+
       if (existingRules.contains(ref)) {
         return SanitizedImportDnsItem(
             label: ref.name, skipReason: ImportDnsSkipReason.alreadyExists);
@@ -564,15 +564,15 @@ SanitizedImportDnsItem<DnsRuleRef> sanitizeImportedDnsRule(
         return SanitizedImportDnsItem(
             label: ref.name, skipReason: ImportDnsSkipReason.alreadyExists);
       }
-      // Кэш-файл `.srs` привязан к id — у получателя свой, id перегенерируем.
+
       return SanitizedImportDnsItem(
           item: ref.copyWith(id: newUuidV4()), label: ref.name);
   }
 }
 
-// ─── helpers: type-preserving запись dns/resolve ─────────────────────────
-// У sealed-базы нет withDns/withResolve (опции есть только у inline/srs) —
-// локальный pattern-match вместо расширения базового класса.
+
+
+
 
 CustomRule _withDns(CustomRule rule, RuleDns dns) => switch (rule) {
       CustomRuleInline() => rule.copyWith(dns: dns),

@@ -2,18 +2,18 @@ import '../../contract/errors.dart';
 import '../pipeline.dart';
 import '../response.dart';
 
-/// Структурный лог на каждый запрос: метод, path, query (с redaction
-/// sensitive-ключей), статус, latency, ошибка если была.
-///
-/// Пример строки:
-/// ```
-/// [debug-api] GET /state?reveal=*** → 200 12ms
-/// [debug-api] POST /action/toast?msg=hi → 200 3ms
-/// [debug-api] GET /state → 401 1ms
-/// ```
-///
-/// Ставится **после** errorMapper: тогда logging видит финальный
-/// статус (включая 401/403/500), а не сырое исключение.
+
+
+
+
+
+
+
+
+
+
+
+
 Middleware accessLog() {
   return (req, ctx, next) async {
     final sw = Stopwatch()..start();
@@ -42,8 +42,8 @@ Middleware accessLog() {
   };
 }
 
-/// Redact'им sensitive query-ключи (`token`, `secret`, `auth`, `key`).
-/// Значения заменяются на `***`; ключ оставляем чтобы видеть структуру.
+
+
 String _formatQuery(Map<String, String> q) {
   if (q.isEmpty) return '';
   return q.entries.map((e) {

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# §104 — скачивает ядро sing-box-lx (libbox.aar) из GitHub Releases форка
-# Leadaxe/sing-box-lx с проверкой SHA256.
-#
-# Версия пинится в app/android/libbox.version (single source of truth для
-# local + CI). Override: ./scripts/fetch-libbox.sh v1.13.13-lx.N
-#
-# Идемпотентен: если в libs/ уже лежит AAR той же версии (маркер
-# .libbox.version) — выходит сразу. Используется build-local-apk.sh и CI
-# (ci.yml → android job → "Fetch sing-box-lx core").
+
+
+
+
+
+
+
+
+
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -31,7 +31,7 @@ trap 'rm -rf "$TMP"' EXIT
 curl -fsSL --retry 3 -o "$TMP/$AAR" "$BASE_URL/$AAR"
 curl -fsSL --retry 3 -o "$TMP/SHA256SUMS" "$BASE_URL/SHA256SUMS"
 
-# sha256sum (linux/CI) или shasum -a 256 (macOS).
+
 if command -v sha256sum >/dev/null 2>&1; then
   SHACMD="sha256sum"
 else
